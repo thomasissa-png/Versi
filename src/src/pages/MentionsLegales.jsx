@@ -43,7 +43,7 @@ export default function MentionsLegales() {
 
           <section className="legal-page__section">
             <h2>Hébergeur</h2>
-            <p>Le site versi.fr est hébergé par Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis.</p>
+            <p>Le site versi.fr est hébergé par Replit Inc., 350 Bush Street, Suite 200, San Francisco, CA 94104, États-Unis.</p>
           </section>
 
           <section className="legal-page__section">
