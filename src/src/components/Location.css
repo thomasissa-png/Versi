@@ -88,7 +88,13 @@
     gap: var(--spacing-xl);
   }
 
+  .location__map {
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
   .location__map svg {
-    max-width: 400px;
+    max-width: 100%;
   }
 }

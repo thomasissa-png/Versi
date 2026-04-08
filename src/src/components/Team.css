@@ -82,6 +82,8 @@
 
 .team__name {
   color: var(--color-text-primary);
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .team__role {
