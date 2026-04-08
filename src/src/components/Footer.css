@@ -21,10 +21,10 @@
 }
 
 .footer__logo {
-  font-size: 0.8125rem;
-  font-weight: var(--font-weight-regular);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-thin);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.18em;
   color: var(--color-text-inverse);
 }
 

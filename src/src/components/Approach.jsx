@@ -31,8 +31,8 @@ export default function Approach() {
     <section id="approche" className="approach section-padding" ref={ref}>
       <div className="container">
         <span className="text-label approach__label">APPROCHE</span>
-        <h2 className="text-heading-lg approach__title">Notre méthode.</h2>
-        <p className="approach__subtitle">Quatre étapes. Un cycle reproductible.</p>
+        <h2 className="text-heading-lg approach__title">Quatre étapes. Aucune délégation.</h2>
+        <p className="approach__subtitle">Un cycle reproductible. De la sourcing à la sortie.</p>
 
         <div className={`approach__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {STEPS.map((step, i) => (

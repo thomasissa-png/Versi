@@ -23,7 +23,7 @@ export default function Mission() {
             Chaque opération Versi est pilotée par les mêmes fondateurs de la sourcing à la clé. Pas de sous-traitance de la stratégie. Pas de dilution de la décision.
           </p>
           <p className="text-body-md mission__body-secondary">
-            Nous n'arbitrons pas. Nous opérons. Chaque décision critique reste en interne, portée par les mêmes fondateurs du début à la fin.
+            Nous n'arbitrons pas. Nous opérons.
           </p>
         </div>
         <div className="mission__stats">

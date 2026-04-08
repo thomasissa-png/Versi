@@ -51,7 +51,7 @@ export default function Hero() {
             className="hero__cta-primary"
             onClick={(e) => handleClick(e, '#activites')}
           >
-            DÉCOUVRIR NOS ACTIVITÉS
+            NOS ACTIVITÉS
           </a>
           <a
             href="#contact"
