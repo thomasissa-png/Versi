@@ -31,6 +31,7 @@
   --color-accent: #C8B9A6;
   --color-border: #D9D4CE;
   --color-border-input: rgba(255, 255, 255, 0.2);
+  --color-border-dark: rgba(255, 255, 255, 0.12);
   --color-border-focus: #C8B9A6;
   --color-error: #DC3545;
   --color-error-on-dark: #FF6B6B;
@@ -70,6 +71,8 @@
   --shadow-nav: 0 1px 0 rgba(255, 255, 255, 0.08);
 
   /* --- Tailles typographiques sémantiques --- */
+  --font-size-small: 0.75rem;
+  --font-size-label: 0.8125rem;
   --font-size-body-sm: 0.875rem;
   --font-size-body-md: 1rem;
   --font-size-body-lg: 1.125rem;
@@ -222,7 +225,7 @@ ul, ol {
 }
 
 .text-label {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -230,7 +233,7 @@ ul, ol {
 }
 
 .text-cta {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -271,6 +274,15 @@ ul, ol {
   width: 100%;
 }
 
+/* === Non-retina readability fallback === */
+
+@media (max-resolution: 1.5dppx) {
+  .text-display,
+  .text-heading-lg {
+    font-weight: var(--font-weight-regular);
+  }
+}
+
 /* === Responsive === */
 
 @media (max-width: 1279px) {
@@ -293,7 +305,7 @@ ul, ol {
   }
 
   .text-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-small);
   }
 
   .text-stat {

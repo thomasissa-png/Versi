@@ -30,7 +30,7 @@
 .approach__step {
   position: relative;
   padding-right: var(--spacing-xl);
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid var(--color-border-dark);
 }
 
 .approach__step:last-child {
@@ -71,7 +71,7 @@
     padding-bottom: var(--spacing-xl);
     margin-bottom: var(--spacing-xl);
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--color-border-dark);
   }
 
   .approach__step:last-child {
@@ -98,7 +98,7 @@
   }
 
   .approach__step:nth-child(odd) {
-    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid var(--color-border-dark);
     padding-right: var(--spacing-xl);
   }
 }

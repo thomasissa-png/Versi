@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   color: var(--color-text-muted);
 }
 

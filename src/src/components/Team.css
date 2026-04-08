@@ -1,5 +1,6 @@
 .team {
   background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border);
 }
 
 .team__label {

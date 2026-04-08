@@ -41,11 +41,12 @@ export default function Hero() {
           Quatre métiers.<br />
           Un cycle maîtrisé.
         </h1>
-        <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`}>
-          Acquisition, transformation, détention, structuration financière.
-          Tout le cycle, en interne.
+        <div className={`hero__accent ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`} aria-hidden="true" />
+        <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`}>
+          Un seul opérateur du sourcing à la sortie.
+          Pas de délégation, pas de perte de contrôle.
         </p>
-        <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`}>
+        <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--4' : 'hero__hidden'}`}>
           <a
             href="#activites"
             className="hero__cta-primary"
@@ -63,7 +64,7 @@ export default function Hero() {
         </div>
         {scrollHintVisible && (
           <div
-            className={`hero__scroll-hint ${loaded ? 'hero__fade hero__fade--4' : 'hero__hidden'}`}
+            className={`hero__scroll-hint ${loaded ? 'hero__fade hero__fade--5' : 'hero__hidden'}`}
             aria-hidden="true"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

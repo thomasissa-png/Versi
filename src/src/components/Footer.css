@@ -4,7 +4,7 @@
 }
 
 .footer__separator {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--color-border-dark);
   margin-bottom: var(--spacing-3xl);
 }
 
@@ -29,7 +29,7 @@
 }
 
 .footer__baseline {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   color: var(--color-text-muted);
 }
 
@@ -41,7 +41,7 @@
 }
 
 .footer__email {
-  font-size: 0.875rem;
+  font-size: var(--font-size-body-sm);
   color: var(--color-text-muted);
   text-decoration: none;
   transition: color var(--duration-normal) ease;
@@ -52,7 +52,7 @@
 }
 
 .footer__entities {
-  font-size: 0.75rem;
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   opacity: var(--opacity-muted);
 }
@@ -63,7 +63,7 @@
 }
 
 .footer__legal-link {
-  font-size: 0.75rem;
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   text-decoration: none;
   transition: color var(--duration-normal) ease;
@@ -74,12 +74,12 @@
 }
 
 .footer__legal-sep {
-  font-size: 0.75rem;
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
 }
 
 .footer__copyright {
-  font-size: 0.75rem;
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
 }
 

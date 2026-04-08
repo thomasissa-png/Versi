@@ -1,5 +1,6 @@
 .activities {
   background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border);
 }
 
 .activities__label {

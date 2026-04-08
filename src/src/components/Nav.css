@@ -41,7 +41,7 @@
 }
 
 .nav__link {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -61,7 +61,7 @@
 }
 
 .nav__cta {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -188,11 +188,11 @@
   }
 
   .nav__link {
-    font-size: 0.75rem;
+    font-size: var(--font-size-small);
   }
 
   .nav__cta {
-    font-size: 0.75rem;
+    font-size: var(--font-size-small);
     padding: 8px 16px;
   }
 }
