@@ -1,8 +1,47 @@
 # Harmonisation photos fondateurs Versi
 
-Objectif : Thomas et Carl doivent matcher le style de Maxime (golden hour, exterieur, tons chauds, couleur naturelle).
+Objectif : les 3 photos fondateurs doivent avoir un style uniforme — exterieur, green bokeh naturel, golden hour douce, tons chauds.
 
-**Photo reference (Maxime)** : portrait exterieur, lumiere naturelle chaude venant de la gauche, fond nature/ciel flou, chemise rayee claire, sourire naturel, teint chaud. 928x1120 px.
+**Photo reference de style** : thomas3.png (VALIDE 8/10) — exterieur, golden hour, blazer marine, fond vert bokeh naturel, regard face camera. C'est desormais la reference de style pour les retouches restantes.
+
+**Statut global** :
+| Fondateur | Photo source | Photo validee | Statut | Score |
+|---|---|---|---|---|
+| Thomas | thomas.png | thomas3.png | VALIDE | 8/10 |
+| Carl | Carl-picture.jfif | Carl3.png | ACCEPTABLE — V2 optionnelle recommandee | 7.5/10 |
+| Maxime | max.png | — | A RETOUCHER — max2.png rejetee (4/10) | — |
+
+---
+
+## 0. Consignes anti-artefacts IA (obligatoire pour TOUS les prompts)
+
+Les outils de relighting/fond IA produisent des artefacts reconnaissables. Chaque prompt DOIT integrer ces garde-fous :
+
+**INTERDIT dans tout resultat** :
+- Bokeh balls (ronds lumineux flous) — marqueur IA le plus evident
+- Lens flare artificiels (trainees lumineuses)
+- Saturation excessive de la lumiere golden hour (pas de "filtre Instagram")
+- Fond avec eau, plage, coucher de soleil tropical — aucun fond "paradise"
+- Halos lumineux autour du sujet (transition fond trop nette ou trop brillante)
+- Peau lissee artificiellement ou teinte de peau orange
+- Yeux avec reflets non naturels
+
+**OBLIGATOIRE dans tout resultat** :
+- Fond = vegetation verte floue UNIQUEMENT (arbres, feuillage, haie)
+- Bokeh = doux et uniforme, pas de points lumineux individuels visibles
+- Lumiere = naturelle, laterale gauche, chaleur moderee (pas sursaturee)
+- Transition sujet/fond = progressive et naturelle (pas de decoupe nette)
+- Teint de peau = naturel, fidele a la photo source
+
+**Si l'outil supporte les negative prompts** (Relight AI, Stable Diffusion, etc.) :
+```
+Negative prompt: bokeh balls, lens flare, light orbs, circular highlights,
+oversaturated, orange skin, artificial glow, water reflection, beach,
+sunset over water, HDR effect, Instagram filter, smooth skin, airbrushed,
+plastic skin, halo around subject, sharp cutout edges
+```
+
+**Regle de validation** : comparer le resultat avec thomas3.png. Si le fond ou la lumiere semble "plus IA" que thomas3 → rejeter et regenerer.
 
 ---
 
@@ -23,15 +62,21 @@ Objectif : Thomas et Carl doivent matcher le style de Maxime (golden hour, exter
 
 ## 2. Prompts exacts
 
-### Photo Thomas (thomas.png — B&W studio vers warm outdoor)
+### Photo Thomas — VALIDE (thomas3.png — 8/10)
 
-**Etape 1 — Coloriser d'abord** (obligatoire, la photo est quasi N&B) :
-- Aller sur **fotor.com/features/colorize-photo/** (gratuit, pas de watermark sur la colorisation)
-- OU **imagecolorizer.com** (gratuit, HD disponible)
+**Statut : FAIT.** thomas3.png est validee et sert desormais de reference de style.
+
+Retour audit : exterieur, golden hour, blazer marine, regard face camera — le bon registre. Legere asymetrie oculaire et transition fond un peu nette, mais subtil et acceptable.
+
+<details>
+<summary>Historique du prompt utilise (pour reference)</summary>
+
+**Etape 1 — Coloriser** (photo source quasi N&B) :
+- fotor.com/features/colorize-photo/ ou imagecolorizer.com
 - Upload thomas.png → telecharger la version colorisee en PNG
 
 **Etape 2 — Relight AI (relightai.co/dashboard)** :
-Upload la photo colorisee, coller ce prompt dans "Background Prompt" :
+Upload la photo colorisee, prompt "Background Prompt" :
 
 ```
 Soft blurred outdoor background with green trees and overcast sky,
@@ -40,20 +85,145 @@ color temperature, soft bokeh nature background, portrait photography
 with shallow depth of field, gentle warm rim light on hair
 ```
 
-**Etape 3 — Verifier** : comparer le visage avec l'original. Les yeux, le nez, la bouche doivent etre identiques. Si deformation → regenerer (le resultat varie a chaque generation).
+**Etape 3 — Verification visage** : comparer avec l'original.
+</details>
 
-### Photo Carl (Carl-picture.jfif — casual vers warm outdoor)
+---
 
-Carl est deja en couleur. Passer directement a Relight AI.
+### Photo Carl — ACCEPTABLE (Carl3.png — 7.5/10) + Prompt V2 optionnel
 
-**Relight AI prompt** :
+**Statut : ACCEPTABLE AVEC RESERVE.** Carl3.png est utilisable en l'etat mais une V2 ameliorerait la coherence avec thomas3.png.
+
+**Retour audit Carl3.png** :
+- Regard trop off-camera (profil 3/4 trop marque) — thomas3 regarde face camera
+- Cadrage plus large que les autres — thomas3 est plus serre (tete + epaules)
+- Le fond et la lumiere sont corrects
+
+**Decision** : utiliser Carl3.png en V1. Si une V2 est souhaitee, utiliser le prompt ci-dessous.
+
+#### Prompt V2 Carl (optionnel — cadrage + regard corriges)
+
+**Pre-requis** : partir de la photo source originale Carl-picture.jfif (pas de Carl3.png).
+
+**Etape 1 — Recadrer AVANT le relight** :
+- Ouvrir Carl-picture.jfif dans Photopea.com
+- Recadrer en portrait serre : tete + epaules uniquement, comme thomas3.png
+- Le visage doit occuper environ 40-50% de la hauteur du cadre
+- Exporter en PNG
+
+**Etape 2 — Relight AI (relightai.co/dashboard)** :
+Upload la photo recadree, prompt "Background Prompt" :
 
 ```
-Soft blurred outdoor background with green trees and overcast sky,
+Soft blurred outdoor background with natural green foliage and leaves,
 warm golden hour sunlight coming from the left side, natural warm
-color temperature, soft bokeh nature background, portrait photography
-with shallow depth of field, gentle warm rim light on hair
+color temperature, smooth uniform green bokeh without any visible
+light spots or bokeh balls, portrait photography with shallow depth
+of field, gentle warm fill light, natural skin tones
 ```
+
+**Negative prompt** (si supporte) :
+```
+bokeh balls, lens flare, light orbs, circular highlights,
+oversaturated, orange skin, artificial glow, water, beach,
+sunset over water, HDR effect, smooth skin, halo around subject
+```
+
+**Etape 3 — Verification** :
+- Le regard : doit sembler diriger vers l'objectif (ou quasi). Si le regard reste trop off-camera, l'outil ne peut pas corriger cela — dans ce cas, Carl3.png reste le meilleur resultat.
+- Le cadrage : doit matcher thomas3.png (meme proportion tete/epaules dans le cadre)
+- Le fond : vert bokeh uniforme, pas de bokeh balls, pas de saturation excessive
+
+---
+
+### Photo Maxime — A RETOUCHER (max2.png rejetee 4/10)
+
+**Statut : A FAIRE.** max2.png est un ECHEC — l'original max.png est superieur.
+
+**Retour audit max2.png (4/10 — FAIL)** :
+- Bokeh balls (ronds lumineux flous) = marqueur IA le plus evident
+- Lumiere golden hour sursaturee = "filtre Instagram"
+- Fond eau/lumiere rasante = "IA paradise"
+- L'original max.png est MEILLEUR que cette version retouchee
+
+**Analyse de max.png (photo source)** :
+- Fond : exterieur overcast (ciel couvert), vegetation naturelle mais tonalite grise/froide
+- Sujet : chemise rayee claire, sourire naturel, teint chaud, lumiere venant de la gauche
+- Qualite : bonne, 928x1120 px, visage bien expose
+- Probleme : le fond est gris/froid alors que thomas3 et Carl3 ont un fond vert bokeh chaud
+
+**Objectif** : remplacer le fond gris overcast de max.png par un fond vert bokeh naturel (comme thomas3.png) SANS toucher au visage, a la chemise, ni a l'expression. Le resultat doit etre indiscernable d'une vraie photo prise en exterieur par un photographe.
+
+#### Prompt Maxime V3 — Methode 1 : Relight AI (recommandee)
+
+**Etape 1 — Upload max.png directement** (deja en couleur, pas besoin de coloriser ni d'upscale — 928x1120 est suffisant).
+
+**Etape 2 — Relight AI (relightai.co/dashboard)** :
+Upload max.png, prompt "Background Prompt" :
+
+```
+Soft blurred outdoor background with natural green trees and foliage
+only, uniform smooth green bokeh with no visible light spots or
+bright circles, warm but gentle golden hour sunlight from the left
+side, subtle warm color temperature without oversaturation, natural
+portrait photography with shallow depth of field, soft diffused
+light on subject, realistic outdoor park setting, no water no sky
+visible in background
+```
+
+**Negative prompt** (si supporte) :
+```
+bokeh balls, lens flare, light orbs, bright circles, circular
+highlights, oversaturated golden light, orange tint, water,
+lake, river, ocean, beach, sunset reflection, HDR, Instagram
+filter, artificial glow, halo, smooth plastic skin, airbrushed
+skin, sharp edge cutout, visible mask boundary
+```
+
+**Parametres Relight AI** (si disponibles) :
+- Lighting intensity / strength : reduire a 60-70% (pas 100% — evite la sursaturation)
+- Si un slider "background blur" existe : valeur moyenne (le bokeh doit etre present mais pas excessif)
+
+**Etape 3 — Verification stricte** :
+1. **Test bokeh balls** : zoomer sur le fond a 200%. Si des ronds lumineux individuels sont visibles → REJETER
+2. **Test saturation** : mettre thomas3.png et le resultat cote a cote. Si la lumiere de Maxime est visiblement plus chaude/saturee que Thomas → REJETER
+3. **Test "filtre Instagram"** : montrer la photo a quelqu'un sans contexte. S'il dit "c'est retouche" ou "c'est IA" → REJETER
+4. **Test visage** : superposer mentalement avec max.png. Les yeux, nez, bouche, chemise doivent etre identiques.
+5. **Test transition** : la zone entre les epaules/chemise et le fond doit etre progressive (pas de decoupe nette)
+
+#### Prompt Maxime V3 — Methode 2 : Fond vert seul + IC Light (alternative si Methode 1 echoue)
+
+Si Relight AI produit encore des artefacts apres 3 essais :
+
+**Etape 1 — Supprimer le fond uniquement** :
+- Aller sur remove.bg (gratuit, bonne qualite de decoupe)
+- Upload max.png → telecharger la version sans fond (PNG transparent)
+
+**Etape 2 — Ajouter un fond vert bokeh naturel** :
+- Ouvrir Photopea.com
+- Creer un nouveau document 928x1120 px
+- Placer le fond (options ci-dessous) en couche arriere, Maxime sans fond en couche avant
+- Ajuster la position pour que le cadrage soit coherent
+
+**Options de fond** :
+- Option A : prendre un screenshot du fond de thomas3.png (cropper une zone sans le sujet), appliquer un flou gaussien supplementaire de 5-10px, utiliser comme fond
+- Option B : chercher sur Unsplash "green foliage bokeh portrait background" — telecharger une photo de vegetation floue sans bokeh balls visibles
+
+**Etape 3 — Harmoniser la lumiere avec IC Light** :
+- Aller sur iclight.net (ou le HuggingFace Space officiel lllyasviel/IC-Light)
+- Upload le composite (Maxime + fond vert)
+- Objectif : harmoniser la lumiere du sujet avec le fond (direction et temperature)
+- Ne PAS utiliser un prompt qui ajoute du golden hour excessif — juste harmoniser
+
+**Etape 4 — Verification** : memes criteres que Methode 1
+
+#### Ce qui a echoue avec max2.png (a eviter)
+
+Pour reference, voici ce qui a produit le resultat 4/10 — NE PAS reproduire :
+- Fond avec reflets d'eau ou lumiere rasante sur une surface
+- Bokeh avec des points lumineux individuels (bokeh balls)
+- Golden hour sursaturee (teinte orange excessive sur tout le cadre)
+- Tout prompt qui evoque "sunset", "warm glow", "light rays", "magical light"
 
 ---
 
