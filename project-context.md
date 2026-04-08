@@ -107,9 +107,10 @@
 4. **Approche** — Process en 4 étapes : Sourcer → Analyser → Transformer → Opérer
 5. **Implantation** — Paris + Lille + métropoles françaises (carte minimaliste)
 6. **Équipe** — 3 co-fondateurs présentés à parité :
-   - Thomas Issa — Co-fondateur (Marketing Strategy & Operations, Co-founder TEOS & Sarani, 11 biens locatifs à Paris)
-   - Maxime Lemoine — Co-fondateur (Sales & Commercial Strategy, ex-European Sales Manager Sony, 3 immeubles + 24 contrats locatifs)
-   - Carl Standertskjold-Nordenstam — Co-fondateur (Marketing Strategy & Growth, Head of Marketing Inbolt, Co-founder Sarani)
+   - Thomas Issa — Co-fondateur
+   - Maxime Lemoine — Co-fondateur
+   - Carl Standertskjold-Nordenstam — Co-fondateur
+   (Pas de rôle spécifique affiché — les 3 sont strictement co-fondateurs, présentés à parité)
 7. **Contact** — Formulaire (Nom, Email, Téléphone, Message) + email contact@versi.fr
 
 **Hors scope V1** : les sites des 4 entités (versi-developpement.fr, etc.) — seront des projets séparés utilisant le même design system.
@@ -175,7 +176,7 @@
 - Le brief PDF (dans le repo) couvre aussi la partie 2 (versi-developpement.fr) mais c'est hors scope pour cette V1.
 - Les photos des 3 fondateurs sont dans `/Photos/` (Carl-picture.jfif, max.png, thomas.png).
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
-- Les rôles CEO/COO/CMO mentionnés dans le brief sont des titres internes — sur le site, les 3 sont présentés comme "Co-fondateur" à parité.
+- **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
 - Branche de développement : `claude/setup-gradient-agents-uMuy0`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
