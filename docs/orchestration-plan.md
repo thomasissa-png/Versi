@@ -4,7 +4,7 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=5 tasks_prod=14 tasks_consult=0 -->
+<!-- SESSION: phases=5 tasks_prod=15 tasks_consult=1 -->
 
 ## Phase 0 — COMPLETE
 - @creative-strategy : TERMINÉ (brand-platform.md, personas.md, competitive-benchmark.md)
@@ -34,47 +34,47 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase 0 — Fondations stratégiques
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @creative-strategy | Brand platform + personas + benchmark | project-context.md | EN COURS |
-| @legal | Audit juridique (mentions légales, RGPD formulaire) | project-context.md | EN COURS |
-| @product-manager | Specs fonctionnelles one-page + user stories | Après @creative-strategy | EN ATTENTE |
+| @creative-strategy | Brand platform + personas + benchmark | project-context.md | TERMINÉ |
+| @legal | Audit juridique (mentions légales, RGPD formulaire) | project-context.md | TERMINÉ |
+| @product-manager | Specs fonctionnelles one-page + user stories | Après @creative-strategy | TERMINÉ |
 
 ### Phase 0b — Agents testeurs (après checkpoint Phase 0)
 | Agent | Mission | Statut |
 |-------|---------|--------|
-| @agent-factory | Créer testeur-persona (investisseur Laurent) | EN ATTENTE |
-| @agent-factory | Créer testeur-client si applicable (à évaluer — B2B sans client du persona direct sur un site vitrine) | EN ATTENTE |
+| @agent-factory | Créer testeur-persona (investisseur Laurent) | TERMINÉ |
+| @agent-factory | Créer testeur-client si applicable (à évaluer — B2B sans client du persona direct sur un site vitrine) | N/A — site vitrine sans client B2B direct |
 
 ### Phase 1 — Conception
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @ux | Parcours utilisateur + wireframes one-page | brand-platform.md + functional-specs.md | EN ATTENTE |
-| @design | Direction artistique + design system + page compositions | brand-platform.md | EN ATTENTE |
-| @copywriter | Brand voice + copy de la landing page complète | brand-platform.md + wireframes | EN ATTENTE |
+| @ux | Parcours utilisateur + wireframes one-page | brand-platform.md + functional-specs.md | TERMINÉ |
+| @design | Direction artistique + design system + page compositions | brand-platform.md | TERMINÉ |
+| @copywriter | Brand voice + copy de la landing page complète | brand-platform.md + wireframes | TERMINÉ |
 
 ### Phase 2 — Développement
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @fullstack | Setup React + développement one-page complet | design-system + copy + wireframes | EN ATTENTE |
+| @fullstack | Setup React + développement one-page complet | design-system + copy + wireframes | TERMINÉ |
 | @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
 
 ### Phase 3 — Visibilité
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | EN ATTENTE |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | EN ATTENTE |
+| @seo | SEO technique + métadonnées + schema.org | Site développé | TERMINÉ |
+| @geo | Visibilité LLM (GEO) | brand-platform + site | TERMINÉ |
 
 ### Phase 4 — Acquisition (allégée)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | EN ATTENTE |
-| @social | Stratégie LinkedIn corporate | brand-platform | EN ATTENTE |
+| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | TERMINÉ |
+| @social | Stratégie LinkedIn corporate | brand-platform | TERMINÉ |
 
 ### Phase 5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE |
-| @qa + @fullstack | Revue finale page par page (21 dimensions) | Après reviewer | EN ATTENTE |
-| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE |
+| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | TERMINÉ — GO CONDITIONNEL |
+| @reviewer | Actions correctives G7 + G15 | Après revue | TERMINÉ |
+| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN COURS |
 
 ## Décisions clés
 

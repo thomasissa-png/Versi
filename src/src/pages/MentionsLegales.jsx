@@ -1,8 +1,17 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer.jsx';
 import './LegalPage.css';
 
 export default function MentionsLegales() {
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => document.head.removeChild(meta);
+  }, []);
+
   return (
     <>
       <div className="legal-page">

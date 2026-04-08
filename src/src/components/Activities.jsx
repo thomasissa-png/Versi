@@ -36,12 +36,10 @@ export default function Activities() {
                 ) : (
                   <span
                     className="text-cta activities__card-cta activities__card-cta--disabled"
-                    role="link"
                     aria-disabled="true"
                     aria-label={`${entity.name} — site bientôt disponible`}
-                    title="Site en cours de construction"
                   >
-                    {entity.ctaText} →
+                    {entity.ctaTextDisabled}
                   </span>
                 )}
               </article>

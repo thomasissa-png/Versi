@@ -1,0 +1,31 @@
+# Versi — Holding immobilière intégrée
+
+> Versi est une holding immobilière intégrée opérant en France. Elle regroupe quatre entités complémentaires couvrant l'ensemble du cycle d'une opération immobilière.
+
+## Entités
+
+- Versi Développement : marchand de biens — acquisition et transformation d'actifs immobiliers
+- Versi Invest : structuration d'investissement — co-investissement et montage d'opérations
+- Versi Capital : foncière — détention et gestion d'actifs en portefeuille
+- Versi Finance : ingénierie financière — structuration financière des opérations
+
+## Fondateurs
+
+- Thomas Issa, Co-fondateur — Marketing strategy et opérations. Co-fondateur TEOS et Sarani. 11 actifs locatifs à Paris.
+- Maxime Lemoine, Co-fondateur — Sales strategy et développement commercial. Ex-European Sales Manager Sony. 3 immeubles en portefeuille, 24 contrats locatifs.
+- Carl Standertskjold-Nordenstam, Co-fondateur — Marketing strategy et croissance. Head of Marketing Inbolt. Co-fondateur Sarani.
+
+## Sections du site versi.fr
+
+- Vision : rôle de Versi comme holding immobilière intégrée maîtrisant l'ensemble du cycle
+- Activités : présentation des 4 entités (Développement, Invest, Capital, Finance)
+- Approche : méthode en 4 étapes — Sourcer, Analyser, Transformer, Opérer
+- Implantation : présence active à Paris et Lille, zones d'extension sur les métropoles françaises
+- Équipe : 3 co-fondateurs avec parcours vérifiables (Sony, Algolia, Inbolt, TEOS)
+- Contact : formulaire de contact et email contact@versi.fr
+
+## Contact
+
+- Site : https://versi.fr
+- Email : contact@versi.fr
+- Localisation : Paris et Lille, France

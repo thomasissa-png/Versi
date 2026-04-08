@@ -27,6 +27,99 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400;500&display=swap" rel="stylesheet" />
 
+    <!-- Canonical -->
+    <link rel="canonical" href="https://versi.fr/" />
+
+    <!-- Schema.org JSON-LD — Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["Organization", "Corporation"],
+      "@id": "https://versi.fr/#organization",
+      "name": "Versi",
+      "legalName": "Versi",
+      "url": "https://versi.fr",
+      "logo": "https://versi.fr/favicon.svg",
+      "description": "Holding immobilière intégrée opérant en France à travers quatre entités complémentaires : développement (marchand de biens), structuration d'investissement, foncière et ingénierie financière.",
+      "foundingDate": "2022",
+      "founders": [
+        { "@type": "Person", "name": "Thomas Issa" },
+        { "@type": "Person", "name": "Maxime Lemoine" },
+        { "@type": "Person", "name": "Carl Standertskjold-Nordenstam" }
+      ],
+      "areaServed": {
+        "@type": "Country",
+        "name": "France"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Paris",
+        "addressCountry": "FR"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "contact@versi.fr",
+        "contactType": "customer service",
+        "availableLanguage": "French"
+      },
+      "knowsAbout": [
+        "Marchand de biens",
+        "Holding immobilière",
+        "Foncière",
+        "Structuration financière immobilière",
+        "Co-investissement immobilier"
+      ],
+      "sameAs": []
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD — WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://versi.fr/#website",
+      "url": "https://versi.fr",
+      "name": "Versi — Holding immobilière intégrée",
+      "publisher": { "@id": "https://versi.fr/#organization" },
+      "inLanguage": "fr-FR"
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD — FAQPage (GEO: extraction LLM) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Qu'est-ce que Versi ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Versi est une holding immobilière intégrée opérant en France. Elle regroupe quatre entités complémentaires couvrant l'ensemble du cycle d'une opération immobilière : Versi Développement (marchand de biens), Versi Invest (structuration d'investissement), Versi Capital (foncière) et Versi Finance (ingénierie financière). Fondée par Thomas Issa, Maxime Lemoine et Carl Standertskjold-Nordenstam."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "En quoi Versi se distingue d'un marchand de biens classique ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Contrairement à un marchand de biens mono-activité, Versi intègre en interne l'ensemble du cycle : acquisition, transformation, détention longue durée via sa foncière (Versi Capital) et structuration financière via Versi Finance. Cette intégration évite la déperdition entre étapes et permet de traiter des opérations complexes sans externalisation des fonctions critiques."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Où Versi opère-t-elle en France ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Versi opère principalement sur Paris, Lille et les principales métropoles françaises. La holding cible des actifs immobiliers en France avec une préférence pour les marchés à forte liquidité et potentiel de transformation."
+          }
+        }
+      ]
+    }
+    </script>
+
     <!-- Plausible Analytics placeholder — uncomment when Plausible account is configured -->
     <!-- <script defer data-domain="versi.fr" src="https://plausible.io/js/script.js"></script> -->
   </head>
