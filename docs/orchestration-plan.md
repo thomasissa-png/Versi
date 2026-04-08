@@ -4,7 +4,7 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=2 tasks_prod=7 tasks_consult=0 -->
+<!-- SESSION: phases=5 tasks_prod=14 tasks_consult=0 -->
 
 ## Phase 0 — COMPLETE
 - @creative-strategy : TERMINÉ (brand-platform.md, personas.md, competitive-benchmark.md)
