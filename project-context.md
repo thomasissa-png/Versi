@@ -1,86 +1,141 @@
-# Contexte Projet — [NOM DU PROJET]
+# Contexte Projet — Versi
 
 > Ce fichier est lu par tous les agents avant toute action.
 > Remplis chaque champ. Les champs vides bloquent les agents.
 > **ATTENTION** : ce fichier peut contenir des informations stratégiques (budget, pricing, concurrents). S'assurer que le repo est **privé** si des données confidentielles y sont renseignées.
-> Dernière mise à jour : [DATE]
+> Dernière mise à jour : 2026-04-08
 
 ---
 
 ## Identité
-- **Nom du projet** :
-- **URL (si existante)** :
-- **Secteur** :
-- **Stade** : [ ] Idée  [ ] V1  [ ] Production  [ ] Croissance
-- **Date de début** :
+- **Nom du projet** : Versi
+- **URL (si existante)** : https://versi.fr (à créer)
+- **Secteur** : Holding immobilière intégrée — acquisition, transformation, détention et structuration d'opérations immobilières en France
+- **Stade** : [x] Idée  [ ] V1  [ ] Production  [ ] Croissance
+- **Date de début** : avril 2026
 
 ---
 
 ## Cible
-- **Persona principal** : [Prénom fictif, âge, métier, situation]
-- **Problème principal** : [Ce qui le frustre / coûte / fait perdre du temps]
-- **Alternative actuelle** : [Ce qu'il fait aujourd'hui sans ce produit]
-- **Persona secondaire** : [Si pertinent]
-- **Verbatims persona** : [3-5 phrases EXACTES que le persona dirait — tirées d'interviews, reviews, forums, support. Ex : "J'en ai marre de passer 2h sur chaque annonce", "Je ne sais jamais si mon prix est le bon". Ces verbatims alimentent le copy et le ton de marque.]
+- **Persona principal** : Laurent, 48 ans, investisseur immobilier privé ou family office manager, cherche des opérateurs immobiliers crédibles pour co-investir ou confier des mandats. Il reçoit des dizaines de dossiers par mois et élimine en 10 secondes ceux qui ne font pas "sérieux". Sa frustration : trop d'opérateurs immobiliers avec des sites amateurs qui ne permettent pas d'évaluer leur crédibilité rapidement.
+- **Problème principal** : Besoin de comprendre en moins de 5 secondes qui est Versi, ce qu'ils font, pourquoi ils sont crédibles, et comment les contacter. Un site qui ne transmet pas immédiatement la solidité et la structuration = fermeture de l'onglet.
+- **Alternative actuelle** : LinkedIn des fondateurs, bouche-à-oreille, pas de site institutionnel → perte de crédibilité face à des concurrents mieux présentés
+- **Persona secondaire** : Sophie, 42 ans, propriétaire d'un immeuble à rénover en province, cherche un marchand de biens capable de lui faire une offre rapide. Elle compare 3-4 opérateurs et choisit celui qui inspire le plus confiance.
+- **Verbatims persona** : 
+  - "Je veux voir en 10 secondes si ces gens sont sérieux ou si c'est encore un site WordPress à 200€"
+  - "Les track records, c'est la seule chose qui compte — pas les promesses"
+  - "Si je ne trouve pas qui est derrière en 2 clics, je passe"
+  - "Un site pro, c'est le minimum — si le site est bâclé, je me demande ce que ça donne sur un chantier"
 
 ---
 
 ## Positionnement
-- **Promesse unique** : [Ce qu'on promet et que personne d'autre ne promet de la même façon]
-- **Ton de marque** : [Ex : expert et bienveillant / décalé et direct / premium et sobre]
-- **3 mots qui DÉFINISSENT la marque** :
-- **3 mots qui ne DÉFINISSENT PAS la marque** :
-- **Concurrent principal** :
-- **Notre différence clé vs lui** :
+- **Promesse unique** : Versi est une plateforme immobilière intégrée qui maîtrise l'ensemble du cycle de vie d'un actif — de l'acquisition à la structuration financière — avec la rigueur d'un investisseur, la maîtrise d'un opérateur et la vision long terme d'un gestionnaire de patrimoine.
+- **Ton de marque** : Premium et sobre — institutionnel sans être corporate froid, précis sans être technique, ambitieux sans être arrogant
+- **3 mots qui DÉFINISSENT la marque** : Rigueur, Solidité, Précision
+- **3 mots qui ne DÉFINISSENT PAS la marque** : Flashy, Startup, Discount
+- **Concurrent principal** : Opérateurs immobiliers intégrés avec présence web institutionnelle (type Enclave, fonds immobiliers avec sites premium)
+- **Notre différence clé vs lui** : Trio complémentaire marketing/stratégie/sales avec track record prouvé (Sony, Algolia, Inbolt, TEOS, 35+ biens locatifs), opérant en direct sur l'ensemble de la chaîne de valeur (pas juste un fonds passif)
 
 ---
 
 ## Objectifs
-- **Objectif principal à 6 mois** :
-- **KPI North Star** : [Une seule métrique]
-- **Objectif secondaire** :
-- **Ce que le succès ressemble à 12 mois** :
+- **Objectif principal à 6 mois** : Site versi.fr live, crédible et fonctionnel — servant de vitrine institutionnelle pour les prises de contact investisseurs et partenaires
+- **KPI North Star** : Nombre de prises de contact qualifiées via le formulaire du site (objectif : démontrer la crédibilité dès le premier contact)
+- **Objectif secondaire** : Poser les bases visuelles et techniques réutilisables pour les sites des entités (versi-developpement.fr, versi-invest.fr, versi-capital.fr, versi-finance.fr)
+- **Ce que le succès ressemble à 12 mois** : Écosystème de 5 sites cohérents (holding + 4 entités) avec un design system partagé, chacun optimisé pour son audience spécifique
 
 ---
 
 ## Stack technique
-- **Frontend** : [ ] Next.js  [ ] React  [ ] Expo/React Native  [ ] Autre :
-- **Backend** :
-- **Base de données** :
-- **Authentification** :
-- **Hébergement** :
-- **Outils IA utilisés** : [Modèles en production, APIs, fine-tunes existants]
-- **Budget IA mensuel (tokens)** : [Montant dédié ou 'inclus dans infra' ou 'à définir']
-- **Volume d'usage IA prévu** : [Requêtes IA / jour ou / mois — estimation]
-- **Latence IA cible** : [Ex : <3s streaming, <10s batch — ou 'défauts framework']
-- **Outils d'analytics** :
+- **Frontend** : [x] React  [ ] Next.js  [ ] Expo/React Native  [ ] Autre :
+- **Backend** : Pas de backend — site statique (formulaire de contact via service tiers type Formspree ou EmailJS)
+- **Base de données** : Aucune (site vitrine statique)
+- **Authentification** : Aucune
+- **Hébergement** : Replit (environnement de développement actuel) — déploiement final à déterminer (Vercel, Netlify, ou hébergement custom pour versi.fr)
+- **Outils IA utilisés** : Aucun en production — IA utilisée uniquement pour la conception/développement
+- **Budget IA mensuel (tokens)** : N/A
+- **Volume d'usage IA prévu** : N/A
+- **Latence IA cible** : N/A
+- **Outils d'analytics** : À recommander (probablement Plausible ou GA4 pour le suivi des conversions formulaire)
 
 ---
 
 ## Modèle économique et juridique
-- **Modèle économique** : [ ] SaaS  [ ] E-commerce  [ ] Marketplace  [ ] App mobile  [ ] Site vitrine  [ ] API/produit technique  [ ] Média/contenu  [ ] Open source  [ ] Autre :
-- **Pays de commercialisation** : [Ex : France, UE, International]
-- **Données sensibles collectées** : [ ] Non  [ ] Oui — type : [ ] Santé  [ ] Finance  [ ] Mineurs  [ ] Autre :
-- **Utilisation d'IA générative** : [ ] Non  [ ] Oui — usage prévu :
+- **Modèle économique** : [x] Site vitrine  [ ] SaaS  [ ] E-commerce  [ ] Marketplace  [ ] App mobile  [ ] API/produit technique  [ ] Média/contenu  [ ] Open source  [ ] Autre :
+- **Pays de commercialisation** : France
+- **Données sensibles collectées** : [x] Non — uniquement nom/email/téléphone/message via formulaire de contact
+- **Utilisation d'IA générative** : [x] Non
 
 ---
 
 ## Contraintes
-- **Budget mensuel infrastructure** :
-- **Budget mensuel acquisition** :
-- **Budget analytics** : [Montant ou 'à recommander']
-- **Timeline de lancement** :
-- **Contraintes légales ou sectorielles** :
-- **Ressources disponibles** : [ ] Solo  [ ] Équipe : [taille]
+- **Budget mensuel infrastructure** : Minimal — site statique, hébergement < 20€/mois
+- **Budget mensuel acquisition** : 0€ (pas d'acquisition payante — le site est une vitrine, le business vient du réseau et du terrain)
+- **Budget analytics** : À recommander (gratuit ou < 10€/mois)
+- **Timeline de lancement** : Dès que possible — pas de date butoir mais le site est nécessaire pour crédibiliser les démarches en cours
+- **Contraintes légales ou sectorielles** : Mentions légales obligatoires (société française), RGPD sur le formulaire de contact, pas de contrainte AMF (pas de collecte de fonds publique sur versi.fr)
+- **Ressources disponibles** : [x] Solo (Thomas pilote le développement avec les agents IA, Carl et Maxime valident le contenu)
 
 ---
 
 ## Existant (projets en place uniquement)
-- **URL du site actuel** :
-- **Comptes sociaux existants** : [URLs LinkedIn, Instagram, X, etc.]
-- **Outils analytics en place** : [GA4, Mixpanel, Plausible, aucun...]
-- **Contenu existant** : [Blog, newsletter, docs, help center...]
-- **Historique SEO** : [Domaine indexé depuis quand, trafic approximatif]
+- **URL du site actuel** : Aucune — versi.fr n'existe pas encore
+- **Comptes sociaux existants** : LinkedIn individuels des 3 fondateurs (pas de page entreprise Versi encore)
+- **Outils analytics en place** : Aucun
+- **Contenu existant** : Brief de conception (PDF dans le repo), profils fondateurs (PDF dans le repo), photos des 3 fondateurs (dans /Photos/)
+- **Historique SEO** : Aucun — domaine pas encore indexé
+
+---
+
+## Scope et périmètre du projet actuel
+
+**Scope V1 (ce projet)** : versi.fr — site one-page institutionnel de la holding Versi
+
+**Structure du site (one-page scrolling)** :
+- Navigation sticky : Vision | Activités | Équipe | Implantation | Contact
+- CTA permanent : "Nous contacter"
+
+**Sections** :
+1. **Hero** — Positionnement immédiat (titre + sous-titre + CTA)
+2. **Mission** — Rôle de Versi (holding immobilière intégrée)
+3. **Activités** — 4 entités avec liens vers leurs futurs sites :
+   - Versi Développement (marchand de biens) → versi-developpement.fr
+   - Versi Invest (structuration d'investissement) → versi-invest.fr
+   - Versi Capital (foncière) → versi-capital.fr
+   - Versi Finance (structuration financière) → versi-finance.fr
+4. **Approche** — Process en 4 étapes : Sourcer → Analyser → Transformer → Opérer
+5. **Implantation** — Paris + Lille + métropoles françaises (carte minimaliste)
+6. **Équipe** — 3 co-fondateurs présentés à parité :
+   - Thomas Issa — Co-fondateur (Marketing Strategy & Operations, Co-founder TEOS & Sarani, 11 biens locatifs à Paris)
+   - Maxime Lemoine — Co-fondateur (Sales & Commercial Strategy, ex-European Sales Manager Sony, 3 immeubles + 24 contrats locatifs)
+   - Carl Standertskjold-Nordenstam — Co-fondateur (Marketing Strategy & Growth, Head of Marketing Inbolt, Co-founder Sarani)
+7. **Contact** — Formulaire (Nom, Email, Téléphone, Message) + email contact@versi.fr
+
+**Hors scope V1** : les sites des 4 entités (versi-developpement.fr, etc.) — seront des projets séparés utilisant le même design system.
+
+## Direction artistique (brief fondateur)
+
+**Identité visuelle cible** : Fonds immobilier moderne et institutionnel
+**Référence principale** : enclave.com
+**Mots-clés** : minimal, architectural, premium, précis, intemporel
+
+**Palette de couleurs (brief)** :
+- Blanc cassé : #F7F5F2
+- Gris chaud : #D9D4CE
+- Anthracite : #1A1A1A
+- Noir profond : #0B0B0B
+- Accent (usage minimal) : Beige pierre #C8B9A6 ou Vert très sombre #1E2A23
+
+**Typographie (brief)** : Inter / Suisse / Neue Haas Grotesk — Titres uppercase tracking large, corps sobre et moderne
+
+**Images** : Architecturales uniquement (façades, détails, matières, espaces intérieurs, textures). Lumière naturelle, cadrage propre, composition minimaliste, couleurs neutres. Pas d'images génériques.
+
+**Layout** : Beaucoup d'espace blanc, grandes marges, grilles strictes, alignements précis, sections aérées
+
+**UI** : Boutons rectangulaires simples, coins légèrement arrondis, couleur sombre. Cartes fond blanc, bordures fines, ombres très légères. Animations très discrètes (fade uniquement).
+
+**Note pour les agents** : le fondateur demande explicitement que l'équipe rechallenge le brief et soit force de proposition. Les specs visuelles ci-dessus sont un point de départ, pas un cahier des charges figé.
 
 ---
 
@@ -92,7 +147,7 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
-| | | | | |
+| orchestrator | 2026-04-08 | project-context.md | Scope = versi.fr one-page uniquement. React (pas Next.js). Profil V1-Production. Persona principal = investisseur/partenaire, pas grand public. | Site vitrine institutionnel = SEO secondaire vs crédibilité. React suffit (pas de SSR nécessaire pour un one-page). Le persona "grand public" est trop vague — le site doit convaincre des professionnels de l'immobilier et des investisseurs. |
 
 ---
 
@@ -116,4 +171,15 @@
 
 ## Notes libres
 
-[Tout ce qui ne rentre pas dans les cases ci-dessus mais que les agents doivent savoir]
+- Thomas pilote le projet via Claude Code et les agents Gradient Agents. Carl et Maxime valident le contenu et les visuels.
+- Le brief PDF (dans le repo) couvre aussi la partie 2 (versi-developpement.fr) mais c'est hors scope pour cette V1.
+- Les photos des 3 fondateurs sont dans `/Photos/` (Carl-picture.jfif, max.png, thomas.png).
+- Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
+- Les rôles CEO/COO/CMO mentionnés dans le brief sont des titres internes — sur le site, les 3 sont présentés comme "Co-fondateur" à parité.
+- Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
+- Branche de développement : `claude/setup-gradient-agents-uMuy0`
+- Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
+
+### Mémo de reprise
+
+Pour reprendre ce projet : `Lis project-context.md et docs/orchestration-plan.md, continue où on s'est arrêté.`
