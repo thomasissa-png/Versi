@@ -326,21 +326,122 @@ VERSI (holding — versi.fr)
 ## 8. Messaging matrix
 
 ### 8.1 Laurent — Investisseur / Family Office
+
+| Dimension | Contenu |
+|---|---|
+| **Besoin profond** | Trouver un opérateur crédible, structuré, capable de gérer une opération de bout en bout sans qu'il ait à micromanager chaque étape |
+| **Message principal** | "Versi est l'opérateur qui maîtrise l'ensemble du cycle — co-investir avec nous, c'est avoir un interlocuteur unique du sourcing à la sortie." |
+| **Messages secondaires** | (1) Track record opérationnel : 35+ actifs, pas juste un pitch deck. (2) Structure formalisée : holding avec 4 entités spécialisées. (3) Équipe identifiée : trois associés dont les parcours sont vérifiables. |
+| **Objections anticipées** | "Vous êtes trop petits pour mes tickets." → "Nous travaillons sur des opérations de taille intermédiaire — c'est précisément là où les grands institutionnels ne vont pas et où la valeur se crée." |
+| **Objections anticipées** | "Je ne vous connais pas." → "Nos fondateurs ont construit leurs propres portefeuilles immobiliers avant Versi. Les profils sont publics et vérifiables." |
+| **Objections anticipées** | "Pourquoi une holding et pas simplement un fonds ?" → "Une holding nous permet d'opérer en direct, avec nos propres entités — sans dilution de marge, sans dépendance à un LP. Notre alignement d'intérêts est structurel." |
+| **CTA adapté** | "Parlons d'une opération concrète." (pas "Contactez-nous" générique) |
+
 ### 8.2 Sophie — Propriétaire cédante
-### 8.3 Pierre — Partenaire professionnel
+
+| Dimension | Contenu |
+|---|---|
+| **Besoin profond** | Vendre ou optimiser son immeuble à un opérateur fiable, qui fait une offre sérieuse rapidement, sans la faire attendre des mois |
+| **Message principal** | "Versi Développement fait des offres directes sur des immeubles à transformer — sans intermédiaire, dans un délai défini." |
+| **Messages secondaires** | (1) Opérateur direct : pas d'agent entre Sophie et la décision. (2) Rapidité : offre en 72h si le dossier est complet. (3) Confiance visuelle : un site institutionnel = un opérateur structuré. |
+| **Objections anticipées** | "Comment savoir si votre offre est juste ?" → "Nous basons notre offre sur une analyse interne — nous l'expliquons. Pas de prix au doigt mouillé." |
+| **Objections anticipées** | "Je préfère passer par une agence." → "Versi achète directement, sans frais d'agence à votre charge. La transaction est plus simple et plus rapide." |
+| **Objections anticipées** | "Je ne vous connais pas." → "Nos trois fondateurs sont identifiés sur le site, avec leurs parcours complets. Nous n'avons pas intérêt à une mauvaise réputation — notre réseau est notre principale source d'affaires." |
+| **CTA adapté** | "Vous avez un immeuble ? Envoyez-nous le dossier." |
+
+### 8.3 Pierre — Partenaire professionnel (notaire, courtier, agent, AMO)
+
+| Dimension | Contenu |
+|---|---|
+| **Besoin profond** | Avoir un opérateur fiable à qui apporter des dossiers — qui répond vite, décide vite, et n'abandonne pas en cours de route |
+| **Message principal** | "Versi est un opérateur structuré qui prend des décisions — pas un comité qui temporise." |
+| **Messages secondaires** | (1) Décision rapide : une grille d'analyse interne, pas une validation par dix niveaux. (2) Spectre large : de la transformation à la détention longue, Versi peut trouver le bon véhicule pour chaque dossier. (3) Relation long terme : Versi travaille avec ses partenaires sur plusieurs dossiers, pas en one-shot. |
+| **Objections anticipées** | "Vous avez les reins assez solides ?" → "Structure de holding, trois associés, track record opérationnel. Les données financières sont disponibles pour due diligence." |
+| **Objections anticipées** | "Je travaille déjà avec des opérateurs établis." → "Versi intervient sur des dossiers où les opérateurs établis hésitent — taille intermédiaire, transformation complexe. C'est notre terrain." |
+| **CTA adapté** | "Vous avez un dossier. Parlons-en." |
 
 ---
 
 ## 9. Exclusions de marque
 
+**Ce que Versi n'est PAS et ne doit jamais paraître être :**
+
+| Ce qu'on exclut | Pourquoi | Concrètement |
+|---|---|---|
+| Une agence immobilière | Versi n'est pas intermédiaire — elle opère en direct | Jamais "transaction", jamais "mandat de vente" |
+| Un fonds d'investissement grand public | Versi ne collecte pas de fonds du public | Jamais "investissez avec nous" dans une communication grand public |
+| Un promoteur classique | Versi ne construit pas ex nihilo — elle transforme | Jamais "programme immobilier neuf", jamais "réservation" |
+| Une startup | Versi est une holding structurée, pas une disruption | Jamais "on révolutionne l'immobilier", jamais emoji, jamais "game changer" |
+| Un opérateur "friendly" | La relation est professionnelle, pas amicale | Jamais "la famille Versi", jamais "community", jamais "rejoignez l'aventure" |
+| Un opérateur arrogant | La confiance ne se proclame pas | Jamais "leader", "numéro 1", "meilleur du marché" |
+| Un opérateur vague | Chaque claim doit être étayé | Jamais "expertise reconnue" sans preuve, jamais "confiance" seul |
+
+**Le renoncement stratégique assumé :**
+Versi ne plaît pas à tout le monde. Un primo-accédant ne comprendra pas le site. Un investisseur cherchant un fonds réglementé ne trouvera pas ce qu'il cherche. C'est voulu. Un positionnement qui plaît à tout le monde ne plaît à personne.
+
 ---
 
 ## 10. Strategy Canvas (Blue Ocean — ERRC)
+
+### Analyse comparative — Axes de valeur dans le marché immobilier français
+
+| Axe de valeur | Grands institutionnels | Marchands de biens indépendants | Versi |
+|---|---|---|---|
+| Présentation institutionnelle (site/communication) | Élevée | Faible à moyenne | **Élevée** |
+| Intégration verticale (plusieurs métiers en interne) | Élevée | Faible | **Élevée** |
+| Accessibilité (ticket d'entrée) | Faible (tickets énormes) | Élevée | **Élevée** |
+| Visibilité de l'équipe fondatrice | Faible | Variable | **Élevée** |
+| Vélocité de décision | Faible | Élevée | **Élevée** |
+| Track record vérifiable (personnel) | Non applicable | Variable | **Élevée** |
+| Spectre des opérations (4 métiers) | Élevé | Faible | **Élevé** |
+| Clarté du positionnement | Élevée | Faible | **Élevée** |
+
+### Grille ERRC pour Versi
+
+| Action | Quoi | Pourquoi |
+|---|---|---|
+| **Éliminer** | Le jargon commercial et les formules vagues ("expertise", "confiance", "accompagnement") | Ces mots sont surutilisés et ne disent rien. Versi parle des faits. |
+| **Éliminer** | L'anonymat des fondateurs (site sans équipe identifiée) | La crédibilité d'un opérateur indépendant passe par les visages et parcours des fondateurs |
+| **Réduire** | Les effets de style visuels inutiles (animations, effets de parallaxe, gradients) | Le design sert le message, pas l'inverse |
+| **Augmenter** | La densité factuelle (track record, chiffres réels, méthodologie) | Un investisseur lit les faits, pas les promesses |
+| **Augmenter** | La visibilité de la structure (4 entités, leurs rôles, la logique d'ensemble) | Ce qui distingue Versi des indépendants est précisément cette architecture |
+| **Créer** | Un territoire sémantique propre : "le cycle complet maîtrisé en interne" | Aucun concurrent n'occupe cet espace avec ce langage |
+| **Créer** | Une hiérarchie visuelle claire holding/entités sur le web | Donne de la profondeur perçue à Versi et annonce l'écosystème à venir |
 
 ---
 
 ## Hypothèses à valider
 
+| # | Hypothèse | Type | À valider par |
+|---|---|---|---|
+| H1 | Le persona Pierre (partenaire professionnel) est pertinent — des notaires/courtiers/agents apporteront des dossiers à Versi | Persona 3 | Thomas, Maxime — confirmer si ce canal est actif ou prévu |
+| H2 | Le "cycle complet maîtrisé en interne" est un avantage perçu par Laurent — et pas juste un avantage interne | Positionnement | Tests utilisateurs sur le messaging avec des investisseurs réels |
+| H3 | La hiérarchie Endorsed Brand (Versi masterbrand + entités) est préférable à une architecture 5 sites totalement distincts | Architecture | Décision fondateurs — à confirmer avant la production des sites entités |
+| H4 | Sophie (propriétaire cédante) est bien une cible pour versi.fr — ou seulement pour versi-developpement.fr | Scope | Décision fondateurs sur le scope de la landing principale |
+
 ---
 
-## Handoff
+---
+
+**Handoff → @orchestrator**
+
+Fichiers produits :
+- `/home/user/Versi/docs/strategy/brand-platform.md` (ce fichier)
+- `/home/user/Versi/docs/strategy/personas.md` (produit dans la même session)
+- `/home/user/Versi/docs/strategy/competitive-benchmark.md` (produit dans la même session)
+
+Décisions prises :
+- Positionnement : "L'opérateur intégré qui maîtrise le cycle complet — pour les investisseurs qui n'ont pas besoin qu'on leur explique ce qu'est l'immobilier"
+- Territoire de marque : "Le cycle immobilier complet. Maîtrisé en interne."
+- Architecture de marque : Endorsed Brand (Versi masterbrand, 4 entités endossées)
+- Registre : vouvoiement systématique, factuel-élégant, phrases courtes
+- 3 personas retenus : Laurent (investisseur), Sophie (propriétaire cédante), Pierre (partenaire professionnel)
+- Frameworks utilisés : Blue Ocean Canvas + ERRC, Golden Circle, Prisme de Kapferer
+
+Points d'attention pour la suite :
+- @copywriter : tagline validée = "Le cycle immobilier complet. Maîtrisé en interne." — ne pas dévier. Vouvoiement obligatoire. Vocabulaire proscrit documenté en section 6.4.
+- @design : identité visuelle doit refléter le Prisme de Kapferer (section 5) — sobre, architectural, confiant sans arrogance
+- @ux : les 3 personas ont des parcours distincts sur le site (sections 8.1, 8.2, 8.3) — le wireframing doit les adresser tous les trois sans créer de confusion
+- @seo : le territoire sémantique propre à Versi est "cycle immobilier intégré" / "opérateur intégré" / "holding immobilière" — à aligner avec la keyword map
+- @product-manager : H4 (scope de Sophie sur versi.fr vs versi-developpement.fr) doit être tranchée dans les specs fonctionnelles
+- Hypothèses H1-H4 à valider avec Thomas/Maxime avant la Phase 1
