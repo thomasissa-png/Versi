@@ -10,7 +10,7 @@ const STEPS = [
   {
     num: '02',
     title: 'ANALYSER',
-    body: 'Due diligence interne : rentabilité, potentiel de transformation, risque de sortie. Décision en semaines, pas en trimestres.',
+    body: 'Due diligence interne : rentabilité, potentiel de transformation, risque de sortie. Décision en jours, pas en trimestres.',
   },
   {
     num: '03',
@@ -20,7 +20,7 @@ const STEPS = [
   {
     num: '04',
     title: 'OPÉRER',
-    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l\'acquisition. Pas d\'improvisation en fin de cycle.',
+    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l\'acquisition. Chaque sortie est anticipée dès l\'entrée.',
   },
 ];
 

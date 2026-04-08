@@ -22,7 +22,7 @@ export default function Location() {
             Et les métropoles françaises.
           </h2>
           <p className="text-body-lg location__subtitle">
-            Versi opère sur des marchés où la densité et la demande locative justifient une transformation.
+            Des marchés que nous connaissons, des villes où nous avons déjà opéré.
           </p>
           <div className="location__legend">
             <span className="location__legend-item">

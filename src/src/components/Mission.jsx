@@ -3,7 +3,7 @@ import './Mission.css';
 
 const STATS = [
   { value: '35+', label: 'ACTIFS GÉRÉS EN DIRECT' },
-  { value: '3', label: 'IMMEUBLES EN PORTEFEUILLE' },
+  { value: '5', label: 'IMMEUBLES EN PORTEFEUILLE' },
   { value: '4', label: 'MÉTIERS INTÉGRÉS' },
 ];
 
@@ -20,10 +20,7 @@ export default function Mission() {
             Nous décidons.
           </h2>
           <p className="text-body-lg mission__body">
-            Chaque opération Versi est pilotée par les mêmes fondateurs de la sourcing à la clé. Pas de sous-traitance de la stratégie. Pas de dilution de la décision.
-          </p>
-          <p className="text-body-md mission__body-secondary">
-            Nous n'arbitrons pas. Nous opérons.
+            Chaque opération est pilotée par les mêmes fondateurs du premier contact à la dernière signature. La stratégie reste en interne. La décision aussi.
           </p>
         </div>
         <div className="mission__stats">

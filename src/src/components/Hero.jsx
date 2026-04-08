@@ -42,8 +42,8 @@ export default function Hero() {
           Un cycle maîtrisé.
         </h1>
         <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`}>
-          De l'identification de l'actif à sa structuration financière — sans passer la main.
-          Versi opère l'ensemble du cycle en interne.
+          Acquisition, transformation, détention, structuration financière.
+          Tout le cycle, en interne.
         </p>
         <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`}>
           <a

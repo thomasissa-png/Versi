@@ -49,7 +49,7 @@ export default function Team() {
           Zéro posture.
         </h2>
         <p className="text-body-lg team__subtitle">
-          Ils ont construit avant de vendre l'idée. Le discours suit la pratique — pas l'inverse.
+          Avant Versi, des entreprises créées, des actifs acquis, des opérations menées.
         </p>
 
         <div className={`team__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
