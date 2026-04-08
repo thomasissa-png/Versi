@@ -15,33 +15,77 @@ Objectif : les 3 photos fondateurs doivent avoir un style uniforme — exterieur
 
 ## 0. Consignes anti-artefacts IA (obligatoire pour TOUS les prompts)
 
-Les outils de relighting/fond IA produisent des artefacts reconnaissables. Chaque prompt DOIT integrer ces garde-fous :
+Les outils de relighting/fond IA produisent des artefacts reconnaissables. Cette section documente les garde-fous ET le fonctionnement reel des outils, calibre sur les tests de production effectues sur ce projet.
 
-**INTERDIT dans tout resultat** :
-- Bokeh balls (ronds lumineux flous) — marqueur IA le plus evident
-- Lens flare artificiels (trainees lumineuses)
-- Saturation excessive de la lumiere golden hour (pas de "filtre Instagram")
-- Fond avec eau, plage, coucher de soleil tropical — aucun fond "paradise"
-- Halos lumineux autour du sujet (transition fond trop nette ou trop brillante)
-- Peau lissee artificiellement ou teinte de peau orange
-- Yeux avec reflets non naturels
+### 0a. Fonctionnement reel de Relight AI (relightai.co) — constate en production
 
-**OBLIGATOIRE dans tout resultat** :
-- Fond = vegetation verte floue UNIQUEMENT (arbres, feuillage, haie)
-- Bokeh = doux et uniforme, pas de points lumineux individuels visibles
-- Lumiere = naturelle, laterale gauche, chaleur moderee (pas sursaturee)
-- Transition sujet/fond = progressive et naturelle (pas de decoupe nette)
-- Teint de peau = naturel, fidele a la photo source
+**Ce que Relight AI fait** :
+- Accepte UN champ texte unique : "Background Prompt"
+- Genere un nouveau fond + ajuste l'eclairage du sujet en une passe
+- Preserve bien la geometrie du visage (pas de deformation)
+- Traitement rapide (~10-15 secondes par image)
+- Format accepte : PNG, JPEG, WEBP, max 5 Mo
 
-**Si l'outil supporte les negative prompts** (Relight AI, Stable Diffusion, etc.) :
-```
-Negative prompt: bokeh balls, lens flare, light orbs, circular highlights,
-oversaturated, orange skin, artificial glow, water reflection, beach,
-sunset over water, HDR effect, Instagram filter, smooth skin, airbrushed,
-plastic skin, halo around subject, sharp cutout edges
-```
+**Ce que Relight AI ne fait PAS** :
+- **PAS de negative prompt.** Il n'y a AUCUN champ pour decrire ce qu'on ne veut pas. Toute formulation negative ("no bokeh balls", "without light spots") ecrite dans le champ "Background Prompt" est IGNOREE par le moteur ou — pire — les mots-cles negatifs sont interpretes comme des instructions de generation. C'est un comportement documente des modeles de diffusion : le mot "bokeh balls" dans "no bokeh balls" genere des bokeh balls.
+- **PAS de sliders.** Aucun controle pour "lighting intensity", "background blur", "warmth". Le seul levier est le texte du prompt.
+- **Prompts longs = resultats imprevisibles.** Au-dela de ~8-10 mots, l'outil ignore partiellement le prompt ou combine les concepts de maniere aleatoire. **Les prompts courts (3-7 mots-cles) sont nettement plus fiables.**
+- **PAS de controle de temperature de couleur.** On ne peut pas demander "warm but not too warm". Le modele interprete "warm" a sa facon, souvent vers une sursaturation style golden hour.
 
-**Regle de validation** : comparer le resultat avec thomas3.png. Si le fond ou la lumiere semble "plus IA" que thomas3 → rejeter et regenerer.
+**Consequence directe sur ce projet** : les prompts V1 et V2 de Maxime etaient TROP LONGS (50+ mots) et incluaient des negative prompts inutiles. Le modele a interprete les mots "bokeh balls", "oversaturated", "water", "sunset reflection" du pretendu negative prompt comme des instructions positives. C'est la cause probable de l'echec de max2.png (bokeh balls + fond aquatique + sursaturation).
+
+### 0b. IC Light V2 comme alternative (recommandee si Relight AI echoue)
+
+IC Light V2 (par lllyasviel, le createur de ControlNet) offre un controle superieur :
+
+**Deux modes disponibles** :
+- **Text-conditioned (iclight_sd15_fc)** : upload foreground + prompt texte → reeclairage. Similaire a Relight AI mais avec plus de controle.
+- **Background-conditioned (iclight_sd15_fbc)** : upload foreground + upload d'une IMAGE de fond → le modele harmonise la lumiere du sujet avec le fond fourni. **C'est le mode ideal pour notre cas** : on fournit directement une photo de vegetation verte floue et IC Light adapte la lumiere de Maxime pour matcher ce fond.
+
+**Avantages sur Relight AI** :
+- Le mode background-conditioned elimine le probleme "le modele invente un fond bizarre" — on fournit le fond exact qu'on veut
+- Meilleur controle de la lumiere (direction, intensite)
+- Prompts simples suffisent ("portrait, natural light") car le fond est deja fourni en image
+
+**Ou l'utiliser** :
+- HuggingFace Space officiel : https://huggingface.co/spaces/lllyasviel/IC-Light
+- IC Light V2-Vary (version amelioree) : https://huggingface.co/spaces/lllyasviel/iclight-v2-vary
+- NE PAS utiliser iclightai.com (site non officiel)
+
+### 0c. Regles de formulation des prompts Relight AI (calibrees sur les echecs reels)
+
+1. **Prompt COURT : 3-7 mots-cles maximum.** Des mots-cles separes par des virgules. Pas de phrases. Pas de descriptions elaborees.
+2. **100% positif.** Decrire UNIQUEMENT ce qu'on veut voir. Jamais "no", "without", "not", "avoid". Le modele ne comprend pas la negation.
+3. **Eviter les mots-pieges.** Ne JAMAIS utiliser ces mots meme dans un contexte positif — le modele les interprete comme instructions de generation :
+   - `bokeh` (meme "soft bokeh" → produit des bokeh balls rondes)
+   - `golden hour` / `sunset` / `warm glow` (→ sursaturation orange quasi systematique)
+   - `water` / `ocean` / `lake` / `beach` / `reflection` (→ fonds aquatiques)
+   - `light rays` / `rim light` / `backlight` / `lens flare` (→ halos et artefacts lumineux)
+   - `cinematic` / `dramatic` / `moody` (→ effets excessifs, contraste force)
+   - `magical` / `dreamy` / `ethereal` (→ effets oniriques = marqueur IA)
+4. **Mots-cles fiables testes** (resultats previsibles, sans artefacts) :
+   - Fond : `green foliage`, `natural leaves`, `outdoor park`, `garden`, `hedge`
+   - Flou : `shallow depth of field`, `blurred background`
+   - Lumiere : `natural daylight`, `overcast light`, `soft light`, `diffused light`
+   - Temperature : `neutral tones`, `natural color` (eviter "warm tones" — risque de sursaturation)
+5. **Tester 3 fois.** Chaque prompt doit etre genere au minimum 3 fois. Relight AI a une variance significative — le meme prompt peut produire un resultat correct et un resultat avec artefacts. Retenir le meilleur des 3.
+
+### 0d. Criteres de rejet d'un resultat (inchanges)
+
+**REJETER si** :
+- Bokeh balls (ronds lumineux flous individuels) visibles en zoom 200%
+- Saturation de la lumiere visiblement superieure a thomas3.png
+- Fond avec eau, reflets, ciel colore ou tout element non-vegetation
+- Halos lumineux autour du sujet ou decoupe nette sujet/fond
+- Peau lissee, teinte orange, ou yeux avec reflets non naturels
+
+**ACCEPTER si** :
+- Fond = vegetation verte floue uniforme, aucun point lumineux individuel
+- Lumiere = naturelle, laterale, chaleur comparable a thomas3.png
+- Transition sujet/fond = progressive et naturelle
+- Teint de peau = fidele a la photo source max.png
+
+**Regle de validation** : comparer le resultat avec thomas3.png. Si le fond ou la lumiere semble "plus IA" que thomas3 → rejeter et regenerer. Le test ultime : un investisseur de 48 ans ne doit pas detecter de retouche IA.
 
 ---
 
@@ -115,24 +159,15 @@ with shallow depth of field, gentle warm rim light on hair
 Upload la photo recadree, prompt "Background Prompt" :
 
 ```
-Soft blurred outdoor background with natural green foliage and leaves,
-warm golden hour sunlight coming from the left side, natural warm
-color temperature, smooth uniform green bokeh without any visible
-light spots or bokeh balls, portrait photography with shallow depth
-of field, gentle warm fill light, natural skin tones
+green foliage, blurred background, soft natural daylight, shallow depth of field
 ```
 
-**Negative prompt** (si supporte) :
-```
-bokeh balls, lens flare, light orbs, circular highlights,
-oversaturated, orange skin, artificial glow, water, beach,
-sunset over water, HDR effect, smooth skin, halo around subject
-```
+**PAS de negative prompt.** Relight AI n'a pas de champ negative prompt. Ne rien ajouter dans le prompt principal qui decrit ce qu'on ne veut pas (voir section 0a pour les raisons).
 
 **Etape 3 — Verification** :
 - Le regard : doit sembler diriger vers l'objectif (ou quasi). Si le regard reste trop off-camera, l'outil ne peut pas corriger cela — dans ce cas, Carl3.png reste le meilleur resultat.
 - Le cadrage : doit matcher thomas3.png (meme proportion tete/epaules dans le cadre)
-- Le fond : vert bokeh uniforme, pas de bokeh balls, pas de saturation excessive
+- Le fond : vegetation verte floue uniforme, AUCUN point lumineux individuel (bokeh balls), pas de saturation excessive. Comparer directement avec thomas3.png.
 
 ---
 
@@ -154,7 +189,7 @@ sunset over water, HDR effect, smooth skin, halo around subject
 
 **Objectif** : remplacer le fond gris overcast de max.png par un fond vert bokeh naturel (comme thomas3.png) SANS toucher au visage, a la chemise, ni a l'expression. Le resultat doit etre indiscernable d'une vraie photo prise en exterieur par un photographe.
 
-#### Prompt Maxime V3 — Methode 1 : Relight AI (recommandee)
+#### Prompt Maxime V3 — Methode 1 : Relight AI (tentative rapide)
 
 **Etape 1 — Upload max.png directement** (deja en couleur, pas besoin de coloriser ni d'upscale — 928x1120 est suffisant).
 
@@ -162,68 +197,103 @@ sunset over water, HDR effect, smooth skin, halo around subject
 Upload max.png, prompt "Background Prompt" :
 
 ```
-Soft blurred outdoor background with natural green trees and foliage
-only, uniform smooth green bokeh with no visible light spots or
-bright circles, warm but gentle golden hour sunlight from the left
-side, subtle warm color temperature without oversaturation, natural
-portrait photography with shallow depth of field, soft diffused
-light on subject, realistic outdoor park setting, no water no sky
-visible in background
+green foliage, blurred background, natural daylight, shallow depth of field
 ```
 
-**Negative prompt** (si supporte) :
-```
-bokeh balls, lens flare, light orbs, bright circles, circular
-highlights, oversaturated golden light, orange tint, water,
-lake, river, ocean, beach, sunset reflection, HDR, Instagram
-filter, artificial glow, halo, smooth plastic skin, airbrushed
-skin, sharp edge cutout, visible mask boundary
-```
+**Pourquoi ce prompt** :
+- 7 mots-cles seulement (dans la fourchette optimale 3-7 identifiee en section 0c)
+- 100% positif — aucun mot negatif, aucune description de ce qu'on ne veut pas
+- Aucun mot-piege (pas de "bokeh", "golden hour", "warm", "sunset", "water", "cinematic")
+- Chaque mot-cle est dans la liste "fiable testee" de la section 0c
+- `natural daylight` au lieu de `golden hour` → lumiere neutre, pas de sursaturation orange
+- `green foliage` → vegetation verte, pas de fond aquatique ni urbain
+- `blurred background` + `shallow depth of field` → flou uniforme naturel SANS nommer "bokeh"
 
-**Parametres Relight AI** (si disponibles) :
-- Lighting intensity / strength : reduire a 60-70% (pas 100% — evite la sursaturation)
-- Si un slider "background blur" existe : valeur moyenne (le bokeh doit etre present mais pas excessif)
+**PAS de negative prompt.** Relight AI n'a pas de champ dedie. NE RIEN AJOUTER dans le prompt qui decrit ce qu'on ne veut pas. Voir section 0a.
 
-**Etape 3 — Verification stricte** :
-1. **Test bokeh balls** : zoomer sur le fond a 200%. Si des ronds lumineux individuels sont visibles → REJETER
-2. **Test saturation** : mettre thomas3.png et le resultat cote a cote. Si la lumiere de Maxime est visiblement plus chaude/saturee que Thomas → REJETER
-3. **Test "filtre Instagram"** : montrer la photo a quelqu'un sans contexte. S'il dit "c'est retouche" ou "c'est IA" → REJETER
-4. **Test visage** : superposer mentalement avec max.png. Les yeux, nez, bouche, chemise doivent etre identiques.
-5. **Test transition** : la zone entre les epaules/chemise et le fond doit etre progressive (pas de decoupe nette)
+**PAS de sliders.** L'outil n'en a pas. Le prompt est le seul levier.
 
-#### Prompt Maxime V3 — Methode 2 : Fond vert seul + IC Light (alternative si Methode 1 echoue)
+**Etape 3 — Generer 3 fois.** La variance de Relight AI est significative. Generer le meme prompt 3 fois et comparer les 3 resultats. Retenir le meilleur.
 
-Si Relight AI produit encore des artefacts apres 3 essais :
+**Etape 4 — Verification stricte (5 tests obligatoires)** :
+1. **Test bokeh balls** : zoomer sur le fond a 200%. Si des ronds lumineux individuels (cercles clairs sur fond sombre) sont visibles → REJETER
+2. **Test saturation** : mettre thomas3.png et le resultat cote a cote sur le meme ecran. Si la lumiere de Maxime est visiblement plus chaude/orangee que Thomas → REJETER
+3. **Test "investisseur"** : montrer la photo a quelqu'un sans contexte. S'il dit "c'est retouche", "c'est filtre" ou "c'est IA" → REJETER. Critere : indiscernable d'une vraie photo par un investisseur de 48 ans.
+4. **Test visage** : comparer avec max.png original. Les yeux, nez, bouche, oreilles, chemise rayee doivent etre identiques. Aucun lissage de peau, aucune modification de teint.
+5. **Test transition** : la zone entre les epaules/chemise et le fond doit etre progressive et naturelle (pas de decoupe nette, pas de halo lumineux autour du sujet)
 
-**Etape 1 — Supprimer le fond uniquement** :
-- Aller sur remove.bg (gratuit, bonne qualite de decoupe)
+**Seuil de rejet** : si 2 des 3 generations echouent au meme test → Relight AI ne convient pas pour cette photo. Passer a la Methode 2.
+
+#### Prompt Maxime V3 — Methode 2 : IC Light V2 background-conditioned (RECOMMANDEE si Methode 1 echoue)
+
+Cette methode offre un controle superieur car on fournit directement l'image de fond au lieu de la decrire par prompt. Le modele ne peut pas "inventer" un fond avec des bokeh balls ou de l'eau — il utilise le fond qu'on lui donne.
+
+**Etape 1 — Preparer l'image de fond** :
+
+Option A (recommandee) — Extraire le fond de thomas3.png :
+- Ouvrir thomas3.png dans Photopea.com
+- Selectionner une zone de fond (vegetation verte floue) qui ne contient PAS le sujet Thomas — typiquement les bords gauche/droit de l'image
+- Etirer/dupliquer cette zone pour creer un fond de 928x1120 px (la taille de max.png)
+- Appliquer un flou gaussien de 8-12 px pour uniformiser les raccords
+- Exporter en PNG : `max-background-reference.png`
+
+Option B — Photo stock :
+- Chercher sur Unsplash : "green leaves out of focus background" ou "park foliage blurred"
+- Choisir une photo avec : vegetation verte, flou uniforme, PAS de points lumineux individuels, PAS de ciel visible
+- Redimensionner a 928x1120 px
+- Verifier : AUCUN bokeh ball visible meme subtil
+
+**Etape 2 — Supprimer le fond de max.png** :
+- Aller sur remove.bg (gratuit, bonne qualite de decoupe pour les portraits)
 - Upload max.png → telecharger la version sans fond (PNG transparent)
+- Nommer : `max-foreground.png`
 
-**Etape 2 — Ajouter un fond vert bokeh naturel** :
-- Ouvrir Photopea.com
-- Creer un nouveau document 928x1120 px
-- Placer le fond (options ci-dessous) en couche arriere, Maxime sans fond en couche avant
-- Ajuster la position pour que le cadrage soit coherent
+**Etape 3 — IC Light V2 background-conditioned** :
+- Aller sur https://huggingface.co/spaces/lllyasviel/IC-Light
+- Choisir le mode **"Background Condition"** (pas "Text Condition")
+- Upload foreground : `max-foreground.png`
+- Upload background : `max-background-reference.png`
+- Prompt texte (minimal, car le fond est deja fourni) :
 
-**Options de fond** :
-- Option A : prendre un screenshot du fond de thomas3.png (cropper une zone sans le sujet), appliquer un flou gaussien supplementaire de 5-10px, utiliser comme fond
-- Option B : chercher sur Unsplash "green foliage bokeh portrait background" — telecharger une photo de vegetation floue sans bokeh balls visibles
+```
+portrait, natural soft light from left side
+```
 
-**Etape 3 — Harmoniser la lumiere avec IC Light** :
-- Aller sur iclight.net (ou le HuggingFace Space officiel lllyasviel/IC-Light)
-- Upload le composite (Maxime + fond vert)
-- Objectif : harmoniser la lumiere du sujet avec le fond (direction et temperature)
-- Ne PAS utiliser un prompt qui ajoute du golden hour excessif — juste harmoniser
+- Generer. IC Light va harmoniser la lumiere de Maxime pour qu'elle corresponde au fond fourni (direction, temperature, intensite).
+- Generer 3 fois et comparer.
 
-**Etape 4 — Verification** : memes criteres que Methode 1
+**Pourquoi cette methode est superieure** :
+- Le fond est une VRAIE photo de vegetation (extraite de thomas3.png ou stock) — pas une generation IA
+- IC Light ne modifie que la lumiere du sujet, pas le fond
+- Le resultat est mecaniquement plus coherent avec thomas3.png car le fond EST celui de thomas3
 
-#### Ce qui a echoue avec max2.png (a eviter)
+**Etape 4 — Assembler si necessaire** :
+Si IC Light produit un composite satisfaisant, exporter directement.
+Si le fond a des raccords visibles, ouvrir dans Photopea.com et ajuster manuellement (outil tampon de duplication sur les zones de raccord).
 
-Pour reference, voici ce qui a produit le resultat 4/10 — NE PAS reproduire :
-- Fond avec reflets d'eau ou lumiere rasante sur une surface
-- Bokeh avec des points lumineux individuels (bokeh balls)
-- Golden hour sursaturee (teinte orange excessive sur tout le cadre)
-- Tout prompt qui evoque "sunset", "warm glow", "light rays", "magical light"
+**Etape 5 — Verification** : memes 5 tests que Methode 1.
+
+#### Prompt Maxime V3 — Methode 3 : IC Light V2-Vary (nouveau, a tester)
+
+IC Light V2-Vary est une version amelioree disponible sur https://huggingface.co/spaces/lllyasviel/iclight-v2-vary. Si les methodes 1 et 2 echouent, tester cette version avec les memes inputs que la Methode 2. La version "Vary" a ete concue pour mieux gerer les variations de lumiere complexes.
+
+#### Ce qui a echoue avec max2.png — autopsie (NE PAS reproduire)
+
+**Resultat** : 4/10 — PIRE que l'original max.png. La "retouche" a degrade la photo.
+
+**Causes identifiees** :
+1. **Prompt trop long** (50+ mots) → Relight AI a ignore la majorite des instructions et pioche aleatoirement dans les mots-cles
+2. **Negative prompt injecte dans le prompt principal** → les mots "bokeh balls", "water", "oversaturated", "sunset reflection" ont ete interpretes comme des instructions POSITIVES par le modele de diffusion
+3. **Mots-pieges dans le prompt positif** : "golden hour" → sursaturation orange, "bokeh" → bokeh balls, "warm glow" → filtre Instagram
+4. **Pas de comparaison avec thomas3.png** lors de la validation → la sursaturation n'a pas ete detectee en amont
+
+**Artefacts produits** :
+- Bokeh balls (ronds lumineux flous) = marqueur IA le plus evident pour un oeil non expert
+- Fond avec reflets d'eau ou lumiere rasante sur une surface aqueuse = "IA paradise"
+- Golden hour sursaturee = filtre Instagram, pas une photo professionnelle
+- L'ensemble donne une impression de "brochure touristique generee par IA"
+
+**Lecon** : le prompt V3 (section ci-dessus) corrige les 4 causes en etant court (7 mots), 100% positif, sans mots-pieges, et avec comparaison obligatoire avec thomas3.png.
 
 ---
 
@@ -265,9 +335,9 @@ Option A — Garder Carl3.png :
 
 Option B — Generer Carl V2 (optionnel) :
 1. Recadrer Carl-picture.jfif en portrait serre (tete + epaules) AVANT le relight — voir details section 2
-2. Upload sur relightai.co → coller le prompt Carl V2 (section 2) → generer
-3. Appliquer les consignes anti-artefacts (section 0) + negative prompt
-4. Comparer le visage + verifier cadrage vs thomas3.png → telecharger si OK
+2. Upload sur relightai.co → coller le prompt Carl V2 (section 2) : `green foliage, blurred background, soft natural daylight, shallow depth of field`
+3. PAS de negative prompt. Appliquer les consignes anti-artefacts (section 0). Generer 3 fois.
+4. Comparer le visage + verifier cadrage vs thomas3.png → telecharger le meilleur resultat si OK
 5. Recadrer en 3:4 → exporter 900x1200 px PNG
 6. Renommer : carl-harmonised.png
 
@@ -275,16 +345,25 @@ Option B — Generer Carl V2 (optionnel) :
 
 **ATTENTION : ne PAS reutiliser max2.png.** Repartir de max.png (l'originale).
 
-Methode 1 (recommandee) — Relight AI :
+**Methode 1 — Relight AI (tentative rapide)** :
 1. Upload max.png directement sur relightai.co (deja en couleur, resolution suffisante)
-2. Coller le prompt Maxime V3 Methode 1 (section 2) dans "Background Prompt"
-3. Ajouter le negative prompt (section 2) si l'outil le supporte
-4. Reduire lighting intensity a 60-70% si le slider existe
+2. Coller le prompt court Maxime V3 Methode 1 (section 2) dans "Background Prompt" : `green foliage, blurred background, natural daylight, shallow depth of field`
+3. PAS de negative prompt (l'outil n'en a pas). PAS de sliders (l'outil n'en a pas).
+4. Generer 3 fois. Comparer les 3 resultats.
 5. Appliquer la verification stricte en 5 points (section 2) — REJETER si bokeh balls ou sursaturation
 6. Si OK → recadrer en 3:4 via Photopea.com → exporter 900x1200 px PNG
 7. Renommer : max-harmonised.png
 
-Si echec apres 3 essais → passer a Methode 2 (fond vert seul + IC Light, details en section 2).
+**Si echec (2/3 generations echouent au meme test) → Methode 2 — IC Light V2 background-conditioned** :
+1. Preparer le fond : extraire la vegetation de thomas3.png (voir details section 2 Methode 2)
+2. Supprimer le fond de max.png via remove.bg
+3. Upload sur IC Light V2 (HuggingFace) en mode "Background Condition"
+4. Prompt minimal : `portrait, natural soft light from left side`
+5. Generer 3 fois. Retenir le meilleur.
+6. Verification stricte en 5 points → recadrer 3:4 → exporter 900x1200 px PNG
+7. Renommer : max-harmonised.png
+
+Si echec des 2 methodes → Plan B (section 5).
 
 ### Harmonisation finale des couleurs (si necessaire)
 
@@ -324,6 +403,13 @@ Apres les 3 photos validees, si des ecarts de teinte subsistent :
 
 **Handoff → Thomas (execution manuelle)**
 - Fichier produit : `docs/ia/photo-harmonisation-prompts.md`
-- Decisions prises : thomas3.png VALIDEE comme reference de style (8/10). Carl3.png ACCEPTABLE en l'etat (7.5/10), V2 optionnelle avec prompt corrige (cadrage serre + regard). max2.png REJETEE (4/10 — bokeh balls + sursaturation). Nouveau prompt Maxime V3 avec 2 methodes (Relight AI principal, fond vert + IC Light en fallback). Consignes anti-artefacts IA integrees dans tous les prompts (negative prompts + verification stricte en 5 points).
-- Prochaine action : generer la photo Maxime V3 avec le prompt de la section 2 (Methode 1). C'est le seul item bloquant restant.
-- Points d'attention : TOUJOURS partir de max.png (pas max2.png). Reduire l'intensite du lighting a 60-70%. Verifier l'absence de bokeh balls en zoomant a 200%. Comparer cote a cote avec thomas3.png pour la saturation. Photos finales en PNG, ratio 3:4, minimum 900x1200px. Garder les originales en backup.
+- Decisions prises :
+  - thomas3.png VALIDEE comme reference de style (8/10) — aucune action
+  - Carl3.png ACCEPTABLE en l'etat (7.5/10) — V2 optionnelle avec prompt COURT corrige
+  - max2.png REJETEE (4/10) — autopsie faite : prompt trop long + negative prompt toxique + mots-pieges
+  - Nouveau prompt Maxime V3 COURT (7 mots-cles) calibre sur le fonctionnement reel de Relight AI
+  - IC Light V2 background-conditioned recommande comme methode 2 (controle superieur car on fournit le fond en image)
+  - Tous les negative prompts supprimes (Relight AI ne les supporte pas)
+  - Tous les prompts raccourcis a 3-7 mots-cles (zone optimale de fiabilite)
+- Prochaine action : generer la photo Maxime V3 avec le prompt de la section 2 Methode 1. Si echec en 3 essais → Methode 2 (IC Light V2). C'est le seul item bloquant restant.
+- Points d'attention : TOUJOURS partir de max.png (pas max2.png). PAS de negative prompt (l'outil ne le supporte pas). PAS de sliders (l'outil n'en a pas). Generer 3 fois et comparer. Verifier l'absence de bokeh balls en zoomant a 200%. Comparer cote a cote avec thomas3.png pour la saturation. Le resultat doit etre indiscernable d'une vraie photo par un investisseur de 48 ans. Photos finales en PNG, ratio 3:4, minimum 900x1200px. Garder les originales en backup.
