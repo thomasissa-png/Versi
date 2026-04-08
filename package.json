@@ -1,0 +1,12 @@
+{
+  "name": "versi",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:app": "cd src && npm install",
+    "dev": "cd src && npm run dev",
+    "build": "cd src && npm install && npm run build",
+    "preview": "cd src && npm run preview",
+    "lint": "cd src && npm run lint"
+  }
+}
