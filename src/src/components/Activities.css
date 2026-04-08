@@ -65,9 +65,9 @@
 .activities__card-cta--disabled {
   color: var(--color-border);
   cursor: default;
-  font-size: 0.6875rem;
+  font-size: var(--font-size-caption);
   letter-spacing: 0.12em;
-  opacity: 0.6;
+  opacity: var(--opacity-muted);
 }
 
 /* Responsive */

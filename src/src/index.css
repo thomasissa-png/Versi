@@ -75,6 +75,7 @@
   --font-size-body-lg: 1.125rem;
   --font-size-display-num: 4rem;
   --font-size-display-num-mobile: 3rem;
+  --font-size-caption: 0.6875rem;
 
   /* --- Opacités sémantiques --- */
   --opacity-muted: 0.5;
