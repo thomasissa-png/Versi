@@ -1,6 +1,6 @@
 import thomasPhoto from '../assets/team/thomas.png';
 import maxPhoto from '../assets/team/max.png';
-import carlPhoto from '../assets/team/carl.jfif';
+import carlPhoto from '../assets/team/carl.png';
 
 export const TEAM = [
   {
