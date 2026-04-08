@@ -25,10 +25,10 @@
 }
 
 .nav__logo {
-  font-size: 0.8125rem;
-  font-weight: var(--font-weight-regular);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-thin);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.18em;
   color: var(--color-text-inverse);
   text-decoration: none;
   flex-shrink: 0;
@@ -42,9 +42,9 @@
 
 .nav__link {
   font-size: 0.8125rem;
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-regular);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--color-text-inverse);
   text-decoration: none;
   padding-bottom: 4px;

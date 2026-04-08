@@ -32,19 +32,18 @@ export default function Hero() {
   }, []);
 
   return (
-    <section id="hero" className="hero" role="img" aria-label="Architecture Versi">
-      <div className="hero__overlay" />
+    <section id="hero" className="hero">
       <div className="hero__content">
         <span className={`hero__surtitre text-label ${loaded ? 'hero__fade hero__fade--0' : 'hero__hidden'}`}>
-          HOLDING IMMOBILIÈRE INTÉGRÉE
+          OPÉRATEUR IMMOBILIER INTÉGRÉ — FRANCE
         </span>
         <h1 className={`hero__title text-display ${loaded ? 'hero__fade hero__fade--1' : 'hero__hidden'}`}>
           Quatre métiers.<br />
           Un cycle maîtrisé.
         </h1>
         <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`}>
-          Versi acquiert, transforme, détient et structure des actifs immobiliers en France.
-          De l'identification d'une opportunité à sa structuration financière — en interne.
+          De l'identification de l'actif à sa structuration financière — sans passer la main.
+          Versi opère l'ensemble du cycle en interne.
         </p>
         <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`}>
           <a

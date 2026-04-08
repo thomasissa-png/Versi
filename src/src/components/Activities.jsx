@@ -10,7 +10,7 @@ export default function Activities() {
       <div className="container">
         <span className="text-label activities__label">ACTIVITÉS</span>
         <h2 className="text-heading-lg activities__title">
-          Quatre métiers. Un cycle maîtrisé.
+          Une holding. Quatre entités.
         </h2>
         <div className={`activities__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {ENTITIES.map((entity, i) => {

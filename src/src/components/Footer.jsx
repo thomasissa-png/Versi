@@ -16,7 +16,7 @@ export default function Footer() {
             {CONTACT_EMAIL}
           </a>
           <span className="footer__entities">
-            Versi Développement · Versi Invest · Versi Capital · Versi Finance
+            Versi Immobilier · Versi Invest · Versi Capital · Versi Finance
           </span>
           <div className="footer__legal">
             <Link to="/mentions-legales" className="footer__legal-link">
