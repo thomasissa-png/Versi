@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import './LegalPage.css';
 
 export default function MentionsLegales() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = 'robots';
@@ -14,35 +19,31 @@ export default function MentionsLegales() {
 
   return (
     <>
+      <Nav />
       <div className="legal-page">
-        <nav className="legal-page__nav">
-          <Link to="/" className="legal-page__back">← VERSI</Link>
-        </nav>
         <main className="legal-page__content container">
           <h1 className="text-heading-lg legal-page__title">Mentions légales</h1>
 
           <section className="legal-page__section">
             <h2>Éditeur du site</h2>
-            <p>Le site versi.fr est édité par la société <strong>Versi</strong>.</p>
+            <p>Le site versi.fr est édité par la société <strong>Gradient One</strong>.</p>
             <ul>
-              <li><strong>Forme juridique</strong> : [À compléter]</li>
-              <li><strong>Capital social</strong> : [À compléter]</li>
-              <li><strong>Siège social</strong> : [À compléter]</li>
-              <li><strong>Numéro d'immatriculation</strong> : [À compléter]</li>
-              <li><strong>Numéro de TVA intracommunautaire</strong> : [À compléter]</li>
+              <li><strong>Raison sociale</strong> : Gradient One</li>
+              <li><strong>Siège social</strong> : 54 rue Henri Barbusse, 92000 Nanterre</li>
+              <li><strong>SIREN</strong> : 881 249 718</li>
+              <li><strong>RCS</strong> : Nanterre</li>
               <li><strong>Email</strong> : contact@versi.fr</li>
-              <li><strong>Téléphone</strong> : [À compléter]</li>
             </ul>
           </section>
 
           <section className="legal-page__section">
             <h2>Directeur de la publication</h2>
-            <p>[À compléter par le fondateur]</p>
+            <p>Thomas Issa, co-fondateur.</p>
           </section>
 
           <section className="legal-page__section">
             <h2>Hébergeur</h2>
-            <p>Le site versi.fr est hébergé par : [À compléter selon l'hébergeur retenu]</p>
+            <p>Le site versi.fr est hébergé par Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis.</p>
           </section>
 
           <section className="legal-page__section">

@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import './LegalPage.css';
 
 export default function PolitiqueConfidentialite() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const meta = document.createElement('meta');
     meta.name = 'robots';
@@ -14,10 +19,8 @@ export default function PolitiqueConfidentialite() {
 
   return (
     <>
+      <Nav />
       <div className="legal-page">
-        <nav className="legal-page__nav">
-          <Link to="/" className="legal-page__back">← VERSI</Link>
-        </nav>
         <main className="legal-page__content container">
           <h1 className="text-heading-lg legal-page__title">Politique de confidentialité</h1>
 
@@ -30,8 +33,8 @@ export default function PolitiqueConfidentialite() {
 
           <section className="legal-page__section">
             <h2>1. Responsable du traitement</h2>
-            <p><strong>Responsable du traitement :</strong> Versi</p>
-            <p><strong>Adresse :</strong> [À compléter]</p>
+            <p><strong>Responsable du traitement :</strong> Gradient One (exploitant la marque Versi)</p>
+            <p><strong>Adresse :</strong> 54 rue Henri Barbusse, 92000 Nanterre</p>
             <p><strong>Email de contact :</strong> contact@versi.fr</p>
             <p>
               Versi ne dispose pas de Délégué à la Protection des Données (DPO) au sens de l'article 37 du RGPD, la taille de la structure et la nature des traitements ne rendant pas sa désignation obligatoire.

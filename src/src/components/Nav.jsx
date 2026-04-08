@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useScrollSpy } from '../hooks/useScrollSpy.js';
 import './Nav.css';
 
@@ -24,8 +25,15 @@ export default function Nav() {
   const activeSection = useScrollSpy();
   const menuRef = useRef(null);
   const hamburgerRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHome = location.pathname === '/';
 
   useEffect(() => {
+    if (!isHome) {
+      setScrolled(true);
+      return;
+    }
     const onScroll = () => {
       const heroEl = document.getElementById('hero');
       const threshold = heroEl ? heroEl.offsetHeight - 80 : 400;
@@ -34,7 +42,7 @@ export default function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [isHome]);
 
   // Focus trap in mobile menu
   useEffect(() => {
@@ -76,13 +84,18 @@ export default function Nav() {
   const handleNavClick = useCallback((e, href) => {
     e.preventDefault();
     setMenuOpen(false);
+
+    if (!isHome) {
+      navigate('/' + href);
+      return;
+    }
+
     const target = document.querySelector(href);
     if (target) {
       const offset = 80;
       const top = target.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
 
-      // If clicking "NOUS CONTACTER" and target is #contact, focus first input
       if (href === '#contact') {
         setTimeout(() => {
           const firstInput = target.querySelector('input[name="nom"]');
@@ -90,7 +103,7 @@ export default function Nav() {
         }, 600);
       }
     }
-  }, []);
+  }, [isHome, navigate]);
 
   return (
     <nav className={`nav ${scrolled ? 'nav--scrolled' : ''}`} aria-label="Navigation principale">
