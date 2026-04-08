@@ -1,0 +1,32 @@
+.not-found {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.not-found__content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.not-found__title {
+  color: var(--color-text-primary);
+}
+
+.not-found__link {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  padding: 16px 48px;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--duration-normal) ease;
+}
+
+.not-found__link:hover {
+  border-color: var(--color-accent);
+}

@@ -1,0 +1,118 @@
+.mission {
+  background: var(--color-bg-primary);
+}
+
+.mission__inner {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: var(--spacing-3xl);
+  align-items: start;
+}
+
+.mission__label {
+  display: block;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mission__title {
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.mission__body {
+  color: var(--color-text-primary);
+  max-width: var(--text-max-width-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.mission__body-secondary {
+  color: var(--color-text-primary);
+  max-width: var(--text-max-width-sm);
+}
+
+.mission__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mission__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mission__stat:first-child {
+  padding-top: 0;
+}
+
+.mission__stat:last-child {
+  border-bottom: none;
+}
+
+.mission__stat-label {
+  color: var(--color-text-muted);
+}
+
+/* Fade animation */
+.fade-hidden {
+  opacity: 0;
+}
+
+.fade-in {
+  animation: fadeInUp var(--duration-slow) ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .mission__inner {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-2xl);
+  }
+
+  .mission__stats {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+
+  .mission__stat {
+    padding: 0;
+    border-bottom: none;
+    text-align: center;
+    flex: 1;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .mission__inner {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-2xl);
+  }
+
+  .mission__stats {
+    flex-direction: row;
+    gap: var(--spacing-xl);
+  }
+
+  .mission__stat {
+    padding: var(--spacing-lg) 0;
+    border-bottom: none;
+    border-right: 1px solid var(--color-border);
+    padding-right: var(--spacing-xl);
+    flex: 1;
+  }
+
+  .mission__stat:last-child {
+    border-right: none;
+    padding-right: 0;
+  }
+}

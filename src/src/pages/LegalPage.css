@@ -1,0 +1,96 @@
+.legal-page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.legal-page__nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--nav-height);
+  background: var(--color-bg-dark-alt);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-2xl);
+}
+
+.legal-page__back {
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  transition: opacity var(--duration-normal) ease;
+}
+
+.legal-page__back:hover {
+  opacity: 0.7;
+}
+
+.legal-page__content {
+  padding: var(--spacing-3xl) var(--spacing-2xl) var(--spacing-5xl);
+  max-width: 800px;
+}
+
+.legal-page__title {
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.legal-page__section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.legal-page__section h2 {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.legal-page__section h3 {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+}
+
+.legal-page__section p {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.legal-page__section ul {
+  padding-left: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  list-style: disc;
+}
+
+.legal-page__section li {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.legal-page__section a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .legal-page__nav {
+    padding: 0 var(--spacing-lg);
+  }
+
+  .legal-page__content {
+    padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-4xl);
+  }
+}

@@ -1,0 +1,104 @@
+.approach {
+  background: var(--color-bg-dark);
+}
+
+.approach__label {
+  display: block;
+  color: var(--color-text-inverse);
+  opacity: 0.5;
+  margin-bottom: var(--spacing-lg);
+}
+
+.approach__title {
+  color: var(--color-text-inverse);
+  margin-bottom: var(--spacing-md);
+}
+
+.approach__subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-inverse);
+  opacity: 0.7;
+  margin-bottom: var(--spacing-3xl);
+}
+
+.approach__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-xl);
+}
+
+.approach__step {
+  position: relative;
+  padding-right: var(--spacing-xl);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.approach__step:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.approach__num {
+  display: block;
+  font-size: 4rem;
+  font-weight: var(--font-weight-thin);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--color-text-inverse);
+  opacity: 0.15;
+  margin-bottom: var(--spacing-lg);
+}
+
+.approach__step-title {
+  color: var(--color-text-inverse);
+  margin-bottom: var(--spacing-md);
+}
+
+.approach__step-body {
+  color: var(--color-text-inverse);
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .approach__grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .approach__step {
+    padding-right: 0;
+    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .approach__step:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .approach__num {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .approach__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  .approach__step {
+    border-right: none;
+    padding-right: 0;
+    padding-bottom: var(--spacing-xl);
+  }
+
+  .approach__step:nth-child(odd) {
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    padding-right: var(--spacing-xl);
+  }
+}
