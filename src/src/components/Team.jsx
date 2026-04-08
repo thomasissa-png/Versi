@@ -45,8 +45,8 @@ export default function Team() {
       <div className="container">
         <span className="text-label team__label">ÉQUIPE</span>
         <h2 className="text-heading-lg team__title">
-          Trois associés.<br />
-          Zéro posture.
+          Trois fondateurs.<br />
+          Quarante ans de terrain.
         </h2>
         <p className="text-body-lg team__subtitle">
           Trois parcours de fond. Pas de théorie — des opérations closes, des portfolios constitués, des structures dirigées.

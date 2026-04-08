@@ -77,7 +77,9 @@
   padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--spacing-xs);
+  flex-grow: 1;
 }
 
 .team__name {
@@ -110,7 +112,7 @@
   height: 44px;
   color: var(--color-text-muted);
   transition: color var(--duration-fast) ease, transform var(--duration-fast) ease;
-  margin-top: var(--spacing-sm);
+  margin-top: auto;
 }
 
 .team__linkedin:hover {

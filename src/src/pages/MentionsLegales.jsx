@@ -26,7 +26,10 @@ export default function MentionsLegales() {
 
           <section className="legal-page__section">
             <h2>Éditeur du site</h2>
-            <p>Le site versi.fr est édité par la société <strong>Gradient One</strong>.</p>
+            <p>
+              Le site versi.fr est édité par <strong>Gradient One</strong>, maison mère de Versi,
+              détenue par Thomas Issa, Maxime Lemoine et Carl Standertskjold-Nordenstam.
+            </p>
             <ul>
               <li><strong>Raison sociale</strong> : Gradient One</li>
               <li><strong>Siège social</strong> : 54 rue Henri Barbusse, 92000 Nanterre</li>
@@ -58,8 +61,8 @@ export default function MentionsLegales() {
 
           <section className="legal-page__section">
             <h2>Crédits photographiques</h2>
-            <p>Portraits des fondateurs : © Versi — tous droits réservés.</p>
-            <p>[À compléter avec les crédits des autres images utilisées]</p>
+            <p>Portraits des fondateurs : © Gradient One — tous droits réservés.</p>
+            <p>Carte de France (section Implantation) : illustration vectorielle originale © Gradient One.</p>
           </section>
 
           <section className="legal-page__section">
