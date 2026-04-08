@@ -97,6 +97,7 @@ Quand tu invoques le tool Task pour déléguer à un agent, utilise le `subagent
 | @agent-factory | `agent-factory` |
 | @elon | `elon` |
 | @moi | `moi` |
+| @testeur-persona-laurent | `ux` (fallback — agent custom, lire `.claude/agents/testeur-persona-laurent.md`) |
 
 **Agents custom (créés par @agent-factory) :**
 Les agents custom dans `.claude/agents/` ne sont PAS dans la liste hardcodée des `subagent_type` de Claude Code. Pour les invoquer :

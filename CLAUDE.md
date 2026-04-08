@@ -109,6 +109,7 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 | Création d'agents spécialisés | agent-factory | ia, orchestrator |
 | Audit stratégique / amélioration continue | elon | orchestrator, reviewer |
 | Décision projet / arbitrage fondateur | moi | orchestrator |
+| Evaluation persona investisseur (gates GP) | testeur-persona-laurent | orchestrator, reviewer |
 
 ## Convention d'appel
 
@@ -132,6 +133,7 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 - `@agent-factory` : création d'agents spécialisés sur mesure pour le projet
 - `@elon` : audit stratégique, challenge des décisions, amélioration continue du framework
 - `@moi` : proxy décisionnel du fondateur Thomas, review de livrables et arbitrages comme Thomas le ferait
+- `@testeur-persona-laurent` : evaluation des livrables du point de vue de Laurent (investisseur, gates GP1-GP10)
 
 ## Convention de chemin des livrables
 
@@ -155,6 +157,7 @@ docs/
 ├── qa/                ← @qa : qa-strategy.md, TESTING.md
 ├── reviews/           ← @reviewer : cross-review-report.md, consistency-audit.md
 │                        @elon : elon-audit.md, strategic-review.md
+│                        @testeur-persona-laurent : evaluation-testeur-laurent-[sujet].md
 ```
 
 Les fichiers de synthèse de l'orchestrateur (`project-synthesis.md`, `orchestration-plan.md`) sont à la racine de `docs/`.
