@@ -76,11 +76,22 @@
 @media (max-width: 767px) {
   .activities__grid {
     grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
+    gap: 0;
   }
 
   .activities__card {
     padding: var(--spacing-lg);
+    border-radius: var(--radius-none);
+    border-left: none;
+    border-right: none;
+  }
+
+  .activities__card:first-child {
+    border-top: none;
+  }
+
+  .activities__card + .activities__card {
+    border-top: none;
   }
 }
 

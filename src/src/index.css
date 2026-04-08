@@ -266,6 +266,7 @@ ul, ol {
 
 .section-padding {
   padding: var(--spacing-5xl) var(--spacing-2xl);
+  scroll-margin-top: var(--nav-height);
 }
 
 .container {

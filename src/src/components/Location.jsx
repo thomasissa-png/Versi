@@ -81,9 +81,10 @@ export default function Location() {
                     x={city.x + 12}
                     y={city.y + 4}
                     fill="var(--color-text-muted)"
-                    fontSize="12"
+                    fontSize="14"
                     fontFamily="var(--font-family)"
                     letterSpacing="0.06em"
+                    className="location__map-label"
                   >
                     {city.name.toUpperCase()}
                   </text>
