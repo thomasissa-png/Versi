@@ -244,34 +244,55 @@ Pour reference, voici ce qui a produit le resultat 4/10 — NE PAS reproduire :
 
 ## 4. Workflow etape par etape
 
-### Thomas (le plus complexe)
+### Thomas — FAIT (thomas3.png validee 8/10)
 
-1. Upscale thomas.png via upscale.media (2x → 2048x2048)
-2. Coloriser via fotor.com/features/colorize-photo/ → telecharger PNG
-3. Upload sur relightai.co → coller le prompt Thomas → generer
-4. Comparer le visage : si OK → telecharger. Si deformation → regenerer (3 essais max)
-5. Recadrer en 3:4 via Photopea.com → exporter 900x1200 px PNG
+**Aucune action requise.** thomas3.png est la photo de reference de style.
+
+1. ~~Upscale thomas.png via upscale.media (2x → 2048x2048)~~ FAIT
+2. ~~Coloriser via fotor.com/features/colorize-photo/ → telecharger PNG~~ FAIT
+3. ~~Upload sur relightai.co → coller le prompt Thomas → generer~~ FAIT
+4. ~~Comparer le visage~~ FAIT — valide 8/10
+5. Recadrer thomas3.png en 3:4 via Photopea.com → exporter 900x1200 px PNG (si pas deja fait)
 6. Renommer : thomas-harmonised.png
 
-### Carl
+### Carl — V1 OK, V2 optionnelle
 
-1. Upscale Carl-picture.jfif via upscale.media (2x)
-2. Upload sur relightai.co → coller le prompt Carl → generer
-3. Comparer le visage → telecharger si OK
-4. Recadrer en 3:4 → exporter 900x1200 px PNG
-5. Renommer : carl-harmonised.png
+**Carl3.png est utilisable en l'etat** (7.5/10). Si V2 souhaitee, suivre le prompt V2 en section 2.
 
-### Maxime (reference — ne rien changer)
+Option A — Garder Carl3.png :
+1. Recadrer Carl3.png en 3:4 via Photopea.com → exporter 900x1200 px PNG
+2. Renommer : carl-harmonised.png
 
-1. Recadrer en 3:4 exact si necessaire (crop mineur bas de la photo)
-2. Renommer : max-harmonised.png
+Option B — Generer Carl V2 (optionnel) :
+1. Recadrer Carl-picture.jfif en portrait serre (tete + epaules) AVANT le relight — voir details section 2
+2. Upload sur relightai.co → coller le prompt Carl V2 (section 2) → generer
+3. Appliquer les consignes anti-artefacts (section 0) + negative prompt
+4. Comparer le visage + verifier cadrage vs thomas3.png → telecharger si OK
+5. Recadrer en 3:4 → exporter 900x1200 px PNG
+6. Renommer : carl-harmonised.png
+
+### Maxime — A RETOUCHER (max2.png rejetee, repartir de max.png)
+
+**ATTENTION : ne PAS reutiliser max2.png.** Repartir de max.png (l'originale).
+
+Methode 1 (recommandee) — Relight AI :
+1. Upload max.png directement sur relightai.co (deja en couleur, resolution suffisante)
+2. Coller le prompt Maxime V3 Methode 1 (section 2) dans "Background Prompt"
+3. Ajouter le negative prompt (section 2) si l'outil le supporte
+4. Reduire lighting intensity a 60-70% si le slider existe
+5. Appliquer la verification stricte en 5 points (section 2) — REJETER si bokeh balls ou sursaturation
+6. Si OK → recadrer en 3:4 via Photopea.com → exporter 900x1200 px PNG
+7. Renommer : max-harmonised.png
+
+Si echec apres 3 essais → passer a Methode 2 (fond vert seul + IC Light, details en section 2).
 
 ### Harmonisation finale des couleurs (si necessaire)
 
-Si les 3 photos ont encore des ecarts de teinte apres relighting :
+Apres les 3 photos validees, si des ecarts de teinte subsistent :
 - Ouvrir les 3 dans Photopea.com
-- Sur Thomas et Carl : Image → Adjustments → Match Color → source = max-harmonised.png
-- Intensity a 50-70%
+- **Reference de couleur** : thomas3.png (photo validee avec le meilleur equilibre lumiere/fond)
+- Sur Carl et Maxime : Image → Adjustments → Match Color → source = thomas3-harmonised.png
+- Intensity a 50-70% — ne pas forcer pour eviter de denaturer les teints de peau
 
 ---
 
@@ -279,15 +300,30 @@ Si les 3 photos ont encore des ecarts de teinte apres relighting :
 
 | Option | Delai | Cout | Quand l'utiliser |
 |---|---|---|---|
-| Fiverr "color match 3 team headshots" | 24-48h | 15-30 EUR | Si le visage de Thomas est degrade apres 3 essais |
+| Fiverr "harmonize 2 remaining headshots to match reference" | 24-48h | 15-30 EUR | Si Maxime V3 echoue apres 3 essais Relight AI + 3 essais Methode 2 |
 | Reshoot les 3 en exterieur (meme lieu, meme heure) | 1 semaine | 0 EUR (smartphone suffit) | Si aucune harmonisation IA ne donne un resultat pro |
-| Photopea manual | 2h | Gratuit | Coloriser + ajuster la balance manuellement (necessite des bases Photoshop) |
+| Photopea manual | 2h | Gratuit | Ajuster la balance manuellement (necessite des bases Photoshop) |
 
-**Recommandation Plan B** : si apres 3 essais Relight AI le visage de Thomas est degrade, poster une mission Fiverr "Color match and harmonize 3 team headshots to warm outdoor style — reference photo provided" avec max.png comme reference. Budget 20 EUR, livraison 24h.
+**Recommandation Plan B** : si apres 3 essais Relight AI + 3 essais Methode 2 la photo de Maxime est toujours "IA-looking", poster une mission Fiverr "Match 2 team headshots to this reference photo style — warm outdoor green bokeh, natural light" avec thomas3.png comme reference. Budget 20 EUR, livraison 24h.
+
+**Plan B fallback pour Maxime specifiquement** : si meme Fiverr echoue, l'original max.png reste meilleur que max2.png. Utiliser max.png avec un simple ajustement de temperature de couleur dans Photopea (Image → Adjustments → Color Balance → pousser Midtones vers Warm +15/+10) pour rapprocher la teinte du fond overcast vers une tonalite plus chaude. Le resultat ne sera pas identique a thomas3/Carl3 mais sera coherent et surtout naturel.
+
+---
+
+## 6. Checklist de progression
+
+- [x] Thomas : thomas3.png validee 8/10 — recadrage 3:4 + rename restant
+- [ ] Carl : Carl3.png utilisable 7.5/10 — V2 optionnelle (cadrage + regard)
+- [ ] Maxime : A RETOUCHER — max2.png rejetee, repartir de max.png avec prompt V3
+- [ ] Recadrage final 3:4 des 3 photos (900x1200 px minimum)
+- [ ] Harmonisation couleurs finale si ecarts visibles
+- [ ] Placement dans /Photos/ avec noms definitifs (*-harmonised.png)
+- [ ] Integration dans le site par @fullstack
 
 ---
 
 **Handoff → Thomas (execution manuelle)**
 - Fichier produit : `docs/ia/photo-harmonisation-prompts.md`
-- Decisions prises : Relight AI (relightai.co) comme outil principal — fond + lumiere en une passe via prompt. Colorisation prealable obligatoire pour Thomas (fotor.com). IC Light en complement si la lumiere manque de chaleur. Pas de generation IA du visage — uniquement relighting et changement de fond.
-- Points d'attention : toujours comparer le visage avant/apres. Upscale AVANT le relight (meilleure qualite). Les photos finales doivent etre en PNG, ratio 3:4, minimum 900x1200px. Placer dans `/Photos/` en gardant les originales en backup.
+- Decisions prises : thomas3.png VALIDEE comme reference de style (8/10). Carl3.png ACCEPTABLE en l'etat (7.5/10), V2 optionnelle avec prompt corrige (cadrage serre + regard). max2.png REJETEE (4/10 — bokeh balls + sursaturation). Nouveau prompt Maxime V3 avec 2 methodes (Relight AI principal, fond vert + IC Light en fallback). Consignes anti-artefacts IA integrees dans tous les prompts (negative prompts + verification stricte en 5 points).
+- Prochaine action : generer la photo Maxime V3 avec le prompt de la section 2 (Methode 1). C'est le seul item bloquant restant.
+- Points d'attention : TOUJOURS partir de max.png (pas max2.png). Reduire l'intensite du lighting a 60-70%. Verifier l'absence de bokeh balls en zoomant a 200%. Comparer cote a cote avec thomas3.png pour la saturation. Photos finales en PNG, ratio 3:4, minimum 900x1200px. Garder les originales en backup.
