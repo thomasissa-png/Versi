@@ -8,29 +8,29 @@ export const TEAM = [
     name: 'CARL STANDERTSKJOLD-NORDENSTAM',
     initials: 'CS',
     role: 'Co-fondateur',
-    specialty: '10 ans en marketing et growth. Head of Marketing Inbolt, ex-Algolia.',
-    track: 'Développe la présence institutionnelle de Versi et structure les réseaux de prescripteurs.',
+    specialty: '14 ans en marketing B2B. Sony (9 ans), Algolia (4 ans), Head of Marketing Inbolt.',
+    track: 'Clients acquis chez Sony : Lego, Coca-Cola, Capgemini. Structure les réseaux de prescripteurs Versi.',
     photo: carlPhoto,
-    linkedin: '', // URL à fournir par Carl
+    linkedin: 'https://www.linkedin.com/in/carlstandertskjold/',
   },
   {
     id: 'maxime',
     name: 'MAXIME LEMOINE',
     initials: 'ML',
     role: 'Co-fondateur',
-    specialty: '12 ans en sales et développement commercial. Ex-European Sales Manager Sony.',
+    specialty: '13 ans en sales et stratégie commerciale. Head of Sales Europe Sony.',
     track: '5 immeubles en portefeuille, 24 contrats locatifs. Identifie et qualifie les opportunités d\'acquisition.',
     photo: maxPhoto,
-    linkedin: '', // URL à fournir par Maxime
+    linkedin: 'https://www.linkedin.com/in/maxime-lemoine-34550354/',
   },
   {
     id: 'thomas',
     name: 'THOMAS ISSA',
     initials: 'TI',
     role: 'Co-fondateur',
-    specialty: '15 ans en marketing et opérations. Deux sociétés développées de 0 à 4M€+.',
-    track: '11 actifs locatifs à Paris. Pilote les opérations Versi de la sourcing à la livraison.',
+    specialty: '15 ans en stratégie et opérations. Co-fondateur de TEOS, déployé dans 8 pays chez Sony.',
+    track: '11 actifs locatifs à Paris. Part de marché de 2 % à 35 % en 2 ans sur le segment premium.',
     photo: thomasPhoto,
-    linkedin: '', // URL à fournir par Thomas
+    linkedin: 'https://www.linkedin.com/in/thomasissa/',
   },
 ];
