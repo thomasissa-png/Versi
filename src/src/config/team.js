@@ -4,16 +4,6 @@ import carlPhoto from '../assets/team/carl.png';
 
 export const TEAM = [
   {
-    id: 'carl',
-    name: 'CARL STANDERTSKJOLD-NORDENSTAM',
-    initials: 'CS',
-    role: 'Co-fondateur',
-    specialty: '14 ans en marketing B2B. Sony (9 ans), Algolia (4 ans), Head of Marketing Inbolt.',
-    track: 'Clients acquis chez Sony : Lego, Coca-Cola, Capgemini. Chez Versi : sourcing partenaires et structuration des flux d\'opportunités.',
-    photo: carlPhoto,
-    linkedin: 'https://www.linkedin.com/in/carlstandertskjold/',
-  },
-  {
     id: 'maxime',
     name: 'MAXIME LEMOINE',
     initials: 'ML',
@@ -32,5 +22,15 @@ export const TEAM = [
     track: '11 actifs locatifs à Paris. Chez Sony : part de marché vidéoprojection premium de 2 % à 35 % en 2 ans.',
     photo: thomasPhoto,
     linkedin: 'https://www.linkedin.com/in/thomasissa/',
+  },
+  {
+    id: 'carl',
+    name: 'CARL STANDERTSKJOLD-NORDENSTAM',
+    initials: 'CS',
+    role: 'Co-fondateur',
+    specialty: '14 ans en marketing B2B. Sony (9 ans), Algolia (4 ans), Head of Marketing Inbolt.',
+    track: 'Clients acquis chez Sony : Lego, Coca-Cola, Capgemini. Chez Versi : sourcing partenaires et structuration des flux d\'opportunités.',
+    photo: carlPhoto,
+    linkedin: 'https://www.linkedin.com/in/carlstandertskjold/',
   },
 ];
