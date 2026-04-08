@@ -213,7 +213,7 @@ export default function Contact() {
               )}
 
               <p className="contact__rgpd">
-                En soumettant ce formulaire, vous acceptez que Versi traite vos données personnelles dans le cadre de votre demande.
+                Versi traite vos données dans le cadre de votre demande.
                 Base légale : intérêt légitime (art. 6.1.f RGPD). Données conservées 3 ans. Droit d'accès et de suppression : {CONTACT_EMAIL}.
               </p>
             </form>

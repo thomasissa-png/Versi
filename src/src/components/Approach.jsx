@@ -32,7 +32,7 @@ export default function Approach() {
       <div className="container">
         <span className="text-label approach__label">APPROCHE</span>
         <h2 className="text-heading-lg approach__title">Quatre étapes. Aucune délégation.</h2>
-        <p className="approach__subtitle">Un cycle reproductible. De la sourcing à la sortie.</p>
+        <p className="approach__subtitle">Un cycle reproductible. Les mêmes critères, les mêmes exigences, opération après opération.</p>
 
         <div className={`approach__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {STEPS.map((step, i) => (

@@ -48,11 +48,11 @@ export default function Hero() {
         </p>
         <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--4' : 'hero__hidden'}`}>
           <a
-            href="#activites"
+            href="#approche"
             className="hero__cta-primary"
-            onClick={(e) => handleClick(e, '#activites')}
+            onClick={(e) => handleClick(e, '#approche')}
           >
-            NOS ACTIVITÉS
+            NOTRE APPROCHE
           </a>
           <a
             href="#contact"

@@ -37,7 +37,7 @@ export const ENTITIES = [
     id: 'finance',
     label: 'INGÉNIERIE FINANCIÈRE',
     name: 'Versi Finance',
-    description: 'Structuration financière et optimisation patrimoniale des opérations Versi. Du montage du financement bancaire à l\'optimisation fiscale — chaque opération est structurée avant d\'être lancée.',
+    description: 'Structuration financière et optimisation patrimoniale des opérations Versi. Du montage du financement bancaire à l\'optimisation fiscale — le montage précède l\'acquisition, pas l\'inverse.',
     url: 'https://versi-finance.fr',
     ctaText: 'ACCÉDER AU SITE',
     ctaTextDisabled: 'BIENTÔT DISPONIBLE',

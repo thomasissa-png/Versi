@@ -49,7 +49,7 @@ export default function Team() {
           Zéro posture.
         </h2>
         <p className="text-body-lg team__subtitle">
-          Avant Versi, des entreprises créées, des actifs acquis, des opérations menées.
+          Trois parcours de fond. Pas de théorie — des opérations closes, des portfolios constitués, des structures dirigées.
         </p>
 
         <div className={`team__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
