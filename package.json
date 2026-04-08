@@ -8,5 +8,8 @@
     "build": "cd src && npm install && npm run build",
     "preview": "cd src && npm run preview",
     "lint": "cd src && npm run lint"
+  },
+  "dependencies": {
+    "playwright": "^1.59.1"
   }
 }
