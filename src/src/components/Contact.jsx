@@ -167,7 +167,7 @@ export default function Contact() {
               </div>
 
               <div className="contact__field">
-                <label htmlFor="contact-message" className="text-label contact__field-label">VOTRE MESSAGE</label>
+                <label htmlFor="contact-message" className="text-label contact__field-label">MESSAGE</label>
                 <textarea
                   id="contact-message"
                   name="message"
@@ -203,12 +203,12 @@ export default function Contact() {
                 disabled={status === 'loading'}
                 aria-busy={status === 'loading' ? 'true' : undefined}
               >
-                {status === 'loading' ? 'ENVOI EN COURS...' : 'ENVOYER'}
+                {status === 'loading' ? 'ENVOI EN COURS...' : 'TRANSMETTRE'}
               </button>
 
               {status === 'error' && (
                 <p className="contact__form-error" role="alert" aria-live="assertive">
-                  L'envoi a échoué. Écrivez directement à {CONTACT_EMAIL}.
+                  Problème technique. Contact direct : {CONTACT_EMAIL}.
                 </p>
               )}
 
