@@ -34,7 +34,7 @@
 | Élément | Token typo | Couleur | Spacing bas |
 |---|---|---|---|
 | Surtitre label `HOLDING IMMOBILIÈRE INTÉGRÉE` | 13px, tracking 0.1em, uppercase | `color-text-inverse` opacity 0.6 | `spacing-md` (16px) |
-| H1 `Le cycle immobilier complet. / Maîtrisé en interne.` | 56px light 300, uppercase, tracking 0.08em | `color-text-inverse` | `spacing-xl` (32px) |
+| H1 `Quatre métiers. / Un cycle maîtrisé.` | 56px light 300, uppercase, tracking 0.08em | `color-text-inverse` | `spacing-xl` (32px) |
 | Sous-titre corps | 18px, max-width 560px | `color-text-inverse` opacity 0.85 | `spacing-2xl` (48px) |
 | CTA principal `DÉCOUVRIR NOS ACTIVITÉS` | 13px medium 500, uppercase, tracking 0.1em | outline `color-text-inverse` 1px, fond transparent | `spacing-md` (16px) |
 | CTA secondaire `NOUS CONTACTER →` | 13px, uppercase | `color-text-inverse` opacity 0.7 | `spacing-4xl` (96px) |

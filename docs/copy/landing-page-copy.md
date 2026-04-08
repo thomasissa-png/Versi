@@ -504,7 +504,7 @@ Versi acquiert, transforme et structure des actifs immobiliers en France. Quatre
 ```
 
 Note SEO : keyword-map.md absent — intégration SEO partielle. Mots-clés naturellement présents : "holding immobilière", "opérateur intégré", "marchand de biens", "co-investissement", "actifs immobiliers France". Signaler à @seo pour optimisation.
-[MOT-CLÉ SEO À INTÉGRER] : enrichir le meta avec les termes long-tail identifiés par @seo (ex : "opérateur immobilier intégré Paris", "co-investissement immobilier France").
+Note : keyword-map.md désormais disponible dans docs/seo/keyword-map.md. Les termes long-tail identifiés par @seo (opérateur immobilier intégré Paris, co-investissement immobilier France) sont intégrés dans le meta title recommandé par seo-strategy.md.
 
 ---
 

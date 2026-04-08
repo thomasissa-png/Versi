@@ -208,7 +208,7 @@ THEN scroll smooth vers `#contact`, focus placé sur le premier champ du formula
 | Élément | Contenu | Notes |
 |---|---|---|
 | Surtitre (label) | `HOLDING IMMOBILIÈRE INTÉGRÉE` | uppercase, `color-text-inverse` atténué (opacity 0.6), label 13px |
-| Titre H1 | `Le cycle immobilier complet.` / `Maîtrisé en interne.` | Deux lignes. Uppercase. 56px desktop / 36px mobile. Font-weight 300. |
+| Titre H1 | `Quatre métiers.` / `Un cycle maîtrisé.` | Deux lignes. Uppercase. 56px desktop / 36px mobile. Font-weight 300. |
 | Sous-titre | `Acquisition. Transformation. Structuration.` / `Versi opère l'ensemble du cycle — pour des opérations sans déperdition.` | Corps 18px desktop / 16px mobile. Color-text-inverse opacity 0.85. Max-width 560px. |
 | CTA principal | `DÉCOUVRIR NOS ACTIVITÉS` | Bouton outline (bordure `#F7F5F2`, fond transparent, texte `#F7F5F2`). Scroll vers `#activites`. |
 | CTA secondaire | `NOUS CONTACTER` | Lien texte avec flèche `→`. Scroll vers `#contact`. |
@@ -253,7 +253,7 @@ Déclenchées une seule fois au `DOMContentLoaded`, désactivées si `prefers-re
 
 GIVEN Laurent arrive sur versi.fr (lien partagé ou recherche)
 WHEN la page se charge (< 3s sur connexion 4G)
-THEN le H1 "Le cycle immobilier complet. Maîtrisé en interne." est visible dans le viewport sans aucun scroll
+THEN le H1 "Quatre métiers. Un cycle maîtrisé." est visible dans le viewport sans aucun scroll
 
 GIVEN l'image de fond échoue à charger
 WHEN la page s'affiche

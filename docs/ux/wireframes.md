@@ -38,8 +38,8 @@
 │         HOLDING IMMOBILIÈRE INTÉGRÉE                │
 │     (label 13px, uppercase, opacity 0.6)            │
 │                                                     │
-│    Le cycle immobilier complet.                     │
-│    Maîtrisé en interne.                             │
+│    Quatre métiers.                                  │
+│    Un cycle maîtrisé.                               │
 │    (H1 56px, font-weight 300, uppercase)            │
 │                                                     │
 │    Acquisition. Transformation. Structuration.      │

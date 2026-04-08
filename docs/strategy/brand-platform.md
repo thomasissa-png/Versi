@@ -271,7 +271,7 @@ VERSI (holding — versi.fr)
 ### 7.1 Message principal (brand promise)
 
 **Tagline principale :**
-> "Le cycle immobilier complet. Maîtrisé en interne."
+> "Quatre métiers. Un cycle maîtrisé."
 
 **Variante pour le hero section :**
 > "Acquisition. Transformation. Structuration."
@@ -432,14 +432,14 @@ Fichiers produits :
 
 Décisions prises :
 - Positionnement : "L'opérateur intégré qui maîtrise le cycle complet — pour les investisseurs qui n'ont pas besoin qu'on leur explique ce qu'est l'immobilier"
-- Territoire de marque : "Le cycle immobilier complet. Maîtrisé en interne."
+- Territoire de marque : "Quatre métiers. Un cycle maîtrisé."
 - Architecture de marque : Endorsed Brand (Versi masterbrand, 4 entités endossées)
 - Registre : vouvoiement systématique, factuel-élégant, phrases courtes
 - 3 personas retenus : Laurent (investisseur), Sophie (propriétaire cédante), Pierre (partenaire professionnel)
 - Frameworks utilisés : Blue Ocean Canvas + ERRC, Golden Circle, Prisme de Kapferer
 
 Points d'attention pour la suite :
-- @copywriter : tagline validée = "Le cycle immobilier complet. Maîtrisé en interne." — ne pas dévier. Vouvoiement obligatoire. Vocabulaire proscrit documenté en section 6.4.
+- @copywriter : tagline validée = "Quatre métiers. Un cycle maîtrisé." — ne pas dévier. Vouvoiement obligatoire. Vocabulaire proscrit documenté en section 6.4.
 - @design : identité visuelle doit refléter le Prisme de Kapferer (section 5) — sobre, architectural, confiant sans arrogance
 - @ux : les 3 personas ont des parcours distincts sur le site (sections 8.1, 8.2, 8.3) — le wireframing doit les adresser tous les trois sans créer de confusion
 - @seo : le territoire sémantique propre à Versi est "cycle immobilier intégré" / "opérateur intégré" / "holding immobilière" — à aligner avec la keyword map
