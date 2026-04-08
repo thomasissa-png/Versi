@@ -93,7 +93,7 @@
 }
 
 .team__track {
-  font-size: 0.875rem;
+  font-size: var(--font-size-body-sm);
   line-height: 1.65;
   color: var(--color-text-muted);
   margin-top: var(--spacing-xs);
@@ -120,11 +120,21 @@
   .team__grid {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
-    max-width: 400px;
+  }
+
+  .team__photo-wrapper {
+    aspect-ratio: 4 / 3;
   }
 
   .team__card-content {
     padding: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .team__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
   }
 }
 

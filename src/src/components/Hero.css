@@ -43,10 +43,10 @@
 }
 
 .hero__subtitle {
-  font-size: 1.125rem;
+  font-size: var(--font-size-body-lg);
   line-height: 1.65;
   color: var(--color-text-inverse);
-  opacity: 0.85;
+  opacity: var(--opacity-readable);
   max-width: var(--text-max-width-sm);
   margin-bottom: var(--spacing-2xl);
 }
