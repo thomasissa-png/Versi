@@ -4,7 +4,13 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
+<!-- SESSION: phases=1 tasks_prod=3 tasks_consult=0 -->
+
+## Phase 0 — COMPLETE
+- @creative-strategy : TERMINÉ (brand-platform.md, personas.md, competitive-benchmark.md)
+- @legal : TERMINÉ (legal-audit.md, mentions-legales-draft.md, privacy-policy.md, rgpd-checklist.md)
+- @product-manager : TERMINÉ (product-vision.md, functional-specs.md)
+- **Checkpoint validé** : tagline rejetée (trop corporate), ton recalibré (caractère + zéro bullshit), Sophie hors V1, reste confirmé
 
 ## Estimation de sessions
 
