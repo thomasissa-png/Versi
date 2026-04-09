@@ -191,6 +191,55 @@ Le 10/10 est réservé aux animations qui ont une signature propre au projet —
 
 ---
 
+---
+
+## Re-review post-corrections
+
+**Date** : 2026-04-09 | **Corrections vérifiées dans** : `src/src/components/Hero.css`
+
+### Nouvelles notes
+
+| Critère | Avant | Après | Delta | Commentaire |
+|---|---|---|---|---|
+| Qualité perçue | 7/10 | 8/10 | +1 | L'easing expo-out change réellement la perception. L'entrée est plus vive, la fin plus posée — on sent la maîtrise là où avant c'était juste "propre". Le stagger légèrement irrégulier renforce l'effet sans qu'on puisse le nommer. |
+| Timing et rythme | 6/10 | 8/10 | +2 | Le stagger 0/100/220/360/520/780ms fait le travail attendu. La machine est cassée, le rythme respire. Le saut 520→780ms sur le scroll hint est le bon silence. Pas encore designé à la main comme on le ferait pour un film — mais clairement au-dessus de la moyenne. |
+| Mouvement | 6/10 | 7/10 | +1 | Progrès réel mais incomplet. `--hero-fade-distance: 20px` sur `.hero__fade--1` différencie le titre des autres éléments — c'est la bonne décision. Mais les 5 autres éléments restent tous à `10px` (fallback de la custom property). La hiérarchie est amorcée, pas finalisée. Un 8 nécessiterait minimum 3 amplitudes distinctes : titre (20px), contenus intermédiaires (14px), éléments discrets (8px). |
+| Cohérence | 8/10 | 8/10 | 0 | Inchangé. Les CTAs arrivent encore dans le même bloc de fade sans stagger individuel (R4 non appliqué). Le potentiel de cohérence primaire→secondaire n'est pas exploité. |
+| Finition | 5/10 | 8.5/10 | +3.5 | Le correctif `prefers-reduced-motion` est propre et complet (lignes 171-181) : `animation: none`, `opacity: 1`, `transform: none` sur `.hero__fade` + neutralisation du scroll hint. Bug P0 fermé. L'easing est maintenant une décision, pas un fallback. Ce qui reste : pas de `:focus-visible` sur les CTAs (R5 non appliqué) — c'est le seul écart de finition visible. |
+| Impact émotionnel | 7/10 | 8.5/10 | +1.5 | Pour Laurent : la version actuelle parle avec plus d'autorité. L'easing expo-out + le stagger irrégulier produisent une entrée qui dit "intention" plutôt que "template". Ce n'est pas encore la signature propre au projet — mais c'est au niveau du secteur premium, pas juste "correct". |
+| **Global** | **7/10** | **8/10** | **+1** | |
+
+### Note globale : 8/10
+
+Pas 8.5. La progression est réelle sur 4 des 6 critères, mais deux points du plan de corrections initial ne sont pas appliqués (R4 : CTAs non staggerés, R5 : focus-visible absent). La hiérarchie de mouvement est amorcée sur le titre seul mais n'est pas distribuée sur les autres éléments. À 8/10 le Hero est au niveau d'un opérateur premium sérieux — pas générique, pas flashy, lisible pour Laurent. Pour atteindre 8.5 : appliquer R4 + R5 + affiner les amplitudes sur 2-3 niveaux.
+
+### Ce qui a réellement changé
+
+**Gain majeur — Finition (5 → 8.5)** : le correctif `prefers-reduced-motion` transforme un bug d'accessibilité réel en comportement robuste. C'est le delta le plus important parce que c'était le seul vrai défaut — tout le reste était une question de calibration, pas de cassure.
+
+**Gain significatif — Timing/rythme (6 → 8)** : le stagger irrégulier est la correction la plus perceptible visuellement. Elle passe du mécanique au designé sans effort de spec supplémentaire.
+
+**Gain mesuré — Easing (impacte Qualité perçue et Impact émotionnel)** : `cubic-bezier(0.16, 1, 0.3, 1)` a une signature. L'animation déclare maintenant une intention.
+
+**Gain partiel — Mouvement (6 → 7)** : la custom property `--hero-fade-distance` est la bonne architecture. Son usage est trop limité (1 élément sur 6) pour changer réellement la lecture de la hiérarchie.
+
+### Ce qui reste pour atteindre 8.5/10
+
+Le 10/10 n'est pas le bon objectif pour une holding institutionnelle ciblant Laurent — cf. audit précédent. La cible reste 8.5/10. Il manque exactement 0.5 point sur deux points précis :
+
+**1. R4 — Stagger individuel sur les CTAs (impact : Cohérence 8 → 8.5)**
+Le CTA primaire et secondaire arrivent encore ensemble. Un délai de 80ms entre les deux coûte 3 lignes de CSS et renforce la hiérarchie d'action sans effort perceptible.
+
+**2. R5 — focus-visible sur les CTAs (impact : Finition 8.5 → 9)**
+Aucun état focus clavier visible dans le CSS. Les transitions hover sont définies, le `:focus-visible` manque. C'est le seul écart WCAG 2.2 AA restant après correction du prefers-reduced-motion.
+
+**3. Hiérarchie de mouvement complète (impact : Mouvement 7 → 8)**
+La custom property `--hero-fade-distance` est là — il suffit de l'utiliser sur 2-3 niveaux supplémentaires : surtitre à 8px (élément discret), sous-titre à 14px (contenu intermédiaire), CTAs à 8px. Le titre reste à 20px. Le coût : 3 lignes additionnelles. La perception : le mouvement confirme la lecture hiérarchique du contenu.
+
+Ces 3 points restants ne relèvent pas du design — ils relèvent de l'exécution. L'architecture est correcte, les décisions sont prises, il reste à les appliquer complètement.
+
+---
+
 ## Handoff → @fullstack
 
 - Fichiers à modifier : `src/src/components/Hero.jsx`, `src/src/components/Hero.css`
