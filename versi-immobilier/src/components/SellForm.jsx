@@ -3,49 +3,61 @@ import { FORMSPREE_SELL_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
 import './ContactForm.css';
 
 const INITIAL_FORM = {
+  adresse: '',
+  typeBien: '',
+  surface: '',
+  situationLocative: '',
+  prenom: '',
   nom: '',
   email: '',
   telephone: '',
-  typeBien: '',
-  localisation: '',
-  surface: '',
-  prixSouhaite: '',
   message: '',
 };
 
 const BIEN_TYPES = [
   'Immeuble de rapport',
-  'Maison individuelle',
+  'Maison',
+  'Actif mixte',
   'Appartement',
-  'Local commercial',
-  'Terrain',
   'Autre',
+];
+
+const SITUATIONS_LOCATIVES = [
+  'Libre',
+  'Occupé (locataires en place)',
+  'Mixte (partiellement occupé)',
 ];
 
 function validate(form) {
   const errors = {};
-  if (!form.nom.trim()) {
-    errors.nom = 'Ce champ est requis.';
-  } else if (form.nom.trim().length < 2) {
-    errors.nom = 'Veuillez saisir au moins 2 caractères.';
-  }
 
-  if (!form.email.trim()) {
-    errors.email = 'Ce champ est requis.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = 'Veuillez saisir une adresse email valide.';
+  if (!form.adresse.trim()) {
+    errors.adresse = 'Veuillez renseigner l\'adresse du bien.';
   }
-
   if (!form.typeBien) {
     errors.typeBien = 'Veuillez sélectionner un type de bien.';
   }
-
-  if (!form.localisation.trim()) {
-    errors.localisation = 'Ce champ est requis.';
-  }
-
   if (!form.surface.trim()) {
-    errors.surface = 'Ce champ est requis.';
+    errors.surface = 'Veuillez renseigner la surface.';
+  }
+  if (!form.situationLocative) {
+    errors.situationLocative = 'Veuillez sélectionner la situation locative.';
+  }
+  if (!form.prenom.trim()) {
+    errors.prenom = 'Veuillez renseigner votre prénom.';
+  }
+  if (!form.nom.trim()) {
+    errors.nom = 'Veuillez renseigner votre nom.';
+  }
+  if (!form.email.trim()) {
+    errors.email = 'Veuillez renseigner votre email.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Format d\'email invalide.';
+  }
+  if (!form.telephone.trim()) {
+    errors.telephone = 'Veuillez renseigner votre téléphone.';
+  } else if (!/^[\d\s+()./-]{8,20}$/.test(form.telephone.trim())) {
+    errors.telephone = 'Format de téléphone invalide.';
   }
 
   return errors;
@@ -89,14 +101,15 @@ export default function SellForm() {
         method: 'POST',
         headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          adresse_du_bien: form.adresse,
+          type_de_bien: form.typeBien,
+          surface: form.surface,
+          situation_locative: form.situationLocative,
+          prenom: form.prenom,
           nom: form.nom,
           email: form.email,
           telephone: form.telephone,
-          type_de_bien: form.typeBien,
-          localisation: form.localisation,
-          surface_estimee: form.surface,
-          prix_souhaite: form.prixSouhaite,
-          message: form.message,
+          informations_complementaires: form.message,
           _gotcha: '',
         }),
       });
@@ -114,71 +127,48 @@ export default function SellForm() {
   if (status === 'success') {
     return (
       <div className="contact-form__success" role="status" aria-live="polite">
-        <p>Demande reçue. Nous analysons votre bien et revenons vers vous sous 7 jours.</p>
+        <p>Votre dossier a été transmis. Nous accusons réception sous 24h et planifions la suite avec vous.</p>
       </div>
     );
   }
 
+  const renderField = (name, label, type = 'text', placeholder = '', required = true, extraProps = {}) => (
+    <div className="contact-form__field">
+      <label htmlFor={`sell-${name}`} className="contact-form__label-text">
+        {label}{required && <span className="contact-form__required" aria-hidden="true"> *</span>}
+      </label>
+      <input
+        type={type}
+        id={`sell-${name}`}
+        name={name}
+        value={form[name]}
+        onChange={handleChange}
+        placeholder={placeholder}
+        disabled={status === 'loading'}
+        aria-invalid={errors[name] ? 'true' : undefined}
+        aria-describedby={errors[name] ? `sell-error-${name}` : undefined}
+        aria-required={required}
+        className={`contact-form__input ${errors[name] ? 'contact-form__input--error' : ''}`}
+        {...extraProps}
+      />
+      {errors[name] && <span id={`sell-error-${name}`} className="contact-form__error" role="alert">{errors[name]}</span>}
+    </div>
+  );
+
   return (
     <form
-      className="contact-form"
+      className="contact-form contact-form--light"
       onSubmit={handleSubmit}
-      aria-label="Formulaire de vente de bien"
+      aria-label="Formulaire de soumission de bien"
       noValidate
     >
-      <div className="contact-form__field">
-        <label htmlFor="sell-nom" className="text-label contact-form__label">NOM</label>
-        <input
-          type="text"
-          id="sell-nom"
-          name="nom"
-          value={form.nom}
-          onChange={handleChange}
-          placeholder="Votre nom"
-          maxLength={100}
-          disabled={status === 'loading'}
-          aria-invalid={errors.nom ? 'true' : undefined}
-          aria-describedby={errors.nom ? 'sell-error-nom' : undefined}
-          className={`contact-form__input ${errors.nom ? 'contact-form__input--error' : ''}`}
-        />
-        {errors.nom && <span id="sell-error-nom" className="contact-form__error" role="alert">{errors.nom}</span>}
-      </div>
+      {/* Bien info */}
+      {renderField('adresse', 'Adresse du bien', 'text', 'Ex : 12 rue Victor Hugo, 59000 Lille')}
 
       <div className="contact-form__field">
-        <label htmlFor="sell-email" className="text-label contact-form__label">EMAIL</label>
-        <input
-          type="email"
-          id="sell-email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="Votre adresse email"
-          maxLength={254}
-          disabled={status === 'loading'}
-          aria-invalid={errors.email ? 'true' : undefined}
-          aria-describedby={errors.email ? 'sell-error-email' : undefined}
-          className={`contact-form__input ${errors.email ? 'contact-form__input--error' : ''}`}
-        />
-        {errors.email && <span id="sell-error-email" className="contact-form__error" role="alert">{errors.email}</span>}
-      </div>
-
-      <div className="contact-form__field">
-        <label htmlFor="sell-telephone" className="text-label contact-form__label">TÉLÉPHONE (optionnel)</label>
-        <input
-          type="tel"
-          id="sell-telephone"
-          name="telephone"
-          value={form.telephone}
-          onChange={handleChange}
-          placeholder="Votre numéro"
-          maxLength={20}
-          disabled={status === 'loading'}
-          className="contact-form__input"
-        />
-      </div>
-
-      <div className="contact-form__field">
-        <label htmlFor="sell-typeBien" className="text-label contact-form__label">TYPE DE BIEN</label>
+        <label htmlFor="sell-typeBien" className="contact-form__label-text">
+          Type de bien<span className="contact-form__required" aria-hidden="true"> *</span>
+        </label>
         <select
           id="sell-typeBien"
           name="typeBien"
@@ -187,9 +177,10 @@ export default function SellForm() {
           disabled={status === 'loading'}
           aria-invalid={errors.typeBien ? 'true' : undefined}
           aria-describedby={errors.typeBien ? 'sell-error-typeBien' : undefined}
-          className={`contact-form__select ${errors.typeBien ? 'contact-form__input--error' : ''}`}
+          aria-required="true"
+          className={`contact-form__select contact-form__select--light ${errors.typeBien ? 'contact-form__input--error' : ''}`}
         >
-          <option value="">Sélectionnez un type</option>
+          <option value="">Sélectionnez</option>
           {BIEN_TYPES.map((type) => (
             <option key={type} value={type}>{type}</option>
           ))}
@@ -197,68 +188,53 @@ export default function SellForm() {
         {errors.typeBien && <span id="sell-error-typeBien" className="contact-form__error" role="alert">{errors.typeBien}</span>}
       </div>
 
-      <div className="contact-form__field">
-        <label htmlFor="sell-localisation" className="text-label contact-form__label">LOCALISATION</label>
-        <input
-          type="text"
-          id="sell-localisation"
-          name="localisation"
-          value={form.localisation}
-          onChange={handleChange}
-          placeholder="Ville, département"
-          maxLength={200}
-          disabled={status === 'loading'}
-          aria-invalid={errors.localisation ? 'true' : undefined}
-          aria-describedby={errors.localisation ? 'sell-error-localisation' : undefined}
-          className={`contact-form__input ${errors.localisation ? 'contact-form__input--error' : ''}`}
-        />
-        {errors.localisation && <span id="sell-error-localisation" className="contact-form__error" role="alert">{errors.localisation}</span>}
-      </div>
+      {renderField('surface', 'Surface (m²)', 'text', 'Ex : 280')}
 
       <div className="contact-form__field">
-        <label htmlFor="sell-surface" className="text-label contact-form__label">SURFACE ESTIMÉE</label>
-        <input
-          type="text"
-          id="sell-surface"
-          name="surface"
-          value={form.surface}
+        <label htmlFor="sell-situationLocative" className="contact-form__label-text">
+          Situation locative<span className="contact-form__required" aria-hidden="true"> *</span>
+        </label>
+        <select
+          id="sell-situationLocative"
+          name="situationLocative"
+          value={form.situationLocative}
           onChange={handleChange}
-          placeholder="Ex : 250 m²"
-          maxLength={50}
           disabled={status === 'loading'}
-          aria-invalid={errors.surface ? 'true' : undefined}
-          aria-describedby={errors.surface ? 'sell-error-surface' : undefined}
-          className={`contact-form__input ${errors.surface ? 'contact-form__input--error' : ''}`}
-        />
-        {errors.surface && <span id="sell-error-surface" className="contact-form__error" role="alert">{errors.surface}</span>}
+          aria-invalid={errors.situationLocative ? 'true' : undefined}
+          aria-describedby={errors.situationLocative ? 'sell-error-situationLocative' : undefined}
+          aria-required="true"
+          className={`contact-form__select contact-form__select--light ${errors.situationLocative ? 'contact-form__input--error' : ''}`}
+        >
+          <option value="">Sélectionnez</option>
+          {SITUATIONS_LOCATIVES.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        {errors.situationLocative && <span id="sell-error-situationLocative" className="contact-form__error" role="alert">{errors.situationLocative}</span>}
       </div>
 
-      <div className="contact-form__field">
-        <label htmlFor="sell-prixSouhaite" className="text-label contact-form__label">PRIX SOUHAITÉ (optionnel)</label>
-        <input
-          type="text"
-          id="sell-prixSouhaite"
-          name="prixSouhaite"
-          value={form.prixSouhaite}
-          onChange={handleChange}
-          placeholder="Ex : 350 000 €"
-          maxLength={50}
-          disabled={status === 'loading'}
-          className="contact-form__input"
-        />
-      </div>
+      {/* Separator */}
+      <div className="contact-form__separator" aria-hidden="true" />
+
+      {/* Personal info */}
+      {renderField('prenom', 'Prénom', 'text', 'Votre prénom')}
+      {renderField('nom', 'Nom', 'text', 'Votre nom')}
+      {renderField('email', 'Email', 'email', 'votre@email.fr')}
+      {renderField('telephone', 'Téléphone', 'tel', 'Ex : 06 12 34 56 78')}
 
       <div className="contact-form__field">
-        <label htmlFor="sell-message" className="text-label contact-form__label">MESSAGE (optionnel)</label>
+        <label htmlFor="sell-message" className="contact-form__label-text">
+          Informations complémentaires
+        </label>
         <textarea
           id="sell-message"
           name="message"
           value={form.message}
           onChange={handleChange}
-          placeholder="Informations complémentaires sur votre bien"
+          placeholder="Décrivez brièvement le contexte de la vente, les éventuels travaux déjà réalisés, la présence de locataires..."
           maxLength={2000}
           disabled={status === 'loading'}
-          className="contact-form__textarea"
+          className="contact-form__textarea contact-form__textarea--light"
         />
       </div>
 
@@ -278,23 +254,24 @@ export default function SellForm() {
 
       <button
         type="submit"
-        className="contact-form__submit text-cta"
+        className="contact-form__submit contact-form__submit--dark text-cta"
         disabled={status === 'loading'}
         aria-busy={status === 'loading' ? 'true' : undefined}
       >
-        {status === 'loading' ? 'ENVOI EN COURS...' : 'RECEVOIR UNE OFFRE'}
+        {status === 'loading' ? 'Envoi en cours...' : 'Soumettre mon dossier'}
       </button>
 
       {status === 'error' && (
-        <p className="contact-form__form-error" role="alert" aria-live="assertive">
-          Problème technique. Contact direct : {CONTACT_EMAIL}.
+        <p className="contact-form__form-error contact-form__form-error--light" role="alert" aria-live="assertive">
+          L'envoi a échoué. Contactez-nous directement à {CONTACT_EMAIL}
         </p>
       )}
 
-      <p className="contact-form__rgpd">
-        Versi Immobilier traite vos données dans le cadre de votre demande de vente.
-        Base légale : intérêt légitime (art. 6.1.f RGPD). Données conservées 3 ans.
-        Droit d'accès et de suppression : {CONTACT_EMAIL}.
+      <p className="contact-form__rgpd contact-form__rgpd--light">
+        En soumettant ce formulaire, vous acceptez que Versi Immobilier traite vos données personnelles
+        dans le cadre de l'instruction de votre dossier, sur la base de son intérêt légitime (art. 6.1.f RGPD).
+        Vos données sont conservées 3 ans et ne sont pas transmises à des tiers.
+        Droits d'accès, rectification et suppression : {CONTACT_EMAIL}
       </p>
     </form>
   );

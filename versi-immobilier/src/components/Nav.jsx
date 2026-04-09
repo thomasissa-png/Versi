@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import './Nav.css';
 
 const NAV_ITEMS = [
-  { label: 'NOS BIENS', href: '/biens' },
+  { label: 'NOS BIENS', href: '/nos-biens' },
   { label: 'VENDRE UN BIEN', href: '/vendre' },
   { label: 'RÉALISATIONS', href: '/realisations' },
-  { label: 'NOTRE APPROCHE', href: '/approche' },
+  { label: 'INVESTIR', href: '/investir' },
+  { label: 'NOTRE APPROCHE', href: '/notre-approche' },
   { label: 'CONTACT', href: '/contact' },
 ];
 
@@ -94,7 +95,7 @@ export default function Nav() {
             <li key={item.href}>
               <Link
                 to={item.href}
-                className={`nav__link ${location.pathname === item.href ? 'nav__link--active' : ''}`}
+                className={`nav__link ${location.pathname.startsWith(item.href) ? 'nav__link--active' : ''}`}
               >
                 {item.label}
               </Link>
@@ -102,8 +103,8 @@ export default function Nav() {
           ))}
         </ul>
 
-        <Link to="/contact" className="nav__cta">
-          NOUS CONTACTER
+        <Link to="/vendre#formulaire" className="nav__cta">
+          SOUMETTRE MON BIEN
         </Link>
 
         <button
@@ -148,6 +149,14 @@ export default function Nav() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                to="/vendre#formulaire"
+                className="nav__overlay-cta"
+              >
+                SOUMETTRE MON BIEN
+              </Link>
+            </li>
           </ul>
         </div>
       )}

@@ -1,19 +1,26 @@
+import { useMemo } from 'react';
+import { PROJECTS } from '../config/projects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import './Stats.css';
-
-const STATS = [
-  { value: 'X+', label: 'Opérations réalisées' },
-  { value: 'X M€', label: 'Volume traité' },
-  { value: '7J', label: 'Délai de décision' },
-];
 
 export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
+  const completedCount = useMemo(
+    () => PROJECTS.filter((p) => p.status === 'completed').length,
+    []
+  );
+
+  const stats = [
+    { value: '3,2M€', label: 'de volume traité' },
+    { value: '7 jours', label: 'pour une offre ferme' },
+    { value: `${completedCount}`, label: completedCount > 1 ? 'réalisations documentées' : 'réalisation documentée' },
+  ];
+
   return (
     <section className="stats section-padding" ref={ref}>
       <div className={`stats__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        {STATS.map((stat) => (
+        {stats.map((stat) => (
           <div key={stat.label} className="stats__item">
             <span className="text-stat stats__value">{stat.value}</span>
             <span className="text-label stats__label">{stat.label}</span>

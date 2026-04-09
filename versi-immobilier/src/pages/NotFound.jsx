@@ -36,15 +36,15 @@ export default function NotFound() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              border: '1px solid var(--color-border)',
+              background: 'var(--color-charcoal-950)',
+              color: 'var(--color-calcaire-50)',
               padding: '12px 32px',
               borderRadius: 'var(--radius-sm)',
-              color: 'var(--color-text-primary)',
               textDecoration: 'none',
               minHeight: '44px',
             }}
           >
-            RETOUR À L'ACCUEIL
+            Retour à l'accueil
           </Link>
         </div>
       </main>

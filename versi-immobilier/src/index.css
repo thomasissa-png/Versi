@@ -35,6 +35,20 @@
   --color-border-focus: #C8B9A6;
   --color-error: #DC3545;
   --color-error-on-dark: #FF6B6B;
+  --color-success: #28A745;
+
+  /* --- Badges --- */
+  --badge-en-vente-bg: #28A745;
+  --badge-en-vente-text: #FFFFFF;
+  --badge-sous-offre-bg: #F59E0B;
+  --badge-sous-offre-text: #FFFFFF;
+  --badge-vendu-bg: #6B6560;
+  --badge-vendu-text: #FFFFFF;
+
+  /* --- Cards --- */
+  --card-radius: 8px;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
 
   /* --- Typographie --- */
   --font-family: 'PP Neue Montreal', 'DM Sans', system-ui, sans-serif;

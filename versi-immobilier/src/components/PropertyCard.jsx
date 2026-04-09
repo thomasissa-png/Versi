@@ -1,30 +1,27 @@
 import { Link } from 'react-router-dom';
 import './PropertyCard.css';
 
-const STATUS_LABELS = {
-  'a-vendre': 'À vendre',
-  'vendu': 'Vendu',
+const STATUS_CONFIG = {
+  'disponible': { label: 'Disponible', className: 'property-card__badge--disponible' },
+  'sous-compromis': { label: 'Sous compromis', className: 'property-card__badge--sous-compromis' },
+  'vendu': { label: 'Vendu', className: 'property-card__badge--vendu' },
 };
 
 export default function PropertyCard({ property }) {
-  const isAvailable = property.status === 'a-vendre';
+  const statusInfo = STATUS_CONFIG[property.status] || { label: property.status, className: '' };
 
   return (
-    <article className={`property-card ${!isAvailable ? 'property-card--sold' : ''}`}>
-      <div className="property-card__image image-placeholder">
-        Photo à venir
-        {!isAvailable && (
-          <span className="property-card__sold-badge">VENDU</span>
-        )}
-      </div>
-      <div className="property-card__body">
-        <div className="property-card__meta">
-          <span className="text-label property-card__location">{property.location}</span>
-          <span className={`text-label property-card__status property-card__status--${property.status}`}>
-            {STATUS_LABELS[property.status] || property.status}
+    <article className="property-card">
+      <Link to={`/nos-biens/${property.id}`} className="property-card__image-link">
+        <div className="property-card__image image-placeholder">
+          <span className={`property-card__badge ${statusInfo.className}`}>
+            {statusInfo.label}
           </span>
         </div>
-        <h3 className="text-heading-md property-card__title">{property.title}</h3>
+      </Link>
+      <div className="property-card__body">
+        <span className="text-label property-card__location">{property.location}</span>
+        <h3 className="property-card__title">{property.title}</h3>
         <div className="property-card__details">
           <span className="text-body-sm">{property.type}</span>
           <span className="property-card__dot" aria-hidden="true">·</span>
@@ -33,14 +30,12 @@ export default function PropertyCard({ property }) {
           <span className="text-body-sm">{property.rooms} pièces</span>
         </div>
         <span className="property-card__price">{property.price}</span>
-        {isAvailable && (
-          <Link
-            to={`/biens/${property.id}`}
-            className="text-cta property-card__link"
-          >
-            VOIR LE BIEN →
-          </Link>
-        )}
+        <Link
+          to={`/nos-biens/${property.id}`}
+          className="text-cta property-card__link"
+        >
+          Voir le bien
+        </Link>
       </div>
     </article>
   );

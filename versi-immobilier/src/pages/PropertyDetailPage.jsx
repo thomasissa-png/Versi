@@ -1,4 +1,4 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PropertyCard from '../components/PropertyCard.jsx';
@@ -6,17 +6,57 @@ import { PROPERTIES } from '../config/properties.js';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
+const STATUS_LABELS = {
+  'disponible': 'Disponible',
+  'sous-compromis': 'Sous compromis',
+  'vendu': 'Vendu',
+};
+
 export default function PropertyDetailPage() {
   const { id } = useParams();
   const property = PROPERTIES.find((p) => p.id === id);
   const { ref, isVisible } = useFadeIn();
 
   if (!property) {
-    return <Navigate to="/biens" replace />;
+    return (
+      <>
+        <Nav />
+        <main style={{
+          paddingTop: 'var(--nav-height)',
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
+            <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
+              Ce bien n'est plus disponible.
+            </p>
+            <Link
+              to="/nos-biens"
+              className="text-cta"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                border: '1px solid var(--color-border)',
+                padding: '12px 32px',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--color-text-primary)',
+                textDecoration: 'none',
+                minHeight: '44px',
+              }}
+            >
+              Voir tous nos biens
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
   }
 
   const otherProperties = PROPERTIES.filter(
-    (p) => p.id !== id && p.status === 'a-vendre'
+    (p) => p.id !== id && p.status === 'disponible'
   ).slice(0, 3);
 
   return (
@@ -29,7 +69,7 @@ export default function PropertyDetailPage() {
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <Link
-              to="/biens"
+              to="/nos-biens"
               className="text-label"
               style={{
                 display: 'inline-block',
@@ -38,7 +78,7 @@ export default function PropertyDetailPage() {
                 textDecoration: 'none',
               }}
             >
-              ← RETOUR AUX BIENS
+              ← Nos biens
             </Link>
 
             {/* Gallery placeholder */}
@@ -48,15 +88,15 @@ export default function PropertyDetailPage() {
               gap: 'var(--spacing-md)',
               marginBottom: 'var(--spacing-2xl)',
             }}>
-              <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--radius-sm)' }}>
-                Photo à venir
+              <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3' }}>
+                Photo principale
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--radius-sm)' }}>
-                  Photo à venir
+                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                  Photo 2
                 </div>
-                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--radius-sm)' }}>
-                  Photo à venir
+                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                  Photo 3
                 </div>
               </div>
             </div>
@@ -82,31 +122,32 @@ export default function PropertyDetailPage() {
                   marginBottom: 'var(--spacing-2xl)',
                   flexWrap: 'wrap',
                 }}>
-                  <div>
-                    <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>TYPE</span>
-                    <span className="text-body-md">{property.type}</span>
-                  </div>
-                  <div>
-                    <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>SURFACE</span>
-                    <span className="text-body-md">{property.surface}</span>
-                  </div>
-                  <div>
-                    <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>PIÈCES</span>
-                    <span className="text-body-md">{property.rooms}</span>
-                  </div>
+                  {[
+                    { label: 'Type', value: property.type },
+                    { label: 'Surface', value: property.surface },
+                    { label: 'Pièces', value: property.rooms },
+                    { label: 'DPE', value: property.dpe },
+                    { label: 'Étage', value: property.floor },
+                    { label: 'État locatif', value: property.tenancy },
+                  ].filter(item => item.value).map((item) => (
+                    <div key={item.label}>
+                      <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>{item.label}</span>
+                      <span className="text-body-md">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
 
                 <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
-                  Description
+                  Le bien.
                 </h2>
                 <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', lineHeight: 1.65 }}>
                   {property.description}
                 </p>
 
-                {property.features && property.features.length > 0 && (
+                {property.works && property.works.length > 0 && (
                   <>
                     <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
-                      Caractéristiques
+                      Les travaux réalisés.
                     </h2>
                     <ul style={{
                       display: 'grid',
@@ -114,9 +155,9 @@ export default function PropertyDetailPage() {
                       gap: 'var(--spacing-sm)',
                       marginBottom: 'var(--spacing-2xl)',
                     }}>
-                      {property.features.map((feature) => (
+                      {property.works.map((work) => (
                         <li
-                          key={feature}
+                          key={work}
                           className="text-body-sm"
                           style={{
                             color: 'var(--color-text-muted)',
@@ -132,36 +173,56 @@ export default function PropertyDetailPage() {
                               color: 'var(--color-accent)',
                             }}
                           >
-                            ·
+                            —
                           </span>
-                          {feature}
+                          {work}
                         </li>
                       ))}
                     </ul>
                   </>
                 )}
+
+                <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  <strong>Diagnostics :</strong> Disponible sur demande
+                </p>
               </div>
 
               {/* Right: Price + CTA card */}
               <div style={{
                 background: 'var(--color-bg-dark)',
-                borderRadius: 'var(--radius-sm)',
+                borderRadius: 'var(--card-radius)',
                 padding: 'var(--spacing-xl)',
                 position: 'sticky',
                 top: 'calc(var(--nav-height) + var(--spacing-lg))',
               }}>
                 <span className="text-label" style={{ display: 'block', color: 'var(--color-text-inverse)', opacity: 0.5, marginBottom: 'var(--spacing-sm)' }}>
-                  PRIX
+                  Prix
                 </span>
                 <span style={{
                   display: 'block',
                   fontSize: '2rem',
-                  fontWeight: 'var(--font-weight-light)',
+                  fontWeight: 'var(--font-weight-medium)',
                   color: 'var(--color-text-inverse)',
-                  marginBottom: 'var(--spacing-xl)',
+                  marginBottom: 'var(--spacing-md)',
                 }}>
                   {property.price}
                 </span>
+
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: '12px',
+                  fontWeight: 'var(--font-weight-medium)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  marginBottom: 'var(--spacing-xl)',
+                  background: property.status === 'disponible' ? 'var(--badge-en-vente-bg)' : 'var(--badge-vendu-bg)',
+                  color: '#FFFFFF',
+                }}>
+                  {STATUS_LABELS[property.status] || property.status}
+                </span>
+
                 <Link
                   to={`/contact?bien=${encodeURIComponent(property.title)}`}
                   className="text-cta"
@@ -171,26 +232,26 @@ export default function PropertyDetailPage() {
                     background: 'var(--color-text-inverse)',
                     color: 'var(--color-bg-dark)',
                     padding: '16px',
-                    borderRadius: 'var(--radius-sm)',
+                    borderRadius: '6px',
                     textDecoration: 'none',
                     minHeight: '44px',
                     transition: 'background-color var(--duration-normal) ease',
+                    marginBottom: 'var(--spacing-md)',
                   }}
                 >
-                  NOUS CONTACTER POUR CE BIEN
+                  Demander une visite
                 </Link>
                 <a
-                  href={`mailto:${CONTACT_EMAIL}`}
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Bien ' + property.id)}`}
                   className="text-body-sm"
                   style={{
                     display: 'block',
                     textAlign: 'center',
                     color: 'var(--color-accent)',
-                    marginTop: 'var(--spacing-md)',
                     textDecoration: 'none',
                   }}
                 >
-                  {CONTACT_EMAIL}
+                  Nous écrire
                 </a>
               </div>
             </div>
@@ -202,7 +263,7 @@ export default function PropertyDetailPage() {
           <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
             <div className="container">
               <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
-                Autres biens disponibles
+                D'autres biens disponibles.
               </h2>
               <div style={{
                 display: 'grid',
@@ -213,11 +274,27 @@ export default function PropertyDetailPage() {
                   <PropertyCard key={p.id} property={p} />
                 ))}
               </div>
+              <div style={{ marginTop: 'var(--spacing-xl)' }}>
+                <Link to="/nos-biens" className="text-cta" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                  Voir tous nos biens
+                </Link>
+              </div>
             </div>
           </section>
         )}
       </main>
       <Footer />
+
+      <style>{`
+        @media (max-width: 767px) {
+          .container > div[style*="grid-template-columns: 2fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+          .container > div[style*="grid-template-columns: 1fr 380px"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

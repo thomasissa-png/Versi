@@ -1,34 +1,51 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './ProjectCard.css';
 
-const STATUS_LABELS = {
-  'realise': 'Réalisé',
-  'en-cours': 'En cours',
-  'a-venir': 'À venir',
-};
-
 export default function ProjectCard({ project }) {
+  const [view, setView] = useState('avant');
+
   return (
     <article className="project-card">
-      <div className="project-card__image image-placeholder">
-        Photo à venir
-      </div>
-      <div className="project-card__body">
-        <div className="project-card__meta">
-          <span className="text-label project-card__location">{project.location}</span>
-          <span className={`text-label project-card__status project-card__status--${project.status}`}>
-            {STATUS_LABELS[project.status] || project.status}
+      <div className="project-card__image-wrapper">
+        <div className="project-card__image image-placeholder">
+          <span className="project-card__image-label">
+            {view === 'avant' ? 'Photo avant' : 'Photo après'}
           </span>
         </div>
-        <h3 className="text-heading-md project-card__title">{project.title}</h3>
-        <div className="project-card__details">
-          <span className="text-body-sm">{project.type}</span>
-          <span className="project-card__dot" aria-hidden="true">·</span>
-          <span className="text-body-sm">{project.surface}</span>
-          {project.units && (
+        <div className="project-card__toggle" role="tablist" aria-label="Basculer avant/après">
+          <button
+            role="tab"
+            aria-selected={view === 'avant'}
+            className={`project-card__tab ${view === 'avant' ? 'project-card__tab--active' : ''}`}
+            onClick={() => setView('avant')}
+          >
+            Avant
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'apres'}
+            className={`project-card__tab ${view === 'apres' ? 'project-card__tab--active' : ''}`}
+            onClick={() => setView('apres')}
+          >
+            Après
+          </button>
+        </div>
+      </div>
+      <div className="project-card__body">
+        <h3 className="project-card__title">{project.title}</h3>
+        <div className="project-card__figures">
+          {project.offerDelay && (
+            <span className="text-body-sm project-card__figure">
+              Offre émise J+{project.offerDelay}
+            </span>
+          )}
+          {project.buyPrice && (
             <>
               <span className="project-card__dot" aria-hidden="true">·</span>
-              <span className="text-body-sm">{project.units} lots</span>
+              <span className="text-body-sm project-card__figure">
+                {project.buyPrice}
+              </span>
             </>
           )}
         </div>
@@ -36,7 +53,7 @@ export default function ProjectCard({ project }) {
           to={`/realisations/${project.id}`}
           className="text-cta project-card__link"
         >
-          VOIR LE PROJET →
+          Voir le projet
         </Link>
       </div>
     </article>

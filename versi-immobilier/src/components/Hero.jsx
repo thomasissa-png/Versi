@@ -12,28 +12,25 @@ export default function Hero() {
   return (
     <section className="hero">
       <div className="hero__content">
-        <span className={`hero__surtitre text-label ${loaded ? 'hero__fade hero__fade--0' : 'hero__hidden'}`}>
-          MARCHAND DE BIENS — FRANCE
-        </span>
-        <h1 className={`hero__title text-display ${loaded ? 'hero__fade hero__fade--1' : 'hero__hidden'}`}>
-          Acquisition.<br />
-          Transformation.<br />
-          Revente.
+        <h1 className={`hero__title text-display ${loaded ? 'hero__fade hero__fade--0' : 'hero__hidden'}`}>
+          Vous avez un bien à céder.
+          <br />
+          Versi Immobilier vous remet une offre ferme en 7 jours.
         </h1>
-        <div className={`hero__accent ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`} aria-hidden="true" />
-        <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`}>
-          Versi Immobilier achète, transforme et revend des actifs résidentiels
-          et mixtes en France. Offre ferme. Décision en 7 jours.
-          Sans condition suspensive.
+        <p className={`hero__subtitle ${loaded ? 'hero__fade hero__fade--1' : 'hero__hidden'}`}>
+          Sans condition suspensive de financement. Sans intermédiaire. Sans surprise.
         </p>
-        <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--4' : 'hero__hidden'}`}>
+        <div className={`hero__ctas ${loaded ? 'hero__fade hero__fade--2' : 'hero__hidden'}`}>
           <Link to="/vendre" className="hero__cta-primary">
-            VENDRE UN BIEN
+            Soumettre mon bien
           </Link>
           <Link to="/realisations" className="hero__cta-secondary">
-            NOS RÉALISATIONS →
+            Voir nos réalisations
           </Link>
         </div>
+      </div>
+      <div className={`hero__scroll-indicator ${loaded ? 'hero__fade hero__fade--3' : 'hero__hidden'}`} aria-hidden="true">
+        <span className="hero__scroll-line" />
       </div>
     </section>
   );

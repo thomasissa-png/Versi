@@ -8,14 +8,12 @@ export default function SellerBanner() {
   return (
     <section className="seller-banner section-padding" ref={ref}>
       <div className={`seller-banner__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        <h2 className="text-heading-lg seller-banner__title">
-          Vous avez un bien à céder ?
-        </h2>
-        <p className="text-body-lg seller-banner__subtitle">
-          Offre ferme sous 7 jours. Sans condition suspensive de financement.
+        <p className="text-body-lg seller-banner__text">
+          Votre bien n'a pas trouvé preneur ? Vous êtes sous pression temporelle ?
+          Nous instruisons chaque dossier — et nous décidons en 7 jours.
         </p>
         <Link to="/vendre" className="seller-banner__cta text-cta">
-          RECEVOIR UNE OFFRE
+          Soumettre mon bien
         </Link>
       </div>
     </section>

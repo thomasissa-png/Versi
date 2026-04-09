@@ -1,48 +1,71 @@
+import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
-const STEPS = [
+const PROCESS_STEPS = [
   {
     number: '01',
     title: 'Sourcer',
-    description: 'Nous identifions des actifs résidentiels et mixtes à fort potentiel de transformation sur le territoire français. Notre réseau de prescripteurs — agents immobiliers, notaires, courtiers — nous alerte en amont du marché. Nous ciblons des opérations entre 250 000 € et 1 000 000 €.',
+    description: 'Nous identifions des actifs résidentiels et mixtes sous-valorisés — via notre réseau de prescripteurs, des partenariats notariaux, ou des contacts directs avec les propriétaires.',
   },
   {
     number: '02',
     title: 'Analyser',
-    description: 'Chaque bien fait l\'objet d\'une étude de faisabilité technique (structure, urbanisme, réglementation), juridique (servitudes, copropriété, bail) et financière (coût d\'acquisition, budget travaux, prix de sortie). L\'offre ferme est transmise sous 7 jours.',
+    description: 'Chaque dossier est instruit en interne : visite physique par un fondateur, analyse comparative de marché, modélisation financière. La décision est prise par l\'équipe — pas déléguée à un consultant externe.',
   },
   {
     number: '03',
-    title: 'Transformer',
-    description: 'Nous pilotons la transformation en interne : dépôt de permis, sélection des entreprises, suivi de chantier, réception des travaux. Rénovation complète, découpe en lots, changement de destination — chaque opération est calibrée pour maximiser la valeur à la revente.',
+    title: 'Acquérir',
+    description: 'Nous formulons une offre ferme et définitive. Sans condition suspensive de financement. Nous signons ce que nous pouvons tenir.',
   },
   {
     number: '04',
-    title: 'Revendre',
-    description: 'Les lots transformés sont commercialisés auprès de particuliers, investisseurs ou institutionnels. La stratégie de sortie est définie dès l\'acquisition : vente en bloc, lot par lot, ou combinaison des deux selon le marché local.',
+    title: 'Transformer et opérer',
+    description: 'De la réhabilitation à la revente ou à la mise en location — chaque opération est suivie jusqu\'à sa sortie. Les réalisations documentées sur ce site en sont la preuve.',
   },
 ];
 
 const DIFFERENTIATORS = [
   {
-    title: 'Offre ferme, sans condition suspensive',
-    description: 'Nos offres ne comportent pas de condition suspensive de financement. Le vendeur a la certitude que la vente aboutira. C\'est notre engagement fondamental.',
+    title: 'Offre ferme ou refus — jamais d\'ambiguïté.',
+    description: 'Nous ne formulons pas d\'intérêts flottants. Notre réponse est binaire : offre ferme par écrit, ou refus motivé par écrit. Vous savez où vous en êtes sous 7 jours.',
   },
   {
-    title: 'Décision rapide',
-    description: 'Nous nous engageons à fournir une réponse — positive ou négative — sous 7 jours ouvrés. Pas d\'attente interminable, pas de relances sans fin.',
+    title: 'Une holding derrière chaque engagement.',
+    description: 'Versi Immobilier est l\'entité marchand de biens du Groupe Versi. La structuration financière se fait en interne (Groupe Versi). Notre capacité d\'achat ne dépend pas d\'un crédit bancaire tiers.',
   },
   {
-    title: 'Opérateur intégré',
-    description: 'Versi Immobilier est une entité de la holding Versi. L\'ensemble du cycle — acquisition, financement, transformation, revente — est maîtrisé en interne. Pas de sous-traitance des décisions critiques.',
+    title: 'Une équipe identifiée, pas un opérateur anonyme.',
+    description: 'Les trois fondateurs de Versi Immobilier ont des parcours vérifiables. 15 ans, 13 ans, 14 ans d\'expérience opérationnelle en gestion d\'actifs, structuration commerciale, stratégie produit. Ils sont disponibles en direct — pas derrière un standard.',
+  },
+];
+
+const TEAM = [
+  {
+    name: 'Thomas Issa',
+    role: 'Co-fondateur',
+    track: '15 ans d\'expérience. Opérations TEOS, Sony. 11 actifs locatifs en compte propre à Paris.',
+    initials: 'TI',
+  },
+  {
+    name: 'Maxime Lemoine',
+    role: 'Co-fondateur',
+    track: '13 ans d\'expérience. Head of Sales Sony. 5 immeubles acquis, 24 contrats structurés.',
+    initials: 'ML',
+  },
+  {
+    name: 'Carl Standertskjold-Nordenstam',
+    role: 'Co-fondateur',
+    track: '14 ans d\'expérience. Sony, Algolia, Inbolt. Structuration de projets complexes à l\'international.',
+    initials: 'CS',
   },
 ];
 
 export default function ApprochePage() {
-  const { ref: stepsRef, isVisible: stepsVisible } = useFadeIn();
+  const { ref: procRef, isVisible: procVisible } = useFadeIn();
   const { ref: diffRef, isVisible: diffVisible } = useFadeIn();
+  const { ref: teamRef, isVisible: teamVisible } = useFadeIn();
 
   return (
     <>
@@ -51,61 +74,47 @@ export default function ApprochePage() {
       </a>
       <Nav />
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
-        {/* Hero */}
-        <section
-          className="section-padding"
-          style={{ background: 'var(--color-bg-dark)' }}
-        >
-          <div className="container" style={{ textAlign: 'center' }}>
-            <span className="text-label" style={{ display: 'block', color: 'var(--color-text-inverse)', opacity: 0.5, marginBottom: 'var(--spacing-lg)' }}>
-              NOTRE APPROCHE
-            </span>
-            <h1 className="text-heading-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-lg)' }}>
-              Un cycle maîtrisé de bout en bout
+        {/* Header */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
+          <div className="container">
+            <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
+              Notre approche.
             </h1>
-            <p className="text-body-lg" style={{
-              color: 'var(--color-text-inverse)',
-              opacity: 'var(--opacity-readable)',
-              maxWidth: 'var(--text-max-width-md)',
-              margin: '0 auto',
-            }}>
-              Du sourcing à la sortie, nous maîtrisons chaque étape de l'opération.
-              Pas de délégation des décisions critiques. Un seul interlocuteur.
+            <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
+              Analyser, structurer, décider. En interne. Sans délégation externe.
             </p>
           </div>
         </section>
 
-        {/* Process détaillé */}
-        <section className="section-padding" ref={stepsRef}>
-          <div className={`container ${stepsVisible ? 'fade-in' : 'fade-hidden'}`}>
+        {/* Process */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={procRef}>
+          <div className={`container ${procVisible ? 'fade-in' : 'fade-hidden'}`}>
+            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+              Quatre étapes. Zéro délégation.
+            </h2>
             <div style={{
               display: 'grid',
-              gap: 'var(--spacing-3xl)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 'var(--spacing-xl)',
             }}>
-              {STEPS.map((step) => (
-                <div key={step.number} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '80px 1fr',
-                  gap: 'var(--spacing-xl)',
-                  alignItems: 'start',
-                }}>
+              {PROCESS_STEPS.map((step) => (
+                <div key={step.number}>
                   <span style={{
-                    fontSize: 'var(--font-size-display-num)',
-                    fontWeight: 'var(--font-weight-thin)',
-                    color: 'var(--color-text-primary)',
-                    opacity: 'var(--opacity-subtle)',
+                    fontSize: '48px',
+                    fontWeight: 'var(--font-weight-medium)',
+                    color: 'var(--color-accent)',
                     lineHeight: 1,
+                    display: 'block',
+                    marginBottom: 'var(--spacing-md)',
                   }}>
                     {step.number}
                   </span>
-                  <div>
-                    <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
-                      {step.title}
-                    </h2>
-                    <p className="text-body-md" style={{ color: 'var(--color-text-muted)', lineHeight: 1.65, maxWidth: 'var(--text-max-width-lg)' }}>
-                      {step.description}
-                    </p>
-                  </div>
+                  <h3 className="text-heading-md" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                    {step.title}
+                  </h3>
+                  <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+                    {step.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -113,17 +122,10 @@ export default function ApprochePage() {
         </section>
 
         {/* Différenciateurs */}
-        <section
-          className="section-padding"
-          style={{ background: 'var(--color-bg-dark)' }}
-          ref={diffRef}
-        >
+        <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }} ref={diffRef}>
           <div className={`container ${diffVisible ? 'fade-in' : 'fade-hidden'}`}>
-            <span className="text-label" style={{ display: 'block', color: 'var(--color-text-inverse)', opacity: 0.5, marginBottom: 'var(--spacing-lg)' }}>
-              DIFFÉRENCIATEURS
-            </span>
-            <h2 className="text-heading-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-2xl)' }}>
-              Ce qui nous distingue
+            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+              Ce qui distingue Versi Immobilier.
             </h2>
             <div style={{
               display: 'grid',
@@ -131,15 +133,16 @@ export default function ApprochePage() {
               gap: 'var(--spacing-xl)',
             }}>
               {DIFFERENTIATORS.map((d) => (
-                <div key={d.title} style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  padding: 'var(--spacing-xl)',
-                  borderRadius: 'var(--radius-sm)',
-                }}>
-                  <h3 className="text-heading-md" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-md)' }}>
+                <div key={d.title}>
+                  <h3 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'var(--font-weight-regular)',
+                    marginBottom: 'var(--spacing-sm)',
+                    lineHeight: 1.3,
+                  }}>
                     {d.title}
                   </h3>
-                  <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)' }}>
+                  <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
                     {d.description}
                   </p>
                 </div>
@@ -148,11 +151,81 @@ export default function ApprochePage() {
           </div>
         </section>
 
-        {/* Holding link */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
-          <div className="container" style={{ textAlign: 'center' }}>
-            <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
-              Versi Immobilier est une entité de la holding Versi, opérateur immobilier intégré en France.
+        {/* Équipe */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={teamRef}>
+          <div className={`container ${teamVisible ? 'fade-in' : 'fade-hidden'}`}>
+            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
+              L'équipe.
+            </h2>
+            <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)' }}>
+              Trois fondateurs. Pas de comité. Pas d'intermédiaire.
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 'var(--spacing-xl)',
+            }}>
+              {TEAM.map((member) => (
+                <div key={member.name}>
+                  {/* Photo placeholder with initials */}
+                  <div style={{
+                    width: '100%',
+                    aspectRatio: '4/5',
+                    maxWidth: '280px',
+                    background: 'var(--color-stone-200)',
+                    borderRadius: 'var(--card-radius)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 'var(--spacing-lg)',
+                  }}>
+                    <span style={{
+                      fontSize: '3rem',
+                      fontWeight: 'var(--font-weight-light)',
+                      color: 'var(--color-text-muted)',
+                    }}>
+                      {member.initials}
+                    </span>
+                  </div>
+                  <h3 style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'var(--font-weight-regular)',
+                    marginBottom: 'var(--spacing-xs)',
+                  }}>
+                    {member.name}
+                  </h3>
+                  <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
+                    {member.role}
+                  </span>
+                  <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+                    {member.track}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Critères d'acquisition */}
+        <section className="section-padding" style={{ background: 'var(--color-calcaire-100)' }}>
+          <div className="container">
+            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
+              Nos critères d'acquisition.
+            </h2>
+            <p className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)' }}>
+              Versi Immobilier instruits des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €,
+              en France — Paris, Île-de-France, Lille, Lyon, Bordeaux et villes moyennes.
+              Immeubles de rapport, maisons, actifs mixtes, biens occupés ou en l'état.
+            </p>
+          </div>
+        </section>
+
+        {/* Lien Groupe Versi */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-primary)', textAlign: 'center' }}>
+          <div className="container">
+            <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)', maxWidth: 'var(--text-max-width-md)', margin: '0 auto var(--spacing-lg)' }}>
+              Versi Immobilier est l'entité marchand de biens du Groupe Versi — une holding immobilière intégrée
+              qui couvre l'ensemble du cycle de vie d'un actif.
             </p>
             <a
               href="https://versi.fr"
@@ -162,21 +235,70 @@ export default function ApprochePage() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                border: '1px solid var(--color-border)',
-                padding: '12px 32px',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--color-text-primary)',
+                color: 'var(--color-accent)',
                 textDecoration: 'none',
-                minHeight: '44px',
-                transition: 'background-color var(--duration-normal) ease',
               }}
             >
-              DÉCOUVRIR VERSI.FR →
+              En savoir plus sur le Groupe Versi
             </a>
+          </div>
+        </section>
+
+        {/* CTAs bas de page */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-dark-alt)', textAlign: 'center' }}>
+          <div className="container" style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link
+              to="/vendre"
+              className="text-cta"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: 'var(--color-accent)',
+                color: 'var(--color-bg-dark)',
+                padding: '16px 40px',
+                borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                minHeight: '52px',
+              }}
+            >
+              Soumettre un dossier
+            </Link>
+            <Link
+              to="/contact"
+              className="text-cta"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                border: '1px solid var(--color-text-inverse)',
+                color: 'var(--color-text-inverse)',
+                padding: '16px 40px',
+                borderRadius: 'var(--radius-sm)',
+                textDecoration: 'none',
+                minHeight: '52px',
+              }}
+            >
+              Nous contacter
+            </Link>
           </div>
         </section>
       </main>
       <Footer />
+
+      <style>{`
+        @media (max-width: 1279px) {
+          div[style*="grid-template-columns: repeat(4, 1fr)"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 767px) {
+          div[style*="grid-template-columns: repeat(4, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+          div[style*="grid-template-columns: repeat(3, 1fr)"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
