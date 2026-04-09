@@ -1,4 +1,17 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
 
 Sitemap: https://versi-immobilier.fr/sitemap.xml
