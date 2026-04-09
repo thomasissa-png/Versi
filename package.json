@@ -7,7 +7,13 @@
     "dev": "cd src && npm run dev",
     "build": "cd src && npm install && npm run build",
     "preview": "cd src && npm run preview",
-    "lint": "cd src && npm run lint"
+    "start": "cd src && npm start",
+    "lint": "cd src && npm run lint",
+    "install:immo": "cd versi-immobilier && npm install",
+    "dev:immo": "cd versi-immobilier && npm run dev",
+    "build:immo": "cd versi-immobilier && npm install && npm run build",
+    "start:immo": "cd versi-immobilier && npm start",
+    "preview:immo": "cd versi-immobilier && npm run preview"
   },
   "dependencies": {
     "playwright": "^1.59.1"

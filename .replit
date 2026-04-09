@@ -1,0 +1,9 @@
+run = "cd versi-immobilier && npm run build && npm start"
+entrypoint = "versi-immobilier/server.js"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "cd versi-immobilier && npm start"]
+build = ["sh", "-c", "cd versi-immobilier && npm install && npm run build"]
