@@ -1,5 +1,5 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -16,45 +16,28 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.static(join(__dirname, 'dist')));
 
 // ---------------------------------------------------------------------------
-// SMTP transporter (créé à la demande pour toujours lire les env vars au runtime)
+// Resend (email transactionnel)
 // ---------------------------------------------------------------------------
-function createTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT) || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
-  if (!host || !user || !pass) {
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-}
-
-// Vérification au démarrage
-if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+if (!resend) {
   console.warn(
-    '[WARN] Variables SMTP non configurées (SMTP_HOST, SMTP_USER, SMTP_PASS). ' +
+    '[WARN] RESEND_API_KEY non configurée. ' +
     'Les endpoints /api/contact et /api/sell retourneront 503.'
   );
 }
 
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'contact@versi-immobilier.fr';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'formulaire@versi-immobilier.fr';
 
 // ---------------------------------------------------------------------------
 // Rate limiting simple en mémoire (max 5 envois / IP / heure)
 // ---------------------------------------------------------------------------
 const rateLimitMap = new Map();
 const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 heure
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -73,7 +56,6 @@ function isRateLimited(ip) {
   return false;
 }
 
-// Nettoyage périodique de la map (toutes les 10 minutes)
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of rateLimitMap) {
@@ -111,12 +93,10 @@ function buildHtmlTable(fields) {
 // POST /api/contact
 // ---------------------------------------------------------------------------
 app.post('/api/contact', async (req, res) => {
-  // Honeypot
   if (req.body._honeypot) {
     return res.json({ ok: true });
   }
 
-  // Validation
   const { prenom, nom, email, telephone, objet, message } = req.body;
   const missing = [];
   if (!prenom || !String(prenom).trim()) missing.push('prenom');
@@ -133,20 +113,16 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Format d\'email invalide.' });
   }
 
-  // Rate limit
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
   if (isRateLimited(ip)) {
     res.set('Retry-After', '3600');
     return res.status(429).json({ ok: false, error: 'Trop de demandes. Réessayez dans 1 heure.' });
   }
 
-  // SMTP check
-  const transporter = createTransporter();
-  if (!transporter) {
+  if (!resend) {
     return res.status(503).json({ ok: false, error: 'Service d\'envoi d\'email temporairement indisponible.' });
   }
 
-  // Envoi
   const htmlBody = buildHtmlTable([
     ['Prénom', String(prenom)],
     ['Nom', String(nom)],
@@ -157,8 +133,8 @@ app.post('/api/contact', async (req, res) => {
   ]);
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to: CONTACT_EMAIL,
       replyTo: String(email).trim(),
       subject: `[Versi Immobilier] Contact de ${escapeHtml(String(prenom).trim())} ${escapeHtml(String(nom).trim())}`,
@@ -176,12 +152,10 @@ app.post('/api/contact', async (req, res) => {
 // POST /api/sell
 // ---------------------------------------------------------------------------
 app.post('/api/sell', async (req, res) => {
-  // Honeypot
   if (req.body._honeypot) {
     return res.json({ ok: true });
   }
 
-  // Validation
   const { adresse, typeBien, surface, situationLocative, prenom, nom, email, telephone, message } = req.body;
   const missing = [];
   if (!adresse || !String(adresse).trim()) missing.push('adresse');
@@ -201,20 +175,16 @@ app.post('/api/sell', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Format d\'email invalide.' });
   }
 
-  // Rate limit
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
   if (isRateLimited(ip)) {
     res.set('Retry-After', '3600');
     return res.status(429).json({ ok: false, error: 'Trop de demandes. Réessayez dans 1 heure.' });
   }
 
-  // SMTP check
-  const transporter = createTransporter();
-  if (!transporter) {
+  if (!resend) {
     return res.status(503).json({ ok: false, error: 'Service d\'envoi d\'email temporairement indisponible.' });
   }
 
-  // Envoi
   const htmlBody = buildHtmlTable([
     ['Adresse du bien', String(adresse)],
     ['Type de bien', String(typeBien)],
@@ -228,8 +198,8 @@ app.post('/api/sell', async (req, res) => {
   ]);
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
+    await resend.emails.send({
+      from: FROM_EMAIL,
       to: CONTACT_EMAIL,
       replyTo: String(email).trim(),
       subject: `[Versi Immobilier] Nouveau bien soumis — ${escapeHtml(String(adresse).trim())}`,
@@ -244,7 +214,7 @@ app.post('/api/sell', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// SPA fallback — toutes les routes non-API renvoient index.html
+// SPA fallback
 // ---------------------------------------------------------------------------
 app.get('/{*splat}', (req, res) => {
   res.sendFile(join(__dirname, 'dist', 'index.html'));
