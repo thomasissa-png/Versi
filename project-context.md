@@ -3,7 +3,7 @@
 > Ce fichier est lu par tous les agents avant toute action.
 > Remplis chaque champ. Les champs vides bloquent les agents.
 > **ATTENTION** : ce fichier peut contenir des informations stratégiques (budget, pricing, concurrents). S'assurer que le repo est **privé** si des données confidentielles y sont renseignées.
-> Dernière mise à jour : 2026-04-08
+> Dernière mise à jour : 2026-04-09
 
 ---
 
@@ -167,6 +167,18 @@
 | design | 2026-04-08 | docs/reviews/visual-audit-tablet.md | Audit visuel tablette 768px. Note globale 3/10. 6 bugs BLOQUANTS : Mission, Équipe, Contact = contenu 100% invisible. Activités = 4 cartes absentes. Approche = 4 étapes non rendues. Implantation = contraste heading < 2:1 + carte absente. Cause racine probable : IntersectionObserver non déclenché à 768px + breakpoints grilles manquants. | Site inutilisable en tablette. Hero seule section fonctionnelle (8/10). Toutes les autres sections ont leur contenu masqué — animations d'entrée bloquées ou overflow hidden sur grilles sans breakpoint tablette. Priorité : @fullstack doit corriger avant déploiement. |
 | design | 2026-04-08 | docs/reviews/visual-audit-desktop.md | Audit visuel desktop 1280px. Note globale 4/10. Même cause racine que tablette : IntersectionObserver non déclenché par Playwright → 5 sections sur 7 vides (Mission, Implantation, Contact = 0/10 ; Équipe sans cartes fondateurs = 3/10 ; Activités = 2/4 cartes rendues = 5/10). Hero et Nav corrects (8/10). Direction artistique validée. | Diagnostic identique tablette/desktop confirme que la cause est architecturale (état initial opacity:0 sans fallback), pas un bug breakpoint. Correction unique : état initial visible par défaut, animation en progressive enhancement via IntersectionObserver. Impact business maximum : cartes Équipe absentes = Laurent ne peut pas valider la crédibilité des fondateurs = KPI North Star en danger. |
 | design | 2026-04-08 | docs/reviews/visual-audit-mobile.md | Audit visuel mobile 375px (iPhone 13). Note globale 7/10 (screenshots avec contenu visible — situation meilleure que tablette/desktop). Hero 8/10, Mission 7/10, Activités 7/10, Approche 7/10, Implantation 5/10, Équipe 6/10, Contact 7/10. 6 corrections CSS identifiées : font-size inputs 16px (P0 anti-zoom iOS), touch target LinkedIn 44px, object-position photos équipe, carte implantation pleine largeur, séparation visuelle entités, scroll-margin-top ancres. | Note 7/10 vs 3-4/10 tablette/desktop : les screenshots mobile reflètent un état de rendu avec contenu visible — les animations semblent se déclencher sur mobile ou les captures ont été prises différemment. Cause cadrage photos équipe (B1) : problème éditorial à la source, pas corrigeable en CSS seul — fondateurs doivent fournir photos recadrées en portrait 3:4. font-size 16px inputs classé P0 : le zoom automatique iOS Safari sur inputs < 16px est une régression UX majeure et bien documentée. |
+| orchestrator | 2026-04-09 | Corrections mobile (B3, B5, B7) | B3 : SVG map labels fontSize 12→14 + mobile 18px. B5 : activity cards flush stacking (gap 0, no border-radius, no lateral borders). B7 : scroll-margin-top sur .section-padding. | Bugs identifiés par @designer audit mobile. Flush stacking choisi vs gap+borders car plus cohérent mobile (bords-à-bords, moins de bruit visuel). |
+| creative-strategy | 2026-04-09 | docs/reviews/creative-opinion-hero-page.md | Audit animation Hero. Recommandation : remplacer animation séquentielle (6 éléments décalés + scroll hint) par fade global unique 300ms. Scroll hint jugé "SaaS, pas institutionnel". Accent bar opacity 55%→75%. Supprimer margin-bottom CTAs. | Animation séquentielle = signal tech/SaaS, incompatible avec le positionnement institutionnel premium. enclave.com utilise un fade global unique. Le scroll hint est un pattern conversion-oriented, pas crédibilité-oriented. |
+| fullstack | 2026-04-09 | src/src/components/Hero.jsx, Hero.css | Implémentation des recommandations @creative-strategy : fade global 300ms, suppression scroll hint et states associés, accent opacity 75%, suppression margin-bottom CTAs. Code simplifié (moins de states, pas de scroll listener). | Application directe des recommandations validées par le fondateur. |
+| ia | 2026-04-09 | docs/ia/photo-harmonisation-prompts.md (refonte complète) | Documentation du comportement réel de Relight AI (pas de negative prompts, prompts 3-7 mots-clés, word blacklist). Prompts réécrits pour les 3 fondateurs. IC Light V2 documenté comme méthode alternative. Autopsie de max2.png (4 causes d'échec identifiées). | Premier run @ia timeout (WebSearch sans Write). Relancé avec brief anti-timeout. Prompts V1 basés sur des capacités supposées de Relight AI = échec en production. V2 calibré sur le comportement réel observé. |
+| fullstack | 2026-04-09 | Photos fondateurs (carl.png, max.png, thomas.png) | Intégration photos Carl3, Max3, Thomas3. Processing : crop 900x1200 (3:4), edge pixel extension Thomas (dezoom), brightness alignment ~52.5% mean grayscale. Reorder : Maxime → Thomas → Carl. | Thomas trop zoomé vs les autres (fondateur screenshot). Edge pixel extension retenu après tests miroir (couture visible) et flou (bande visible). Ordre validé par fondateur. |
+| fullstack | 2026-04-09 | src/src/components/Nav.jsx | Intégration React Router pour navigation depuis pages légales : useLocation/useNavigate, redirection /#section depuis non-home, scrolled=true forcé sur pages non-home. | Pages légales utilisaient mini-nav isolé — navigation incohérente. Nav principale nécessaire pour cohérence UX et retour aux sections. |
+| fullstack | 2026-04-09 | src/src/pages/MentionsLegales.jsx, PolitiqueConfidentialite.jsx, LegalPage.css | Nav + Footer sur les pages légales. scroll-to-top au mount. Suppression ancien mini-nav CSS. padding-top: nav-height. | Cohérence navigation site entier. Legal pages doivent avoir même header/footer que le one-page. |
+| copywriter | 2026-04-09 | src/src/components/Team.jsx, src/src/config/team.js | Titre "Trois associés. Zéro posture." → "Trois fondateurs. Quarante ans de terrain." Specialties : ajout "Ex-" prefix Sony. Track records : format "Avant Versi :". Sous-titre : parcours concrets. | Fondateur ne comprenait pas "Zéro posture". "Quarante ans de terrain" = concret, factuel, crédible. "Avant Versi :" = format uniforme qui ancre la crédibilité pré-Versi. |
+| fullstack | 2026-04-09 | src/src/pages/MentionsLegales.jsx | Mentions légales complétées : Gradient One maison mère de Versi (SIREN 881 249 718, 54 rue Henri Barbusse, 92000 Nanterre, RCS Nanterre). Directeur publication : Thomas Issa. Hébergeur : Replit Inc. Crédits photo : © Gradient One. | Infos juridiques fournies par le fondateur. Replit = hébergeur actuel. Gradient One = entité légale holding. |
+| designer | 2026-04-09 | src/src/components/Team.css | LinkedIn icon anchored to bottom of card : margin-top auto, card-content flex-grow 1, align-items flex-start. | Noms de longueur variable (Carl Standertskjold-Nordenstam) causaient un désalignement horizontal des icônes. margin-top:auto = pattern standard pour ancrage bottom dans flex column. |
+| fullstack | 2026-04-09 | Photos brightness alignment | Max brightness -1 (trop sombre vs Thomas/Carl). Toutes les photos alignées à ~52.4-52.8% mean grayscale. | Fondateur a signalé que Max était plus sombre. Vérification via ImageMagick identify -verbose. Ajustement brightness-contrast. |
+| orchestrator | 2026-04-09 | docs/lessons-learned.md, project-context.md | Clôture de session : création lessons-learned.md (11 learnings), mise à jour historique interventions, mémo de reprise. | Procédure de clôture demandée explicitement par le fondateur. |
 
 ---
 
@@ -201,4 +213,27 @@
 
 ### Mémo de reprise
 
-Pour reprendre ce projet : `Lis project-context.md et docs/orchestration-plan.md, continue où on s'est arrêté.`
+**Branche** : `claude/continue-orchestration-plan-BRzum`
+**Dernier commit** : clôture session 2026-04-09
+
+**État actuel du site** :
+- Site one-page institutionnel fonctionnel avec toutes les sections (Hero, Mission, Activités, Approche, Implantation, Équipe, Contact)
+- Pages légales (Mentions légales, Politique de confidentialité) avec Nav/Footer intégrés
+- Photos fondateurs intégrées et harmonisées (900x1200, brightness alignée)
+- Ordre fondateurs : Maxime → Thomas → Carl
+- Animation Hero : fade global 300ms (institutionnel)
+- Navigation React Router fonctionnelle entre pages légales et one-page
+
+**Ce qui reste à faire (priorité)** :
+1. **Formspree endpoint** (P0-déploiement) : le formulaire de contact n'est pas connecté — configurer Formspree ou EmailJS pour que les soumissions arrivent à contact@versi.fr
+2. **Pré-rendu SEO** : vite-plugin-prerender recommandé par @seo mais non implémenté — nécessaire pour crawl Bing/JS
+3. **JSON-LD Schema.org** : recommandé par @geo/@seo (Organization, WebSite, FAQPage) — non implémenté
+4. **Page LinkedIn entreprise Versi** : recommandée par @growth/@social — à créer manuellement
+5. **Plausible Analytics** : recommandé par @legal/@data-analyst — à intégrer (script unique, pas de cookies)
+6. **Photos fondateurs via IA** : les prompts Relight AI sont documentés dans docs/ia/photo-harmonisation-prompts.md — le fondateur peut itérer avec les prompts fournis si les photos actuelles ne conviennent plus
+7. **Audit @reviewer final** : run complet des 32 gates sur tous les livrables — non fait cette session
+8. **Tests E2E** : Playwright configuré mais pas de suite de tests formelle
+
+**Livrables docs/ produits** : voir `docs/` (37 fichiers). Référence clé : `docs/orchestration-plan.md`.
+
+**Prompt de reprise** : `Lis project-context.md (mémo de reprise + historique interventions) et docs/lessons-learned.md. Continue avec la priorité P0 : configuration Formspree pour le formulaire de contact.`
