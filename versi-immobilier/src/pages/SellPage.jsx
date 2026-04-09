@@ -149,6 +149,27 @@ export default function SellPage() {
           </div>
         </section>
 
+        {/* 2 réalisations */}
+        {featuredProjects.length > 0 && (
+          <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
+            <div className="container">
+              <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
+                Ce que nous avons fait concrètement.
+              </h2>
+              <div className="sell-realisations-grid">
+                {featuredProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+              <div style={{ marginTop: 'var(--spacing-xl)' }}>
+                <Link to="/realisations" className="text-cta" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                  Toutes nos réalisations
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Process détaillé */}
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }} ref={procRef}>
           <div className={`container ${procVisible ? 'fade-in' : 'fade-hidden'}`}>
@@ -211,27 +232,6 @@ export default function SellPage() {
             </div>
           </div>
         </section>
-
-        {/* 2 réalisations */}
-        {featuredProjects.length > 0 && (
-          <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
-            <div className="container">
-              <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
-                Ce que nous avons fait concrètement.
-              </h2>
-              <div className="sell-realisations-grid">
-                {featuredProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
-              <div style={{ marginTop: 'var(--spacing-xl)' }}>
-                <Link to="/realisations" className="text-cta" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
-                  Toutes nos réalisations
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Formulaire */}
         <section className="sell-form-section section-padding" id="formulaire">

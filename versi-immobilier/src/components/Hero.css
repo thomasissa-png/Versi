@@ -33,7 +33,7 @@
 
 .hero__surtitre {
   color: var(--color-text-inverse);
-  opacity: var(--opacity-muted);
+  opacity: 0.65;
   margin-bottom: var(--spacing-md);
 }
 

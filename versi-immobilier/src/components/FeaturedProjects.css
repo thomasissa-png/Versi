@@ -24,7 +24,7 @@
 }
 
 .featured__cta {
-  color: var(--color-accent);
+  color: var(--color-text-muted);
   text-decoration: none;
   transition: opacity var(--duration-normal) ease;
 }

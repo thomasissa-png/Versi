@@ -13,11 +13,11 @@ export default function InvestirPage() {
         <section className="section-padding" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center' }}>
           <div className="container" style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
-              Investir avec le Groupe Versi.
+              Investir avec un opérateur intégré.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
-              Versi Invest structure des co-investissements immobiliers pour des partenaires sélectifs.
-              Chaque opération est instruite par les équipes du Groupe Versi — de l'analyse à la sortie.
+              Acquisition, transformation, structuration — une équipe qui maîtrise l'ensemble du cycle.
+              Pas un intermédiaire : un co-opérateur.
             </p>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)' }}>
               Pour en savoir plus sur les opportunités ouvertes et le profil des partenaires, visitez versi-invest.fr.

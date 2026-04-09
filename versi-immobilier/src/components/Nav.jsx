@@ -5,9 +5,8 @@ import './Nav.css';
 const NAV_ITEMS = [
   { label: 'NOS BIENS', href: '/nos-biens' },
   { label: 'VENDRE UN BIEN', href: '/vendre' },
-  { label: 'RÉALISATIONS', href: '/realisations' },
-  { label: 'INVESTIR', href: '/investir' },
   { label: 'NOTRE APPROCHE', href: '/notre-approche' },
+  { label: 'RÉALISATIONS', href: '/realisations' },
   { label: 'CONTACT', href: '/contact' },
 ];
 

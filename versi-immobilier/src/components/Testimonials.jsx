@@ -13,7 +13,7 @@ export default function Testimonials() {
   return (
     <section className="testimonials section-padding" ref={ref}>
       <div className={`testimonials__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        <h2 className="text-heading-lg testimonials__title">Ce qu'ils en disent.</h2>
+        <h2 className="text-heading-lg testimonials__title">Ce qu'ils en retiennent.</h2>
         <div className="testimonials__grid">
           {TESTIMONIALS.map((t, index) => (
             <blockquote key={index} className="testimonials__card">

@@ -9,8 +9,8 @@ export default function SellerBanner() {
     <section className="seller-banner section-padding" ref={ref}>
       <div className={`seller-banner__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <p className="text-body-lg seller-banner__text">
-          Votre bien n'a pas trouvé preneur ? Vous êtes sous pression temporelle ?
-          Nous instruisons chaque dossier — et nous décidons en 7 jours.
+          Votre projet de cession a une contrainte temporelle ?
+          Nous instruisons en interne — et nous vous répondons en 7 jours, offre ferme ou refus motivé.
         </p>
         <Link to="/vendre" className="seller-banner__cta text-cta">
           Soumettre mon bien

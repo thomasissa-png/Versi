@@ -21,7 +21,7 @@ export default function ContactPage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
           <div className="container">
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Nous contacter.
+              Parlons de votre projet.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
               Vous êtes propriétaire, prescripteur ou investisseur. Écrivez-nous directement.

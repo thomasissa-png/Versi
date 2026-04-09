@@ -44,12 +44,12 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-inverse);
-  padding: 6px 14px;
+  padding: 10px 14px;
   background: transparent;
   border: none;
   cursor: pointer;
   transition: background-color var(--duration-fast) ease;
-  min-height: 32px;
+  min-height: 44px;
 }
 
 .project-card__tab:hover {

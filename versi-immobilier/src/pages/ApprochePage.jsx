@@ -213,7 +213,7 @@ export default function ApprochePage() {
               Nos critères d'acquisition.
             </h2>
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)' }}>
-              Versi Immobilier instruits des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €,
+              Versi Immobilier instruit des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €,
               en France — Paris, Île-de-France, Lille, Lyon, Bordeaux et villes moyennes.
               Immeubles de rapport, maisons, actifs mixtes, biens occupés ou en l'état.
             </p>

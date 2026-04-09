@@ -33,9 +33,9 @@ export default function Footer() {
             <Link to="/nos-biens" className="footer__nav-link">Nos biens</Link>
             <Link to="/vendre" className="footer__nav-link">Vendre un bien</Link>
             <Link to="/realisations" className="footer__nav-link">Réalisations</Link>
-            <Link to="/investir" className="footer__nav-link">Investir</Link>
             <Link to="/notre-approche" className="footer__nav-link">Notre approche</Link>
             <Link to="/contact" className="footer__nav-link">Contact</Link>
+            <Link to="/investir" className="footer__nav-link">Investir avec Versi</Link>
           </nav>
         </div>
 

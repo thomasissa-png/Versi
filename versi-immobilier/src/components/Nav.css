@@ -86,6 +86,9 @@
   border-radius: var(--radius-sm);
   transition: background-color var(--duration-normal) ease;
   flex-shrink: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .nav__cta:hover {
