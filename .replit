@@ -1,9 +1,20 @@
-run = "cd versi-immobilier && npm run build && npm start"
 entrypoint = "versi-immobilier/server.js"
+run = "cd versi-immobilier && npm install && npm run build && npm start"
 
 [nix]
 channel = "stable-24_05"
 
+[packager]
+language = "nodejs"
+ignoredPaths = ["src"]
+
+[packager.features]
+packageSearch = false
+guessImports = false
+enabledForHosting = false
+
 [deployment]
+deploymentTarget = "cloudrun"
 run = ["sh", "-c", "cd versi-immobilier && npm start"]
 build = ["sh", "-c", "cd versi-immobilier && npm install && npm run build"]
+ignoredPaths = ["src", "docs", "tests", ".claude"]
