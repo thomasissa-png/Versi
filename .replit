@@ -5,6 +5,6 @@ entrypoint = "versi-immobilier/server.js"
 channel = "stable-24_05"
 
 [deployment]
-deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm start"]
-build = ["sh", "-c", "npm run build"]
+deploymentTarget = "autoscale"
+run = ["sh", "-c", "cd versi-immobilier && node server.js"]
+build = ["sh", "-c", "cd versi-immobilier && npm run build"]
