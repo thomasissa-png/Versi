@@ -1,0 +1,39 @@
+.seller-banner {
+  background: var(--color-bg-dark-accent);
+}
+
+.seller-banner__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-lg);
+}
+
+.seller-banner__title {
+  color: var(--color-text-inverse);
+}
+
+.seller-banner__subtitle {
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
+  max-width: var(--text-max-width-sm);
+}
+
+.seller-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-text-inverse);
+  color: var(--color-bg-dark);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 16px 48px;
+  text-decoration: none;
+  transition: background-color var(--duration-normal) ease;
+  min-height: 44px;
+}
+
+.seller-banner__cta:hover {
+  background: var(--color-bg-secondary);
+}

@@ -1,0 +1,33 @@
+.stats {
+  background: var(--color-bg-primary);
+}
+
+.stats__inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-2xl);
+  text-align: center;
+}
+
+.stats__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.stats__value {
+  color: var(--color-text-primary);
+}
+
+.stats__label {
+  color: var(--color-text-muted);
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .stats__inner {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+}
