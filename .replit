@@ -6,5 +6,6 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
+publicDir = "versi-immobilier/dist"
 run = ["sh", "-c", "cd versi-immobilier && node server.js"]
 build = ["sh", "-c", "cd versi-immobilier && npm run build"]
