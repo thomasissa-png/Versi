@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop.jsx';
 import HomePage from './pages/HomePage.jsx';
 import PropertiesPage from './pages/PropertiesPage.jsx';
 import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
@@ -13,7 +14,9 @@ import NotFound from './pages/NotFound.jsx';
 
 function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/nos-biens" element={<PropertiesPage />} />
       <Route path="/nos-biens/:id" element={<PropertyDetailPage />} />
@@ -26,6 +29,7 @@ function App() {
       <Route path="/mentions-legales" element={<MentionsLegales />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }
 

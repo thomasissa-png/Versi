@@ -2,7 +2,6 @@
   position: relative;
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--color-charcoal-950), var(--color-mineral-900));
@@ -32,6 +31,12 @@
   padding: 0 var(--spacing-lg);
 }
 
+.hero__surtitre {
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-muted);
+  margin-bottom: var(--spacing-md);
+}
+
 .hero__title {
   color: var(--color-text-inverse);
   margin-bottom: var(--spacing-xl);
@@ -39,6 +44,14 @@
   font-weight: var(--font-weight-light);
   line-height: 1.2;
   letter-spacing: 0.01em;
+}
+
+.hero__accent {
+  width: 48px;
+  height: 1px;
+  background: var(--color-accent);
+  opacity: 0.55;
+  margin-bottom: var(--spacing-xl);
 }
 
 .hero__subtitle {
@@ -54,6 +67,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-4xl);
 }
 
 .hero__cta-primary {
@@ -92,31 +106,23 @@
 
 .hero__cta-secondary:hover {
   opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
-/* Scroll indicator */
-.hero__scroll-indicator {
-  position: absolute;
-  bottom: var(--spacing-xl);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-}
-
-.hero__scroll-line {
-  display: block;
-  width: 1px;
-  height: 48px;
-  background: linear-gradient(to bottom, transparent, var(--color-accent));
-  animation: scrollPulse 2s ease-in-out infinite;
+/* Scroll hint */
+.hero__scroll-hint {
+  color: var(--color-text-inverse);
+  opacity: 0.6;
+  animation: scrollPulse var(--duration-glacial, 2000ms) ease-in-out infinite;
 }
 
 @keyframes scrollPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
-/* Fade-in animations */
+/* Fade-in animations — 6-step cascade comme versi.fr */
 .hero__hidden {
   opacity: 0;
 }
@@ -125,13 +131,15 @@
   animation: heroFadeIn var(--duration-slow) ease-out forwards;
 }
 
-.hero__fade--0 { animation-delay: 100ms; }
-.hero__fade--1 { animation-delay: 300ms; }
-.hero__fade--2 { animation-delay: 500ms; }
-.hero__fade--3 { animation-delay: 700ms; }
+.hero__fade--0 { animation-delay: 0ms; }
+.hero__fade--1 { animation-delay: 120ms; }
+.hero__fade--2 { animation-delay: 240ms; }
+.hero__fade--3 { animation-delay: 360ms; }
+.hero__fade--4 { animation-delay: 480ms; }
+.hero__fade--5 { animation-delay: 700ms; }
 
 @keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
