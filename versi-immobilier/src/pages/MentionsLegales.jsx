@@ -111,9 +111,9 @@ export default function MentionsLegales() {
                 <div>
                   <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>Destinataires des données</h2>
                   <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    Les données collectées via les formulaires sont transmises à Formspree
-                    (sous-traitant technique, Data Processing Agreement en vigueur).
-                    Elles ne sont pas transmises à d'autres tiers.
+                    Les données collectées via les formulaires sont transmises par email
+                    via notre serveur SMTP sécurisé.
+                    Elles ne sont pas transmises à des tiers.
                   </p>
                 </div>
 

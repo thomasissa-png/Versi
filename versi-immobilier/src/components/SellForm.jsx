@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FORMSPREE_SELL_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
+import { SELL_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
 import './ContactForm.css';
 
 const INITIAL_FORM = {
@@ -97,20 +97,20 @@ export default function SellForm() {
 
     setStatus('loading');
     try {
-      const res = await fetch(FORMSPREE_SELL_ENDPOINT, {
+      const res = await fetch(SELL_ENDPOINT, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adresse_du_bien: form.adresse,
-          type_de_bien: form.typeBien,
+          adresse: form.adresse,
+          typeBien: form.typeBien,
           surface: form.surface,
-          situation_locative: form.situationLocative,
+          situationLocative: form.situationLocative,
           prenom: form.prenom,
           nom: form.nom,
           email: form.email,
           telephone: form.telephone,
-          informations_complementaires: form.message,
-          _gotcha: '',
+          message: form.message,
+          _honeypot: honeypot,
         }),
       });
 

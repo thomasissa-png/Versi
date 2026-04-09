@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useFadeIn } from '../hooks/useFadeIn.js';
-import { FORMSPREE_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
+import { CONTACT_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
 import './Contact.css';
 
 const INITIAL_FORM = { nom: '', email: '', telephone: '', message: '' };
@@ -64,15 +64,15 @@ export default function Contact() {
 
     setStatus('loading');
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, {
+      const res = await fetch(CONTACT_ENDPOINT, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nom: form.nom,
           email: form.email,
           telephone: form.telephone,
           message: form.message,
-          _gotcha: '',
+          _honeypot: honeypot,
         }),
       });
 

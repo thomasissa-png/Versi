@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FORMSPREE_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
+import { CONTACT_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
 import './ContactForm.css';
 
 const INITIAL_FORM = {
@@ -72,9 +72,9 @@ export default function ContactForm({ subject = '' }) {
 
     setStatus('loading');
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, {
+      const res = await fetch(CONTACT_ENDPOINT, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prenom: form.prenom,
           nom: form.nom,
@@ -82,7 +82,7 @@ export default function ContactForm({ subject = '' }) {
           telephone: form.telephone,
           objet: form.objet,
           message: form.message,
-          _gotcha: '',
+          _honeypot: honeypot,
         }),
       });
 
