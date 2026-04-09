@@ -102,7 +102,73 @@ FAQ → BON en fin de page. Les objections restantes (prix, locataires, agence d
 
 ## 5. Crédibilité et preuve sociale
 
+**Le problème des 3,2M€**
+
+3,2M€ de volume total est un chiffre modeste pour un investisseur de type Laurent (qui opère sur des tickets de 500k–1M€). Il ne faut ni cacher ce chiffre ni le mettre en avant comme indicateur de taille. La stratégie recommandée est de contextualiser : "3,2M€ traités sur [X opérations] en [Y mois]" — ce qui donne une vélocité, pas un bilan cumulatif.
+
+Si les opérations sont récentes (2024-2025) et nombreuses (5+ projets en moins de 24 mois), la vélocité compense le volume absolu. La question clé pour les fondateurs : combien d'opérations sur quelle durée ? C'est cette métrique qui convainc Laurent, pas la somme.
+
+**Les preuves sociales disponibles**
+
+Preuves fortes :
+- Tracks records des fondateurs (Sony, Algolia, Inbolt, TEOS, 35+ actifs locatifs) — c'est la vraie crédibilité, plus forte que 3,2M€
+- 15 ans d'expérience combinée en immobilier opérationnel — signal de durée, pas d'accident de parcours
+- Architecture Endorsed Brand (lien vers versi.fr) — La holding ajoute de la profondeur institutionnelle
+
+Preuves faibles (à renforcer) :
+- Testimonials en bas d'accueil — si ce sont des vendeurs particuliers, Laurent n'est pas impressionné. Si ce sont des prescripteurs (notaires, agents), c'est un signal fort. Spécifier qui témoigne.
+- Projets vedettes sans chiffres précis (marge brute, délai réel, prix achat vs prix revente) — des fiches de réalisation avec chiffres précis valent 10x un texte de présentation générique
+
+**Ce que Laurent vérifie en dehors du site**
+
+Laurent googlise les 3 fondateurs individuellement. La vraie preuve sociale n'est pas sur le site — c'est sur LinkedIn. Le site doit pointer vers les profils LinkedIn des fondateurs avec des informations vérifiables (postes précédents, recommandations, connexions communes). Sans ça, Laurent ne peut pas valider.
+
+**Recommandation sur les testimonials**
+
+Hiérarchie recommandée de témoins par ordre de crédibilité pour Laurent :
+1. Notaire ou agent immobilier ayant travaillé avec Versi (Pierre)
+2. Investisseur ou co-investisseur sur une opération
+3. Vendeur satisfait (Sophie)
+
+Si Versi n'a pas encore de témoins de catégorie 1-2, il vaut mieux ne pas afficher de testimonials du tout plutôt que de n'afficher que des témoignages de vendeurs particuliers — qui signalent "marché grand public", pas "opérateur institutionnel".
+
 ## 6. Menu et navigation
+
+**Analyse de la structure actuelle**
+
+Menu : NOS BIENS | VENDRE UN BIEN | RÉALISATIONS | INVESTIR | NOTRE APPROCHE | CONTACT
+CTA permanent : SOUMETTRE MON BIEN
+
+6 items + 1 CTA = 7 éléments dans la navigation. C'est à la limite de ce qu'un visiteur peut absorber sans charge cognitive.
+
+**Ce qui fonctionne**
+
+- "SOUMETTRE MON BIEN" en CTA permanent est excellent : il ancre l'action principale dans tous les contextes de navigation. C'est le bon CTA — plus précis que "Nous contacter", plus engagé que "En savoir plus".
+- L'ordre NOS BIENS | VENDRE UN BIEN | RÉALISATIONS suit la logique du parcours Sophie (voir, vendre, preuves). Cohérent.
+- RÉALISATIONS à la troisième position est bien — c'est la page preuve, elle doit être accessible rapidement.
+
+**Ce qui ne fonctionne pas**
+
+Problème 1 — "INVESTIR" est un lien sortant vers versi-invest.fr. Une entrée de menu principal qui sort du site = perte de session. Pour Laurent qui veut s'informer sur Versi Immobilier, ce lien l'expédie vers un autre site avant qu'il soit convaincu. Solution : soit supprimer "INVESTIR" du menu de versi-immobilier.fr et le mettre uniquement dans le footer, soit en faire une page interstitielle /investir sur versi-immobilier.fr avec un contexte avant le redirect.
+
+Problème 2 — "NOTRE APPROCHE" est la page la plus importante pour Laurent (équipe + méthode + différenciateurs), mais elle est en avant-dernière position dans le menu. Un menu se lit de gauche à droite dans l'ordre de priorité implicite. L'approche de Versi Immobilier devrait être en position 2 ou 3 (avant les réalisations ou en alternance).
+
+Problème 3 — Pas de page pour les Prescripteurs/Partenaires. Pierre (agent immobilier, notaire) arrive sur le site et n'a pas de point d'entrée dédié. Il doit se retrouver dans "Vendre un bien" (pas pour lui), "Notre approche" (partiel) ou "Contact" (trop générique). Une entrée "Prescripteurs" ou une section dédiée dans /vendre serait utile.
+
+**Recommandation de menu optimisé**
+
+Option A (6 items réorganisés) :
+NOS BIENS | VENDRE UN BIEN | NOTRE APPROCHE | RÉALISATIONS | PRESCRIPTEURS | CONTACT
+CTA : SOUMETTRE MON BIEN
+
+Supprimer "INVESTIR" du menu principal, le mettre dans le footer avec un texte explicatif. Ajouter une entrée "PRESCRIPTEURS" (page dédiée Pierre ou ancre sur /vendre).
+
+Option B (menu simplifié à 4 items) :
+VENDRE UN BIEN | NOS BIENS | RÉALISATIONS | CONTACT
+CTA : SOUMETTRE MON BIEN
++ "Notre approche" et "Investir" dans le footer uniquement.
+
+Recommandation : Option A si le budget permet une page prescripteurs. Option B si le MVP doit rester léger.
 
 ## 7. Top 5 recommandations stratégiques
 
