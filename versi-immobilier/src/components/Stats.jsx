@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { PROJECTS } from '../config/projects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import './Stats.css';
@@ -6,15 +5,10 @@ import './Stats.css';
 export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
-  const completedCount = useMemo(
-    () => PROJECTS.filter((p) => p.status === 'completed').length,
-    []
-  );
-
   const stats = [
-    { value: '3,2M€', label: 'de volume traité' },
+    { value: '3,2M€', label: 'd\'actifs acquis' },
     { value: '7 jours', label: 'pour une offre ferme' },
-    { value: `${completedCount}`, label: completedCount > 1 ? 'réalisations documentées' : 'réalisation documentée' },
+    { value: '21', label: 'opérations réalisées' },
   ];
 
   return (
