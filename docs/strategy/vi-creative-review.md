@@ -172,12 +172,120 @@ Recommandation : Option A si le budget permet une page prescripteurs. Option B s
 
 ## 7. Top 5 recommandations stratégiques
 
+**Priorisées par impact direct sur le KPI North Star (prises de contact qualifiées)**
+
+---
+
+**R1 — Réorganiser le séquencement de /vendre (impact : +++) — @fullstack**
+
+Déplacer les Réalisations de la position 6 à la position 3 sur la page /vendre. L'ordre actuel fait lire des conditions (critères, prescripteurs) avant la preuve. La preuve avant les conditions augmente la confiance et réduit le taux d'abandon avant formulaire. Effort : CSS/HTML reorder uniquement.
+
+Action : Hero → 3 engagements → Réalisations (2-3 fiches vedettes) → Process → Critères → Prescripteurs → Formulaire → FAQ
+
+---
+
+**R2 — Retirer "INVESTIR" du menu principal, intégrer dans le footer (impact : ++) — @fullstack**
+
+Un lien sortant dans la nav principale expédie les visiteurs hors du site avant conversion. Le coût d'un visiteur perdu (réseau prescripteur, campagne LinkedIn) est trop élevé pour le justifier. Laurent et les investisseurs peuvent trouver versi-invest.fr via le footer ou via versi.fr. Ne pas diluer la nav de versi-immobilier.fr avec un lien qui quitte le tunnel de conversion.
+
+Action : supprimer entrée INVESTIR du menu, ajouter dans footer "Investir avec Versi → versi-invest.fr" avec icône lien externe.
+
+---
+
+**R3 — Contextualiser les stats : passer de "3,2M€ volume" à "X opérations / Y mois / 3,2M€" (impact : ++) — @copywriter**
+
+La vélocité convainc Laurent plus que le volume absolu. Si les opérations sont récentes et nombreuses, le format "[N] opérations en [X] mois pour [3,2M€] de volume traité" transforme un chiffre modeste en signal de dynamisme. Validation fondateurs requise sur N et X avant implémentation.
+
+Action : @copywriter réécrit le bloc stats en suivant le format vélocité + validation Thomas/Carl sur le nombre d'opérations et la période.
+
+---
+
+**R4 — Ajouter un bloc de réassurance sur le prix dans /vendre (impact : ++) — @copywriter**
+
+L'objection #1 de Sophie face à un MDB est "vous allez m'acheter en dessous du marché". Sans bloc de réassurance explicite sur ce point, Sophie quitte la page avant le formulaire. Le bloc doit expliquer la logique de valorisation sans promettre un prix (éviter le risque juridique @legal).
+
+Formulation recommandée (à valider @copywriter) :
+"Notre offre reflète la valeur réelle de votre bien, sans les honoraires d'agence (3-5%) et sans les mois d'attente. Nous n'arrachons pas des biens — nous structurons des opérations viables pour les deux parties."
+
+---
+
+**R5 — Enrichir les fiches Réalisations avec des métriques opérationnelles (impact : + pour Laurent, ++ pour Pierre) — @copywriter + fondateurs**
+
+Une fiche de réalisation générique (adresse, avant/après photo) ne convainc pas Laurent. Il veut : prix d'achat, travaux engagés, prix de revente, délai de l'opération, marge brute. Ce niveau de transparence opérationnelle est la vraie différenciation de Versi face aux concurrents qui restent vagues. Cela positionne Versi comme un opérateur rigoureux, pas un acheteur opportuniste.
+
+Condition : les fondateurs valident quelles réalisations peuvent être documentées avec chiffres précis et les chiffres exacts à afficher (certaines opérations peuvent avoir des contraintes de confidentialité acheteur/vendeur).
+
 ## 8. Corrections actionnables
 
 | # | Page/Section | Problème | Priorité | Recommandation |
 |---|---|---|---|---|
-| | | | | |
+| C1 | Accueil — Stats | "3,2M€ volume" en position 2 sans contexte de vélocité ni d'équipe = chiffre flottant non crédible pour Laurent | P0 | Reformater : "X opérations / Y mois / 3,2M€" — validation fondateurs requise sur N et période. @copywriter |
+| C2 | Accueil — Séquencement | Stats avant Équipe = preuve sans visage. Pour Laurent, les chiffres ne sont crédibles qu'après avoir vu qui les a faits | P1 | Reordonner accueil : Hero → Projets vedettes → Équipe (extrait) → Stats → Process → Banner vendeur → Testimonials. @fullstack |
+| C3 | Accueil — Banner vendeur | Le CTA Sophie arrive en position 5 sur l'accueil — trop tardif pour une visiteuse issue d'une recherche Google | P1 | Ajouter un lien/ancre vers /vendre dès la section Stats ou projets vedettes (ex : texte de transition "Vous êtes propriétaire ?" → /vendre). @copywriter |
+| C4 | /vendre — Séquencement | Réalisations en position 6 (après Critères et Prescripteurs) = preuve présentée trop tard dans le parcours Sophie | P0 | Déplacer Réalisations en position 3 : Hero → 3 engagements → Réalisations (2-3 fiches) → Process → Critères → Prescripteurs → Formulaire → FAQ. @fullstack |
+| C5 | /vendre — Critères | Section Critères formulée de façon potentiellement excluante ("nous achetons uniquement...") | P1 | Reformuler en mode inclusif : "Nous évaluons tous types de biens — immeubles, maisons, multi-logements. Voici ce que nous priorisons." + phrase d'invitation à soumettre même si doute. @copywriter |
+| C6 | /vendre — Réassurance prix | Aucun bloc ne traite l'objection #1 de Sophie : "vous allez m'acheter en dessous du marché" | P0 | Ajouter bloc réassurance prix après les 3 engagements. Formulation validée @legal : pas de promesse de prix, explication logique de valorisation. @copywriter |
+| C7 | Menu — INVESTIR | Lien sortant vers versi-invest.fr dans la nav principale = perte de session avant conversion | P1 | Retirer du menu principal. Déplacer dans le footer avec mention explicative. @fullstack |
+| C8 | Menu — NOTRE APPROCHE | Page la plus importante pour Laurent en avant-dernière position dans le menu | P2 | Remonter en position 3 ou 4 : NOS BIENS | VENDRE UN BIEN | NOTRE APPROCHE | RÉALISATIONS | CONTACT. @fullstack |
+| C9 | Testimonials (accueil) | Si les témoins sont uniquement des vendeurs particuliers (Sophie), Laurent n'est pas convaincu | P1 | Prioriser les témoins prescripteurs (notaires, agents) sur l'accueil. Si non disponibles : supprimer la section testimonials en V1 plutôt que de signaler "marché grand public". Fondateurs à consulter. |
+| C10 | /réalisations — Fiches | Fiches sans métriques opérationnelles (prix achat, travaux, prix vente, marge, délai) = preuve générique | P1 | Ajouter au moins 1 fiche avec chiffres complets. Template : prix acquisition + budget travaux + prix cession + durée opération + statut (livré). Validation fondateurs requise sur les données exposables. @copywriter + fondateurs |
+| C11 | Formulaire /vendre | Absence de phrase de réassurance sous le bouton de soumission | P1 | Ajouter sous le CTA : "Réponse garantie sous 48h. Aucun engagement de votre part." (48h à valider fondateurs). @copywriter |
+| C12 | /notre-approche — Équipe | Section Équipe en position 3 sur la page — Laurent peut décrocher avant sur mobile | P2 | Envisager de remonter la section Équipe en position 2 sur /notre-approche. Alternative : ajouter un "extrait équipe" (3 noms + titres + photo) sur la page accueil pour que Laurent voie les visages avant d'aller sur /notre-approche. @fullstack |
+
+---
+
+## Score global et synthèse
+
+**Score : 7,5/10**
+
+Ce score reflète un positionnement stratégique solide (tagline forte, promesse différenciante, ton juste) mais des problèmes de séquencement qui sous-performent sur le KPI North Star.
+
+| Dimension | Note | Commentaire |
+|---|---|---|
+| Positionnement | 9/10 | Promesse claire, différenciante, engagée |
+| Architecture persuasion | 6/10 | Bons éléments, mauvais séquencement sur /accueil et /vendre |
+| Parcours Laurent | 6/10 | Pas de porte d'entrée claire pour un investisseur/partenaire |
+| Parcours Sophie | 7/10 | Page /vendre a les bons éléments, réorganisation nécessaire |
+| Crédibilité / preuve | 7/10 | Tracks records fondateurs solides, stats à contextualiser |
+| Navigation | 7/10 | CTA permanent excellent, 2 items de menu à corriger |
+
+**Corrections bloquantes avant lancement** : C4 (réorganisation /vendre), C6 (bloc réassurance prix), C1 (stats vélocité avec validation fondateurs)
+
+**Corrections à prévoir post-lancement** : C5, C7, C8, C9, C10, C11, C12
+
+---
+
+## Hypothèses à valider — fondateurs
+
+| # | Hypothèse | Impact si faux | Qui valide |
+|---|---|---|---|
+| H1 | Nombre d'opérations réalisées pour calculer la vélocité (N opérations sur Y mois) | Stats accueil reformatables uniquement avec cette donnée | Thomas / Carl |
+| H2 | Périmètre exact du 3,2M€ (inclut les 35+ actifs locatifs ou MDB seulement ?) | Risque pratique trompeuse si périmètre non qualifié (@legal) | Thomas / Carl |
+| H3 | Quelles fiches de réalisation peuvent afficher des chiffres (prix, marge, délai) sans contrainte de confidentialité acheteur/vendeur | Fiches Réalisations resteront génériques si aucune n'est exposable | Thomas / Carl |
+| H4 | Le délai de réponse formulaire affiché (48h) est-il tenu opérationnellement ? | Promesse légale et de marque — ne pas afficher si non tenu | Thomas |
+| H5 | Testimonials : Versi Immobilier a-t-elle des prescripteurs (notaires, agents) pouvant témoigner à date ? | Décision sur l'affichage de la section testimonials | Thomas / Maxime |
 
 ---
 
 **Handoff → @copywriter, @fullstack**
+
+Fichiers produits :
+- `/home/user/Versi/docs/strategy/vi-creative-review.md`
+
+Décisions prises :
+- Séquencement /vendre à réorganiser (Réalisations en position 3, avant Critères)
+- "INVESTIR" à retirer du menu principal, déplacer en footer
+- Bloc réassurance prix obligatoire sur /vendre avant lancement
+- Stats accueil à reformater en vélocité (N opérations / Y mois) après validation fondateurs
+- Testimonials : conditionné à la présence de témoins prescripteurs (pas uniquement vendeurs)
+
+Points d'attention pour @copywriter :
+- C1 (stats vélocité) : attendre validation fondateurs sur N et période avant rédaction finale
+- C6 (réassurance prix) : ne pas promettre un prix, expliquer la logique — validation @legal requise sur le wording
+- C11 (réassurance formulaire) : délai 48h à confirmer avec fondateurs avant publication
+- C10 (fiches réalisations) : chiffres à fournir par fondateurs, pas d'invention
+
+Points d'attention pour @fullstack :
+- C4 : réordonner les sections de /vendre (CSS reorder, pas de refonte)
+- C7 : retirer INVESTIR du menu, ajouter dans footer
+- C2/C8 : réordonner les sections accueil et la position de NOTRE APPROCHE dans la nav
