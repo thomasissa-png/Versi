@@ -128,18 +128,18 @@
 }
 
 .hero__fade {
-  animation: heroFadeIn var(--duration-slow) ease-out forwards;
+  animation: heroFadeIn var(--duration-slow) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .hero__fade--0 { animation-delay: 0ms; }
-.hero__fade--1 { animation-delay: 120ms; }
-.hero__fade--2 { animation-delay: 240ms; }
+.hero__fade--1 { animation-delay: 100ms; --hero-fade-distance: 20px; }
+.hero__fade--2 { animation-delay: 220ms; }
 .hero__fade--3 { animation-delay: 360ms; }
-.hero__fade--4 { animation-delay: 480ms; }
-.hero__fade--5 { animation-delay: 700ms; }
+.hero__fade--4 { animation-delay: 520ms; }
+.hero__fade--5 { animation-delay: 780ms; }
 
 @keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(var(--hero-fade-distance, 10px)); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -171,5 +171,17 @@
 @media (min-width: 768px) and (max-width: 1279px) {
   .hero__title {
     font-size: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .hero__scroll-hint {
+    animation: none;
+    opacity: 0.6;
   }
 }

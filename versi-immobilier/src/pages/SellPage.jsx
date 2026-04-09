@@ -6,6 +6,7 @@ import SellForm from '../components/SellForm.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
 import { PROJECTS } from '../config/projects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
+import './SellPage.css';
 
 const ENGAGEMENTS = [
   {
@@ -120,6 +121,7 @@ export default function SellPage() {
         {/* Hero vendeur */}
         <section className="sell-hero section-padding">
           <div className="container" style={{ textAlign: 'center' }}>
+
             <h1 className="text-display sell-hero__title">
               Soumettez votre bien. Offre ferme en 7 jours.
             </h1>
@@ -133,9 +135,9 @@ export default function SellPage() {
         </section>
 
         {/* 3 engagements */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={engRef}>
+        <section className="sell-section--secondary section-padding" ref={engRef}>
           <div className={`container ${engVisible ? 'fade-in' : 'fade-hidden'}`}>
-            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+            <h2 className="text-heading-lg sell-section-title">
               Trois engagements. Aucune zone grise.
             </h2>
             <div className="sell-engagements">
@@ -151,7 +153,7 @@ export default function SellPage() {
 
         {/* 2 réalisations */}
         {featuredProjects.length > 0 && (
-          <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
+          <section className="sell-section--primary section-padding">
             <div className="container">
               <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
                 Ce que nous avons fait concrètement.
@@ -162,7 +164,7 @@ export default function SellPage() {
                 ))}
               </div>
               <div style={{ marginTop: 'var(--spacing-xl)' }}>
-                <Link to="/realisations" className="text-cta" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                <Link to="/realisations" className="sell-realisations-link text-cta">
                   Toutes nos réalisations
                 </Link>
               </div>
@@ -171,9 +173,9 @@ export default function SellPage() {
         )}
 
         {/* Process détaillé */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }} ref={procRef}>
+        <section className="sell-section--primary section-padding" ref={procRef}>
           <div className={`container ${procVisible ? 'fade-in' : 'fade-hidden'}`}>
-            <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+            <h2 className="text-heading-lg sell-section-title">
               Trois étapes. Sept jours.
             </h2>
             <div className="sell-process">
@@ -192,7 +194,7 @@ export default function SellPage() {
         </section>
 
         {/* Critères */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={critRef}>
+        <section className="sell-section--secondary section-padding" ref={critRef}>
           <div className={`container ${critVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
               Quels biens instruisons-nous ?
@@ -220,10 +222,10 @@ export default function SellPage() {
         <section className="sell-prescripteurs section-padding">
           <div className="container">
             <div className="sell-prescripteurs__inner">
-              <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
+              <h2 className="text-heading-md sell-prescripteurs__title">
                 Vous êtes agent immobilier, notaire ou courtier ?
               </h2>
-              <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
+              <p className="text-body-sm sell-prescripteurs__desc">
                 Vous avez un dossier qui ne correspond pas à votre portefeuille acheteurs habituel ? Transmettez-le à Versi Immobilier. Retour qualifié sous 48h. Discutons du partenariat en direct.
               </p>
               <Link to="/contact" className="sell-prescripteurs__cta text-cta">
@@ -237,10 +239,10 @@ export default function SellPage() {
         <section className="sell-form-section section-padding" id="formulaire">
           <div className="container">
             <div className="sell-form-wrapper">
-              <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
+              <h2 className="text-heading-lg sell-form__title">
                 Soumettez votre bien.
               </h2>
-              <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
+              <p className="text-body-sm sell-form__desc">
                 Nous accusons réception sous 24h. Si votre dossier entre dans nos critères, nous planifions la visite dans les 48h suivantes.
               </p>
               <SellForm />
@@ -249,10 +251,10 @@ export default function SellPage() {
         </section>
 
         {/* FAQ */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }}>
+        <section className="sell-section--secondary section-padding">
           <div className="container">
             <div className="sell-faq">
-              <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+              <h2 className="text-heading-lg sell-section-title">
                 Questions fréquentes.
               </h2>
               {FAQ_ITEMS.map((item) => (
@@ -263,230 +265,6 @@ export default function SellPage() {
         </section>
       </main>
       <Footer />
-
-      <style>{`
-        .sell-hero {
-          background: var(--color-bg-dark-alt);
-        }
-        .sell-hero__title {
-          color: var(--color-text-inverse);
-          margin-bottom: var(--spacing-lg);
-          font-size: 3rem;
-        }
-        .sell-hero__subtitle {
-          color: var(--color-text-inverse);
-          opacity: var(--opacity-readable);
-          max-width: var(--text-max-width-md);
-          margin: 0 auto var(--spacing-xl);
-        }
-        .sell-hero__cta {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--color-accent);
-          color: var(--color-bg-dark);
-          border: none;
-          border-radius: var(--radius-sm);
-          padding: 16px 48px;
-          text-decoration: none;
-          transition: background-color var(--duration-normal) ease;
-          min-height: 52px;
-        }
-        .sell-hero__cta:hover {
-          background: var(--color-stone-200);
-        }
-
-        .sell-engagements {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: var(--spacing-xl);
-        }
-        .sell-engagement {
-          padding-left: var(--spacing-lg);
-          border-left: 3px solid var(--color-accent);
-        }
-        .sell-engagement__title {
-          font-size: 1.25rem;
-          font-weight: var(--font-weight-regular);
-          margin-bottom: var(--spacing-sm);
-          line-height: 1.3;
-        }
-        .sell-engagement__desc {
-          color: var(--color-text-muted);
-        }
-
-        .sell-process {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-2xl);
-        }
-        .sell-process__step {
-          display: grid;
-          grid-template-columns: 80px 1fr;
-          gap: var(--spacing-lg);
-          align-items: start;
-        }
-        .sell-process__number {
-          font-size: 48px;
-          font-weight: var(--font-weight-medium);
-          color: var(--color-accent);
-          line-height: 1;
-        }
-        .sell-process__title {
-          font-size: 1.25rem;
-          font-weight: var(--font-weight-regular);
-          margin-bottom: var(--spacing-sm);
-          line-height: 1.3;
-        }
-        .sell-process__desc {
-          color: var(--color-text-muted);
-          margin-bottom: var(--spacing-sm);
-        }
-        .sell-process__delay {
-          font-size: 14px;
-          font-weight: var(--font-weight-medium);
-          color: var(--color-accent);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .sell-criteria {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: var(--spacing-2xl);
-          align-items: start;
-        }
-        .sell-criteria__list ul {
-          list-style: none;
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-md);
-        }
-        .sell-criteria__list li {
-          position: relative;
-          padding-left: var(--spacing-lg);
-          color: var(--color-text-muted);
-          font-size: var(--font-size-body-sm);
-        }
-        .sell-criteria__list li::before {
-          content: '—';
-          position: absolute;
-          left: 0;
-          color: var(--color-accent);
-        }
-        .sell-criteria__geo {
-          color: var(--color-text-muted);
-        }
-
-        .sell-prescripteurs {
-          background: var(--color-calcaire-100);
-        }
-        .sell-prescripteurs__inner {
-          border-left: 3px solid var(--color-accent);
-          padding-left: var(--spacing-xl);
-          max-width: var(--text-max-width-lg);
-        }
-        .sell-prescripteurs__cta {
-          display: inline-flex;
-          align-items: center;
-          border: 1px solid var(--color-border);
-          padding: 12px 32px;
-          border-radius: var(--radius-sm);
-          color: var(--color-text-primary);
-          text-decoration: none;
-          min-height: 44px;
-          transition: background-color var(--duration-normal) ease;
-        }
-        .sell-prescripteurs__cta:hover {
-          background: rgba(0, 0, 0, 0.03);
-        }
-
-        .sell-realisations-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: var(--spacing-lg);
-        }
-
-        .sell-form-section {
-          background: var(--color-bg-primary);
-        }
-        .sell-form-wrapper {
-          max-width: 640px;
-          margin: 0 auto;
-          background: var(--color-bg-secondary);
-          padding: var(--spacing-2xl);
-          border-radius: var(--card-radius);
-          box-shadow: var(--card-shadow);
-        }
-
-        .sell-faq {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .sell-faq__item {
-          border-bottom: 1px solid var(--color-border);
-        }
-        .sell-faq__item:first-of-type {
-          border-top: 1px solid var(--color-border);
-        }
-        .sell-faq__question {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: var(--spacing-md);
-          padding: var(--spacing-lg) 0;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-family: var(--font-family);
-          font-size: var(--font-size-body-md);
-          font-weight: var(--font-weight-regular);
-          color: var(--color-text-primary);
-          text-align: left;
-          min-height: 44px;
-        }
-        .sell-faq__question:hover {
-          color: var(--color-accent);
-        }
-        .sell-faq__chevron {
-          font-size: 18px;
-          color: var(--color-text-muted);
-          transition: transform var(--duration-normal) ease;
-          flex-shrink: 0;
-        }
-        .sell-faq__chevron--open {
-          transform: rotate(180deg);
-        }
-        .sell-faq__answer {
-          padding-bottom: var(--spacing-lg);
-          color: var(--color-text-muted);
-        }
-
-        @media (max-width: 767px) {
-          .sell-hero__title {
-            font-size: 2rem;
-          }
-          .sell-engagements {
-            grid-template-columns: 1fr;
-          }
-          .sell-process__step {
-            grid-template-columns: 60px 1fr;
-          }
-          .sell-process__number {
-            font-size: 36px;
-          }
-          .sell-criteria {
-            grid-template-columns: 1fr;
-          }
-          .sell-realisations-grid {
-            grid-template-columns: 1fr;
-          }
-          .sell-form-wrapper {
-            padding: var(--spacing-lg);
-          }
-        }
-      `}</style>
     </>
   );
 }
