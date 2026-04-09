@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { label: 'VISION', href: '#mission' },
   { label: 'ACTIVITÉS', href: '#activites' },
   { label: 'ÉQUIPE', href: '#equipe' },
-  { label: 'IMPLANTATION', href: '#implantation' },
   { label: 'CONTACT', href: '#contact' },
 ];
 
@@ -15,7 +14,6 @@ const SECTION_MAP = {
   '#mission': 'mission',
   '#activites': 'activites',
   '#equipe': 'equipe',
-  '#implantation': 'implantation',
   '#contact': 'contact',
 };
 
