@@ -6,6 +6,7 @@ import './Nav.css';
 const NAV_ITEMS = [
   { label: 'VISION', href: '#mission' },
   { label: 'ACTIVITÉS', href: '#activites' },
+  { label: 'APPROCHE', href: '#approche' },
   { label: 'ÉQUIPE', href: '#equipe' },
   { label: 'CONTACT', href: '#contact' },
 ];
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
 const SECTION_MAP = {
   '#mission': 'mission',
   '#activites': 'activites',
+  '#approche': 'approche',
   '#equipe': 'equipe',
   '#contact': 'contact',
 };
