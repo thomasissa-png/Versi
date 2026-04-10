@@ -351,12 +351,12 @@ Le formulaire adapte son contenu et son label de soumission selon la sélection.
 
 ---
 
-## Hypothèses à valider
+## Hypothèses — VALIDÉES PAR LE FONDATEUR (2026-04-10)
 
-| # | Hypothèse | Impact si fausse |
+| # | Hypothèse | Réponse fondateur |
 |---|---|---|
-| H1 | L'acquéreur type est un investisseur locatif ou primo-accédant aisé, tranche 250k-500k€ | Repositionner la proposition de valeur si le ticket moyen est systématiquement supérieur |
-| H2 | Le portefeuille disponible à la vente est vide ou quasi-vide au lancement | Si des biens sont disponibles maintenant : les mettre en avant immédiatement dans le Hero |
-| H3 | La page Notre Approche existe et décrit le process opérateur côté acquisition/transformation | À vérifier dans le code avant que @copywriter la révise |
-| H4 | Le footer actuel comporte un CTA vendeur dominant | À vérifier dans Footer.jsx avant modification |
-| H5 | Des témoignages acquéreurs existent ou peuvent être collectés rapidement | Si non : la section Testimonials est en placeholder qualitatif au lancement |
+| H1 | L'acquéreur type est un investisseur locatif ou primo-accédant aisé, tranche 250k-500k€ | **CORRIGÉ** : primo-accédant (1-2 pièces) ou famille (3-6 pièces). Pas forcément aisé — bons prix, surtout sur Lille (priorité 1). |
+| H2 | Le portefeuille disponible à la vente est vide ou quasi-vide au lancement | **INFIRMÉ** : au moins 3 biens pour commencer. Placeholders photos en attendant. Adresse : 10 rue des Muguets. |
+| H3 | La page Notre Approche existe et décrit le process opérateur côté acquisition/transformation | **DÉLÉGUÉ** : à @creative-strategy de décider du contenu. |
+| H4 | Le footer actuel comporte un CTA vendeur dominant | **DÉLÉGUÉ** : à @creative-strategy. Acquéreurs prioritaires, mais sans oublier les vendeurs. |
+| H5 | Des témoignages acquéreurs existent ou peuvent être collectés rapidement | **INFIRMÉ** : pas de témoignages disponibles (lancement). Section en placeholder qualitatif. |

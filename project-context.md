@@ -133,7 +133,7 @@
 - **Ton** : identique à Versi — confiant, direct, zéro blabla, premium par la substance. Vouvoiement.
 
 ### Personas
-- **Acquéreur (persona principal — PIVOT 2026-04-10)** : Acquéreur d'un bien rénové/transformé par Versi Immobilier. Particulier ou investisseur cherchant un bien de qualité, sourcé et rénové par un opérateur intégré. Le site est la vitrine des biens disponibles et en précommercialisation.
+- **Acquéreur (persona principal — PIVOT 2026-04-10)** : Primo-accédant (1-2 pièces) ou famille (3-6 pièces) cherchant un bien rénové à bon prix, principalement sur Lille (priorité 1). Pas nécessairement aisé — Versi Immobilier propose des prix compétitifs. Le site est la vitrine des biens disponibles et en précommercialisation. Au lancement : minimum 3 biens disponibles (adresse : 10 rue des Muguets, Lille). Pas de témoignages acquéreurs disponibles (lancement).
 - **Vendeur (persona secondaire — ex-principal)** : Sophie, 42 ans, propriétaire d'un bien à vendre (immeuble, maison avec terrain, multi-logements). Compare 3-4 opérateurs. Veut une offre rapide et sérieuse. La page "Soumettre un bien" reste accessible et visible, mais n'est plus le discours principal du site.
 - **Partenaire/prescripteur** : Pierre, 55 ans, agent immobilier, notaire ou courtier. Cherche un marchand de biens fiable pour ses clients.
 
