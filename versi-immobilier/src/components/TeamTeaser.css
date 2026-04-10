@@ -19,10 +19,19 @@
   margin-bottom: var(--spacing-2xl);
 }
 
+.team-teaser__photo {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: var(--card-radius);
+  margin-bottom: var(--spacing-md);
+}
+
 .team-teaser__avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--card-radius);
   background: var(--color-stone-200);
   display: flex;
   align-items: center;
@@ -31,7 +40,7 @@
 }
 
 .team-teaser__initials {
-  font-size: 1.25rem;
+  font-size: 2rem;
   font-weight: var(--font-weight-light);
   color: var(--color-text-muted);
 }
@@ -44,6 +53,20 @@
 
 .team-teaser__track {
   color: var(--color-text-muted);
+}
+
+.team-teaser__linkedin {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm);
+  transition: color var(--duration-normal) ease;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.team-teaser__linkedin:hover {
+  color: var(--color-text-primary);
 }
 
 .team-teaser__link {
