@@ -1,187 +1,156 @@
-# Brand Voice Adapté — Versi Immobilier (versi-immobilier.fr)
+# Brand Voice Adapté — versi-immobilier.fr
 
-> Produit par @creative-strategy | Date : 2026-04-10
-> Lire avant : `docs/copy/brand-voice.md`, `docs/strategy/brand-platform.md`
-> À lire par : @copywriter, @fullstack, @ux — tout agent produisant du contenu pour versi-immobilier.fr
+> Document produit par @creative-strategy | Date : 2026-04-10
+> Lectures sources : `docs/copy/brand-voice.md`, `docs/strategy/brand-platform.md`, `src/src/components/Hero.jsx`
+> Usage : référence pour tout contenu produit sur versi-immobilier.fr — à lire avant d'écrire une ligne de copy pour ce site.
 
 ---
 
-## Section 1 — Diagnostic : pourquoi le brand voice holding échoue sur un site de vente
+## Section 1 — Diagnostic : pourquoi le brand voice holding ne fonctionne pas tel quel pour un site de vente
 
 ### Le problème structurel
 
-Le brand voice de Versi a été construit pour un problème précis : convaincre Laurent (investisseur 48 ans) qu'il peut faire confiance à une holding jeune mais rigoureuse. La solution trouvée — un ton institutionnel, factuel, où Versi est le sujet grammatical de chaque phrase — est parfaitement calibrée pour ce problème.
+Le brand voice Versi a été construit autour d'un sujet grammatical unique : **Versi**. "Versi acquiert. Versi transforme. Versi maîtrise." Ce sujet fonctionne parfaitement sur versi.fr parce que le visiteur — Laurent, investisseur 48 ans — cherche précisément à évaluer l'opérateur : ses compétences, sa structure, sa crédibilité. Laurent lit un site comme il lit un mémorandum d'investissement. Il veut savoir qui fait quoi, comment, avec quels résultats.
 
-Sur versi-immobilier.fr, le problème est différent. Kévin (primo-accédant, 31 ans, cherche son premier appartement) ne vient pas évaluer une holding. Il vient voir des biens. Son filtre mental n'est pas "cet opérateur est-il sérieux ?" — c'est "est-ce que cet appartement est fait pour moi ?"
+Sur versi-immobilier.fr, le visiteur est différent. Kévin (primo-accédant, 31 ans) ne cherche pas un opérateur à évaluer. Il cherche un bien à acheter. Il arrive avec une question précise : "Est-ce que j'ai quelque chose qui correspond à mon budget et à mes critères ?" Son évaluation de Versi est secondaire — elle sert à valider que le vendeur est sérieux, pas à décider d'un co-investissement.
 
-Appliquer le brand voice holding sur ce site revient à répondre à la mauvaise question.
+### Les 4 erreurs spécifiques générées par ce décalage
 
-### Les 4 symptômes concrets
+**Erreur 1 — Sujet centré sur Versi, pas sur le bien ni l'acheteur.**
+"Versi l'a rénové", "Versi l'a fait" — ces formulations répondent à la question "Qui a travaillé sur ce bien ?", pas à "Pourquoi est-ce que MOI j'achète ici ?". Kévin ne se demande pas qui a rénové. Il se demande ce qu'il obtient.
 
-**Symptôme 1 — Versi comme sujet permanent.** "Versi acquiert, rénove, revend." C'est une phrase sur Versi. Kévin entend : "ils me parlent d'eux". Ce qu'il veut : qu'on lui parle du bien ou de ce qu'il va en faire.
+**Erreur 2 — La promesse parle de méthode, pas de bénéfice acquéreur.**
+"Un seul opérateur du sourcing à la sortie" (hero versi.fr) : pertinent pour Laurent qui délègue une opération. Incompréhensible ou indifférent pour Kévin qui cherche où habiter ou investir son premier capital.
 
-**Symptôme 2 — Le registre mémo d'investissement.** Le brand voice est calibré pour Laurent, qui lit entre les lignes. Kévin n'a pas les mêmes codes. "Cycle maîtrisé", "intégration verticale", "structuration" : du vocabulaire opaque pour quelqu'un qui cherche 65 m² avec parking.
+**Erreur 3 — Le vocabulaire holding crée de la distance.**
+"Actif", "opération", "cycle", "structuration" — ce vocabulaire est prescrit par le brand voice pour Laurent. Pour Kévin, il crée un effet de flou institutionnel : ce site n'est pas fait pour lui, il vaut mieux aller sur un portail d'annonces.
 
-**Symptôme 3 — La promesse abstraite.** "Quatre métiers. Un cycle maîtrisé." est une promesse institutionnelle. Pour Kévin, la promesse doit être concrète et personnelle : ce que ce bien va lui apporter, pas la complexité organisationnelle de celui qui le vend.
+**Erreur 4 — L'intégration verticale est invisible pour un acheteur.**
+Que Versi gère "4 métiers en 1 cycle" n'a aucune valeur perçue pour quelqu'un qui veut acheter un bien. Le seul élément qui compte : le bien est-il bon, est-il à un juste prix, et est-ce que le vendeur est fiable ?
 
-**Symptôme 4 — Le CTA institutionnel.** "Notre approche" / "Nous contacter" orientent vers la compréhension de Versi. Sur un site de vente, le seul CTA utile est : voir les biens.
+### Ce que Kévin perçoit s'il tombe sur un hero "style holding"
 
-### La règle de base : changer de sujet, pas de ton
-
-Le problème n'est pas le ton — le ton Versi (court, direct, factuel, zéro blabla) est parfaitement adapté à Kévin. Un primo-accédant n'a aucune envie d'un discours de commercial. Il apprécie la franchise.
-
-Le problème est le sujet grammatical : versi.fr parle de Versi. versi-immobilier.fr doit parler du bien ou de l'acheteur.
+Il voit un site corporate. Il ne voit pas de biens. Il repart.
 
 ---
 
 ## Section 2 — Adaptation du brand voice pour versi-immobilier.fr
 
-### Ce qui RESTE identique
+### Ce qui RESTE identique (invariants de marque)
 
-| Attribut | Règle | Pourquoi conserver |
+| Élément | Règle invariante | Pourquoi |
 |---|---|---|
-| **Vouvoiement** | Systématique, sans exception | Le registre "vous" n'est pas froid — il est respectueux. Kévin achète un bien, pas une conversation décontractée. |
-| **Phrases courtes** | Une idée par phrase, max 1 subordonnée | Kévin sur mobile lit vite. La densité est un avantage. |
-| **Zéro adjectif auto-décerné** | Pas "magnifique appartement", pas "belle rénovation" | Les faits (m², étage, DPE, exposition) remplacent les qualificatifs. |
-| **Zéro exclamation** | Jamais | "Coup de coeur assuré !" : proscrit. Les biens parlent d'eux-mêmes. |
-| **CTA courts avec verbe** | < 6 mots | "Voir les biens" — pas "Découvrez notre sélection de propriétés d'exception". |
-| **Interdits du vocabulaire** | "Expertise", "confiance", "accompagnement", "clé en main" | Les mêmes mots qui tuent la crédibilité avec Laurent la tuent aussi avec Kévin. |
-| **Zéro passif** | "Ce bien offre" — pas "ce bien a été rénové par" | La voix active préserve l'énergie de la phrase. |
+| **Vouvoiement** | Systématique, sans exception | Cohérence de marque cross-sites |
+| **Phrases courtes** | Une idée par phrase, max une subordonnée | Le TON est le même, quel que soit le sujet |
+| **Zéro adjectif auto-décerné** | Les faits remplacent les superlatifs | "Appartement qualitatif" : interdit. Les photos et la fiche font le travail |
+| **Zéro exclamation** | Jamais | Invariant absolu de la marque |
+| **Zéro passif** | "Ce bien propose" — pas "ce bien a été rénové par" | Actif, direct, affirmé |
+| **CTA courts avec verbe** | Moins de 6 mots, verbe d'action | "Voir ce bien" — pas "Découvrez les détails de cette propriété" |
+| **Interdits absolus** | Bienvenue, Découvrez, N'hésitez pas, Expertise, Confiance, Clé en main, Solutions | Invariants, valables sur tous les sites Versi |
+| **Caractère sans arrogance** | Affirmé, pas condescendant | Kévin est respecté comme Laurent |
 
-### Ce qui CHANGE
+### Ce qui CHANGE (adaptations pour le site de vente)
 
-| Attribut | Sur versi.fr | Sur versi-immobilier.fr |
+| Élément | Sur versi.fr (holding) | Sur versi-immobilier.fr (vente) |
 |---|---|---|
-| **Sujet grammatical** | Versi ("Versi acquiert", "Versi maîtrise") | Le bien ou le bénéfice acquéreur ("65 m² sans travaux", "vous entrez, vous habitez") |
-| **Promesse** | Institutionnelle — rigueur du cycle, intégration | Concrète — ce que l'acheteur gagne en choisissant ce bien |
-| **Vocabulaire prescrit** | Actif, opération, cycle, structuration, portefeuille | Bien, appartement, surface, exposition, DPE, quartier, disponible |
-| **Test de référence** | "Laurent hoche la tête" | "Kévin comprend immédiatement ce qu'il obtient" |
-| **Angle de la promesse** | Ce que Versi fait (crédibilité opérateur) | Ce que l'acheteur obtient (bénéfice concret) |
-| **Registre émotionnel** | Froid-précis (mémo d'investissement) | Précis-accessible (fiche technique compréhensible) |
-| **Horizon temporel** | Long terme (cycle, portefeuille) | Immédiat (disponibilité, conditions d'achat) |
+| **Sujet grammatical prioritaire** | Versi — "Versi acquiert, transforme, structure" | Le bien ou le bénéfice acquéreur — "3 pièces avec cour. Travaux faits." |
+| **Question à laquelle répond le copy** | "Qui est Versi et que fait-il ?" | "Qu'est-ce que j'obtiens si j'achète ici ?" |
+| **Vocabulaire** | Actif, opération, cycle, holding, co-investisseur | Bien, appartement, surface, étage, livraison, budget, DPE |
+| **Promesse principale** | Intégration du cycle complet | Biens sourcés et préparés — une transaction simple |
+| **Angle de la légitimité Versi** | "Nous maîtrisons les 4 métiers" | "Nous vendons ce que nous avons opéré — pas un intermédiaire" (dit sobrement, sans attaque) |
+| **Ton émotionnel** | Institutionnel froid, mémo d'investissement | Direct et factuel — mais le sujet est concret (un appartement, pas une structure) |
+| **Rapport au "nous"** | "Nous" = l'opérateur qui gère | "Nous" = le vendeur qui propose quelque chose de précis |
 
-### La règle d'or de versi-immobilier.fr
+### La règle de réécriture en une phrase
 
-> Avant chaque phrase, se poser la question : **"Qui est le sujet — Versi ou l'acheteur ?"**
-> Si c'est Versi → reformuler pour mettre le bien ou l'acheteur au centre.
-> Le ton reste Versi. Le regard change de direction.
+> Sur versi.fr, le sujet est Versi. Sur versi-immobilier.fr, le sujet est le bien ou l'acheteur. Le ton est identique — factuel, court, affirmé, zéro blabla. Seule la caméra change de position.
 
-### Exemples de bascule
+### Vocabulaire adapté pour versi-immobilier.fr
 
-| Version holding (sujet = Versi) | Version vente (sujet = bien/acheteur) |
-|---|---|
-| "Versi rénove chaque bien selon ses standards." | "Chaque bien est livré sans travaux à prévoir." |
-| "Versi maîtrise le cycle de A à Z." | "Vous achetez à quelqu'un qui connaît le bien de l'intérieur." |
-| "Versi sélectionne ses actifs avec rigueur." | "Peu de biens. Pas d'approximation." |
-| "Notre opérateur vous garantit un actif sain." | "DPE B. Pas de surprise." |
-| "Versi Immobilier, marchand de biens lillois." | "Des appartements à Lille. Sélectionnés, préparés, disponibles." |
+**Mots à utiliser :**
+Bien, appartement, surface, exposition, étage, livraison, budget, travaux inclus, sans intermédiaire, direct vendeur, charges prévisionnelles, DPE, disponible, réservé, prix net.
+
+**Mots à éviter sur ce site (en plus des interdits holding) :**
+Actif (trop institutionnel pour Kévin), opération (idem), cycle (idem), holding (crée de la distance), co-investisseur (mauvaise cible), structuration (hors sujet).
+
+**"Rénové" : à utiliser avec précision, jamais comme argument principal.**
+"Rénové" ne dit rien sur ce que Kévin obtient. Ce qui compte : "douche italienne posée, électricité mise aux normes, cuisine équipée livrée" — le fait concret, pas le mot-valise. Et sur les biens avec projet, "rénové" serait faux. On s'en passe dans le Hero.
 
 ---
 
 ## Section 3 — Cinq directions de Hero
 
-### Principes communs à toutes les directions
-
+Principes communs à toutes les directions :
 - Sujet = le bien ou l'acheteur, jamais Versi en ouverture
-- H1 : 2 lignes max, 6 mots max par ligne
+- H1 : 2 lignes max
 - Sous-titre : 1 ligne, bénéfice concret
 - Ton : direct, factuel, affirmé — zéro blabla
 - Objectif : donner envie de voir les biens, pas de comprendre Versi
 
 ---
 
-### Direction 1 — "Peu. Bien."
+### Direction 1 — La sélection
 
-**H1 :**
-Peu de biens.
+**H1 :** Peu de biens.
 Pas d'approximation.
 
-**Sous-titre :**
-Des appartements sélectionnés, préparés, disponibles.
+**Sous-titre :** Des appartements sélectionnés, préparés, disponibles.
 
-**CTA :** Voir les biens
+**Cohérence avec le brand voice adapté :** Sujet implicite = les biens. Zéro mention de Versi dans le H1. La rigueur est dans la formule, pas dans l'affirmation de Versi. Aucun adjectif. Densité maximale. Cette direction fonctionne que Versi vende des biens livrés ou des biens avec projet — elle ne surpromet pas sur l'état.
 
-**Cohérence avec le brand voice adapté :**
-Le ton est Versi pur : dense, sans gras superflu. Le sujet est implicitement le bien ("peu de biens", "pas d'approximation"). Zéro mention de Versi dans le H1 — Versi n'a pas besoin d'être nommé pour être présent. La rigueur est dans la formule.
-
-**Pourquoi Kévin clique :**
-"Peu de biens" l'intrigue. Il en a marre des agrégateurs avec 3 000 annonces floues. "Pas d'approximation" lui promet le contraire de ce qu'il subit partout ailleurs. Il veut voir ce que c'est.
+**Pourquoi Kévin clique :** "Peu de biens" l'intrigue. Il en a marre des portails avec 3 000 annonces floues. "Pas d'approximation" lui promet le contraire de ce qu'il subit ailleurs. Il veut voir ce que c'est.
 
 ---
 
-### Direction 2 — "Vous entrez, vous habitez."
+### Direction 2 — L'état du bien
 
-**H1 :**
-Vous entrez.
+**H1 :** Vous entrez.
 Vous habitez.
 
-**Sous-titre :**
-Des biens sans travaux à prévoir. À Lille.
+**Sous-titre :** Des biens sans travaux à prévoir.
 
-**CTA :** Voir les biens disponibles
+**Cohérence avec le brand voice adapté :** Sujet grammatical = "vous" (l'acheteur). Deux phrases ultra-courtes qui décrivent un bénéfice, pas une méthode. "Sans travaux à prévoir" est un fait, pas un adjectif. Attention : cette direction ne convient qu'aux biens livrés — pas à utiliser si Versi vend des biens avec projet.
 
-**Cohérence avec le brand voice adapté :**
-Sujet grammatical = "vous" (l'acheteur). Deux phrases ultra-courtes qui décrivent un bénéfice, pas une méthode. "Sans travaux à prévoir" est un fait — pas un adjectif. La mention Lille arrive en dernier, discrète, informationnelle.
-
-**Pourquoi Kévin clique :**
-Il a déjà visité des biens "à rénover" que l'annonce présentait comme "avec potentiel". Il est fatigué. "Vous entrez, vous habitez" lui promet exactement ce qu'il veut entendre — et le sous-titre le confirme sans survente.
+**Pourquoi Kévin clique :** Il a visité des biens "avec potentiel" qui cachaient 40 000 euros de travaux. "Vous entrez, vous habitez" règle son objection n°1 avant qu'il la formule.
 
 ---
 
-### Direction 3 — "L'appartement. Pas le projet."
+### Direction 3 — L'antithèse
 
-**H1 :**
-L'appartement.
+**H1 :** L'appartement.
 Pas le projet.
 
-**Sous-titre :**
-Des biens prêts. Pas de chantier, pas d'inconnu.
+**Sous-titre :** Des biens prêts. Pas de chantier, pas d'inconnu.
 
-**CTA :** Voir les biens
+**Cohérence avec le brand voice adapté :** Structure antithétique courte — marque Versi dans la forme, accessible dans le fond. "L'appartement" = ce que Kévin cherche. "Pas le projet" = ce qu'il veut éviter. Même restriction que Direction 2 : ne convient qu'aux biens livrés.
 
-**Cohérence avec le brand voice adapté :**
-Structure antithétique courte — marque Versi dans la forme, accessible dans le fond. "L'appartement" = ce que Kévin cherche. "Pas le projet" = ce qu'il veut éviter. Zéro Versi en sujet. Le "prêts" du sous-titre est factuel, pas promotionnel.
-
-**Pourquoi Kévin clique :**
-"Pas le projet" résonne fort avec quelqu'un qui a vu des biens "à rafraîchir" estimés à 30 000 € de travaux minimum. Cette phrase dit qu'on a compris sa vraie peur.
+**Pourquoi Kévin clique :** "Pas le projet" résonne fort avec quelqu'un qui a déjà décliné des biens "à rafraîchir". Cette phrase dit qu'on a compris sa vraie peur.
 
 ---
 
-### Direction 4 — "Des biens. Pas des annonces."
+### Direction 4 — La source directe
 
-**H1 :**
-Des biens.
+**H1 :** Des biens.
 Pas des annonces.
 
-**Sous-titre :**
-Chaque bien est visité, vérifié, documenté avant d'être mis en vente.
+**Sous-titre :** Chaque bien est visité, vérifié, documenté avant d'être mis en vente.
 
-**CTA :** Voir la sélection
+**Cohérence avec le brand voice adapté :** L'antithèse "biens / annonces" positionne versi-immobilier.fr contre les portails d'annonces sans les nommer (règle CLAUDE.md : zéro mention de concurrent). Le sous-titre apporte la preuve factuelle — trois verbes d'action, trois étapes concrètes. Aucun adjectif. Cette direction est compatible avec tous les types de biens.
 
-**Cohérence avec le brand voice adapté :**
-L'antithèse "biens / annonces" positionne versi-immobilier.fr contre les agrégateurs sans les nommer (règle CLAUDE.md : zéro mention de concurrent). Le sous-titre apporte la preuve factuelle — trois verbes d'action, trois étapes concrètes. Aucun adjectif.
-
-**Pourquoi Kévin clique :**
-Il a cherché sur des portails d'annonces. Il sait que "annonce" rime avec photos floues, infos manquantes, vendeur injoignable. "Pas des annonces" lui promet quelque chose de différent sans avoir à l'expliquer.
+**Pourquoi Kévin clique :** Il sait que "annonce" rime avec photos floues, infos manquantes, vendeur injoignable. "Pas des annonces" lui promet quelque chose de différent sans avoir à l'expliquer.
 
 ---
 
-### Direction 5 — "Ce que vous voyez est ce que vous achetez."
+### Direction 5 — La transparence
 
-**H1 :**
-Ce que vous voyez
+**H1 :** Ce que vous voyez
 est ce que vous achetez.
 
-**Sous-titre :**
-Biens documentés. Prix nets. Pas de mauvaise surprise.
+**Sous-titre :** Biens documentés. Prix nets. Pas de mauvaise surprise.
 
-**CTA :** Voir les biens
+**Cohérence avec le brand voice adapté :** Formule affirmée, directe, sans superlatif. "Prix nets" est factuel et différenciant. "Pas de mauvaise surprise" est la promesse la plus honnête du marché immobilier — dite sans emphase. Compatible avec tous les types de biens.
 
-**Cohérence avec le brand voice adapté :**
-Formule affirmée, directe, sans superlatif. "Prix nets" est factuel et différenciant (pas de "plus de FAI"). "Pas de mauvaise surprise" est la promesse la plus honnête du marché immobilier — et elle est dite sans apitoiement ni emphase.
-
-**Pourquoi Kévin clique :**
-La transparence est sa principale anxiété dans un achat immobilier. Cette direction nomme exactement ce que Versi offre et ce qu'il cherche.
+**Pourquoi Kévin clique :** La transparence est son anxiété principale dans un achat immobilier. Cette direction nomme exactement ce que Versi offre et ce qu'il cherche.
 
 ---
 
@@ -189,15 +158,21 @@ La transparence est sa principale anxiété dans un achat immobilier. Cette dire
 
 ### Direction retenue : Direction 1 — "Peu. Bien."
 
-**Justification stratégique :**
+**Justification du choix :**
 
-C'est la direction la plus proche de l'identité Versi — dense, affirmée, sans explication. Elle n'a pas besoin d'un sous-texte anti-concurrent pour fonctionner. Elle pose une promesse de qualité et de sélection qui s'applique que Versi vende des biens sans travaux ou des biens avec projet. Elle est évolutive.
+C'est la direction la plus proche de l'identité Versi — dense, affirmée, sans explication. Elle n'a pas besoin d'un sous-texte anti-concurrent pour fonctionner. Elle pose une promesse de qualité et de sélection qui s'applique que Versi vende des biens livrés ou des biens avec projet. Elle est évolutive : si le portefeuille change, la promesse reste vraie.
 
-Les directions 2 et 3 ("Vous entrez, vous habitez" / "L'appartement. Pas le projet.") supposent que tous les biens Versi sont livrés sans travaux — ce qui n'est pas toujours le cas selon le projet-context.md. Direction 1 ne surpromit pas sur ce point.
+Les directions 2 et 3 ("Vous entrez, vous habitez" / "L'appartement. Pas le projet.") supposent que tous les biens Versi sont livrés sans travaux — ce qui n'est pas toujours le cas. Direction 1 ne surpromet pas sur ce point.
 
-**Surtitre recommandé :** "VERSI IMMOBILIER — MARCHAND DE BIENS"
+La direction 4 ("Des biens. Pas des annonces.") est solide mais plus défensive — elle se définit par rapport à ce qu'elle n'est pas. Direction 1 est plus affirmative.
+
+**Variante si test A/B :** tester Direction 4 en version B — elle sera plus performante sur les acheteurs qui arrivent depuis des portails d'annonces et cherchent une alternative structurée.
+
+**Surtitre :** "VERSI IMMOBILIER — MARCHAND DE BIENS"
 
 Ce surtitre est le seul endroit où Versi apparaît nommément dans le Hero — en position de garantie (le qui), pas de sujet principal (le quoi).
+
+---
 
 ### JSX recommandé
 
@@ -229,7 +204,7 @@ export default function Hero() {
         </span>
         <h1 className="hero__title text-display">
           Peu de biens.<br />
-          Pas d'approximation.
+          Pas d&apos;approximation.
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
@@ -250,33 +225,31 @@ export default function Hero() {
 }
 ```
 
-**Note sur le CTA :** Un seul CTA sur le Hero vente. Sur versi.fr, deux CTA (approche + contact) sont justifiés car le visiteur a besoin de comprendre Versi avant de le contacter. Sur versi-immobilier.fr, Kévin a un seul objectif : voir les biens. Lui proposer deux chemins dilue l'action.
+**Note sur le CTA unique :** Un seul CTA sur le Hero vente. Sur versi.fr, deux CTA (approche + contact) sont justifiés car le visiteur a besoin de comprendre Versi avant de le contacter. Sur versi-immobilier.fr, Kévin a un seul objectif : voir les biens. Lui proposer deux chemins dilue l'action.
 
-**Note sur la section cible :** Le CTA pointe vers `#biens` — la section catalogue des biens disponibles. Si l'ancre n'est pas encore implémentée dans le composant destination, `@fullstack` doit créer cette ancre.
+**Note sur l'entité HTML :** `&apos;` pour l'apostrophe dans "d'approximation" — requis dans le JSX rendu, conforme aux règles UTF-8 du projet (les entités HTML sont acceptables uniquement dans le JSX rendu directement).
+
+**Note sur la section cible :** Le CTA pointe vers `#biens` — la section catalogue des biens disponibles. Si l'ancre n'est pas encore implémentée, `@fullstack` doit créer cette ancre avant le déploiement.
 
 ---
 
 ## Section 5 — Handoff
 
 ---
-
 **Handoff → @fullstack**
-
-- Fichiers produits :
-  - `/home/user/Versi/docs/strategy/vi-brand-voice-adaptation.md` (ce document)
-
+- Fichiers produits : `/home/user/Versi/docs/strategy/vi-brand-voice-adaptation.md`
 - Décisions prises :
-  - Brand voice Versi conservé à 100% en termes de ton (court, factuel, zéro blabla, vouvoiement, zéro exclamation)
-  - Changement de sujet grammatical : le bien ou l'acheteur, jamais Versi en sujet principal dans le Hero
-  - Direction retenue : "Peu de biens. Pas d'approximation." avec surtitre "VERSI IMMOBILIER — MARCHAND DE BIENS"
-  - Un seul CTA : "VOIR LES BIENS" → ancre `#biens`
-  - Le JSX est fourni section 4 — prêt à intégrer
-
-- Points d'attention pour la suite :
-  - L'ancre `#biens` doit exister dans la page — créer ou vérifier la section catalogue des biens
+  - Le brand voice Versi s'applique à versi-immobilier.fr avec un seul changement structurel : le sujet grammatical passe de Versi à "le bien" ou "l'acheteur". Le TON est identique (court, factuel, affirmé, vouvoiement, zéro exclamation, zéro adjectif auto-décerné).
+  - Direction de Hero retenue : Direction 1 — "Peu de biens. Pas d'approximation."
+  - Surtitre : "VERSI IMMOBILIER — MARCHAND DE BIENS"
+  - Sous-titre : "Des appartements sélectionnés, préparés, disponibles."
+  - CTA unique : "VOIR LES BIENS" — ancre `#biens`
+  - Variante B pour A/B test : Direction 4 — "Des biens. Pas des annonces."
+  - Le JSX est fourni section 4, prêt à intégrer
+- Points d'attention pour l'intégration :
+  - Ancre `#biens` obligatoire dans la structure de page — vérifier ou créer la section catalogue
   - Ne pas rajouter de CTA secondaire au Hero sans validation — le choix unique est délibéré
-  - Les fiches biens elles-mêmes devront respecter le même brand voice adapté : faits, m², DPE, prix net, zéro superlatif
-
+  - Vocabulaire à bannir sur ce site : "actif", "opération", "cycle", "holding", "co-investisseur", "structuration"
+  - Vouvoiement systématique — vérifier sur toutes les microcopy (labels, messages d'état, tooltips)
+  - Les fiches biens devront respecter le même brand voice adapté : faits, m², DPE, prix net, zéro superlatif
 ---
-
-*Mise à jour du tableau "Historique des interventions agents" dans project-context.md requise après ce livrable.*
