@@ -1,18 +1,25 @@
 import express from 'express';
 import { Resend } from 'resend';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import pool from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!ADMIN_PASSWORD) {
+  console.warn('[WARN] ADMIN_PASSWORD non configurée. Le login admin sera impossible.');
+}
 
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(join(__dirname, 'dist')));
 
 // ---------------------------------------------------------------------------
