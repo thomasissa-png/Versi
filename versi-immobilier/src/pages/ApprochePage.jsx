@@ -155,7 +155,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={teamRef}>
           <div className={`container ${teamVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              L'équipe.
+              Les trois fondateurs. Vérifiables.
             </h2>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)' }}>
               Trois fondateurs. Pas de comité. Pas d'intermédiaire.

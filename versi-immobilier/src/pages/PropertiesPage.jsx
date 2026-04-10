@@ -167,9 +167,9 @@ export default function PropertiesPage() {
                 color: 'var(--color-text-muted)',
               }}>
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                  Aucun bien disponible actuellement. Revenez bientôt — ou soumettez votre bien à la vente.
+                  Aucun bien disponible à date. Nos acquisitions vont vite — soyez notifié en avant-première.
                 </p>
-                <Link to="/vendre" className="text-cta" style={{
+                <Link to="/contact" className="text-cta" style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   background: 'var(--color-charcoal-950)',
@@ -179,7 +179,7 @@ export default function PropertiesPage() {
                   textDecoration: 'none',
                   minHeight: '44px',
                 }}>
-                  Soumettre mon bien
+                  Me tenir informé
                 </Link>
               </div>
             ) : filtered.length > 0 ? (
