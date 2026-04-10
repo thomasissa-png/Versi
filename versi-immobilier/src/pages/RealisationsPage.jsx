@@ -99,8 +99,11 @@ export default function RealisationsPage() {
         {/* Bandeau */}
         <section className="section-padding" style={{ background: 'var(--color-bg-dark-alt)', textAlign: 'center' }}>
           <div className="container">
-            <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-lg)' }}>
+            <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
               Vous avez un bien à céder ?
+            </p>
+            <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
+              Offre ferme sous 7 jours. Aucun mandat, aucune mise en vente prolongée.
             </p>
             <Link to="/vendre" className="text-cta" style={{
               display: 'inline-flex',
@@ -112,7 +115,7 @@ export default function RealisationsPage() {
               textDecoration: 'none',
               minHeight: '52px',
             }}>
-              Soumettre mon bien
+              Soumettre mon dossier
             </Link>
           </div>
         </section>

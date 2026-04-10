@@ -80,7 +80,7 @@ export default function PropertiesPage() {
               Nos biens.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Appartements et maisons rénovés par Versi Immobilier. Diagnostics complets. Garanties décennales.
+              Appartements et maisons rénovés par Versi Immobilier à Lille. Diagnostics complets. Garantie décennale.
             </p>
 
             {/* Filters */}
@@ -244,8 +244,11 @@ export default function PropertiesPage() {
         {/* Bandeau vendeur bas de page */}
         <section className="section-padding" style={{ background: 'var(--color-bg-dark-alt)', textAlign: 'center' }}>
           <div className="container">
-            <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-lg)' }}>
+            <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
               Vous avez un bien à céder ?
+            </p>
+            <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
+              Offre ferme sous 7 jours. Aucun mandat, aucune mise en vente prolongée.
             </p>
             <Link to="/vendre" className="text-cta" style={{
               display: 'inline-flex',
@@ -257,7 +260,7 @@ export default function PropertiesPage() {
               textDecoration: 'none',
               minHeight: '52px',
             }}>
-              Soumettre mon bien
+              Soumettre mon dossier
             </Link>
           </div>
         </section>

@@ -102,7 +102,7 @@ export default function Nav() {
         </ul>
 
         <Link to="/vendre" className="nav__cta">
-          Proposer un bien
+          Céder un bien
         </Link>
 
         <button
@@ -152,7 +152,7 @@ export default function Nav() {
                 to="/vendre"
                 className="nav__overlay-cta"
               >
-                PROPOSER UN BIEN
+                CÉDER UN BIEN
               </Link>
             </li>
           </ul>

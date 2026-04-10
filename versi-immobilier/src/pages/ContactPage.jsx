@@ -21,10 +21,10 @@ export default function ContactPage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
           <div className="container">
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Parlons de votre projet.
+              Écrivez-nous.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
-              Vous achetez, vous vendez ou vous cherchez un partenaire. Écrivez-nous directement.
+              Vous achetez, vous cédez ou vous cherchez un partenaire. Réponse sous 24h — sans standard, sans assistant.
             </p>
           </div>
         </section>

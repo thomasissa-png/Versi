@@ -36,7 +36,7 @@ const DIFFERENTIATORS = [
     description: 'Versi Immobilier est l\'entité marchand de biens du Groupe Versi. La structuration financière se fait en interne (Groupe Versi). Notre capacité d\'achat ne dépend pas d\'un crédit bancaire tiers.',
   },
   {
-    title: 'Une équipe identifiée, pas un intermédiaire anonyme.',
+    title: 'Les trois fondateurs. Vérifiables.',
     description: 'Les trois fondateurs de Versi Immobilier ont des parcours vérifiables. 15 ans, 13 ans, 14 ans d\'expérience en immobilier, stratégie commerciale et gestion de projets. Ils sont disponibles en direct — pas derrière un standard.',
   },
 ];
@@ -78,10 +78,10 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
           <div className="container">
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Notre approche.
+              Comment Versi travaille.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
-              Analyser, structurer, décider. En interne. Sans délégation externe.
+              Chaque décision prise en interne. Chaque bien porté par les fondateurs.
             </p>
           </div>
         </section>
@@ -210,7 +210,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-calcaire-100)' }}>
           <div className="container">
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
-              Nos critères d'acquisition.
+              Ce que nous instruisons.
             </h2>
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)' }}>
               Versi Immobilier instruit des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €,

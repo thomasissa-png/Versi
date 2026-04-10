@@ -47,7 +47,7 @@ export default function Footer() {
         <div className="footer__col">
           <span className="footer__col-title">Vendeurs</span>
           <nav className="footer__nav" aria-label="Liens vendeurs">
-            <Link to="/vendre" className="footer__nav-link">Soumettre un bien</Link>
+            <Link to="/vendre" className="footer__nav-link">Céder un bien</Link>
             <Link to="/vendre#process" className="footer__nav-link">Notre process</Link>
             <Link to="/contact" className="footer__nav-link">Contact</Link>
           </nav>
