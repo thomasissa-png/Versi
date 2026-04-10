@@ -7,7 +7,7 @@ import { PROPERTIES } from '../config/properties.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
 const TYPE_OPTIONS = ['Tous', 'Appartement', 'Maison', 'Immeuble', 'Local mixte'];
-const LOCATION_OPTIONS = ['Toutes', 'Paris', 'Île-de-France', 'Lille', 'Lyon', 'Bordeaux', 'Autre'];
+const LOCATION_OPTIONS = ['Toutes', 'Hauts-de-France', 'Île-de-France'];
 const BUDGET_OPTIONS = [
   { label: 'Tous', min: 0, max: Infinity },
   { label: 'Moins de 150 000 €', min: 0, max: 150000 },
@@ -80,7 +80,7 @@ export default function PropertiesPage() {
               Les biens disponibles.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Appartements et biens mixtes à Lille et métropole. Dossier complet — diagnostics, historique, garanties — disponible avant la visite. Prix de vente : généralement entre 95 000 € et 350 000 €.
+              Appartements et biens mixtes en Hauts-de-France et Île-de-France. Dossier complet — diagnostics, historique, garanties — disponible avant la visite. Prix de vente : généralement entre 95 000 € et 350 000 €.
             </p>
 
             {/* Filters */}

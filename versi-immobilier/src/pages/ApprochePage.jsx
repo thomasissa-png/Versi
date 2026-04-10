@@ -206,7 +206,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={teamRef}>
           <div className={`container ${teamVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Thomas, Maxime, Carl.
+              Maxime, Thomas, Carl.
             </h2>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)' }}>
               Trois fondateurs. Joignables en direct.
@@ -269,7 +269,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)', textAlign: 'center' }}>
           <div className="container">
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)', maxWidth: 'var(--text-max-width-md)', margin: '0 auto var(--spacing-lg)' }}>
-              Versi Immobilier est l'entité marchand de biens du Groupe Versi, holding immobilière intégrée basée à Lille.
+              Versi Immobilier est l'entité marchand de biens du Groupe Versi — holding immobilière intégrée, active en Hauts-de-France et Île-de-France.
             </p>
             <a
               href="https://versi.fr"

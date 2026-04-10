@@ -6,7 +6,7 @@ export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
   const stats = [
-    { value: '21', label: 'appartements rénovés à Lille' },
+    { value: '21', label: 'appartements rénovés' },
     { value: '100%', label: 'vendus en direct, sans agence' },
     { value: '3,2M€', label: 'de volume traité depuis 2022' },
   ];

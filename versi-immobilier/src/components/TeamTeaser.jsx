@@ -65,7 +65,7 @@ export default function TeamTeaser() {
           Pas à un commercial.
         </h2>
         <p className="text-body-lg team-teaser__subtitle">
-          Thomas, Maxime et Carl ont porté chaque bien de l'acquisition à la livraison. Ils font visiter eux-mêmes. Ils répondent en direct.
+          Maxime, Thomas et Carl ont porté chaque bien de l'acquisition à la livraison. Ils font visiter eux-mêmes. Ils répondent en direct.
         </p>
         <div className="team-teaser__grid">
           {FOUNDERS.map((f) => (

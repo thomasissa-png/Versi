@@ -5,7 +5,7 @@ const STEPS = [
   {
     number: '01',
     title: 'Vous parcourez le portefeuille.',
-    description: 'Biens disponibles à la vente et en précommercialisation à Lille et en région. Chaque fiche détaille le bien — adresse, travaux réalisés, prix, disponibilité.',
+    description: 'Biens disponibles à la vente et en précommercialisation en Hauts-de-France et Île-de-France. Chaque fiche détaille le bien — adresse, travaux réalisés, prix, disponibilité.',
   },
   {
     number: '02',
