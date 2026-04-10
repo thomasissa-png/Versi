@@ -14,7 +14,11 @@ export default function AvailableProperties() {
 
         {available.length > 0 ? (
           <>
-            <div className="featured__grid">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: 'var(--spacing-lg)',
+            }}>
               {available.map((property) => (
                 <PropertyCard key={property.id} property={property} />
               ))}
