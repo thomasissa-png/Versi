@@ -83,10 +83,6 @@
 
 /* Responsive */
 @media (max-width: 767px) {
-  .mission__title {
-    font-size: 1.5rem;
-  }
-
   .mission__inner {
     grid-template-columns: 1fr;
     gap: var(--spacing-2xl);
