@@ -61,16 +61,16 @@ export default function ContactPage() {
               </a>
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-md)' }}>
-                Nous accusons réception sous 24h.
+                Nous accusons réception sous 24h. Visite organisée sous 72h.
               </p>
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-2xl)' }}>
-                Paris — Île-de-France<br />
-                Lille et villes françaises
+                Lille et métropole lilloise<br />
+                Paris — Île-de-France
               </p>
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xl)' }}>
-                Versi Immobilier est une entité du Groupe Versi —{' '}
+                Versi Immobilier est l'entité marchand de biens du Groupe Versi, holding immobilière intégrée —{' '}
                 <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>
                   versi.fr
                 </a>

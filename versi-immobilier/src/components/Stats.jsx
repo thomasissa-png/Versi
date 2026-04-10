@@ -7,7 +7,7 @@ export default function Stats() {
 
   const stats = [
     { value: '21', label: 'appartements transformés' },
-    { value: '3', label: 'biens à vendre' },
+    { value: '100%', label: 'vendus sans agence' },
     { value: '3,2M€', label: 'd\'opérations depuis 2022' },
   ];
 

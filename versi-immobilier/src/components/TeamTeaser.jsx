@@ -18,7 +18,7 @@ export default function TeamTeaser() {
         </h2>
         <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
           Pas une agence. Pas un fonds. Trois personnes qui ont rénové
-          ces appartements et qui vous reçoivent elles-mêmes.
+          ces appartements, qui vous font visiter et qui vous reçoivent elles-mêmes.
         </p>
         <div style={{
           display: 'grid',
