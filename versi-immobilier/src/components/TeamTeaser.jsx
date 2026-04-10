@@ -8,18 +8,18 @@ import './TeamTeaser.css';
 
 const FOUNDERS = [
   {
-    name: 'Thomas Issa',
-    initials: 'TI',
-    photo: thomasPhoto,
-    track: '15 ans en stratégie et opérations. 13 actifs locatifs à Paris.',
-    linkedin: 'https://www.linkedin.com/in/thomasissa/',
-  },
-  {
     name: 'Maxime Lemoine',
     initials: 'ML',
     photo: maxPhoto,
     track: '13 ans en sales. 5 immeubles acquis, 24 contrats structurés.',
     linkedin: 'https://www.linkedin.com/in/maxime-lemoine-34550354/',
+  },
+  {
+    name: 'Thomas Issa',
+    initials: 'TI',
+    photo: thomasPhoto,
+    track: '15 ans en stratégie et opérations. 13 actifs locatifs à Paris.',
+    linkedin: 'https://www.linkedin.com/in/thomasissa/',
   },
   {
     name: 'Carl Standertskjold-Nordenstam',

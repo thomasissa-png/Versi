@@ -47,18 +47,18 @@ const DIFFERENTIATORS = [
 
 const TEAM = [
   {
-    name: 'Thomas Issa',
-    role: 'Co-fondateur',
-    track: '15 ans d\'expérience. TEOS, Sony. 13 actifs locatifs en compte propre à Paris.',
-    photo: thomasPhoto,
-    linkedin: 'https://www.linkedin.com/in/thomasissa/',
-  },
-  {
     name: 'Maxime Lemoine',
     role: 'Co-fondateur',
     track: '13 ans d\'expérience. Head of Sales Sony. 5 immeubles acquis, 24 contrats structurés.',
     photo: maxPhoto,
     linkedin: 'https://www.linkedin.com/in/maxime-lemoine-34550354/',
+  },
+  {
+    name: 'Thomas Issa',
+    role: 'Co-fondateur',
+    track: '15 ans d\'expérience. TEOS, Sony. 13 actifs locatifs en compte propre à Paris.',
+    photo: thomasPhoto,
+    linkedin: 'https://www.linkedin.com/in/thomasissa/',
   },
   {
     name: 'Carl Standertskjold-Nordenstam',
