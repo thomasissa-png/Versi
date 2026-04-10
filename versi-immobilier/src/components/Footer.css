@@ -68,7 +68,7 @@
 
 .footer__holding-link {
   color: var(--color-accent);
-  text-decoration: none;
+  text-decoration: underline;
   transition: opacity var(--duration-normal) ease;
 }
 

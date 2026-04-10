@@ -71,7 +71,7 @@ export default function ContactPage() {
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xl)' }}>
                 Versi Immobilier est une entité du Groupe Versi —{' '}
-                <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>
                   versi.fr
                 </a>
               </p>
@@ -79,7 +79,7 @@ export default function ContactPage() {
               <Link
                 to="/vendre"
                 className="text-body-sm"
-                style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
+                style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}
               >
                 Vous souhaitez soumettre un bien à la vente ?
               </Link>
