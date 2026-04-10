@@ -222,6 +222,7 @@
 | growth | 2026-04-09 | docs/growth/vi-growth-strategy.md | North Star Metric = PCQ (prises de contact qualifiées). Canal 1 (priorité max) = réseau prescripteurs Pierre : pitch 60 secondes, cible 20 prescripteurs J+30, workflow prospection froide IA (emails personnalisés). Canal 2 = SEO organique, complémentaire à vi-seo-strategy.md, Google Business Profile J0. Canal 3 = LinkedIn Thomas (thought leadership opérationnel, workflow IA : brief → Claude → Buffer). Canal 4 = partenariats locaux notaires/syndics/experts-comptables Paris et Lille. Boucle virale prescripteurs : 3 conditions (expérience 48h + reconnaissance + réciprocité). Unit economics : CAC monétaire 0€, CAC temps 4-6h/semaine Thomas. 5 Quick Wins J0-J+30 actionnables. 5 hypothèses à valider. | Canal prescripteurs retenu en priorité max : Pierre amène Sophie — une relation Pierre activée génère 2-5 dossiers/an sur 3-5 ans. Blog non recommandé (cohérence décision @seo). Commission prescripteurs écartée (même logique décision growth V1 versi.fr). LinkedIn = canal de validation de crédibilité, pas d'acquisition froide (Pierre vérifie Thomas avant de recommander, Sophie vérifie avant d'appeler). Rétention écartée (modèle one-shot côté Sophie, rétention Pierre = qualité opérationnelle). Unit economics : marge MDB 15-25% = [HYPOTHÈSE à valider Thomas/Carl]. |
 | copywriter | 2026-04-09 | docs/copy/vi-copy-review.md | Score global 8,2/10. 2 corrections P0 (faute "instruits" → "instruit" ApprochePage ; placeholder "X réalisations" visible). 5 corrections P1 (stats "volume traité" → "actifs acquis" ; SellerBanner déstigmatisation ; ContactPage H1 ; InvestirPage H1+sous-titre ; FAQ réponses Q2/Q5 à vérifier). 4 corrections P2. Formulations non négociables identifiées (H1 homepage, les 3 "Sans", les 3 engagements SellPage, le process). | Faute "instruits" classée P0 car la page Approche est la page de crédibilité lue par Laurent — une faute de conjugaison sur cette page est rédhibitoire pour un investisseur qui élimine en 10 secondes. SellerBanner reformulé pour éviter l'association Versi = acheteur de "biens invendables" aux yeux de Laurent. ContactPage H1 "Nous contacter." = non-copy — chaque H1 doit porter une intention, pas juste nommer la page. InvestirPage reformulée pour parler directement à Laurent ("opérateur intégré" vs "Investir avec"). |
 | creative-strategy | 2026-04-09 | docs/strategy/vi-creative-review.md | Review positionnement et stratégie créative Versi Immobilier. Score 7,5/10. 12 corrections actionnables (C1-C12). 3 corrections P0 avant lancement : C4 (réorganisation /vendre), C6 (bloc réassurance prix), C1 (stats vélocité). 5 hypothèses à valider par les fondateurs (H1-H5). | Positionnement tagline fort (9/10) mais séquencement de pages sous-optimal (6/10). Problèmes principaux : (1) Réalisations trop tardives sur /vendre — preuve doit précéder les conditions ; (2) Stats 3,2M€ sans contexte vélocité — un family office a besoin du ratio N opérations/durée ; (3) Lien INVESTIR dans menu = perte de session ; (4) Absence de réassurance prix sur /vendre = objection #1 Sophie non traitée. Laurent n'a pas de porte d'entrée dédiée — le site est architecturé pour Sophie uniquement.
+| orchestrator | 2026-04-10 | Corrections versi-immobilier + Nav versi.fr + rebase branche | (1) Rebase sur claude/continue-orchestration-plan-BRzum (branche validée par fondateur). (2) Cherry-pick tout versi-immobilier. (3) Hero versi-immobilier aligné sur pattern versi.fr (fade global 300ms, pas cascade). (4) Nav versi.fr : IMPLANTATION retiré, APPROCHE ajouté. (5) Stats : 21 opérations, "actifs acquis". (6) Corrections P0+P1 copy/design/strategy. (7) SellPage.css extrait (220L inline). (8) .replit : build les 2 sites pour déploiement. | Branche précédente (claude/resume-session-fi2yX) était partie d'un état antérieur sans les changements validés versi.fr (texte équipe, Hero fade global, photos, pages légales). Fondateur a détecté la régression et demandé un rebase. Hero versi-immobilier aligné sur fade global 300ms car fondateur avait validé ce pattern sur versi.fr et ne voulait pas la cascade 6 éléments. APPROCHE ajouté au menu car section existante et utile pour la navigation.
 
 ---
 
@@ -251,9 +252,46 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/continue-orchestration-plan-BRzum`
+- Branche de développement : `claude/resume-session-fi2yX`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-Pour reprendre ce projet : `Lis project-context.md et docs/orchestration-plan.md, continue où on s'est arrêté.`
+**Branche** : `claude/resume-session-fi2yX`
+**Date de clôture** : 2026-04-10
+**Dernier commit** : `0389ac5` — fix(nav): add APPROCHE between ACTIVITÉS and ÉQUIPE
+
+**Résumé session** : Rebase de la branche sur `claude/continue-orchestration-plan-BRzum` (branche validée fondateur) après détection d'une régression (textes versi.fr perdus). Cherry-pick de tout versi-immobilier. Alignement Hero versi-immobilier sur le pattern validé versi.fr (fade global 300ms). Nav versi.fr corrigée (IMPLANTATION retiré, APPROCHE ajouté). Config .replit pour builder les 2 sites. Corrections P0+P1 versi-immobilier (copy, design, stats 21 opérations).
+
+**État des 2 sites** :
+- **versi.fr** : Code inchangé depuis branche validée (sauf Nav). Texte équipe = "Trois fondateurs. Quarante ans de terrain." Photos harmonisées. Hero fade global 300ms. Build OK.
+- **versi-immobilier.fr** : Score 7,5/10 → 9,0/10 GO CONDITIONNEL. Hero aligné fade global 300ms. Stats réelles (21 opérations, "actifs acquis"). SellPage.css extrait. Build OK.
+
+**Fichiers non commités** :
+- `project-context.md` — mémo de reprise + historique mis à jour
+- `docs/vi-orchestration-plan.md` — statuts phases mis à jour
+- `docs/lessons-learned.md` — 6 learnings session versi-s3 ajoutés
+- `docs/founder-preferences.md` — créé (préférences fondateur consolidées)
+- `src/src/components/Mission.css` — fix titre 3 lignes mobile (font-size 1.5rem)
+
+**PROPAGATION EN ATTENTE** : 1 learning P0 (vérification de branche en début de session) ciblant CLAUDE.md + orchestrator.md — trop structurel pour fin de session, à propager en début de prochaine session.
+
+**Travail restant** :
+1. **Commit + push** — fichiers non commités ci-dessus
+2. **Déploiement versi.fr** — Replit cherche `src/dist` malgré config autoscale. Build produit le dossier mais le déploiement échoue. Vérifier config dans l'UI Replit.
+3. **Bloc réassurance prix** sur /vendre — fondateur doit checker le wording proposé
+4. **Fiches réalisations** — placeholders conservés, données réelles à venir
+5. **Phase 0b** — @agent-factory testeur-persona Sophie EN ATTENTE
+6. **Phase 5** — testeur-persona Sophie GP1-GP10 EN ATTENTE
+7. **@qa** — tests E2E EN ATTENTE
+8. **WCAG exhaustive audit** — identifié en re-review comme action restante
+9. **Propagation P0** — règle vérification branche → CLAUDE.md + orchestrator.md
+
+**Décisions fondateur cette session** :
+- Branche validée = `claude/continue-orchestration-plan-BRzum` (pas l'autre)
+- Hero = fade global 300ms (pas cascade 6 éléments) — sur les 2 sites
+- Nav versi.fr = VISION | ACTIVITÉS | APPROCHE | ÉQUIPE | CONTACT (pas IMPLANTATION)
+- Stats = 21 opérations, "actifs acquis"
+- INVESTIR retiré du menu versi-immobilier (conservé en footer)
+
+**Prompt de reprise** : `Lis project-context.md (mémo de reprise + historique interventions) et docs/vi-orchestration-plan.md. Priorité : résoudre le déploiement Replit versi.fr, puis continuer Phase 0b (testeur-persona Sophie) et Phase 5 (audit final).`
