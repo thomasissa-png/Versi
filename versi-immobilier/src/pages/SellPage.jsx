@@ -118,15 +118,23 @@ export default function SellPage() {
       </a>
       <Nav />
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
-        {/* Hero vendeur */}
+        {/* Hero vendeur — chapô pivot acquéreur */}
         <section className="sell-hero section-padding">
           <div className="container" style={{ textAlign: 'center' }}>
-
+            <span className="text-label sell-hero__surtitre">
+              PROPRIÉTAIRES & CÉDANTS
+            </span>
             <h1 className="text-display sell-hero__title">
-              Soumettez votre bien. Offre ferme en 7 jours.
+              Vous cédez un bien.
+              <br />
+              Offre ferme en 7 jours.
             </h1>
-            <p className="text-body-lg sell-hero__subtitle">
-              Sans condition suspensive de financement. Refus motivé par écrit si le dossier ne correspond pas à nos critères.
+            <p className="text-body-lg sell-hero__chapo">
+              Cette page s'adresse aux propriétaires souhaitant céder un
+              bien immobilier. Versi Immobilier achète en nom propre — pas
+              de mise en vente, pas de mandat d'agence, pas d'intermédiaire.
+              Vous recevez une offre d'achat ferme sous 7 jours calendaires,
+              ou un refus motivé par écrit.
             </p>
             <a href="#formulaire" className="sell-hero__cta text-cta">
               Soumettre mon bien

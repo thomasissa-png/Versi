@@ -24,17 +24,26 @@
   background: var(--color-bg-dark-alt);
 }
 
+.sell-hero__surtitre {
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-muted);
+  margin-bottom: var(--spacing-md);
+  display: block;
+}
+
 .sell-hero__title {
   color: var(--color-text-inverse);
   margin-bottom: var(--spacing-lg);
   font-size: 3rem;
 }
 
-.sell-hero__subtitle {
+.sell-hero__chapo {
   color: var(--color-text-inverse);
   opacity: var(--opacity-readable);
   max-width: var(--text-max-width-md);
   margin: 0 auto var(--spacing-xl);
+  line-height: 1.65;
+  font-size: var(--font-size-body-md);
 }
 
 .sell-hero__cta {

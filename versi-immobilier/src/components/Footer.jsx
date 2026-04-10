@@ -9,14 +9,16 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer__separator" />
       <div className="footer__inner container">
-        <div className="footer__left">
+        {/* Colonne 1 — Logo + baseline */}
+        <div className="footer__brand">
           <Link to="/" className="footer__logo-link">
             <span className="footer__logo">VERSI</span>
             <span className="footer__logo-label">IMMOBILIER</span>
           </Link>
           <span className="footer__tagline">
-            Marchand de biens
+            Opérateur immobilier intégré
           </span>
+          <span className="footer__geo">Lille & France</span>
           <a href={`mailto:${CONTACT_EMAIL}`} className="footer__email">
             {CONTACT_EMAIL}
           </a>
@@ -28,18 +30,31 @@ export default function Footer() {
           </span>
         </div>
 
-        <div className="footer__center">
-          <nav className="footer__nav" aria-label="Liens du pied de page">
-            <Link to="/nos-biens" className="footer__nav-link">Nos biens</Link>
-            <Link to="/vendre" className="footer__nav-link">Vendre un bien</Link>
-            <Link to="/realisations" className="footer__nav-link">Réalisations</Link>
+        {/* Colonne 2 — Acquéreurs */}
+        <div className="footer__col">
+          <span className="footer__col-title">Acquéreurs</span>
+          <nav className="footer__nav" aria-label="Liens acquéreurs">
+            <Link to="/nos-biens" className="footer__nav-link">Nos biens disponibles</Link>
+            <Link to="/realisations" className="footer__nav-link">Nos réalisations</Link>
             <Link to="/notre-approche" className="footer__nav-link">Notre approche</Link>
-            <Link to="/contact" className="footer__nav-link">Contact</Link>
-            <Link to="/investir" className="footer__nav-link">Investir avec Versi</Link>
+            <Link to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
+              Être notifié en avant-première
+            </Link>
           </nav>
         </div>
 
-        <div className="footer__right">
+        {/* Colonne 3 — Vendeurs */}
+        <div className="footer__col">
+          <span className="footer__col-title">Vendeurs</span>
+          <nav className="footer__nav" aria-label="Liens vendeurs">
+            <Link to="/vendre" className="footer__nav-link">Soumettre un bien</Link>
+            <Link to="/vendre#process" className="footer__nav-link">Notre process</Link>
+            <Link to="/contact" className="footer__nav-link">Contact</Link>
+          </nav>
+        </div>
+
+        {/* Colonne 4 — Légal */}
+        <div className="footer__legal-col">
           <div className="footer__legal">
             <Link to="/mentions-legales" className="footer__legal-link">
               Mentions légales
@@ -50,7 +65,10 @@ export default function Footer() {
             </Link>
           </div>
           <span className="footer__copyright">
-            © {currentYear} Versi Immobilier — SIREN 912 862 612
+            © {currentYear} Versi Immobilier
+          </span>
+          <span className="footer__copyright">
+            Tous droits réservés
           </span>
         </div>
       </div>
