@@ -6,6 +6,7 @@
   justify-content: center;
   background-color: var(--color-bg-dark);
   overflow: hidden;
+  padding-top: var(--nav-height);
 }
 
 /* Texture grain subtile */
