@@ -3,19 +3,19 @@ import './Arguments.css';
 
 const ARGUMENTS = [
   {
-    title: 'Nous portons le bien de bout en bout.',
+    title: 'Vous achetez à la source.',
     description:
-      'Chaque bien que vous voyez ici, nous l\'avons acheté et piloté — rénové ou avec un projet défini. Vous parlez à celui qui a choisi chaque carrelage, pas à un agent qui lit une fiche.',
+      'Pas d\'intermédiaire entre vous et le bien. Les trois fondateurs ont acheté et piloté chaque appartement — ils en connaissent l\'historique complet. Vous posez une question — vous obtenez une réponse directe.',
   },
   {
     title: 'Rien n\'est caché.',
     description:
-      'Diagnostics complets. Historique des travaux. Garantie décennale sur les parties structurelles. Vous recevez le dossier avant la visite, pas le jour de la signature.',
+      'Diagnostics complets. Historique des travaux. Garantie décennale sur les parties structurelles. Vous recevez le dossier complet avant la visite.',
   },
   {
     title: 'Le prix affiché est le prix.',
     description:
-      'Versi vend en direct à l\'acquéreur. Pas de commission d\'agence sur votre achat. Vous traitez avec le propriétaire du bien — celui qui a pris toutes les décisions.',
+      'Vente directe du propriétaire à l\'acquéreur. Pas de commission d\'agence à votre charge.',
   },
 ];
 

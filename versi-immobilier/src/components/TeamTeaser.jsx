@@ -61,10 +61,11 @@ export default function TeamTeaser() {
     <section className="team-teaser section-padding" ref={ref}>
       <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <h2 className="text-heading-lg team-teaser__heading">
-          Trois associés. Chaque bien porté de l'achat à la remise des clés.
+          Vous parlez à celui qui a acheté.<br />
+          Pas à un commercial.
         </h2>
         <p className="text-body-lg team-teaser__subtitle">
-          Versi ne mandate pas d'intermédiaire. Les trois fondateurs achètent, rénovent, font visiter et négocient eux-mêmes.
+          Thomas, Maxime et Carl ont porté chaque bien de l'acquisition à la livraison. Ils font visiter eux-mêmes. Ils répondent en direct.
         </p>
         <div className="team-teaser__grid">
           {FOUNDERS.map((f) => (
@@ -93,7 +94,7 @@ export default function TeamTeaser() {
           ))}
         </div>
         <Link to="/notre-approche" className="text-cta team-teaser__link">
-          Découvrir notre approche complète
+          Notre approche
         </Link>
       </div>
     </section>

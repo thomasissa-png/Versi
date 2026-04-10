@@ -176,7 +176,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }} ref={diffRef}>
           <div className={`container ${diffVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
-              Ce qui distingue Versi Immobilier.
+              Trois engagements. Vérifiables.
             </h2>
             <div style={{
               display: 'grid',

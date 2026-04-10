@@ -77,10 +77,10 @@ export default function PropertiesPage() {
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Nos biens.
+              Les biens disponibles.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Appartements et maisons rénovés par Versi Immobilier à Lille. Diagnostics complets. Garantie décennale.
+              Appartements et biens mixtes à Lille. Dossier complet — diagnostics, historique, garanties — disponible avant la visite.
             </p>
 
             {/* Filters */}
@@ -166,8 +166,11 @@ export default function PropertiesPage() {
                 padding: 'var(--spacing-4xl) var(--spacing-lg)',
                 color: 'var(--color-text-muted)',
               }}>
+                <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                  Nos biens partent vite.
+                </p>
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                  Aucun bien disponible à date. Nos acquisitions vont vite — soyez notifié en avant-première.
+                  Laissez-nous votre contact — nous vous prévenons avant la mise en ligne.
                 </p>
                 <Link to="/contact" className="text-cta" style={{
                   display: 'inline-flex',
@@ -179,7 +182,7 @@ export default function PropertiesPage() {
                   textDecoration: 'none',
                   minHeight: '44px',
                 }}>
-                  Me tenir informé
+                  Être notifié en avant-première
                 </Link>
               </div>
             ) : filtered.length > 0 ? (
@@ -199,7 +202,7 @@ export default function PropertiesPage() {
                 color: 'var(--color-text-muted)',
               }}>
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                  Aucun bien ne correspond à ces critères.
+                  Aucun bien disponible avec ces critères.
                 </p>
                 <button
                   onClick={resetFilters}
@@ -224,7 +227,7 @@ export default function PropertiesPage() {
             {sold.length > 0 && (
               <div style={{ marginTop: 'var(--spacing-4xl)' }}>
                 <h2 className="text-heading-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
-                  Déjà vendus
+                  Vendus.
                 </h2>
                 <div style={{
                   display: 'grid',
@@ -248,7 +251,7 @@ export default function PropertiesPage() {
               Vous avez un bien à céder ?
             </p>
             <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
-              Offre ferme sous 7 jours. Aucun mandat, aucune mise en vente prolongée.
+              Offre ferme sous 7 jours. Fonds propres. Aucun mandat.
             </p>
             <Link to="/vendre" className="text-cta" style={{
               display: 'inline-flex',

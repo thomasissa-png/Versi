@@ -10,7 +10,7 @@ export default function AvailableProperties() {
   return (
     <section className="featured section-padding" ref={ref}>
       <div className={`featured__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        <h2 className="text-heading-lg featured__title">Les biens disponibles.</h2>
+        <h2 className="text-heading-lg featured__title">Ce que nous proposons aujourd'hui.</h2>
 
         {available.length > 0 ? (
           <>
@@ -21,14 +21,18 @@ export default function AvailableProperties() {
             </div>
             <div className="featured__cta-wrapper">
               <Link to="/nos-biens" className="text-cta featured__cta">
-                Tous nos biens
+                Voir tous les biens
               </Link>
             </div>
           </>
         ) : (
-          <p className="text-body-lg featured__empty">
-            Aucun bien disponible pour le moment. Revenez bientôt.
-          </p>
+          <div className="featured__empty">
+            <p className="text-body-lg">Nos biens partent vite.</p>
+            <p className="text-body-lg">Inscrivez-vous pour être notifié en avant-première.</p>
+            <Link to="/contact" className="text-cta featured__cta">
+              Être notifié
+            </Link>
+          </div>
         )}
       </div>
     </section>
