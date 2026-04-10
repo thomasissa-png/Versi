@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { label: 'RÉALISATIONS', href: '/realisations' },
   { label: 'NOTRE APPROCHE', href: '/notre-approche' },
   { label: 'CONTACT', href: '/contact' },
-  { label: 'VENDRE UN BIEN', href: '/vendre' },
 ];
 
 export default function Nav() {
@@ -103,10 +102,10 @@ export default function Nav() {
         </ul>
 
         <Link to="/vendre" className="nav__cta-secondary">
-          Vendre un bien
+          Proposer un bien
         </Link>
         <Link to="/nos-biens" className="nav__cta">
-          VOIR LES BIENS
+          NOS BIENS
         </Link>
 
         <button
