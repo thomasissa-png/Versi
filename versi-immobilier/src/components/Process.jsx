@@ -10,7 +10,7 @@ const STEPS = [
   {
     number: '02',
     title: 'Vous prenez contact directement.',
-    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — celui qui a rénové le bien et qui connaît chaque détail des travaux.',
+    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — celui qui a rénové le bien et qui connaît chaque détail des travaux. Nous vous rappelons sous 48h pour organiser la visite.',
   },
   {
     number: '03',
