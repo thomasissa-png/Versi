@@ -24,7 +24,7 @@ export default function ContactPage() {
               Écrivez-nous.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
-              Vous achetez, vous cédez ou vous cherchez un partenaire. Réponse sous 24h — sans standard, sans assistant.
+              Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h — sans standard, sans assistant.
             </p>
           </div>
         </section>

@@ -88,9 +88,24 @@ export default function RealisationsPage() {
                 padding: 'var(--spacing-4xl) var(--spacing-lg)',
                 color: 'var(--color-text-muted)',
               }}>
-                <p className="text-body-lg">
-                  Nos premières réalisations seront publiées ici dans les prochaines semaines.
+                <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                  Les premières réalisations arrivent.
                 </p>
+                <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                  En attendant, les biens disponibles sont visibles sur la page des biens.
+                </p>
+                <Link to="/nos-biens" className="text-cta" style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'var(--color-charcoal-950)',
+                  color: 'var(--color-calcaire-50)',
+                  padding: '12px 32px',
+                  borderRadius: 'var(--radius-sm)',
+                  textDecoration: 'none',
+                  minHeight: '44px',
+                }}>
+                  Voir les biens disponibles
+                </Link>
               </div>
             )}
           </div>
@@ -103,7 +118,7 @@ export default function RealisationsPage() {
               Vous avez un bien à céder ?
             </p>
             <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
-              Offre ferme sous 7 jours. Aucun mandat, aucune mise en vente prolongée.
+              Offre ferme sous 7 jours. Fonds propres. Aucun mandat.
             </p>
             <Link to="/vendre" className="text-cta" style={{
               display: 'inline-flex',

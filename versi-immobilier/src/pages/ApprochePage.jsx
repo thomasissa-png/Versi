@@ -255,12 +255,12 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-calcaire-100)' }}>
           <div className="container">
             <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-xl)' }}>
-              Ce que nous instruisons.
+              Ce que nous achetons.
             </h2>
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)' }}>
-              Versi Immobilier instruit des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €,
+              Versi Immobilier acquiert des biens résidentiels et mixtes entre 250 000 € et 1 000 000 €,
               en France — Paris, Île-de-France, Lille, Lyon, Bordeaux et villes moyennes.
-              Immeubles de rapport, maisons, actifs mixtes, biens occupés ou en l'état.
+              Immeubles de rapport, maisons, biens mixtes. Biens occupés ou en l'état acceptés.
             </p>
           </div>
         </section>
@@ -269,8 +269,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)', textAlign: 'center' }}>
           <div className="container">
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)', maxWidth: 'var(--text-max-width-md)', margin: '0 auto var(--spacing-lg)' }}>
-              Versi Immobilier est l'entité marchand de biens du Groupe Versi — une holding immobilière intégrée
-              qui couvre l'ensemble du cycle de vie d'un actif.
+              Versi Immobilier est l'entité marchand de biens du Groupe Versi, holding immobilière intégrée basée à Lille.
             </p>
             <a
               href="https://versi.fr"
