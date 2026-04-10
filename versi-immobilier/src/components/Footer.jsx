@@ -16,7 +16,7 @@ export default function Footer() {
             <span className="footer__logo-label">IMMOBILIER</span>
           </Link>
           <span className="footer__tagline">
-            Marchand de biens — Lille & France
+            Marchand de biens — Hauts-de-France &amp; Île-de-France
           </span>
           <a href={`mailto:${CONTACT_EMAIL}`} className="footer__email">
             {CONTACT_EMAIL}
