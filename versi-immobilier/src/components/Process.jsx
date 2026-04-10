@@ -4,18 +4,18 @@ import './Process.css';
 const STEPS = [
   {
     number: '01',
-    title: 'Vous soumettez votre dossier.',
-    description: 'Adresse, type de bien, surface, situation locative. En ligne ou par email. Nous accusons réception sous 24h.',
+    title: 'Vous parcourez le portefeuille.',
+    description: 'Biens disponibles à la vente et en précommercialisation à Lille et en région. Chaque fiche détaille l\'opération — adresse, travaux réalisés, prix, disponibilité.',
   },
   {
     number: '02',
-    title: 'Nous instruisons.',
-    description: 'Visite du bien, analyse du marché, modélisation financière. Entièrement géré en interne — aucune délégation externe.',
+    title: 'Vous prenez contact directement.',
+    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — l\'opérateur qui a transformé le bien, qui connaît chaque détail de l\'opération.',
   },
   {
     number: '03',
-    title: 'Nous vous remettons une offre ferme.',
-    description: 'Offre d\'achat ferme et définitive sous 7 jours calendaires. Sans condition suspensive de financement. Ou refus motivé par écrit.',
+    title: 'Vous signez en sachant ce que vous achetez.',
+    description: 'Chaque bien est documenté — historique des travaux, état avant transformation, chiffres de l\'opération. Pas de surprise après la signature.',
   },
 ];
 
@@ -26,7 +26,7 @@ export default function Process() {
     <section className="process section-padding" ref={ref}>
       <div className={`process__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <h2 className="text-heading-lg process__title">
-          Trois étapes. Sept jours. Une offre ferme.
+          Trois étapes pour acquérir sans surprise.
         </h2>
         <div className="process__steps">
           {STEPS.map((step, index) => (

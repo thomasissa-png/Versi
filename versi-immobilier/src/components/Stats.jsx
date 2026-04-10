@@ -6,9 +6,9 @@ export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
   const stats = [
-    { value: '3,2M€', label: 'd\'actifs acquis' },
-    { value: '7 jours', label: 'pour une offre ferme' },
     { value: '21', label: 'opérations réalisées' },
+    { value: '3', label: 'biens disponibles maintenant' },
+    { value: '3,2M€', label: 'de volume traité' },
   ];
 
   return (

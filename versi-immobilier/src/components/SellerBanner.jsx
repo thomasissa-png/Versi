@@ -9,8 +9,10 @@ export default function SellerBanner() {
     <section className="seller-banner section-padding" ref={ref}>
       <div className={`seller-banner__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <p className="text-body-lg seller-banner__text">
-          Votre projet de cession a une contrainte temporelle ?
-          Nous instruisons en interne — et nous vous répondons en 7 jours, offre ferme ou refus motivé.
+          <strong>Vous avez un bien à céder ?</strong>
+          {' '}Offre d'achat ferme en 7 jours. Sans intermédiaire.
+          Sans condition suspensive de financement sous réserve
+          d'acceptation du dossier de crédit.
         </p>
         <Link to="/vendre" className="seller-banner__cta text-cta">
           Soumettre mon bien

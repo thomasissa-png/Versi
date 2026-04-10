@@ -4,10 +4,10 @@ import './Nav.css';
 
 const NAV_ITEMS = [
   { label: 'NOS BIENS', href: '/nos-biens' },
-  { label: 'VENDRE UN BIEN', href: '/vendre' },
-  { label: 'NOTRE APPROCHE', href: '/notre-approche' },
   { label: 'RÉALISATIONS', href: '/realisations' },
+  { label: 'NOTRE APPROCHE', href: '/notre-approche' },
   { label: 'CONTACT', href: '/contact' },
+  { label: 'VENDRE UN BIEN', href: '/vendre' },
 ];
 
 export default function Nav() {
@@ -102,8 +102,11 @@ export default function Nav() {
           ))}
         </ul>
 
-        <Link to="/vendre#formulaire" className="nav__cta">
-          SOUMETTRE MON BIEN
+        <Link to="/vendre" className="nav__cta-secondary">
+          Vendre un bien
+        </Link>
+        <Link to="/nos-biens" className="nav__cta">
+          VOIR LES BIENS
         </Link>
 
         <button
@@ -150,10 +153,10 @@ export default function Nav() {
             ))}
             <li>
               <Link
-                to="/vendre#formulaire"
+                to="/nos-biens"
                 className="nav__overlay-cta"
               >
-                SOUMETTRE MON BIEN
+                VOIR LES BIENS
               </Link>
             </li>
           </ul>
