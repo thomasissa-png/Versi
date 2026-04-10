@@ -125,23 +125,26 @@
 
 ### Positionnement
 - **Activité** : achat, transformation et revente d'actifs résidentiels et mixtes (250k–1M€) en France
-- **Différenciateur principal** : "Recevez une offre d'achat ferme et définitive en moins de 7 jours." Paiement sans condition suspensive de financement. Décision rapide.
+- **Positionnement pivot (2026-04-10)** : Versi Immobilier est la vitrine des biens à vendre et en précommercialisation. Le site présente le portefeuille d'actifs disponibles (en vente ou en cours de transformation). Le discours principal s'adresse à l'acquéreur d'un bien commercialisé par Versi Immobilier. La soumission de biens (vendeurs) reste visible mais passe en secondaire.
+- **Différenciateur principal acquéreur** : Des biens sourcés, analysés et transformés par un opérateur intégré — qualité de rénovation garantie, structuration financière possible via le groupe Versi.
+- **Différenciateur secondaire vendeur** : "Recevez une offre d'achat ferme et définitive en moins de 7 jours." Paiement sans condition suspensive de financement. Décision rapide.
 - **Track record** : 3,2M€ de volume traité à date. Chiffres issus du portefeuille Versi (35+ actifs, cf. versi.fr)
 - **Référence concurrentielle** : hestiard.fr (marchand de biens — achat, découpe, revente d'immeubles)
 - **Ton** : identique à Versi — confiant, direct, zéro blabla, premium par la substance. Vouvoiement.
 
 ### Personas
-- **Vendeur (persona principal)** : Sophie, 42 ans, propriétaire d'un bien à vendre (immeuble, maison avec terrain, multi-logements). Compare 3-4 opérateurs. Veut une offre rapide et sérieuse.
+- **Acquéreur (persona principal — PIVOT 2026-04-10)** : Acquéreur d'un bien rénové/transformé par Versi Immobilier. Particulier ou investisseur cherchant un bien de qualité, sourcé et rénové par un opérateur intégré. Le site est la vitrine des biens disponibles et en précommercialisation.
+- **Vendeur (persona secondaire — ex-principal)** : Sophie, 42 ans, propriétaire d'un bien à vendre (immeuble, maison avec terrain, multi-logements). Compare 3-4 opérateurs. Veut une offre rapide et sérieuse. La page "Soumettre un bien" reste accessible et visible, mais n'est plus le discours principal du site.
 - **Partenaire/prescripteur** : Pierre, 55 ans, agent immobilier, notaire ou courtier. Cherche un marchand de biens fiable pour ses clients.
-- **Acheteur** : particulier ou investisseur cherchant un bien rénové par Versi Immobilier.
 
-### Structure du site (multi-pages)
-- **Navigation** : NOS BIENS | VENDRE UN BIEN | RÉALISATIONS | INVESTIR | NOTRE APPROCHE | CONTACT
+### Structure du site (multi-pages) — À REVOIR POST-PIVOT
+- **Navigation actuelle** : NOS BIENS | VENDRE UN BIEN | RÉALISATIONS | INVESTIR | NOTRE APPROCHE | CONTACT
+- **Direction pivot** : Le Hero et la homepage doivent parler à l'acquéreur en priorité. "Soumettre un bien" reste en évidence dans le menu mais n'est plus le discours dominant. La page NOS BIENS et les fiches biens deviennent centrales.
 - **Pages** :
-  1. Accueil — Hero + chiffres clés + projets vedettes + process + bandeau vendeur + témoignages
-  2. Nos biens — grille filtrable des biens en vente (placeholders, facile à alimenter)
+  1. Accueil — Hero acquéreur + biens vedettes + chiffres clés + process + bandeau vendeur (secondaire) + témoignages
+  2. Nos biens — grille filtrable des biens en vente et en précommercialisation (page centrale)
   3. Fiche bien — détail d'un bien (galerie, caractéristiques, prix, CTA contact)
-  4. Vendre un bien — page dédiée vendeurs ("Offre ferme en 7 jours") + formulaire spécifique
+  4. Soumettre un bien — page dédiée vendeurs ("Offre ferme en 7 jours") + formulaire spécifique (conservée, secondaire)
   5. Réalisations — grille des projets terminés (avant/après, chiffres)
   6. Fiche réalisation — détail opération (galerie, chiffres, description)
   7. Investir — page passerelle vers versi-invest.fr
