@@ -16,7 +16,8 @@
 .featured__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--spacing-lg);
+  gap: var(--spacing-xl);
+  max-width: 1200px;
 }
 
 .featured__cta-wrapper {

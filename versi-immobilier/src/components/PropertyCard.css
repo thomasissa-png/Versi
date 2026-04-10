@@ -24,7 +24,7 @@
 
 .property-card__image {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   position: relative;
   background: linear-gradient(135deg, var(--color-calcaire-50), var(--color-stone-200));
 }
@@ -106,7 +106,11 @@
 }
 
 @media (min-width: 1280px) {
+  .property-card {
+    max-width: 400px;
+  }
+
   .property-card__image {
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 16 / 10;
   }
 }
