@@ -10,8 +10,8 @@ export default function SellerBanner() {
       <div className={`seller-banner__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <p className="text-body-lg seller-banner__text">
           <strong>Vous avez un bien à vendre à Lille ?</strong>
-          {' '}Versi Immobilier achète en direct, sans intermédiaire.
-          Offre ferme sous 7 jours. Pas de mandat, pas d'agent.
+          {' '}Versi Immobilier achète en direct auprès des propriétaires.
+          Offre ferme sous 7 jours. Aucun mandat, aucune mise en vente prolongée.
         </p>
         <Link to="/vendre" className="seller-banner__cta text-cta">
           Nous parler de votre bien →

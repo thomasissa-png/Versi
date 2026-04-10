@@ -16,15 +16,15 @@ export default function Hero() {
           VERSI IMMOBILIER — LILLE
         </span>
         <h1 className="hero__title text-display">
-          On l'a rénové.
+          On connaît chaque mur.
           <br />
           On vous le vend, en direct.
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Trois appartements à Lille. Pas d'agence, pas d'intermédiaire.
+          Des appartements à Lille, vendus en direct par celui qui les a portés.
           <br />
-          Vous parlez à celui qui connaît chaque mur.
+          Vous parlez au propriétaire — pas à un intermédiaire.
         </p>
         <div className="hero__ctas">
           <Link to="/nos-biens" className="hero__cta-primary">

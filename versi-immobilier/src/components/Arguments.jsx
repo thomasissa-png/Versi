@@ -2,9 +2,9 @@ import { useFadeIn } from '../hooks/useFadeIn.js';
 
 const ARGUMENTS = [
   {
-    title: 'Nous avons rénové ce bien.',
+    title: 'Nous portons le bien de bout en bout.',
     description:
-      'Chaque bien que vous voyez ici, nous l\'avons acheté, transformé et documenté. Vous parlez au propriétaire-vendeur — pas à un agent qui lit une fiche.',
+      'Chaque bien que vous voyez ici, nous l\'avons acheté et piloté — rénové ou avec un projet défini. Vous parlez au propriétaire-vendeur, pas à un agent qui lit une fiche.',
   },
   {
     title: 'Rien n\'est caché.',
@@ -12,9 +12,9 @@ const ARGUMENTS = [
       'Diagnostics complets. Historique des travaux. Garantie décennale sur les parties structurelles. Vous recevez le dossier avant la visite, pas le jour de la signature.',
   },
   {
-    title: 'Pas d\'intermédiaire, pas de commission d\'agence.',
+    title: 'Le prix affiché est le prix.',
     description:
-      'Versi Immobilier vend en direct. Le prix affiché est le prix. Aucune commission ne s\'ajoute.',
+      'Versi vend en direct à l\'acquéreur. Pas de commission d\'agence sur votre achat. Vous traitez avec le propriétaire du bien — celui qui a pris toutes les décisions.',
   },
 ];
 
