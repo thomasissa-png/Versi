@@ -13,22 +13,20 @@ export default function Hero() {
     <section className="hero">
       <div className={`hero__content ${loaded ? 'hero__content--visible' : 'hero__content--hidden'}`}>
         <span className="hero__surtitre text-label">
-          VERSI IMMOBILIER
+          VERSI IMMOBILIER — MARCHAND DE BIENS
         </span>
         <h1 className="hero__title text-display">
-          Des appartements à Lille.
+          Peu de biens.
           <br />
-          Achetés, rénovés, vendus par leurs propriétaires.
+          Pas d'approximation.
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Versi ne mandate pas d'agent. Versi ne délègue pas les visites.
-          <br />
-          Vous traitez directement avec ceux qui ont pris chaque décision sur le bien.
+          Des appartements sélectionnés, préparés, disponibles.
         </p>
         <div className="hero__ctas">
           <Link to="/nos-biens" className="hero__cta-primary">
-            Voir les biens disponibles
+            Voir les biens
           </Link>
           <Link to="/vendre" className="hero__cta-secondary">
             Vous avez un bien à vendre ? →
