@@ -267,46 +267,52 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/resume-session-fi2yX`
+- Branche de développement : `claude/extract-project-context-n7Q8o`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-**Branche** : `claude/resume-session-fi2yX`
+**Branche** : `claude/extract-project-context-n7Q8o`
 **Date de clôture** : 2026-04-10
-**Dernier commit** : `0389ac5` — fix(nav): add APPROCHE between ACTIVITÉS and ÉQUIPE
+**Dernier commit** : `a130ec3` — feat(vi): PropertyDetailPage — features, emplacement, prix, diagnostics
 
-**Résumé session** : Rebase de la branche sur `claude/continue-orchestration-plan-BRzum` (branche validée fondateur) après détection d'une régression (textes versi.fr perdus). Cherry-pick de tout versi-immobilier. Alignement Hero versi-immobilier sur le pattern validé versi.fr (fade global 300ms). Nav versi.fr corrigée (IMPLANTATION retiré, APPROCHE ajouté). Config .replit pour builder les 2 sites. Corrections P0+P1 versi-immobilier (copy, design, stats 21 opérations).
+**Résumé session (versi-s4)** : Session majeure. Pivot acquéreur complet de versi-immobilier.fr — le persona principal passe de vendeur (Sophie) à acquéreur (primo-accédant/famille). Creative rethink complet : Hero "Peu de biens. Pas d'approximation.", brand voice adapté (sujet = bien/acheteur, pas Versi), copy retravaillé par @creative-strategy + @copywriter depuis les brand docs. Design audit et corrections CSS (spacing, grille, badges). Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Photos fondateurs alignées. Testeur-persona Sophie créé. 216 tests E2E PASS.
 
 **État des 2 sites** :
-- **versi.fr** : Code inchangé depuis branche validée (sauf Nav). Texte équipe = "Trois fondateurs. Quarante ans de terrain." Photos harmonisées. Hero fade global 300ms. Build OK.
-- **versi-immobilier.fr** : Score 7,5/10 → 9,0/10 GO CONDITIONNEL. Hero aligné fade global 300ms. Stats réelles (21 opérations, "actifs acquis"). SellPage.css extrait. Build OK.
+- **versi.fr** : Photos fondateurs mises à jour (têtes alignées, luminosité Maxime corrigée). Ordre Maxime → Thomas → Carl. Reste inchangé sinon. Build OK.
+- **versi-immobilier.fr** : Pivot acquéreur implémenté. Hero "Peu de biens. Pas d'approximation." Homepage : Arguments → Biens → Stats (fond sombre) → TeamTeaser (photos réelles) → SellerBanner. Copy retravaillé depuis brand voice adapté. Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Build OK.
 
-**Fichiers non commités** :
-- `project-context.md` — mémo de reprise + historique mis à jour
-- `docs/vi-orchestration-plan.md` — statuts phases mis à jour
-- `docs/lessons-learned.md` — 6 learnings session versi-s3 ajoutés
-- `docs/founder-preferences.md` — créé (préférences fondateur consolidées)
-- `src/src/components/Mission.css` — fix titre 3 lignes mobile (font-size 1.5rem)
+**Travail restant — PROCHAINE SESSION** :
 
-**PROPAGATION EN ATTENTE** : 1 learning P0 (vérification de branche en début de session) ciblant CLAUDE.md + orchestrator.md — trop structurel pour fin de session, à propager en début de prochaine session.
+1. **BACK OFFICE (priorité)** — @product-manager doit specer puis @fullstack implémenter :
+   - Admin protégé par mot de passe (allezpsg)
+   - Interface pour ajouter/archiver des biens ET des réalisations
+   - Upload texte + photos, bouton ajouter/archiver
+   - BDD PostgreSQL Replit
+   - Images stockées en base ou sur le filesystem Replit
+   - 3 admins (les 3 fondateurs)
+   - Notifications email aux inscrits quand nouveau bien ajouté
+   - Même interface pour biens en vente ET réalisations (projets terminés)
 
-**Travail restant** :
-1. **Commit + push** — fichiers non commités ci-dessus
-2. **Déploiement versi.fr** — Replit cherche `src/dist` malgré config autoscale. Build produit le dossier mais le déploiement échoue. Vérifier config dans l'UI Replit.
-3. **Bloc réassurance prix** sur /vendre — fondateur doit checker le wording proposé
-4. **Fiches réalisations** — placeholders conservés, données réelles à venir
-5. **Phase 0b** — @agent-factory testeur-persona Sophie EN ATTENTE
-6. **Phase 5** — testeur-persona Sophie GP1-GP10 EN ATTENTE
-7. **@qa** — tests E2E EN ATTENTE
-8. **WCAG exhaustive audit** — identifié en re-review comme action restante
-9. **Propagation P0** — règle vérification branche → CLAUDE.md + orchestrator.md
+2. **InvestirPage** — page faible (6,5/10), nécessite validation fondateur sur les chiffres co-investissement
+
+3. **Déploiement Replit** — problème `src/dist` non résolu
+
+4. **Données réelles** — remplacer les placeholders dans properties.js par les vraies données des biens (adresses, photos, descriptions)
+
+5. **Design audit en cours** — @design a produit des corrections CSS (spacing, breakpoints) qui sont commitées. Vérifier le rendu visuel desktop + mobile.
+
+6. **Tests E2E** — relancer après toutes les modifications de cette session
 
 **Décisions fondateur cette session** :
-- Branche validée = `claude/continue-orchestration-plan-BRzum` (pas l'autre)
-- Hero = fade global 300ms (pas cascade 6 éléments) — sur les 2 sites
-- Nav versi.fr = VISION | ACTIVITÉS | APPROCHE | ÉQUIPE | CONTACT (pas IMPLANTATION)
-- Stats = 21 opérations, "actifs acquis"
-- INVESTIR retiré du menu versi-immobilier (conservé en footer)
+- Pivot : acquéreur = persona principal, vendeur = secondaire
+- Hero validé : "Peu de biens. Pas d'approximation."
+- Régions : Hauts-de-France ET Île-de-France (pas "Lille" seul)
+- Prix : toujours net vendeur
+- Ordre fondateurs : Maxime → Thomas → Carl partout
+- Descriptions fondateurs : identiques à versi.fr
+- Pas anti-agence dans le copy (Pierre = persona secondaire)
+- "Rénové" trop restrictif — Versi vend aussi des biens avec projet de rénovation
+- Back office : admin custom avec mdp, PostgreSQL Replit, 3 admins, notifications email
 
-**Prompt de reprise** : `Lis project-context.md (mémo de reprise + historique interventions) et docs/vi-orchestration-plan.md. Priorité : résoudre le déploiement Replit versi.fr, puis continuer Phase 0b (testeur-persona Sophie) et Phase 5 (audit final).`
+**Prompt de reprise** : `Lis project-context.md (mémo de reprise). Priorité : @product-manager spec back office (admin biens + réalisations, PostgreSQL, notifications), puis @fullstack implémentation. Vérifier aussi le rendu desktop/mobile post-corrections CSS.`
