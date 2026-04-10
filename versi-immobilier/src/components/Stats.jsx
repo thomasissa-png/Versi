@@ -6,9 +6,9 @@ export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
   const stats = [
-    { value: '21', label: 'rénovations terminées' },
-    { value: '3', label: 'biens disponibles maintenant' },
-    { value: '3,2M€', label: 'de volume traité' },
+    { value: '21', label: 'appartements transformés' },
+    { value: '3', label: 'biens à vendre' },
+    { value: '3,2M€', label: 'd\'opérations depuis 2022' },
   ];
 
   return (

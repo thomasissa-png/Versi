@@ -14,11 +14,11 @@ export default function TeamTeaser() {
     <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={ref}>
       <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-          Qui sommes-nous.
+          Versi Immobilier, c'est trois associés.
         </h2>
         <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-          Trois fondateurs. Pas d'intermédiaire. Vous traitez directement
-          avec celui qui a rénové le bien.
+          Pas une agence. Pas un fonds. Trois personnes qui ont rénové
+          ces appartements et qui vous reçoivent elles-mêmes.
         </p>
         <div style={{
           display: 'grid',

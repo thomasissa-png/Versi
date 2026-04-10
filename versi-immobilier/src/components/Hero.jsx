@@ -13,22 +13,22 @@ export default function Hero() {
     <section className="hero">
       <div className={`hero__content ${loaded ? 'hero__content--visible' : 'hero__content--hidden'}`}>
         <span className="hero__surtitre text-label">
-          MARCHAND DE BIENS — LILLE
+          VERSI IMMOBILIER — LILLE
         </span>
         <h1 className="hero__title text-display">
-          Avant le marché.
+          On l'a rénové.
           <br />
-          Sans les risques.
+          On vous le vend, en direct.
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Des appartements et maisons rénovés, vendus directement
-          par celui qui les a transformés. Vous savez ce que vous
-          achetez avant de signer.
+          Trois appartements à Lille. Pas d'agence, pas d'intermédiaire.
+          <br />
+          Vous parlez à celui qui connaît chaque mur.
         </p>
         <div className="hero__ctas">
           <Link to="/nos-biens" className="hero__cta-primary">
-            Voir les biens disponibles
+            Voir les appartements disponibles
           </Link>
           <Link to="/vendre" className="hero__cta-secondary">
             Vous avez un bien à céder →

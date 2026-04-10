@@ -9,13 +9,12 @@ export default function SellerBanner() {
     <section className="seller-banner section-padding" ref={ref}>
       <div className={`seller-banner__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <p className="text-body-lg seller-banner__text">
-          <strong>Vous avez un bien à céder ?</strong>
-          {' '}Offre d'achat ferme en 7 jours. Sans intermédiaire.
-          Sans condition suspensive de financement sous réserve
-          d'acceptation du dossier de crédit.
+          <strong>Vous avez un bien à vendre à Lille ?</strong>
+          {' '}Versi Immobilier achète en direct, sans intermédiaire.
+          Offre ferme sous 7 jours. Pas de mandat, pas d'agent.
         </p>
         <Link to="/vendre" className="seller-banner__cta text-cta">
-          Soumettre mon bien
+          Nous parler de votre bien →
         </Link>
       </div>
     </section>
