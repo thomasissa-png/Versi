@@ -45,10 +45,7 @@ export default function RealisationsPage() {
             </p>
 
             {/* Stats */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 'var(--spacing-xl)',
+            <div className="realisations__stats" style={{
               background: 'var(--color-bg-dark)',
               padding: 'var(--spacing-2xl)',
               borderRadius: 'var(--card-radius)',
@@ -73,11 +70,7 @@ export default function RealisationsPage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)', paddingTop: 0 }} ref={gridRef}>
           <div className={`container ${gridVisible ? 'fade-in' : 'fade-hidden'}`}>
             {completed.length > 0 ? (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 'var(--spacing-xl)',
-              }}>
+              <div className="realisations__grid">
                 {completed.map((project) => (
                   <ProjectCard key={project.id} project={project} />
                 ))}
@@ -137,16 +130,6 @@ export default function RealisationsPage() {
       </main>
       <Footer />
 
-      <style>{`
-        @media (max-width: 767px) {
-          div[style*="grid-template-columns: repeat(3, 1fr)"] {
-            grid-template-columns: 1fr !important;
-          }
-          div[style*="grid-template-columns: repeat(2, 1fr)"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

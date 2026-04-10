@@ -92,7 +92,7 @@ export default function PropertiesPage() {
               alignItems: 'end',
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-type" className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+                <label htmlFor="filter-type" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
                   Type de bien
                 </label>
                 <select
@@ -108,7 +108,7 @@ export default function PropertiesPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-location" className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+                <label htmlFor="filter-location" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
                   Localisation
                 </label>
                 <select
@@ -124,7 +124,7 @@ export default function PropertiesPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-budget" className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+                <label htmlFor="filter-budget" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
                   Budget
                 </label>
                 <select
@@ -226,7 +226,7 @@ export default function PropertiesPage() {
             {/* Sold properties — separate section */}
             {sold.length > 0 && (
               <div style={{ marginTop: 'var(--spacing-4xl)' }}>
-                <h2 className="text-heading-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
+                <h2 className="text-heading-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
                   Vendus.
                 </h2>
                 <div style={{

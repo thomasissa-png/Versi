@@ -82,12 +82,7 @@ export default function PropertyDetailPage() {
             </Link>
 
             {/* Gallery placeholder */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr',
-              gap: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-2xl)',
-            }}>
+            <div className="property-detail__gallery">
               <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3' }}>
                 Photo principale
               </div>
@@ -101,12 +96,7 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 380px',
-              gap: 'var(--spacing-3xl)',
-              alignItems: 'start',
-            }}>
+            <div className="property-detail__layout">
               {/* Left: Details */}
               <div>
                 <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
@@ -372,16 +362,6 @@ export default function PropertyDetailPage() {
       </main>
       <Footer />
 
-      <style>{`
-        @media (max-width: 767px) {
-          .container > div[style*="grid-template-columns: 2fr 1fr"] {
-            grid-template-columns: 1fr !important;
-          }
-          .container > div[style*="grid-template-columns: 1fr 380px"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </>
   );
 }
