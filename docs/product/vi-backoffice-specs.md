@@ -868,10 +868,335 @@ export function ProtectedRoute({ children }) {
 
 ## 10. User stories
 
-<!-- Section remplie en Edit -->
+> Persona admin : **Thomas** (ou Maxime ou Carl — les 3 fondateurs utilisent le même accès)
+> Persona public : **Acquéreur** (l'utilisateur du site public qui s'inscrit aux alertes)
+
+---
+
+### US-BO-01 : Se connecter à l'interface admin
+
+**Persona** : Thomas (co-fondateur, admin)
+**Epic** : Authentification
+**Dépendances** : Aucune
+**Priorité** : P0 — bloquante pour tout le reste
+
+#### Job-to-be-done
+En tant que Thomas, je veux me connecter à l'interface admin avec le mot de passe partagé afin d'accéder aux fonctions de gestion des biens et réalisations.
+
+#### Contexte de navigation
+- **Page d'origine** : `/admin` (redirection automatique) ou navigation directe vers `/admin/login`
+- **Déclencheur** : Token absent, expiré, ou navigation directe vers `/admin/login`
+- **Page de destination (succès)** : `/admin/biens`
+- **Page de destination (échec)** : Reste sur `/admin/login` avec message d'erreur
+
+#### Données et champs
+| Champ | Type | Obligatoire | Validation | Limites | Exemple |
+|---|---|---|---|---|---|
+| password | string (password) | Oui | Comparaison exacte avec ADMIN_PASSWORD | N/A | allezpsg |
+
+#### 5 états UI
+| État | Comportement | Message/Affichage |
+|---|---|---|
+| Défaut | Champ password vide, focus automatique | Label "Mot de passe" + bouton "Se connecter" actif |
+| Loading | Après soumission, avant réponse API | Bouton désactivé, texte "Connexion..." |
+| Vide | N/A (pas de liste) | N/A |
+| Erreur | Réponse 401 reçue | Message rouge sous le champ : "Mot de passe incorrect." |
+| Succès | Réponse 200 avec token | Redirection immédiate vers /admin/biens |
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN l'admin est sur /admin/login WHEN il saisit "allezpsg" et soumet THEN il est redirigé vers /admin/biens
+- [ ] GIVEN l'admin est connecté (token valide dans localStorage) WHEN il navigue vers /admin THEN il est redirigé vers /admin/biens sans repasser par le formulaire
+
+**Cas d'erreur :**
+- [ ] GIVEN l'admin saisit un mauvais mot de passe WHEN il soumet THEN le message "Mot de passe incorrect." s'affiche et le champ password est vidé
+- [ ] GIVEN l'admin a un token expiré dans localStorage WHEN il navigue vers /admin/biens THEN il est redirigé vers /admin/login
+
+**Cas limites :**
+- [ ] GIVEN l'admin soumet le formulaire 10 fois avec un mauvais mdp depuis la même IP WHEN la 11e tentative est soumise THEN la réponse est 429 "Trop de tentatives. Réessayez dans 1 heure."
+- [ ] GIVEN l'admin ferme l'onglet avec un token valide WHEN il rouvre /admin THEN il est reconnecté automatiquement sans re-saisir le mdp
+
+**Permissions :**
+- [ ] GIVEN un utilisateur non connecté WHEN il accède à /admin/biens directement THEN il est redirigé vers /admin/login
+
+**Données existantes :**
+- [ ] GIVEN un token valide existe dans localStorage WHEN le serveur est redémarré THEN le token reste valide jusqu'à son expiration (persisté en BDD, pas en mémoire)
+
+---
+
+### US-BO-02 : Ajouter un nouveau bien
+
+**Persona** : Thomas
+**Epic** : Gestion des biens
+**Dépendances** : US-BO-01 (être connecté), tables BDD créées
+**Priorité** : P0
+
+#### Job-to-be-done
+En tant que Thomas, je veux ajouter un nouveau bien avec ses informations et photos afin qu'il apparaisse immédiatement sur le site public et que les inscrits reçoivent une notification email.
+
+#### Contexte de navigation
+- **Page d'origine** : `/admin/biens`
+- **Déclencheur** : Clic sur le bouton "+ Ajouter"
+- **Page de destination (succès)** : `/admin/biens` avec message flash "Bien enregistré."
+- **Page de destination (échec)** : Reste sur `/admin/biens/nouveau` avec erreurs de validation affichées
+
+#### Données et champs
+| Champ | Type | Obligatoire | Validation | Limites | Exemple |
+|---|---|---|---|---|---|
+| title | string | Oui | Non vide | max 200 chars | Appartement T3 rénové — Lille |
+| city | string | Oui | Non vide | max 100 chars | Lille |
+| location | string | Oui | Non vide | max 200 chars | Lille, Hauts-de-France |
+| neighborhood | string | Non | — | max 100 chars | Moulins |
+| address | string | Non | — | max 300 chars | 10 rue des Muguets, 59000 Lille |
+| nearby_transport | string | Non | — | max 500 chars | Métro Porte de Douai (5 min) |
+| nearby_amenities | string | Non | — | max 500 chars | Écoles, commerces |
+| type | enum | Oui | Parmi liste définie | — | Appartement |
+| surface | string | Oui | Non vide | max 20 chars | 68 m² |
+| rooms | integer | Non | >= 1 | max 20 | 3 |
+| price | string | Oui | Non vide | max 50 chars | 185 000 € |
+| price_num | integer | Oui | >= 0 | max 99999999 | 185000 |
+| price_note | string | Non | — | max 300 chars | Prix net vendeur |
+| status | enum | Oui | disponible/archive/vendu | — | disponible |
+| dpe | enum | Non | A-G ou vide | — | D |
+| description | string | Oui | Non vide | min 50 / max 2000 chars | ... |
+| works | array of strings | Non | — | max 20 items | ["Réfection électricité"] |
+| features | array of strings | Non | — | max 20 items | ["Parquet massif"] |
+| photos | array of files | Non | JPEG/PNG/WEBP, max 5 Mo | max 10 photos | salon.jpg |
+
+#### 5 états UI
+| État | Comportement | Message/Affichage |
+|---|---|---|
+| Défaut | Formulaire vide, tous champs éditables | Labels avec * sur les champs obligatoires |
+| Loading | Après clic "Enregistrer", traitement en cours | Bouton désactivé "Enregistrement...", upload photos en cours (barre de progression) |
+| Vide | N/A | N/A |
+| Erreur | Validation échouée côté client ou serveur | Message rouge sous chaque champ invalide. Exemple : "La description est obligatoire." |
+| Succès | POST /api/admin/properties → 201 | Redirection vers /admin/biens + message flash vert "Bien enregistré." |
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN Thomas remplit tous les champs obligatoires et status="disponible" WHEN il soumet THEN le bien apparaît dans /admin/biens avec statut DISPONIBLE
+- [ ] GIVEN Thomas crée un bien avec status="disponible" WHEN la création réussit THEN les inscrits actifs reçoivent un email de notification dans les 60 secondes
+- [ ] GIVEN Thomas uploader 3 photos (< 5 Mo chacune) WHEN le formulaire est soumis THEN les 3 photos sont visibles sur la fiche publique du bien
+
+**Cas d'erreur :**
+- [ ] GIVEN Thomas soumet sans remplir "title" WHEN le formulaire est soumis THEN un message "Le titre est obligatoire." apparaît sous le champ title, le formulaire n'est pas envoyé
+- [ ] GIVEN Thomas tente d'uploader un fichier PDF WHEN il sélectionne le fichier THEN un message "Format non supporté. Utilisez JPEG, PNG ou WEBP." s'affiche et le fichier est rejeté
+- [ ] GIVEN Thomas tente d'uploader une photo de 8 Mo WHEN il sélectionne le fichier THEN un message "Ce fichier dépasse 5 Mo." s'affiche et le fichier est rejeté
+
+**Cas limites :**
+- [ ] GIVEN Thomas crée un bien avec status="archive" (brouillon) WHEN il soumet THEN aucun email de notification n'est envoyé
+- [ ] GIVEN aucun inscrit dans la table subscribers WHEN Thomas crée un bien THEN aucune erreur n'est générée et le bien est créé normalement
+- [ ] GIVEN Thomas saisit des caractères spéciaux (apostrophes, accents) dans la description WHEN il soumet THEN les caractères s'affichent correctement sur le site public
+
+**Permissions :**
+- [ ] GIVEN un utilisateur non connecté WHEN il POST /api/admin/properties THEN réponse 401
+
+**Données existantes :**
+- [ ] GIVEN un bien avec le même id (slug) existe déjà WHEN Thomas crée un bien avec le même titre THEN le serveur génère un suffixe unique (ex: -a7x2) pour éviter la collision
+
+---
+
+### US-BO-03 : Modifier un bien existant
+
+**Persona** : Thomas
+**Epic** : Gestion des biens
+**Dépendances** : US-BO-01, US-BO-02
+**Priorité** : P0
+
+#### Job-to-be-done
+En tant que Thomas, je veux modifier les informations d'un bien (prix, description, photos) afin de corriger une erreur ou mettre à jour les données.
+
+#### Contexte de navigation
+- **Page d'origine** : `/admin/biens`
+- **Déclencheur** : Clic sur bouton "Éditer" sur la ligne du bien
+- **Page de destination (succès)** : `/admin/biens` avec message flash "Bien mis à jour."
+- **Page de destination (échec)** : Reste sur `/admin/biens/:id/editer` avec erreurs
+
+#### 5 états UI
+| État | Comportement | Message/Affichage |
+|---|---|---|
+| Défaut | Formulaire pré-rempli avec les données du bien | Champs éditables, titre "Modifier le bien" |
+| Loading | Pendant la récupération des données initiales | Skeleton form avec champs grisés |
+| Vide | N/A | N/A |
+| Erreur | Bien introuvable (id invalide) | "Ce bien n'existe pas." + bouton retour |
+| Succès | PUT → 200 | Redirection /admin/biens + "Bien mis à jour." |
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN Thomas modifie le prix d'un bien WHEN il sauvegarde THEN le nouveau prix s'affiche sur le site public
+- [ ] GIVEN Thomas ajoute une photo à un bien existant WHEN il sauvegarde THEN la photo apparaît dans la galerie de la fiche bien publique
+- [ ] GIVEN Thomas supprime une photo d'un bien WHEN il clique [Suppr.] sur la photo THEN la photo disparaît immédiatement de l'aperçu et est supprimée en BDD
+
+**Cas d'erreur :**
+- [ ] GIVEN Thomas vide le champ titre et sauvegarde THEN message "Le titre est obligatoire." sous le champ, formulaire non soumis
+
+**Cas limites :**
+- [ ] GIVEN Thomas modifie un bien mais sa session a expiré pendant la saisie WHEN il tente de sauvegarder THEN réponse 401, message "Session expirée. Reconnectez-vous." et redirection /admin/login
+- [ ] GIVEN Thomas double-clique sur "Enregistrer" THEN un seul appel API est envoyé (bouton désactivé après le premier clic)
+
+**Permissions :**
+- [ ] GIVEN un utilisateur non connecté WHEN il PUT /api/admin/properties/:id THEN réponse 401
+
+**Données existantes :**
+- [ ] GIVEN le bien a des photos existantes WHEN Thomas ouvre le formulaire d'édition THEN les photos existantes sont affichées avec leur aperçu et un bouton Supprimer
+
+---
+
+### US-BO-04 : Archiver ou marquer comme vendu un bien
+
+**Persona** : Thomas
+**Epic** : Gestion des biens
+**Dépendances** : US-BO-01, US-BO-02
+**Priorité** : P0
+
+#### Job-to-be-done
+En tant que Thomas, je veux archiver ou marquer comme vendu un bien afin qu'il ne soit plus visible dans la liste des biens disponibles sur le site public (sans le supprimer).
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN un bien avec status="disponible" WHEN Thomas clique [Archiver] THEN son statut passe à "archive" et il disparaît de `/api/public/properties?status=disponible`
+- [ ] GIVEN un bien avec status="disponible" WHEN Thomas clique [Vendu] THEN son statut passe à "vendu"
+- [ ] GIVEN un bien avec status="archive" WHEN Thomas clique [Restaurer] THEN son statut repasse à "disponible" et le bien réapparaît sur le site public
+
+**Cas d'erreur :**
+- [ ] GIVEN Thomas tente d'archiver un bien déjà archivé THEN réponse 400 "Ce bien est déjà archivé."
+
+**Cas limites :**
+- [ ] GIVEN Thomas restaure un bien archivé WHEN il restaure THEN aucun email de notification n'est envoyé (pour éviter le spam — la notification ne s'envoie qu'à la création)
+
+---
+
+### US-BO-05 : Ajouter une réalisation
+
+**Persona** : Thomas
+**Epic** : Gestion des réalisations
+**Dépendances** : US-BO-01
+**Priorité** : P0
+
+#### Job-to-be-done
+En tant que Thomas, je veux ajouter une réalisation terminée ou en cours afin d'enrichir le track record affiché sur le site.
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN Thomas remplit title, city, type, surface, status="completed" et description WHEN il soumet THEN la réalisation apparaît dans /admin/realisations
+- [ ] GIVEN Thomas crée une réalisation avec status="in-progress" et sell_price vide WHEN il soumet THEN la réalisation s'affiche avec le label "En cours" et sans prix de vente
+
+**Cas d'erreur :**
+- [ ] GIVEN Thomas soumet sans remplir "title" THEN message "Le titre est obligatoire." sous le champ
+
+---
+
+### US-BO-06 : S'inscrire aux alertes biens (site public)
+
+**Persona** : Acquéreur (site public versi-immobilier.fr)
+**Epic** : Notifications
+**Dépendances** : Table subscribers créée
+**Priorité** : P1
+
+#### Job-to-be-done
+En tant qu'acquéreur potentiel, je veux m'inscrire aux alertes email afin d'être informé en premier quand un nouveau bien est disponible.
+
+#### Contexte de navigation
+- **Page d'origine** : Page biens ou footer versi-immobilier.fr
+- **Déclencheur** : Saisie email + clic "Je m'inscris"
+- **Page de destination (succès)** : Même page, message de confirmation inline
+- **Page de destination (échec)** : Même page, message d'erreur inline
+
+#### 5 états UI
+| État | Comportement | Message/Affichage |
+|---|---|---|
+| Défaut | Champ email vide + bouton actif | Placeholder "Votre email" |
+| Loading | Après soumission | Bouton désactivé "..." |
+| Vide | N/A | N/A |
+| Erreur | Email invalide ou erreur serveur | "Email invalide." ou "Une erreur est survenue. Réessayez." |
+| Succès | 200 reçu | Message inline : "Vous serez notifié à l'arrivée du prochain bien." Champ et bouton masqués |
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN un acquéreur saisit un email valide WHEN il soumet THEN son email est enregistré dans subscribers et le message de confirmation s'affiche
+- [ ] GIVEN un email déjà inscrit est re-soumis THEN réponse 200 OK sans message d'erreur (INSERT ... ON CONFLICT DO NOTHING)
+
+**Cas d'erreur :**
+- [ ] GIVEN l'acquéreur saisit "notvalid" WHEN il soumet THEN message "Email invalide." sous le champ
+
+**Cas limites :**
+- [ ] GIVEN l'acquéreur soumet deux fois rapidement THEN un seul enregistrement en base (deduplication par UNIQUE constraint)
 
 ---
 
 ## 11. Handoff → @fullstack
 
-<!-- Section remplie en Edit -->
+---
+
+**Handoff → @fullstack**
+
+**Fichiers produits :**
+- `/home/user/Versi/docs/product/vi-backoffice-specs.md` (ce fichier)
+
+**Stack à respecter :**
+- React 19 + Vite 8 + React Router (frontend admin — nouvelles routes `/admin/*`)
+- Express 5 + Node.js (nouveaux endpoints dans `versi-immobilier/server.js`)
+- PostgreSQL via `process.env.DATABASE_URL` — lib recommandée : `pg` (déjà disponible ou à ajouter)
+- Resend déjà configuré dans server.js — réutiliser l'instance existante
+- CSS inline ou fichier `admin.css` minimaliste — pas de lib CSS admin, pas de Tailwind dans l'admin
+
+**Ordre d'implémentation recommandé (par dépendances) :**
+
+1. **Créer les tables SQL** (section 2) — prérequis absolu
+2. **Ajouter le middleware d'auth** dans server.js (`checkAdminAuth`) — prérequis pour tous les endpoints admin
+3. **Endpoints auth** : POST /api/admin/login, POST /api/admin/logout, GET /api/admin/me
+4. **Script de migration** `scripts/migrate-seed.js` (section 8) — exécuter une fois, vérifier les données
+5. **Endpoints CRUD biens** (section 3.2, 3.3, 3.4) — lecture publique + admin
+6. **Endpoints CRUD réalisations** (section 3.5, 3.6, 3.7)
+7. **Endpoint inscription subscribers** (section 3.8)
+8. **Frontend admin** — dans cet ordre :
+   - `ProtectedRoute` (section 9.6)
+   - Routes admin dans App.jsx (section 9.5)
+   - Page login AdminLogin
+   - Layout AdminLayout (nav + outlet)
+   - AdminBiens (liste) + AdminBienForm (ajout/édition)
+   - AdminRealisations + AdminRealisationForm
+   - AdminInscrits
+9. **Widget inscription** sur le site public (footer ou section biens)
+10. **Remplacer les imports statiques** dans les composants publics par les custom hooks (section 9.2)
+
+**Points d'attention critiques :**
+
+- Les photos sont stockées en **base64 dans PostgreSQL** (table property_photos et project_photos) — le filesystem Replit est éphémère, ne jamais stocker les uploads sur disque
+- La notification email (section 7.4) doit être exécutée en **arrière-plan asynchrone** — répondre 201 immédiatement, ne pas bloquer la réponse HTTP sur l'envoi des emails
+- Le middleware `checkAdminAuth` doit être **appliqué à toutes les routes /api/admin/** sauf `/api/admin/login`
+- Le mot de passe admin est dans **`process.env.ADMIN_PASSWORD`** — ne jamais hardcoder "allezpsg" dans le code source
+- La variable `ADMIN_PASSWORD` doit être ajoutée dans les **secrets Replit** (interface Replit > Secrets)
+- Rate limiting sur `/api/admin/login` : réutiliser le mécanisme `isRateLimited()` existant avec un seuil de 10/h
+- Les slugs (id) des biens et réalisations sont **générés server-side** par slugify(title) — ne pas demander à l'admin de les saisir manuellement
+
+**Variables d'environnement à ajouter dans Replit Secrets :**
+- `ADMIN_PASSWORD` = `allezpsg`
+- `DATABASE_URL` = (fournie par Replit PostgreSQL — déjà disponible si la BDD est activée)
+
+**Fichiers modifiés (impacts sur l'existant) :**
+- `versi-immobilier/server.js` — ajout des endpoints admin + public + middleware auth
+- `versi-immobilier/src/App.jsx` (ou équivalent) — ajout routes `/admin/*`
+- Composants biens et réalisations — remplacer imports statiques par fetch API
+
+**Fichiers créés (nouveaux) :**
+- `versi-immobilier/scripts/migrate-seed.js`
+- `versi-immobilier/src/admin/AdminLogin.jsx`
+- `versi-immobilier/src/admin/AdminLayout.jsx`
+- `versi-immobilier/src/admin/AdminBiens.jsx`
+- `versi-immobilier/src/admin/AdminBienForm.jsx`
+- `versi-immobilier/src/admin/AdminRealisations.jsx`
+- `versi-immobilier/src/admin/AdminRealisationForm.jsx`
+- `versi-immobilier/src/admin/AdminInscrits.jsx`
+- `versi-immobilier/src/admin/ProtectedRoute.jsx`
+- `versi-immobilier/src/admin/admin.css`
+- `versi-immobilier/src/hooks/useProperties.js`
+- `versi-immobilier/src/hooks/useProjects.js`
+
+---
