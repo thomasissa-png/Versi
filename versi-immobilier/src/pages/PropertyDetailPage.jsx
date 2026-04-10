@@ -144,10 +144,41 @@ export default function PropertyDetailPage() {
                   {property.description}
                 </p>
 
+                {/* Features */}
+                {property.features && property.features.length > 0 && (
+                  <>
+                    <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
+                      Caractéristiques.
+                    </h2>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 'var(--spacing-sm)',
+                      marginBottom: 'var(--spacing-2xl)',
+                    }}>
+                      {property.features.map((feat) => (
+                        <span
+                          key={feat}
+                          className="text-body-sm"
+                          style={{
+                            padding: 'var(--spacing-xs) var(--spacing-md)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-sm)',
+                            color: 'var(--color-text-muted)',
+                          }}
+                        >
+                          {feat}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Travaux */}
                 {property.works && property.works.length > 0 && (
                   <>
                     <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
-                      Les travaux réalisés.
+                      Travaux réalisés.{property.renovationYear && ` Rénovation ${property.renovationYear}.`}
                     </h2>
                     <ul style={{
                       display: 'grid',
@@ -182,9 +213,55 @@ export default function PropertyDetailPage() {
                   </>
                 )}
 
-                <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  <strong>Diagnostics :</strong> Disponible sur demande
-                </p>
+                {/* Emplacement */}
+                <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
+                  Emplacement.
+                </h2>
+                <div style={{ marginBottom: 'var(--spacing-2xl)' }}>
+                  {property.address && (
+                    <p className="text-body-md" style={{ marginBottom: 'var(--spacing-sm)' }}>
+                      {property.address}
+                      {property.neighborhood && ` — quartier ${property.neighborhood}`}
+                    </p>
+                  )}
+                  {property.nearbyTransport && (
+                    <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xs)' }}>
+                      <strong>Transports :</strong> {property.nearbyTransport}
+                    </p>
+                  )}
+                  {property.nearbyAmenities && (
+                    <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+                      <strong>À proximité :</strong> {property.nearbyAmenities}
+                    </p>
+                  )}
+                </div>
+
+                {/* Diagnostics & charges */}
+                <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
+                  Diagnostics et charges.
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 'var(--spacing-sm)',
+                  marginBottom: 'var(--spacing-2xl)',
+                }}>
+                  {property.dpe && (
+                    <div>
+                      <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>DPE</span>
+                      <span className="text-body-md">{property.dpe}</span>
+                      {property.dpeNote && (
+                        <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginTop: '2px' }}>{property.dpeNote}</p>
+                      )}
+                    </div>
+                  )}
+                  {property.charges && (
+                    <div>
+                      <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Charges de copropriété</span>
+                      <span className="text-body-md">{property.charges}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Right: Price + CTA card */}
@@ -203,10 +280,20 @@ export default function PropertyDetailPage() {
                   fontSize: '2rem',
                   fontWeight: 'var(--font-weight-medium)',
                   color: 'var(--color-text-inverse)',
-                  marginBottom: 'var(--spacing-md)',
+                  marginBottom: 'var(--spacing-xs)',
                 }}>
                   {property.price}
                 </span>
+                {property.priceNote && (
+                  <span className="text-body-sm" style={{
+                    display: 'block',
+                    color: 'var(--color-text-inverse)',
+                    opacity: 0.6,
+                    marginBottom: 'var(--spacing-md)',
+                  }}>
+                    {property.priceNote}
+                  </span>
+                )}
 
                 <span style={{
                   display: 'inline-block',
