@@ -36,7 +36,7 @@ Ce projet est de complexité **moyenne-haute** (site multi-pages opérationnel, 
 ### Phase 0b — Agent testeur
 | Agent | Mission | Statut |
 |-------|---------|--------|
-| @agent-factory | Créer testeur-persona Sophie (vendeuse 42 ans) | EN ATTENTE |
+| @agent-factory | Créer testeur-persona Sophie (vendeuse 42 ans) | **DONE** (.claude/agents/testeur-persona-sophie.md) |
 
 ### Phase 1 — Conception
 | Agent | Mission | Dépendance | Statut |
