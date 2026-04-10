@@ -38,12 +38,12 @@
   --color-success: #28A745;
 
   /* --- Badges --- */
-  --badge-en-vente-bg: #28A745;
-  --badge-en-vente-text: #FFFFFF;
-  --badge-sous-offre-bg: #F59E0B;
-  --badge-sous-offre-text: #FFFFFF;
+  --badge-en-vente-bg: #1E2A23;
+  --badge-en-vente-text: #F7F5F2;
+  --badge-sous-offre-bg: #C8B9A6;
+  --badge-sous-offre-text: #1A1A1A;
   --badge-vendu-bg: #6B6560;
-  --badge-vendu-text: #FFFFFF;
+  --badge-vendu-text: #F7F5F2;
 
   /* --- Cards --- */
   --card-radius: 8px;
