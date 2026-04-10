@@ -13,7 +13,7 @@ export default function Hero() {
     <section className="hero">
       <div className={`hero__content ${loaded ? 'hero__content--visible' : 'hero__content--hidden'}`}>
         <span className="hero__surtitre text-label">
-          MARCHAND DE BIENS — FRANCE
+          MARCHAND DE BIENS — LILLE
         </span>
         <h1 className="hero__title text-display">
           Avant le marché.
@@ -22,8 +22,9 @@ export default function Hero() {
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Des biens sourcés, transformés et documentés par un opérateur
-          intégré. Disponibles à la vente et en précommercialisation à Lille.
+          Des appartements et maisons rénovés, vendus directement par
+          l'opérateur qui les a transformés. Vous savez ce que vous
+          achetez avant de signer.
         </p>
         <div className="hero__ctas">
           <Link to="/nos-biens" className="hero__cta-primary">
