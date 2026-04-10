@@ -106,10 +106,6 @@
 }
 
 @media (min-width: 1280px) {
-  .property-card {
-    max-width: 400px;
-  }
-
   .property-card__image {
     aspect-ratio: 16 / 10;
   }
