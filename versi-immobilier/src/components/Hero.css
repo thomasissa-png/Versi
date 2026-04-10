@@ -48,7 +48,7 @@
 
 .hero__accent {
   width: 48px;
-  height: 1px;
+  height: 2px;
   background: var(--color-accent);
   opacity: 0.75;
   margin-bottom: var(--spacing-xl);

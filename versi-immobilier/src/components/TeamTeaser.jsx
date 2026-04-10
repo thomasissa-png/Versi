@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useFadeIn } from '../hooks/useFadeIn.js';
+import './TeamTeaser.css';
 
 const FOUNDERS = [
   { name: 'Thomas Issa', initials: 'TI', track: '15 ans d\'expérience — 11 actifs en compte propre à Paris' },
@@ -11,73 +12,35 @@ export default function TeamTeaser() {
   const { ref, isVisible } = useFadeIn();
 
   return (
-    <section className="section-padding" style={{ background: 'var(--color-bg-secondary)' }} ref={ref}>
+    <section className="team-teaser section-padding" ref={ref}>
       <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-          Versi Immobilier, c'est trois associés.
+        <h2 className="text-heading-lg team-teaser__heading">
+          Trois associés. Chaque bien porté de l'achat à la remise des clés.
         </h2>
-        <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-          Trois personnes qui portent chaque bien de A à Z,
-          qui vous font visiter et qui vous reçoivent elles-mêmes.
+        <p className="text-body-lg team-teaser__subtitle">
+          Versi ne mandate pas d'intermédiaire. Les trois fondateurs achètent, rénovent, font visiter et négocient eux-mêmes.
         </p>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'var(--spacing-xl)',
-          marginBottom: 'var(--spacing-2xl)',
-        }}>
+        <div className="team-teaser__grid">
           {FOUNDERS.map((f) => (
-            <div key={f.name}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: 'var(--color-stone-200)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'var(--spacing-md)',
-              }}>
-                <span style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 'var(--font-weight-light)',
-                  color: 'var(--color-text-muted)',
-                }}>
+            <div key={f.name} className="team-teaser__member">
+              <div className="team-teaser__avatar">
+                <span className="team-teaser__initials">
                   {f.initials}
                 </span>
               </div>
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: 'var(--font-weight-regular)',
-                marginBottom: 'var(--spacing-xs)',
-              }}>
+              <h3 className="team-teaser__name">
                 {f.name}
               </h3>
-              <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="team-teaser__track text-body-sm">
                 {f.track}
               </p>
             </div>
           ))}
         </div>
-        <Link
-          to="/notre-approche"
-          className="text-cta"
-          style={{
-            color: 'var(--color-accent)',
-            textDecoration: 'underline',
-            textUnderlineOffset: '4px',
-          }}
-        >
+        <Link to="/notre-approche" className="text-cta team-teaser__link">
           Découvrir notre approche complète
         </Link>
       </div>
-      <style>{`
-        @media (max-width: 767px) {
-          div[style*="repeat(3, 1fr)"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

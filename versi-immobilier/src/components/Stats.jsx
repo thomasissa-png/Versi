@@ -6,9 +6,9 @@ export default function Stats() {
   const { ref, isVisible } = useFadeIn();
 
   const stats = [
-    { value: '21', label: 'appartements transformés' },
-    { value: '100%', label: 'vendus sans agence' },
-    { value: '3,2M€', label: 'd\'opérations depuis 2022' },
+    { value: '21', label: 'appartements transformés à Lille depuis 2022' },
+    { value: '100%', label: 'vendus en direct, sans agence' },
+    { value: '3,2M€', label: 'd\'opérations réalisées' },
   ];
 
   return (

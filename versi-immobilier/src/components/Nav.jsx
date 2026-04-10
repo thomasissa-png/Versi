@@ -101,11 +101,8 @@ export default function Nav() {
           ))}
         </ul>
 
-        <Link to="/vendre" className="nav__cta-secondary">
+        <Link to="/vendre" className="nav__cta">
           Proposer un bien
-        </Link>
-        <Link to="/nos-biens" className="nav__cta">
-          NOS BIENS
         </Link>
 
         <button
@@ -152,10 +149,10 @@ export default function Nav() {
             ))}
             <li>
               <Link
-                to="/nos-biens"
+                to="/vendre"
                 className="nav__overlay-cta"
               >
-                VOIR LES BIENS
+                PROPOSER UN BIEN
               </Link>
             </li>
           </ul>

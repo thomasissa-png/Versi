@@ -16,8 +16,8 @@ export default function HomePage() {
       <Nav />
       <main id="main-content">
         <Hero />
-        <AvailableProperties />
         <Arguments />
+        <AvailableProperties />
         <Stats />
         <TeamTeaser />
         <SellerBanner />

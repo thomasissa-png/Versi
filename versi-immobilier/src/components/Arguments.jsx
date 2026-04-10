@@ -1,10 +1,11 @@
 import { useFadeIn } from '../hooks/useFadeIn.js';
+import './Arguments.css';
 
 const ARGUMENTS = [
   {
     title: 'Nous portons le bien de bout en bout.',
     description:
-      'Chaque bien que vous voyez ici, nous l\'avons acheté et piloté — rénové ou avec un projet défini. Vous parlez au propriétaire-vendeur, pas à un agent qui lit une fiche.',
+      'Chaque bien que vous voyez ici, nous l\'avons acheté et piloté — rénové ou avec un projet défini. Vous parlez à celui qui a choisi chaque carrelage, pas à un agent qui lit une fiche.',
   },
   {
     title: 'Rien n\'est caché.',
@@ -22,37 +23,21 @@ export default function Arguments() {
   const { ref, isVisible } = useFadeIn();
 
   return (
-    <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }} ref={ref}>
+    <section className="arguments section-padding" ref={ref}>
       <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'var(--spacing-xl)',
-        }}>
+        <div className="arguments__grid">
           {ARGUMENTS.map((arg) => (
-            <div key={arg.title}>
-              <h3 style={{
-                fontSize: '1.25rem',
-                fontWeight: 'var(--font-weight-regular)',
-                marginBottom: 'var(--spacing-sm)',
-                lineHeight: 1.3,
-              }}>
+            <div key={arg.title} className="arguments__item">
+              <h3 className="arguments__title">
                 {arg.title}
               </h3>
-              <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="arguments__description text-body-sm">
                 {arg.description}
               </p>
             </div>
           ))}
         </div>
       </div>
-      <style>{`
-        @media (max-width: 767px) {
-          div[style*="repeat(3, 1fr)"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

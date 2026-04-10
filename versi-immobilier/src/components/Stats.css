@@ -1,5 +1,5 @@
 .stats {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-dark);
 }
 
 .stats__inner {
@@ -17,11 +17,12 @@
 }
 
 .stats__value {
-  color: var(--color-text-primary);
+  color: var(--color-text-inverse);
 }
 
 .stats__label {
-  color: var(--color-text-muted);
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
 }
 
 /* Responsive */
