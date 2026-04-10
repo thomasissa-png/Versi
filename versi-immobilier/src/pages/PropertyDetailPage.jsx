@@ -2,7 +2,8 @@ import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PropertyCard from '../components/PropertyCard.jsx';
-import { PROPERTIES } from '../config/properties.js';
+import { useProperty } from '../hooks/useProperty.js';
+import { useProperties } from '../hooks/useProperties.js';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -14,10 +15,31 @@ const STATUS_LABELS = {
 
 export default function PropertyDetailPage() {
   const { id } = useParams();
-  const property = PROPERTIES.find((p) => p.id === id);
+  const { property, photos, loading, error } = useProperty(id);
+  const { properties: allProperties } = useProperties('disponible');
   const { ref, isVisible } = useFadeIn();
 
-  if (!property) {
+  if (loading) {
+    return (
+      <>
+        <Nav />
+        <main style={{
+          paddingTop: 'var(--nav-height)',
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
+            <p className="text-body-lg">Chargement du bien...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !property) {
     return (
       <>
         <Nav />
@@ -55,8 +77,8 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const otherProperties = PROPERTIES.filter(
-    (p) => p.id !== id && p.status === 'disponible'
+  const otherProperties = allProperties.filter(
+    (p) => p.id !== id
   ).slice(0, 3);
 
   return (
@@ -81,19 +103,55 @@ export default function PropertyDetailPage() {
               ← Nos biens
             </Link>
 
-            {/* Gallery placeholder */}
+            {/* Gallery */}
             <div className="property-detail__gallery">
-              <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3' }}>
-                Photo principale
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
-                  Photo 2
-                </div>
-                <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
-                  Photo 3
-                </div>
-              </div>
+              {photos.length > 0 ? (
+                <>
+                  <img
+                    src={photos[0].url}
+                    alt={photos[0].alt || property.title}
+                    style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3', objectFit: 'cover', width: '100%' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    {photos[1] ? (
+                      <img
+                        src={photos[1].url}
+                        alt={photos[1].alt || `${property.title} — photo 2`}
+                        style={{ flex: 1, borderRadius: 'var(--card-radius)', objectFit: 'cover', width: '100%' }}
+                      />
+                    ) : (
+                      <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                        Photo 2
+                      </div>
+                    )}
+                    {photos[2] ? (
+                      <img
+                        src={photos[2].url}
+                        alt={photos[2].alt || `${property.title} — photo 3`}
+                        style={{ flex: 1, borderRadius: 'var(--card-radius)', objectFit: 'cover', width: '100%' }}
+                      />
+                    ) : (
+                      <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                        Photo 3
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3' }}>
+                    Photo principale
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                      Photo 2
+                    </div>
+                    <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
+                      Photo 3
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="property-detail__layout">

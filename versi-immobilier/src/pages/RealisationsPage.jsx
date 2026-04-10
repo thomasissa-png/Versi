@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
-import { PROJECTS } from '../config/projects.js';
+import { useProjects } from '../hooks/useProjects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
 export default function RealisationsPage() {
+  const { projects: allProjects, loading, error } = useProjects('all');
   const { ref, isVisible } = useFadeIn();
   const { ref: gridRef, isVisible: gridVisible } = useFadeIn();
 
   const completed = useMemo(
-    () => PROJECTS.filter((p) => p.status === 'completed'),
-    []
+    () => allProjects.filter((p) => p.status === 'completed'),
+    [allProjects]
   );
 
   const avgDelay = useMemo(() => {
@@ -69,7 +70,23 @@ export default function RealisationsPage() {
         {/* Grid */}
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)', paddingTop: 0 }} ref={gridRef}>
           <div className={`container ${gridVisible ? 'fade-in' : 'fade-hidden'}`}>
-            {completed.length > 0 ? (
+            {loading ? (
+              <div style={{
+                textAlign: 'center',
+                padding: 'var(--spacing-4xl) var(--spacing-lg)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <p className="text-body-lg">Chargement des réalisations...</p>
+              </div>
+            ) : error ? (
+              <div style={{
+                textAlign: 'center',
+                padding: 'var(--spacing-4xl) var(--spacing-lg)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <p className="text-body-lg">Une erreur est survenue lors du chargement des réalisations.</p>
+              </div>
+            ) : completed.length > 0 ? (
               <div className="realisations__grid">
                 {completed.map((project) => (
                   <ProjectCard key={project.id} project={project} />

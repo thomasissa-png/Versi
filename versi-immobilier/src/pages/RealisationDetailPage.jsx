@@ -3,16 +3,38 @@ import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
-import { PROJECTS } from '../config/projects.js';
+import { useProject } from '../hooks/useProject.js';
+import { useProjects } from '../hooks/useProjects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
 export default function RealisationDetailPage() {
   const { id } = useParams();
-  const project = PROJECTS.find((p) => p.id === id);
+  const { project, photos, loading, error } = useProject(id);
+  const { projects: allProjectsRaw } = useProjects('completed');
   const { ref, isVisible } = useFadeIn();
   const [galleryView, setGalleryView] = useState('avant');
 
-  if (!project) {
+  if (loading) {
+    return (
+      <>
+        <Nav />
+        <main style={{
+          paddingTop: 'var(--nav-height)',
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl)' }}>
+            <p className="text-body-lg">Chargement de la réalisation...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !project) {
     return (
       <>
         <Nav />
@@ -57,8 +79,8 @@ export default function RealisationDetailPage() {
     { label: 'Délai offre', value: project.offerDelay ? `J+${project.offerDelay}` : null },
   ].filter((fig) => fig.value);
 
-  const otherProjects = PROJECTS.filter(
-    (p) => p.id !== id && p.status === 'completed'
+  const otherProjects = allProjectsRaw.filter(
+    (p) => p.id !== id
   ).slice(0, 2);
 
   return (
@@ -176,14 +198,37 @@ export default function RealisationDetailPage() {
                   Après
                 </button>
               </div>
-              <div className="image-placeholder" style={{
-                width: '100%',
-                height: '500px',
-                borderRadius: 'var(--card-radius)',
-                maxWidth: '1080px',
-              }}>
-                {galleryView === 'avant' ? 'Photo avant' : 'Photo après'}
-              </div>
+              {(() => {
+                const avantPhotos = photos.filter((p) => p.category === 'avant');
+                const apresPhotos = photos.filter((p) => p.category === 'apres');
+                const currentPhotos = galleryView === 'avant' ? avantPhotos : apresPhotos;
+                const currentPhoto = currentPhotos[0];
+                if (currentPhoto) {
+                  return (
+                    <img
+                      src={currentPhoto.url}
+                      alt={currentPhoto.alt || `${project.title} — ${galleryView}`}
+                      style={{
+                        width: '100%',
+                        height: '500px',
+                        borderRadius: 'var(--card-radius)',
+                        maxWidth: '1080px',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  );
+                }
+                return (
+                  <div className="image-placeholder" style={{
+                    width: '100%',
+                    height: '500px',
+                    borderRadius: 'var(--card-radius)',
+                    maxWidth: '1080px',
+                  }}>
+                    {galleryView === 'avant' ? 'Photo avant' : 'Photo après'}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Details */}

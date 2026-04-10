@@ -1,12 +1,18 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useFadeIn } from '../hooks/useFadeIn.js';
-import { PROJECTS } from '../config/projects.js';
+import { useProjects } from '../hooks/useProjects.js';
 import ProjectCard from './ProjectCard.jsx';
 import './FeaturedProjects.css';
 
 export default function FeaturedProjects() {
   const { ref, isVisible } = useFadeIn();
-  const featured = PROJECTS.filter((p) => p.featured).slice(0, 3);
+  const { projects, loading, error } = useProjects('completed');
+
+  const featured = useMemo(
+    () => projects.filter((p) => p.featured).slice(0, 3),
+    [projects]
+  );
 
   return (
     <section className="featured section-padding" ref={ref}>
@@ -16,7 +22,15 @@ export default function FeaturedProjects() {
           Chaque rénovation documentée — adresse, délais, chiffres.
         </p>
 
-        {featured.length > 0 ? (
+        {loading ? (
+          <div className="featured__empty">
+            <p className="text-body-lg">Chargement des réalisations...</p>
+          </div>
+        ) : error ? (
+          <div className="featured__empty">
+            <p className="text-body-lg">Une erreur est survenue lors du chargement.</p>
+          </div>
+        ) : featured.length > 0 ? (
           <>
             <div className="featured__grid">
               {featured.map((project) => (

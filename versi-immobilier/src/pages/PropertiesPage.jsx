@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PropertyCard from '../components/PropertyCard.jsx';
-import { PROPERTIES } from '../config/properties.js';
+import { useProperties } from '../hooks/useProperties.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
 const TYPE_OPTIONS = ['Tous', 'Appartement', 'Maison', 'Immeuble', 'Local mixte'];
@@ -17,13 +17,14 @@ const BUDGET_OPTIONS = [
 ];
 
 export default function PropertiesPage() {
+  const { properties: allProperties, loading, error } = useProperties('all');
   const [typeFilter, setTypeFilter] = useState('Tous');
   const [locationFilter, setLocationFilter] = useState('Toutes');
   const [budgetFilter, setBudgetFilter] = useState('Tous');
   const { ref, isVisible } = useFadeIn();
 
-  const available = useMemo(() => PROPERTIES.filter((p) => p.status !== 'vendu'), []);
-  const sold = useMemo(() => PROPERTIES.filter((p) => p.status === 'vendu'), []);
+  const available = useMemo(() => allProperties.filter((p) => p.status !== 'vendu'), [allProperties]);
+  const sold = useMemo(() => allProperties.filter((p) => p.status === 'vendu'), [allProperties]);
 
   const filtered = useMemo(() => {
     return available.filter((p) => {
@@ -160,7 +161,23 @@ export default function PropertiesPage() {
             </div>
 
             {/* Grid */}
-            {PROPERTIES.length === 0 ? (
+            {loading ? (
+              <div style={{
+                textAlign: 'center',
+                padding: 'var(--spacing-4xl) var(--spacing-lg)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <p className="text-body-lg">Chargement des biens...</p>
+              </div>
+            ) : error ? (
+              <div style={{
+                textAlign: 'center',
+                padding: 'var(--spacing-4xl) var(--spacing-lg)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <p className="text-body-lg">Une erreur est survenue lors du chargement des biens.</p>
+              </div>
+            ) : allProperties.length === 0 ? (
               <div style={{
                 textAlign: 'center',
                 padding: 'var(--spacing-4xl) var(--spacing-lg)',

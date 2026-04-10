@@ -1,19 +1,27 @@
 import { Link } from 'react-router-dom';
 import { useFadeIn } from '../hooks/useFadeIn.js';
-import { PROPERTIES } from '../config/properties.js';
+import { useProperties } from '../hooks/useProperties.js';
 import PropertyCard from './PropertyCard.jsx';
 import './FeaturedProjects.css';
 
 export default function AvailableProperties() {
   const { ref, isVisible } = useFadeIn();
-  const available = PROPERTIES.filter((p) => p.status !== 'vendu');
+  const { properties: available, loading, error } = useProperties('disponible');
 
   return (
     <section className="featured section-padding" ref={ref}>
       <div className={`featured__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <h2 className="text-heading-lg featured__title">Ce que nous proposons aujourd'hui.</h2>
 
-        {available.length > 0 ? (
+        {loading ? (
+          <div className="featured__empty">
+            <p className="text-body-lg">Chargement des biens...</p>
+          </div>
+        ) : error ? (
+          <div className="featured__empty">
+            <p className="text-body-lg">Une erreur est survenue lors du chargement des biens.</p>
+          </div>
+        ) : available.length > 0 ? (
           <>
             <div className="featured__grid">
               {available.map((property) => (
