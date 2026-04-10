@@ -122,10 +122,18 @@ test.describe('versi.fr — Navigation', () => {
       await page.waitForTimeout(300);
     }
 
-    // Click a nav item pointing to a section on the home page
-    const visionLink = page.locator('nav').getByText('VISION').first();
-    if (await visionLink.count() > 0) {
-      await visionLink.click();
+    // Click a visible nav item pointing to a section on the home page
+    const visionLinks = page.getByRole('link', { name: /VISION/i });
+    const count = await visionLinks.count();
+    let clicked = false;
+    for (let i = 0; i < count; i++) {
+      if (await visionLinks.nth(i).isVisible()) {
+        await visionLinks.nth(i).click();
+        clicked = true;
+        break;
+      }
+    }
+    if (clicked) {
       await page.waitForURL(/\//);
       await page.waitForTimeout(800);
       // Should be on home page
