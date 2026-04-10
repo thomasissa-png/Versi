@@ -140,18 +140,23 @@ export default function ContactForm({ subject = '' }) {
 
       <div className="contact-form__field">
         <label htmlFor="contact-objet" className="contact-form__label">
-          Objet
+          Votre projet
         </label>
-        <input
-          type="text"
+        <select
           id="contact-objet"
           name="objet"
           value={form.objet}
           onChange={handleChange}
-          placeholder="Ex : Dossier prescripteur, Question sur un bien..."
           disabled={status === 'loading'}
-          className="contact-form__input"
-        />
+          className="contact-form__select"
+        >
+          <option value="">Sélectionnez votre situation</option>
+          <option value="Je souhaite visiter un bien">Je souhaite visiter un bien</option>
+          <option value="Je cherche un appartement ou une maison">Je cherche un appartement ou une maison</option>
+          <option value="Je veux soumettre un bien à la vente">Je veux soumettre un bien à la vente</option>
+          <option value="Je suis prescripteur (notaire, agent, courtier)">Je suis prescripteur (notaire, agent, courtier)</option>
+          <option value="Autre demande">Autre demande</option>
+        </select>
       </div>
 
       <div className="contact-form__field">

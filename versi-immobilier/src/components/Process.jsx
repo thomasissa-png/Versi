@@ -15,7 +15,7 @@ const STEPS = [
   {
     number: '03',
     title: 'Vous signez en sachant ce que vous achetez.',
-    description: 'Chaque bien est documenté — historique des travaux, état avant transformation, diagnostics complets. Pas de surprise après la signature.',
+    description: 'Chaque bien est documenté — historique des travaux, diagnostics complets, garanties décennales. Vous êtes couverts 10 ans sur les travaux structurels. Pas de surprise après la signature.',
   },
 ];
 
