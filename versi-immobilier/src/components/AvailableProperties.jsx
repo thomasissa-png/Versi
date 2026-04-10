@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import { PROPERTIES } from '../config/properties.js';
 import PropertyCard from './PropertyCard.jsx';
+import './FeaturedProjects.css';
 
 export default function AvailableProperties() {
   const { ref, isVisible } = useFadeIn();
@@ -14,11 +15,7 @@ export default function AvailableProperties() {
 
         {available.length > 0 ? (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: 'var(--spacing-lg)',
-            }}>
+            <div className="featured__grid">
               {available.map((property) => (
                 <PropertyCard key={property.id} property={property} />
               ))}

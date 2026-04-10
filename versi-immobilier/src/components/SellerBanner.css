@@ -26,7 +26,7 @@
   color: var(--color-bg-dark);
   border: none;
   border-radius: var(--radius-sm);
-  padding: 16px 48px;
+  padding: var(--spacing-md) var(--spacing-2xl);
   text-decoration: none;
   transition: background-color var(--duration-normal) ease;
   min-height: 52px;
@@ -34,4 +34,10 @@
 
 .seller-banner__cta:hover {
   background: var(--color-stone-200);
+}
+
+@media (max-width: 767px) {
+  .seller-banner__cta {
+    width: 100%;
+  }
 }

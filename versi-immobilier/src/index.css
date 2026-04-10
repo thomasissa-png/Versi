@@ -279,7 +279,7 @@ ul, ol {
 /* === Section layout utility === */
 
 .section-padding {
-  padding: var(--spacing-5xl) var(--spacing-2xl);
+  padding: var(--spacing-3xl) var(--spacing-2xl);
   scroll-margin-top: var(--nav-height);
 }
 
@@ -376,6 +376,6 @@ ul, ol {
   }
 
   .section-padding {
-    padding: var(--spacing-4xl) var(--spacing-lg);
+    padding: var(--spacing-2xl) var(--spacing-lg);
   }
 }

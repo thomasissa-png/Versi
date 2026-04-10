@@ -1,6 +1,6 @@
 .hero {
   position: relative;
-  min-height: 100vh;
+  min-height: 70vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,7 +76,7 @@
   letter-spacing: 0.1em;
   color: var(--color-text-inverse);
   border: 1px solid rgba(247, 245, 242, 0.6);
-  padding: 16px 48px;
+  padding: var(--spacing-md) var(--spacing-2xl);
   border-radius: var(--radius-sm);
   background: rgba(247, 245, 242, 0.06);
   text-decoration: none;
@@ -98,7 +98,7 @@
   color: var(--color-text-inverse);
   opacity: var(--opacity-soft);
   text-decoration: none;
-  padding: 16px;
+  padding: var(--spacing-md);
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -128,7 +128,7 @@
 /* Responsive */
 @media (max-width: 767px) {
   .hero {
-    min-height: 100svh;
+    min-height: 65svh;
   }
 
   .hero__title {

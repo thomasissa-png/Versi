@@ -75,8 +75,15 @@
   text-underline-offset: 4px;
 }
 
+@media (max-width: 1023px) {
+  .team-teaser__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 767px) {
   .team-teaser__grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-2xl);
   }
 }

@@ -33,11 +33,11 @@
   position: absolute;
   top: var(--spacing-md);
   left: var(--spacing-md);
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 6px 12px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
 }
 
@@ -57,15 +57,15 @@
 }
 
 .property-card__body {
-  padding: 16px 20px;
+  padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .property-card__location {
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: var(--font-size-body-sm);
 }
 
 .property-card__title {

@@ -1,5 +1,5 @@
 .featured {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
 }
 
 .featured__title {
@@ -46,7 +46,7 @@
   }
 }
 
-@media (max-width: 599px) {
+@media (max-width: 767px) {
   .featured__grid {
     grid-template-columns: 1fr;
   }
