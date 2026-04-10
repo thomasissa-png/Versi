@@ -216,7 +216,7 @@ export default function RealisationDetailPage() {
             </div>
 
             <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
-              L'opération.
+              La rénovation.
             </h2>
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', lineHeight: 1.65, maxWidth: 'var(--text-max-width-lg)', marginBottom: 'var(--spacing-3xl)' }}>
               {project.description}

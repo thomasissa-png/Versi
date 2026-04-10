@@ -21,8 +21,8 @@ const PROCESS_STEPS = [
   },
   {
     number: '04',
-    title: 'Transformer et opérer',
-    description: 'De la réhabilitation à la revente ou à la mise en location — chaque opération est suivie jusqu\'à sa sortie. Les réalisations documentées sur ce site en sont la preuve.',
+    title: 'Transformer et livrer',
+    description: 'De la réhabilitation à la revente ou à la mise en location — chaque projet est suivi jusqu\'à sa livraison. Les réalisations documentées sur ce site en sont la preuve.',
   },
 ];
 
@@ -36,8 +36,8 @@ const DIFFERENTIATORS = [
     description: 'Versi Immobilier est l\'entité marchand de biens du Groupe Versi. La structuration financière se fait en interne (Groupe Versi). Notre capacité d\'achat ne dépend pas d\'un crédit bancaire tiers.',
   },
   {
-    title: 'Une équipe identifiée, pas un opérateur anonyme.',
-    description: 'Les trois fondateurs de Versi Immobilier ont des parcours vérifiables. 15 ans, 13 ans, 14 ans d\'expérience opérationnelle en gestion d\'actifs, structuration commerciale, stratégie produit. Ils sont disponibles en direct — pas derrière un standard.',
+    title: 'Une équipe identifiée, pas un intermédiaire anonyme.',
+    description: 'Les trois fondateurs de Versi Immobilier ont des parcours vérifiables. 15 ans, 13 ans, 14 ans d\'expérience en immobilier, stratégie commerciale et gestion de projets. Ils sont disponibles en direct — pas derrière un standard.',
   },
 ];
 

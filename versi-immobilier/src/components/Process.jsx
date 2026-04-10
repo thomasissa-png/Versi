@@ -5,17 +5,17 @@ const STEPS = [
   {
     number: '01',
     title: 'Vous parcourez le portefeuille.',
-    description: 'Biens disponibles à la vente et en précommercialisation à Lille et en région. Chaque fiche détaille l\'opération — adresse, travaux réalisés, prix, disponibilité.',
+    description: 'Biens disponibles à la vente et en précommercialisation à Lille et en région. Chaque fiche détaille le bien — adresse, travaux réalisés, prix, disponibilité.',
   },
   {
     number: '02',
     title: 'Vous prenez contact directement.',
-    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — l\'opérateur qui a transformé le bien, qui connaît chaque détail de l\'opération.',
+    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — celui qui a rénové le bien et qui connaît chaque détail des travaux.',
   },
   {
     number: '03',
     title: 'Vous signez en sachant ce que vous achetez.',
-    description: 'Chaque bien est documenté — historique des travaux, état avant transformation, chiffres de l\'opération. Pas de surprise après la signature.',
+    description: 'Chaque bien est documenté — historique des travaux, état avant transformation, diagnostics complets. Pas de surprise après la signature.',
   },
 ];
 

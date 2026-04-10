@@ -24,7 +24,7 @@ export default function ContactPage() {
               Parlons de votre projet.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
-              Vous êtes propriétaire, prescripteur ou investisseur. Écrivez-nous directement.
+              Vous achetez, vous vendez ou vous cherchez un partenaire. Écrivez-nous directement.
             </p>
           </div>
         </section>

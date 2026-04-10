@@ -22,7 +22,7 @@ export default function RealisationsPage() {
   }, [completed]);
 
   const stats = [
-    { value: `${completed.length}`, label: 'opérations terminées' },
+    { value: `${completed.length}`, label: 'rénovations terminées' },
     { value: '3,2M€', label: 'de volume traité' },
     { value: avgDelay ? `${avgDelay} jours` : '—', label: 'délai moyen' },
   ];
@@ -41,7 +41,7 @@ export default function RealisationsPage() {
               Réalisations.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Chaque opération documentée — adresse, délais, chiffres. Aucun chiffre inventé.
+              Chaque rénovation documentée — adresse, délais, chiffres. Aucun chiffre inventé.
             </p>
 
             {/* Stats */}

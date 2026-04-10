@@ -13,7 +13,7 @@ export default function FeaturedProjects() {
       <div className={`featured__inner container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <h2 className="text-heading-lg featured__title">Réalisations récentes.</h2>
         <p className="text-body-lg featured__intro">
-          Chaque opération documentée — adresse, délais, chiffres.
+          Chaque rénovation documentée — adresse, délais, chiffres.
         </p>
 
         {featured.length > 0 ? (

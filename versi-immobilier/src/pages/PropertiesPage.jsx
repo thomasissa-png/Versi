@@ -22,8 +22,11 @@ export default function PropertiesPage() {
   const [budgetFilter, setBudgetFilter] = useState('Tous');
   const { ref, isVisible } = useFadeIn();
 
+  const available = useMemo(() => PROPERTIES.filter((p) => p.status !== 'vendu'), []);
+  const sold = useMemo(() => PROPERTIES.filter((p) => p.status === 'vendu'), []);
+
   const filtered = useMemo(() => {
-    return PROPERTIES.filter((p) => {
+    return available.filter((p) => {
       if (typeFilter !== 'Tous' && p.type !== typeFilter) return false;
       if (locationFilter !== 'Toutes') {
         if (!p.city.toLowerCase().includes(locationFilter.toLowerCase()) &&
@@ -37,7 +40,7 @@ export default function PropertiesPage() {
       }
       return true;
     });
-  }, [typeFilter, locationFilter, budgetFilter]);
+  }, [available, typeFilter, locationFilter, budgetFilter]);
 
   const hasActiveFilters = typeFilter !== 'Tous' || locationFilter !== 'Toutes' || budgetFilter !== 'Tous';
 
@@ -77,7 +80,7 @@ export default function PropertiesPage() {
               Nos biens.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Actifs résidentiels et mixtes rénovés par Versi Immobilier. Diagnostics complets. Garanties décennales.
+              Appartements et maisons rénovés par Versi Immobilier. Diagnostics complets. Garanties décennales.
             </p>
 
             {/* Filters */}
@@ -215,6 +218,24 @@ export default function PropertiesPage() {
                 >
                   Réinitialiser les filtres
                 </button>
+              </div>
+            )}
+            {/* Sold properties — separate section */}
+            {sold.length > 0 && (
+              <div style={{ marginTop: 'var(--spacing-4xl)' }}>
+                <h2 className="text-heading-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
+                  Déjà vendus
+                </h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: 'var(--spacing-lg)',
+                  opacity: 0.6,
+                }}>
+                  {sold.map((property) => (
+                    <PropertyCard key={property.id} property={property} />
+                  ))}
+                </div>
               </div>
             )}
           </div>

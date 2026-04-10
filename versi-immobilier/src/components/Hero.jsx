@@ -22,8 +22,8 @@ export default function Hero() {
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Des appartements et maisons rénovés, vendus directement par
-          l'opérateur qui les a transformés. Vous savez ce que vous
+          Des appartements et maisons rénovés, vendus directement
+          par celui qui les a transformés. Vous savez ce que vous
           achetez avant de signer.
         </p>
         <div className="hero__ctas">
