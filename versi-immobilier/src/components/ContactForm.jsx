@@ -8,6 +8,8 @@ const INITIAL_FORM = {
   email: '',
   telephone: '',
   objet: '',
+  budget: '',
+  delai: '',
   message: '',
 };
 
@@ -81,6 +83,8 @@ export default function ContactForm({ subject = '' }) {
           email: form.email,
           telephone: form.telephone,
           objet: form.objet,
+          budget: form.budget,
+          delai: form.delai,
           message: form.message,
           _honeypot: honeypot,
         }),
@@ -156,6 +160,45 @@ export default function ContactForm({ subject = '' }) {
           <option value="Je veux soumettre un bien à la vente">Je veux soumettre un bien à la vente</option>
           <option value="Je suis prescripteur (notaire, agent, courtier)">Je suis prescripteur (notaire, agent, courtier)</option>
           <option value="Autre demande">Autre demande</option>
+        </select>
+      </div>
+
+      <div className="contact-form__field">
+        <label htmlFor="contact-budget" className="contact-form__label">
+          Budget approximatif
+        </label>
+        <select
+          id="contact-budget"
+          name="budget"
+          value={form.budget || ''}
+          onChange={handleChange}
+          disabled={status === 'loading'}
+          className="contact-form__select"
+        >
+          <option value="">Optionnel</option>
+          <option value="Moins de 150 000 €">Moins de 150 000 €</option>
+          <option value="150 000 – 250 000 €">150 000 – 250 000 €</option>
+          <option value="250 000 – 400 000 €">250 000 – 400 000 €</option>
+          <option value="Plus de 400 000 €">Plus de 400 000 €</option>
+        </select>
+      </div>
+
+      <div className="contact-form__field">
+        <label htmlFor="contact-delai" className="contact-form__label">
+          Délai de projet
+        </label>
+        <select
+          id="contact-delai"
+          name="delai"
+          value={form.delai || ''}
+          onChange={handleChange}
+          disabled={status === 'loading'}
+          className="contact-form__select"
+        >
+          <option value="">Optionnel</option>
+          <option value="Immédiat">Immédiat</option>
+          <option value="3 à 6 mois">3 à 6 mois</option>
+          <option value="Plus de 6 mois">Plus de 6 mois</option>
         </select>
       </div>
 

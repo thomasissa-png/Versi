@@ -54,14 +54,28 @@ export default function ContactPage() {
                   fontWeight: 'var(--font-weight-medium)',
                   color: 'var(--color-text-inverse)',
                   textDecoration: 'none',
-                  marginBottom: 'var(--spacing-xl)',
+                  marginBottom: 'var(--spacing-md)',
                 }}
               >
                 {CONTACT_EMAIL}
               </a>
 
+              <a
+                href="tel:+33632683274"
+                style={{
+                  display: 'block',
+                  fontSize: '1.25rem',
+                  fontWeight: 'var(--font-weight-medium)',
+                  color: 'var(--color-text-inverse)',
+                  textDecoration: 'none',
+                  marginBottom: 'var(--spacing-xl)',
+                }}
+              >
+                06 32 68 32 74
+              </a>
+
               <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-md)' }}>
-                Nous accusons réception sous 24h. Visite organisée sous 72h.
+                Réponse sous 24h. Visite organisée sous 72h.
               </p>
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-2xl)' }}>

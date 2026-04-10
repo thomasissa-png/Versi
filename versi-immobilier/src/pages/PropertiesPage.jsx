@@ -80,7 +80,7 @@ export default function PropertiesPage() {
               Les biens disponibles.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Appartements et biens mixtes à Lille. Dossier complet — diagnostics, historique, garanties — disponible avant la visite.
+              Appartements et biens mixtes à Lille et métropole. Dossier complet — diagnostics, historique, garanties — disponible avant la visite. Prix de vente : généralement entre 95 000 € et 350 000 €.
             </p>
 
             {/* Filters */}

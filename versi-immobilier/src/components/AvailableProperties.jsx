@@ -27,8 +27,11 @@ export default function AvailableProperties() {
           </>
         ) : (
           <div className="featured__empty">
-            <p className="text-body-lg">Nos biens partent vite.</p>
-            <p className="text-body-lg">Inscrivez-vous pour être notifié en avant-première.</p>
+            <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-sm)' }}>Nos biens partent vite.</p>
+            <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
+              Nos dernières réalisations : Moulins, Fives, Tourcoing, Bois-Blancs. Prix de vente entre 95 000 € et 350 000 €.
+            </p>
+            <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>Laissez votre contact — nous vous prévenons avant la mise en ligne.</p>
             <Link to="/contact" className="text-cta featured__cta">
               Être notifié
             </Link>
