@@ -58,7 +58,7 @@ export default function PolitiqueConfidentialite() {
 
             <h3>2.2 Analytics</h3>
             <p>
-              Versi utilise Plausible Analytics, une solution respectueuse de la vie privée. Aucun cookie n'est déposé, aucune donnée personnelle identifiable n'est collectée, aucun suivi inter-sites n'est effectué. L'utilisation de Plausible Analytics ne nécessite pas votre consentement.
+              Versi utilise Umami Analytics, une solution respectueuse de la vie privée. Aucun cookie n'est déposé, aucune donnée personnelle identifiable n'est collectée, aucun suivi inter-sites n'est effectué. L'utilisation d'Umami Analytics ne nécessite pas votre consentement.
             </p>
           </section>
 
@@ -68,7 +68,7 @@ export default function PolitiqueConfidentialite() {
               <strong>Données du formulaire de contact :</strong> 3 ans à compter du dernier contact avec Versi.
             </p>
             <p>
-              <strong>Données analytics Plausible :</strong> données agrégées anonymes — conservation indéfinie (non personnelles).
+              <strong>Données analytics Umami :</strong> données agrégées anonymes — conservation indéfinie (non personnelles).
             </p>
           </section>
 
@@ -113,7 +113,7 @@ export default function PolitiqueConfidentialite() {
           <section className="legal-page__section">
             <h2>8. Cookies</h2>
             <p>Le site versi.fr ne dépose aucun cookie publicitaire, cookie de réseaux sociaux ou cookie de profilage comportemental.</p>
-            <p>Si Plausible Analytics est utilisé : aucun cookie n'est déposé. Aucun bandeau de consentement n'est requis.</p>
+            <p>Umami Analytics est utilisé : aucun cookie n'est déposé. Aucun bandeau de consentement n'est requis.</p>
           </section>
 
           <section className="legal-page__section">
