@@ -41,9 +41,10 @@ Replit Autoscale n'expose qu'un seul port par deploiement.
         +-- init-db.js : cree les tables si elles n'existent pas (idempotent)
         +-- server.js : Express sur PORT (defaut 3001)
               |
-              +-- Middleware hostname routing :
+              +-- Middleware hostname routing (fonction isVersiFr()) :
               |     Si hostname contient "versi-immobilier" --> sert versi-immobilier/dist/
-              |     Sinon (versi.fr ou autre)               --> sert src/dist/
+              |     Si hostname contient "versi.fr" ou "versi-fr" --> sert src/dist/
+              |     Sinon (localhost, Replit preview, etc.) --> sert versi-immobilier/dist/ (defaut)
               |
               +-- API routes /api/* (contact, sell, biens, admin, blog)
               +-- SPA fallback par hostname
@@ -83,6 +84,24 @@ Replit Autoscale n'expose qu'un seul port par deploiement.
 
 **Correction** : mise a jour de `.env.example` avec toutes les variables necessaires.
 
+### 6. Handler /api/contact multi-site
+
+**Probleme** : versi.fr et versi-immobilier.fr ont des formulaires de contact avec des champs differents (versi.fr : nom, email, telephone optionnel, message / versi-immobilier : prenom, nom, email, telephone, objet, message). Avec le serveur unifie, le meme handler recoit les requetes des deux sites.
+
+**Correction** : le handler `/api/contact` detecte le hostname et adapte la validation et le formatage de l'email. Les emails sont envoyes a des adresses differentes selon le site source (CONTACT_EMAIL pour versi-immobilier, CONTACT_EMAIL_VERSI pour versi.fr).
+
+### 8. CSP header bloquait Umami Analytics
+
+**Probleme** : le Content-Security-Policy dans server.js avait `script-src 'self'` sans autoriser `cloud.umami.is`. Le script Umami etait bloque par le navigateur.
+
+**Correction** : ajout de `https://cloud.umami.is` dans `script-src` et `connect-src` du CSP.
+
+### 7. init-db.js -- gestion d'erreur amelioree
+
+**Probleme** : si DATABASE_URL est absente ou la connexion echoue, `pool.connect()` leve une exception non capturee (hors du try/catch).
+
+**Correction** : verification explicite de DATABASE_URL avant la connexion, et `pool.connect()` place dans le bloc try/catch.
+
 ---
 
 ## Variables d'environnement (Replit Secrets)
@@ -95,7 +114,8 @@ Toutes ces variables doivent etre configurees dans Replit Secrets (jamais dans .
 | ADMIN_PASSWORD | Oui | Mot de passe admin pour le backoffice versi-immobilier |
 | RESEND_API_KEY | Oui | Cle API Resend pour l'envoi d'emails transactionnels |
 | FROM_EMAIL | Non | Adresse expeditrice (defaut: formulaire@versi-immobilier.fr) |
-| CONTACT_EMAIL | Non | Adresse de reception des formulaires (defaut: contact@versi-immobilier.fr) |
+| CONTACT_EMAIL | Non | Adresse de reception des formulaires versi-immobilier (defaut: contact@versi-immobilier.fr) |
+| CONTACT_EMAIL_VERSI | Non | Adresse de reception des formulaires versi.fr holding (defaut: contact@versi.fr) |
 | PORT | Non | Port du serveur (defaut: 3001, Replit injecte automatiquement) |
 | SITE_URL | Non | URL publique du site (defaut: https://versi-immobilier.fr) |
 
