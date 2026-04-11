@@ -250,6 +250,52 @@ Source : analyse SERP du 2026-04-11
 
 ---
 
+### A11 — "vendre appartement immeuble marchand de biens nord" (flux vendeur)
+
+Source : analyse SERP du 2026-04-11
+
+**Résultats SERP :**
+
+| # | Type de site | Format | Longueur estimée | SERP features |
+|---|---|---|---|---|
+| 1 | Annuaire national (nousachetonsimmo.com) | Guide complet "comment vendre à un MDB" | Long (>1 500) | PAA probable |
+| 2 | Blog MDB (mikaelian-immobilier.fr) | Article "vendre à un marchand de biens : les étapes clés" | Long | Aucune |
+| 3 | Blog MDB (nous-achetons-votre-maison.com) | Article "pourquoi vendre à un MDB est plus rapide" | Long | Aucune |
+| 4 | Blog spécialisé (strategie-immobilier.fr) | Guide complet vente MDB | Long | PAA probable |
+| 5 | Blog (landup.fr) | Guide pratique vendeur | Long | PAA |
+| 6 | Annuaire PagesJaunes | Listing MDB Nord | Court | Aucune |
+| 7 | Annuaire (marchand-de-biens.net) | Listing local | Court | Aucune |
+| 8-10 | Portails annonces (SeLoger, immocratie) | Annonces + articles | Variable | Aucune |
+
+**Analyse SERP :** Le contenu existant traite le sujet de manière générique (comment vendre à "un" marchand de biens, sans ancrage géographique). Aucun résultat ne cible spécifiquement le vendeur du Nord / Hauts-de-France cherchant à **proposer son bien à Versi Immobilier** ou à un opérateur local sérieux. Les guides existants répondent à "est-ce une bonne idée de vendre à un MDB ?" mais pas à "comment choisir un MDB sérieux dans ma région ?". Pas de featured snippet. PAA identifiés ("faut-il passer par un agent immobilier pour vendre à un MDB ?", "un MDB peut-il faire une offre en 48h ?").
+
+**Verdict opportunité : FORT.** L'angle géographique Nord + critères de choix d'un MDB local sérieux est inexploité. Versi Immobilier peut se positionner sur des variantes longue traîne très peu concurrentielles : "vendre immeuble Lille marchand de biens sérieux", "proposer un bien à un marchand de biens Hauts-de-France", "contact marchand de biens Lille vendre vite". Volume estimé faible-moyen (requête de niche) mais intention transactionnelle forte — ces visiteurs sont des vendeurs actifs.
+
+---
+
+### A12 — "apporteur affaires marchand de biens Lille" (flux prescripteurs)
+
+Source : analyse SERP du 2026-04-11
+
+**Résultats SERP :**
+
+| # | Type de site | Format | Longueur estimée | SERP features |
+|---|---|---|---|---|
+| 1 | Blog formation (heydiag.fr) | Guide complet "apporteur d'affaires immobilier" | Long (>1 500) | PAA |
+| 2 | Blog juridique (just-business.fr) | Article rôle + rémunération | Moyen | Aucune |
+| 3 | Blog coaching immobilier (coach-immobilier-particuliers.fr) | Guide pratique | Long | Aucune |
+| 4 | Blog formation (start-learning.fr) | Article commission apporteur | Moyen | Aucune |
+| 5 | Blog formation (blog.first2trade.com) | Guide "devenir apporteur d'affaires" | Long | Aucune |
+| 6 | PagesJaunes | Définition | Court | Aucune |
+| 7 | Journal de l'agence (journaldelagence.com) | Article juridique Loi Hoguet | Long | Aucune |
+| 8-10 | Blogs formation MDB | Articles généraux | Variable | Aucune |
+
+**Analyse SERP :** La requête est saturée de contenu **générique national** sur le métier d'apporteur d'affaires immobilier (définition, rémunération, cadre légal Loi Hoguet). Aucun contenu ne cible les **prescripteurs professionnels du Nord** (notaires, agents immobiliers, courtiers en prêt, géomètres) qui pourraient vouloir **proposer des affaires à un MDB local** et bénéficier d'une relation de partenariat. L'angle "comment travailler avec Versi Immobilier en tant que prescripteur" est entièrement inexploité.
+
+**Verdict opportunité : FORT sur la longue traîne partenariat.** La requête "apporteur affaires marchand de biens Lille" n'a aucun contenu local. Un article qui explique clairement comment notaires, agents immobiliers et courtiers peuvent **apporter des biens à Versi** (processus, critères, rémunération) capte une intention B2B de haute valeur. Ces visiteurs ne génèrent pas de trafic massif, mais chaque conversion vaut potentiellement plusieurs dizaines de milliers d'euros.
+
+---
+
 ## 2. Keyword Clustering
 
 Note méthodologique : les clusters sont construits par proximité sémantique et intention, pas par pilier éditorial. Un cluster = une page = une intention. Sources : analyse SERP du 2026-04-11 + requêtes connexes identifiées dans les SERP.
@@ -274,6 +320,11 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 - "différence marchand de biens agence immobilière acheteur"
 - "marchand de biens Lille fiable acheteur"
 - "acheter appartement marchand de biens Lille avantages"
+- "marchand de biens Roubaix achat appartement rénové"
+- "acheter appartement rénové Tourcoing marchand de biens"
+- "marchand de biens Hauts-de-France acquéreur"
+
+**Variantes géographiques HdF :** Les requêtes Roubaix, Tourcoing, Valenciennes présentent une concurrence éditoriale encore plus faible que Lille — les annuaires locaux dominent les SERP sans aucun contenu éditorial. L'article A1 peut mentionner la zone d'intervention HdF (Lille métropole, Roubaix, Tourcoing, Valenciennes) pour capter ces variantes géographiques sans article dédié par ville. Stratégie : mentionne de manière naturelle dans le corps de l'article + balise meta description incluant "Hauts-de-France".
 
 **Questions PAA identifiées dans les SERP :**
 - "Quels sont les avantages d'acheter chez un marchand de biens ?"
@@ -328,13 +379,21 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 - "prix appartement rénové Lille Vauban Esquermes"
 - "immobilier Lille quartier accessible primo-accédant"
 - "acheter Lille ou proche banlieue 2026"
+- "appartement rénové Roubaix prix achat 2026"
+- "acheter appartement rénové Tourcoing prix m2"
+
+**Variantes géographiques HdF — données de marché :**
+- Roubaix : ~1 994-2 182 €/m² (Meilleurs Agents / Orpi / SeLoger, avril 2026) — marché 40-50% moins cher que Lille pour un bien équivalent. Fort intérêt pour les acquéreurs avec budget limité.
+- Tourcoing : ~1 702 €/m² (action.immo, 2026) — marché encore plus accessible. Signal fort pour primo-accédants déçus des prix lillois.
+- Valenciennes : ~1 984 €/m² (lagence-exclusive.fr, 2026) — marché équivalent Roubaix.
+- Stratégie : l'article A4 peut traiter "Lille et sa métropole" et mentionner Roubaix/Tourcoing dans une section dédiée "et si les prix de Lille me dépassent ?". Pas un article par ville — un enrichissement de l'article Lille.
 
 **Questions PAA identifiées dans les SERP :**
 - "Quel est le quartier le moins cher de Lille ?"
 - "Où investir dans l'immobilier à Lille en 2026 ?"
 - "Les prix immobiliers à Lille vont-ils baisser en 2026 ?"
 
-**Note :** les données de prix utilisées dans l'article devront citer PAP, SeLoger ou Meilleurs Agents comme sources primaires (données vérifiables en ligne). Versi Immobilier apporte la valeur ajoutée éditoriale (angle acheteur rénové), pas les données brutes.
+**Note :** les données de prix utilisées dans l'article devront citer PAP, SeLoger, Meilleurs Agents ou action.immo comme sources primaires (données vérifiables en ligne). Versi Immobilier apporte la valeur ajoutée éditoriale (angle acheteur rénové + comparaison inter-villes HdF), pas les données brutes.
 
 ---
 
@@ -471,6 +530,119 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 ---
 
+### Cluster C10 — Vendre son bien à un marchand de biens dans le Nord (flux Sophie)
+
+**Intention unifiée :** "Comment vendre rapidement mon appartement ou immeuble à un marchand de biens sérieux dans le Nord, et comment ça se passe concrètement ?"
+**Page cible :** Article A11
+**Persona cible :** Sophie, 42 ans, propriétaire vendeuse — mais aussi tout propriétaire HdF cherchant une cession rapide à un opérateur direct
+
+**Mot-clé principal :** vendre appartement marchand de biens Lille
+
+**Mots-clés secondaires :**
+- vendre immeuble marchand de biens nord
+- proposer bien marchand de biens Hauts-de-France
+- vente rapide immeuble Lille opérateur direct
+- marchand de biens achète immeuble Lille offre rapide
+
+**Longue traîne associée :**
+- "comment proposer un immeuble à un marchand de biens Lille"
+- "vendre appartement à rénover Lille marchand de biens"
+- "offre rapide marchand de biens Hauts-de-France délai"
+- "vendre immeuble à rénover nord sans agence"
+- "contact marchand de biens Roubaix vendre"
+- "contact marchand de biens Tourcoing vendre immeuble"
+- "vendre immeuble marchand de biens Valenciennes"
+- "proposer bien immobilier marchand de biens nord pas de calais"
+- "marchand de biens Roubaix achat immeuble rénovation"
+
+**Contexte marché géographique HdF (sources Meilleurs Agents, PAP, SeLoger, action.immo — avril 2026) :**
+- Roubaix : prix moyen appartement ~1 994-2 182 €/m² — marché accessible avec fort volume d'immeubles (65+ annonces immeuble en ligne)
+- Tourcoing : prix moyen appartement ~1 702 €/m² — marché sous-évalué avec 15+ annonces immeuble disponibles
+- Valenciennes : prix moyen appartement ~1 984 €/m² — marché stable, progression historique de 1 742 €/m² (2015) à ~1 984 €/m² (2026)
+- Contexte SERP : aucun contenu éditorial de MDB local ne cible ces villes spécifiquement — champ vierge pour Versi
+
+**Questions PAA identifiées dans les SERP :**
+- "Un marchand de biens peut-il faire une offre en 48h ?"
+- "Faut-il passer par un agent immobilier pour vendre à un MDB ?"
+- "Le marchand de biens achète-t-il au prix du marché ?"
+- "Quels types de biens recherchent les marchands de biens dans le Nord ?"
+
+**Note cannibalisation :** Risque MOYEN avec la page `/vendre` du site si elle existe. Différenciation stricte : la page `/vendre` = page commerciale transactionnelle (formulaire de contact, critères de Versi, engagement de rapidité). L'article A11 = contenu éducatif "comment choisir un MDB sérieux dans le Nord" + "comment se passe le processus". L'article POINTE vers `/vendre` via un CTA fort.
+
+---
+
+### Cluster C11 — Partenariat prescripteurs : notaires, agents, courtiers (flux apporteurs)
+
+**Intention unifiée :** "Comment proposer des biens à Versi Immobilier en tant que professionnel, et comment est structurée la relation commerciale ?"
+**Page cible :** Article A12
+**Persona cible :** Pierre, prescripteur — notaire, agent immobilier, courtier, géomètre, administrateur de biens
+
+**Mot-clé principal :** apporteur affaires marchand de biens Lille
+
+**Mots-clés secondaires :**
+- partenariat notaire marchand de biens nord
+- agent immobilier apporter affaire marchand de biens
+- prescripteur marchand de biens Hauts-de-France
+- travailler avec marchand de biens opérateur immobilier Lille
+
+**Longue traîne associée :**
+- "notaire apporteur affaires marchand de biens nord"
+- "agent immobilier partenariat marchand de biens Lille commission"
+- "comment apporter une affaire à un marchand de biens"
+- "rémunération apporteur affaires immobilier marchand de biens"
+- "courtier apporteur affaires marchand de biens Hauts-de-France"
+- "apporteur affaires marchand de biens Roubaix Tourcoing"
+- "prescripteur immobilier nord contact marchand de biens"
+
+**Contexte SERP prescripteurs HdF :** Aucun contenu local n'existe pour les prescripteurs de la métropole lilloise étendue (Roubaix, Tourcoing, Villeneuve d'Ascq, Valenciennes). Les notaires et agents immobiliers de ces villes ne trouvent pas de ressource claire pour identifier et contacter un MDB local sérieux. Versi peut se positionner comme le référent régional HdF sur ce segment à haute valeur commerciale.
+
+**Questions PAA identifiées dans les SERP :**
+- "Quelle commission pour un apporteur d'affaires en immobilier ?"
+- "Un notaire peut-il être apporteur d'affaires ?"
+- "Comment fonctionne un contrat d'apporteur d'affaires immobilier ?"
+- "Quels critères un marchand de biens utilise-t-il pour évaluer une affaire ?"
+
+**Note cannibalisation :** Risque FAIBLE avec la page `/vendre`. L'article A12 cible un public professionnel (B2B), pas des particuliers. La page `/vendre` cible des particuliers. Intentions et audiences distinctes. Différenciation à préserver dans les balises title et les introductions.
+
+---
+
+## 2bis. Périmètre géographique — choix éditoriaux
+
+### Pourquoi les Hauts-de-France sont prioritaires
+
+Versi Immobilier opère principalement sur la métropole lilloise et les Hauts-de-France (Nord + Pas-de-Calais + Picardie). Ce périmètre est prioritaire pour le blog pour trois raisons :
+
+1. **Volume d'opérations** : l'essentiel du portefeuille et du sourcing terrain de Versi est en HdF — les articles de blog doivent refléter la réalité opérationnelle, pas projeter une présence fictive.
+2. **Opportunité SEO locale forte** : la concurrence éditoriale sur les requêtes "marchand de biens + ville HdF" est quasi nulle. Versi peut se positionner Top 3 sur de nombreuses variantes géographiques (Roubaix, Tourcoing, Valenciennes) sans article dédié, simplement en mentionnant ces villes dans les articles Lille.
+3. **Alignement persona** : Kévin (primo-accédant) et Sophie (propriétaire vendeuse) opèrent principalement dans la métropole lilloise étendue — les données de prix et les exemples HdF sont directement pertinents pour eux.
+
+### Stratégie éditoriale géographique HdF
+
+| Ville | Approche éditoriale | Justification |
+|---|---|---|
+| Lille | Articles dédiés (A1-A10 existants) | Marché principal, persona centré Lille |
+| Roubaix | Mention dans les articles Lille + variantes longue traîne dans les mots-clés | Prix ~1 994 €/m² (vs Lille 3 370-4 540 €/m²) — intéresse les acquéreurs à budget contraint |
+| Tourcoing | Idem Roubaix | Prix ~1 702 €/m² — le marché le plus accessible de la métropole |
+| Valenciennes | Mention dans C10 (article vendeur) | Données : ~1 984 €/m², fort potentiel de sourcing immeubles |
+| Reste HdF (Douai, Lens, Arras...) | Pas de ciblage V1 | Hors zone d'opération déclarée — attendre la preuve terrain |
+
+**Règle d'enrichissement** : ne pas créer un article par ville. Enrichir les articles Lille existants avec des mentions naturelles HdF + inclure les variantes géographiques dans les mots-clés secondaires et la longue traîne. Un article Lille bien rédigé peut capter "marchand de biens Roubaix achat" si l'article mentionne Roubaix dans le corps du texte et dans la meta description.
+
+### Pourquoi l'Île-de-France n'est pas ciblée en V1
+
+Versi est également présent en IDF mais sur des opérations de montant plus modeste. La décision de ne pas cibler l'IDF en V1 blog repose sur :
+
+1. **Concurrence éditoriale incomparable** : les requêtes "marchand de biens Paris" ou "appartement rénové marchand de biens IDF" sont saturées de contenu de haute qualité. Un site nouveau sans DA établi ne peut pas prétendre se positionner sur ce marché en V1.
+2. **Cohérence positionnement** : le positionnement de Versi Immobilier est "experts Hauts-de-France" — publier des articles IDF en V1 dilue ce positionnement avant qu'il soit établi.
+3. **Signal de crédibilité inverse** : prétendre couvrir l'IDF sans opérations significatives = risque de "greenwashing géographique" que Kévin et Sophie détecteraient.
+
+**Quand l'IDF pourra être ajoutée :**
+- Après 6 mois de blog HdF actif (topical authority HdF établie)
+- Si Versi réalise des opérations IDF de référence documentables (articles E-E-A-T)
+- Format recommandé : articles "comparaison HdF / IDF" qui capitalisent sur l'autorité HdF déjà acquise
+
+---
+
 ## 3. Analyse de cannibalisation
 
 ### Principe de différenciation articles blog / pages existantes
@@ -490,6 +662,8 @@ Une page blog et une page site existante ne se cannibalisent que si elles ciblen
 | A4 — "Prix au m² à Lille en 2026 : quartier par quartier" | `/nos-biens` (page liste des biens avec prix) | "appartement Lille prix" | FAIBLE | La page `/nos-biens` liste des biens spécifiques avec prix. A4 = analyse de marché générale. Intentions différentes. Pas de cannibalisation si A4 ne liste pas les biens de Versi (lien CTA recommandé en bas). |
 | A10 — "Immeuble de rapport Lille : notre méthode" | `/realisations` | "immeuble rapport Lille Versi" | MOYEN | Même raisonnement qu'A3/réalisations. Si `/realisations` présente des opérations d'immeubles de rapport : différencier visuellement et éditorialement. Article A10 = méthode et process (comment on sourçe, analyse, rénove, revend). Fiches réalisations = résultats (avant/après, chiffres). |
 | A5+A9 — Financement primo-accédant | Aucune page existante | — | INTERNE (cannibalisation entre A5 et A9) | Cannibalisation interne A5 vs A9 : les deux articles ciblent le même cluster sémantique "financement primo-accédant Lille". **Recommandation : fusionner en un seul article.** Titre unifié : "Financer son premier achat immobilier à Lille en 2026 : PTZ, sans apport, toutes les options". Valeur = un guide complet vs deux articles partiels. Gain de maillage interne. |
+| A11 — "Vendre son bien à un marchand de biens dans le Nord" | `/vendre` (page existante du site) | "vendre marchand de biens Lille", "proposer bien Hauts-de-France" | MOYEN — à gérer activement | La page `/vendre` est une page commerciale (CTA, formulaire, critères de Versi). A11 est un article éducatif (guide du processus, comment choisir un MDB sérieux). Différenciation par le format et l'intention : `/vendre` = BOFU transactionnel, A11 = MOFU informationnel. **Règle impérative : A11 doit pointer vers `/vendre` via un CTA explicite.** La page `/vendre` ne doit pas contenir de contenu éducatif long sur "comment vendre à un MDB" — sinon cannibalisation directe. Si `/vendre` contient déjà un guide > 300 mots sur ce sujet : envisager la consolidation (canonical A11 vers `/vendre` ou inverse selon la qualité). |
+| A12 — "Partenariat prescripteurs MDB Lille" | `/vendre` (partiellement) | "apporteur affaires nord", "partenariat marchand de biens Lille" | FAIBLE | A12 cible les professionnels (B2B), `/vendre` cible les particuliers. Intentions distinctes. Pas de cannibalisation directe, mais la page `/vendre` ne doit pas mentionner les prescripteurs dans son contenu sous peine de diluer l'intention. Si `/vendre` a une section "vous êtes professionnel ?" : transformer en lien interne vers A12. |
 
 ---
 
@@ -516,12 +690,15 @@ Pour chaque article blog, la règle suivante s'applique :
 | questions poser marchand de biens avant acheter | Informationnel | MOFU | Featured snippet (listicle) | Blog A8 |
 | rénovation appartement Lille Fives (branded/E-E-A-T) | Informationnel + Branded | MOFU | Rich result BlogPosting | Blog A3 |
 | immeuble rapport Lille marchand de biens | Commercial investigation | MOFU/BOFU | Aucune | Blog A10 — public B2B/prescripteur |
+| vendre appartement marchand de biens Lille / nord | Transactionnel (flux vendeur) | BOFU | PAA (processus, délais, offre) | Blog A11 — persona Sophie + propriétaires HdF |
+| apporteur affaires marchand de biens Lille | Commercial investigation B2B | BOFU | PAA (commission, cadre légal) | Blog A12 — persona prescripteurs (notaires, agents) |
 
 ### Notes sur les SERP features à viser
 
 - **Featured snippet (position zéro)** : viser sur A6 (définition de la précommercialisation) et A8 (listicle "5 questions"). Format attendu : paragraphe court (<150 mots) ou liste numérotée.
-- **PAA (People Also Ask)** : viser sur A2 (garanties), A5+A9 (PTZ/financement), A7 (DPE). Format attendu : questions H2 avec réponse directe dans les 2-3 premières phrases.
+- **PAA (People Also Ask)** : viser sur A2 (garanties), A5+A9 (PTZ/financement), A7 (DPE), A11 (processus de vente au MDB). Format attendu : questions H2 avec réponse directe dans les 2-3 premières phrases.
 - **Rich result BlogPosting** : tous les articles doivent avoir le schema.org BlogPosting (déjà documenté dans vi-blog-strategy.md). Améliore le CTR en SERP sans changer le ranking.
+- **A11 — variantes géographiques HdF** : l'article peut capter les requêtes Roubaix, Tourcoing, Valenciennes sans articles dédiés si les villes sont mentionnées dans le corps du texte et la meta description avec la formule "Versi Immobilier intervient sur toute la métropole lilloise : Lille, Roubaix, Tourcoing, Valenciennes".
 
 ---
 
