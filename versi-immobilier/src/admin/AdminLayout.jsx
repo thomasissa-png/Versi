@@ -35,6 +35,9 @@ export default function AdminLayout() {
           <NavLink to="/admin/inscrits" className={({ isActive }) => isActive ? 'active' : ''}>
             Inscrits
           </NavLink>
+          <NavLink to="/admin/articles" className={({ isActive }) => isActive ? 'active' : ''}>
+            Articles
+          </NavLink>
           <div className="nav-spacer" />
           <button className="btn-logout" onClick={handleLogout}>
             Déconnexion

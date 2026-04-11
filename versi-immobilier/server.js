@@ -1061,6 +1061,249 @@ app.delete('/api/admin/subscribers/:id', checkAdminAuth, async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Public — Blog
+// ---------------------------------------------------------------------------
+
+// GET /api/public/blog — articles publiés (sans content)
+app.get('/api/public/blog', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, slug, excerpt, cover_image, author, tags, published_at
+       FROM blog_articles
+       WHERE status = 'published'
+       ORDER BY published_at DESC`
+    );
+    return res.json({ articles: result.rows });
+  } catch (err) {
+    console.error('[API] Erreur GET /api/public/blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/public/blog/sitemap — URLs des articles publiés pour sitemap
+app.get('/api/public/blog/sitemap', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT slug, published_at, updated_at
+       FROM blog_articles
+       WHERE status = 'published'
+       ORDER BY published_at DESC`
+    );
+    const siteUrl = process.env.SITE_URL || 'https://versi-immobilier.fr';
+    const urls = result.rows.map((a) => ({
+      loc: `${siteUrl}/blog/${a.slug}`,
+      lastmod: (a.updated_at || a.published_at || new Date()).toISOString().split('T')[0],
+    }));
+    return res.json({ urls });
+  } catch (err) {
+    console.error('[API] Erreur GET /api/public/blog/sitemap :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/public/blog/:slug — article complet par slug
+app.get('/api/public/blog/:slug', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM blog_articles WHERE slug = $1 AND status = 'published'`,
+      [req.params.slug]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ article: result.rows[0] });
+  } catch (err) {
+    console.error('[API] Erreur GET /api/public/blog/:slug :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin CRUD — Blog
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/blog — tous les articles (tous statuts)
+app.get('/api/admin/blog', checkAdminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM blog_articles ORDER BY created_at DESC'
+    );
+    return res.json({ articles: result.rows });
+  } catch (err) {
+    console.error('[API] Erreur GET /api/admin/blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/admin/blog/:id — article complet par ID
+app.get('/api/admin/blog/:id', checkAdminAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM blog_articles WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ ok: true, article: rows[0] });
+  } catch (err) {
+    console.error('[API] Erreur GET /api/admin/blog/:id :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// POST /api/admin/blog — créer un article
+app.post('/api/admin/blog', checkAdminAuth, async (req, res) => {
+  const { title, excerpt, content, cover_image, author, tags, status } = req.body;
+
+  if (!title || !excerpt || !content) {
+    return res.status(400).json({ ok: false, error: 'Champs requis manquants (title, excerpt, content)' });
+  }
+
+  const articleStatus = status || 'draft';
+  const validStatuses = ['draft', 'published', 'archived'];
+  if (!validStatuses.includes(articleStatus)) {
+    return res.status(400).json({ ok: false, error: `Status invalide. Valeurs autorisées : ${validStatuses.join(', ')}` });
+  }
+
+  try {
+    let slug = slugify(title);
+    if (!slug) slug = crypto.randomUUID().slice(0, 8);
+
+    // Ensure unique slug
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = attempt === 0 ? slug : slug + '-' + crypto.randomUUID().slice(0, 6);
+      const existing = await pool.query('SELECT id FROM blog_articles WHERE slug = $1', [candidate]);
+      if (existing.rows.length === 0) { slug = candidate; break; }
+      if (attempt === 4) return res.status(409).json({ ok: false, error: 'Impossible de générer un slug unique' });
+    }
+
+    const id = slug;
+    const publishedAt = articleStatus === 'published' ? new Date().toISOString() : null;
+
+    const result = await pool.query(
+      `INSERT INTO blog_articles (id, title, slug, excerpt, content, cover_image, author, tags, status, published_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING *`,
+      [id, title, slug, excerpt, content, cover_image || null,
+       author || 'Versi Immobilier', JSON.stringify(tags || []),
+       articleStatus, publishedAt]
+    );
+
+    return res.status(201).json({ ok: true, article: result.rows[0] });
+  } catch (err) {
+    console.error('[API] Erreur POST /api/admin/blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// PUT /api/admin/blog/:id — modifier un article
+app.put('/api/admin/blog/:id', checkAdminAuth, async (req, res) => {
+  const { id } = req.params;
+  const fields = req.body;
+
+  if (fields.status) {
+    const validStatuses = ['draft', 'published', 'archived'];
+    if (!validStatuses.includes(fields.status)) {
+      return res.status(400).json({ ok: false, error: `Status invalide. Valeurs autorisées : ${validStatuses.join(', ')}` });
+    }
+  }
+
+  const allowedFields = ['title', 'excerpt', 'content', 'cover_image', 'author', 'tags', 'status', 'published_at'];
+
+  const setClauses = [];
+  const values = [];
+  let paramIndex = 1;
+
+  for (const field of allowedFields) {
+    if (field in fields) {
+      const value = field === 'tags' ? JSON.stringify(fields[field]) : fields[field];
+      setClauses.push(`${field} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+  }
+
+  // Auto-update slug if title changed
+  if (fields.title) {
+    const newSlug = slugify(fields.title);
+    if (newSlug) {
+      const existing = await pool.query('SELECT id FROM blog_articles WHERE slug = $1 AND id != $2', [newSlug, id]);
+      if (existing.rows.length === 0) {
+        setClauses.push(`slug = $${paramIndex}`);
+        values.push(newSlug);
+        paramIndex++;
+      }
+    }
+  }
+
+  if (setClauses.length === 0) {
+    return res.status(400).json({ ok: false, error: 'Aucun champ à mettre à jour' });
+  }
+
+  values.push(id);
+
+  try {
+    const result = await pool.query(
+      `UPDATE blog_articles SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ ok: true, article: result.rows[0] });
+  } catch (err) {
+    console.error('[API] Erreur PUT /api/admin/blog/:id :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/admin/blog/:id/publish — publier un article
+app.patch('/api/admin/blog/:id/publish', checkAdminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "UPDATE blog_articles SET status = 'published', published_at = NOW() WHERE id = $1 RETURNING id",
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[API] Erreur PATCH publish blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/admin/blog/:id/archive — archiver un article
+app.patch('/api/admin/blog/:id/archive', checkAdminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "UPDATE blog_articles SET status = 'archived' WHERE id = $1 RETURNING id",
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[API] Erreur PATCH archive blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// DELETE /api/admin/blog/:id — supprimer un article
+app.delete('/api/admin/blog/:id', checkAdminAuth, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM blog_articles WHERE id = $1 RETURNING id', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[API] Erreur DELETE blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/contact
 // ---------------------------------------------------------------------------
 app.post('/api/contact', async (req, res) => {

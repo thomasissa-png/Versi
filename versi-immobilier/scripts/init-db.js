@@ -99,6 +99,25 @@ CREATE TABLE IF NOT EXISTS subscribers (
 
 CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email);
 
+-- Blog articles
+CREATE TABLE IF NOT EXISTS blog_articles (
+  id            TEXT PRIMARY KEY,
+  title         TEXT NOT NULL,
+  slug          TEXT NOT NULL UNIQUE,
+  excerpt       TEXT NOT NULL,
+  content       TEXT NOT NULL,
+  cover_image   TEXT,
+  author        TEXT NOT NULL DEFAULT 'Versi Immobilier',
+  tags          JSONB DEFAULT '[]',
+  status        TEXT NOT NULL DEFAULT 'draft',
+  published_at  TIMESTAMP WITH TIME ZONE,
+  created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_blog_articles_slug ON blog_articles(slug);
+CREATE INDEX IF NOT EXISTS idx_blog_articles_status ON blog_articles(status);
+
 -- Sessions admin
 CREATE TABLE IF NOT EXISTS admin_sessions (
   id          TEXT PRIMARY KEY,
@@ -129,6 +148,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_projects_updated_at') THEN
     CREATE TRIGGER trg_projects_updated_at
       BEFORE UPDATE ON projects
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_blog_articles_updated_at') THEN
+    CREATE TRIGGER trg_blog_articles_updated_at
+      BEFORE UPDATE ON blog_articles
       FOR EACH ROW EXECUTE FUNCTION update_updated_at();
   END IF;
 END;

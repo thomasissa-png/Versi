@@ -283,6 +283,337 @@ Si plus de 10 articles : pagination simple (`/blog?page=2`) avec `<link rel="pre
 
 ## 4. Pipeline de production automatisé
 
+### 4.1 Principe
+
+Un fondateur solo ne rédige pas 2 articles/mois manuellement — pas parce que c'est long, mais parce qu'il oublie, parce que d'autres priorités prennent le dessus, parce que la page blanche est paralysante. Le pipeline automatise la génération du premier jet (80% du travail) et réduit la contribution humaine à une validation + publication (15-20 minutes par article).
+
+**Fréquence cible** : 2 articles/mois. Réaliste pour un opérateur actif. À 2 articles/mois, le blog atteint 24 articles en 12 mois — masse critique pour la topical authority.
+
+### 4.2 Workflow étape par étape
+
+```
+ÉTAPE 1 — BRIEF (5 min, humain)
+  Choisir l'article suivant dans la liste des 10 articles cibles (section 2.3)
+  Vérifier qu'aucun article similaire n'existe déjà (anti-répétition)
+  Ajouter les infos spécifiques disponibles : chiffres réels, anecdotes terrain, adresses
+
+ÉTAPE 2 — GÉNÉRATION (automatique, IA)
+  Utiliser le prompt de génération (section 4.3)
+  Injecter : titre cible, requête SEO, infos spécifiques du brief, pilier éditorial
+  Output : article complet 900-1100 mots en Markdown avec frontmatter
+
+ÉTAPE 3 — REVIEW HUMAIN (15 min, fondateur)
+  Vérifier les faits (chiffres, lois, prix) — l'IA se trompe sur les réglementations récentes
+  Ajouter 1-2 anecdotes terrain que l'IA ne peut pas avoir ("On a vu ça sur le chantier rue des Muguets...")
+  Corriger le ton si l'IA a glissé vers du promotionnel
+  Approuver ou rejeter
+
+ÉTAPE 4 — PUBLICATION (automatique ou manuel)
+  Créer le fichier .md avec frontmatter complet (Option A)
+  OU créer l'entrée dans la BDD via le back office (Option B)
+  Déclencher IndexNow pour notifier Bing
+  Mettre à jour le sitemap.xml (lastmod = date de publication)
+  Partager sur LinkedIn des 3 fondateurs (pipeline @social)
+```
+
+### 4.3 Prompt de génération d'article (template calibré)
+
+```
+Tu es rédacteur pour versi-immobilier.fr, site d'un marchand de biens basé à Lille.
+
+RÈGLES DE TON (non négociables) :
+- Vouvoiement systématique
+- Phrases courtes. Une idée par phrase.
+- Zéro adjectif auto-décerné ("qualité", "expertise", "clé en main")
+- Zéro exclamation
+- Premier paragraphe : entrée directe dans le sujet, aucune introduction creuse
+- Biais vers le concret : chiffres, délais, adresses quand disponibles
+- CTA final naturel vers les biens disponibles (pas agressif)
+- Interdits absolus : "Bienvenue", "N'hésitez pas", "Découvrez", "Solutions", "Expertise"
+
+SUJET : [TITRE DE L'ARTICLE]
+REQUÊTE SEO CIBLE : [MOT-CLÉ EXACT]
+PILIER : [Pilier 1 / 2 / 3 / 4]
+LONGUEUR CIBLE : 900-1100 mots
+PUBLIC : primo-accédant ou investisseur cherchant à acheter un bien rénové à Lille
+
+INFOS SPÉCIFIQUES À INTÉGRER :
+[DONNÉES RÉELLES FOURNIES PAR LE FONDATEUR]
+
+STRUCTURE ATTENDUE :
+- H1 : contient le mot-clé cible principal
+- 3-4 H2 avec sous-sections de 150-250 mots
+- 1 CTA en fin d'article : "Voir nos biens disponibles" (lien /nos-biens)
+- Auteur en signature : Thomas Issa — Co-fondateur, Versi Immobilier
+
+FORMAT DE SORTIE : Markdown complet avec frontmatter YAML (title, slug, date, author, pillar, excerpt, seoTitle, seoDescription)
+```
+
+### 4.4 Transformation des réalisations en articles (Pilier 2)
+
+Les réalisations dans `projects.js` (ou équivalent dans la BDD) contiennent déjà :
+- Adresse du bien
+- Type d'opération (rénovation, découpe, etc.)
+- Photos avant/après
+- Chiffres clés (surface, budget, délai, prix de vente)
+
+**Pipeline de transformation** :
+
+```
+ÉTAPE 1 — Extraction automatique
+  Lire la fiche réalisation (projects.js ou BDD)
+  Extraire : adresse, type, chiffres clés, date
+
+ÉTAPE 2 — Brief enrichi par le fondateur (10 min)
+  Ajouter : 2-3 anecdotes sur l'opération (découverte du bien, problème chantier, décision clé)
+  Ces anecdotes sont le signal E-E-A-T non reproductible — elles ne peuvent pas être inventées par l'IA
+
+ÉTAPE 3 — Génération avec prompt spécifique réalisation
+  Prompt : "Rédige un article de blog en style récit sur cette opération immobilière.
+  Commence par l'adresse et le contexte. Explique le processus : comment le bien a été sourcé,
+  ce qui a été transformé, les chiffres. Termine sur ce que ça apporte à l'acquéreur du bien.
+  Ton Versi (voir règles ci-dessus). Données : [DONNÉES RÉALISATION]"
+
+ÉTAPE 4 — Publication avec photos
+  L'article Pilier 2 inclut les photos avant/après de la réalisation
+  Ajouter un lien vers la fiche réalisation correspondante (maillage interne)
+  Si le bien est encore disponible : lien vers la fiche bien (conversion directe)
+```
+
+### 4.5 Anti-répétition et registre des articles
+
+Maintenir un fichier `src/src/data/blog/content_registry.json` :
+
+```json
+[
+  {
+    "slug": "marchand-de-biens-lille-acquereur",
+    "title": "Marchand de biens à Lille : ce que ça change pour l'acquéreur",
+    "pillar": "operateur",
+    "angle": "différence marchand de biens vs particulier",
+    "publishedAt": "2026-04-15"
+  }
+]
+```
+
+Avant chaque nouvelle génération, vérifier ce registre pour s'assurer qu'aucun article similaire (même sujet + même angle) n'a déjà été publié.
+
+### 4.6 Calendrier éditorial perpétuel
+
+Le calendrier ne se termine pas — il se régénère. La liste de 10 articles cibles (section 2.3) est le socle. Une fois ces 10 articles publiés (5 mois à 2 articles/mois), les prochains sujets sont générés ainsi :
+
+```
+SOURCE 1 — Nouvelles réalisations → nouveaux articles Pilier 2 (auto-alimenté par l'activité)
+SOURCE 2 — Questions fréquentes des acquéreurs → articles Pilier 1 et 3
+SOURCE 3 — Actualité réglementaire immobilière → articles Pilier 4
+SOURCE 4 — Questions "People Also Ask" Google sur les requêtes déjà ciblées → longue traîne
+SOURCE 5 — Commentaires ou messages reçus → sujets validés par la demande réelle
+```
+
+À 24 articles (12 mois), effectuer un audit Content Decay : les articles publiés en mois 1-6 peuvent être mis à jour (chiffres, lois) plutôt que remplacés — signal de fraîcheur positif pour Bing et Google.
+
 ## 5. Quick wins — 3 premiers articles
 
+Les 3 premiers articles doivent être publiés dès le lancement du site — pas après. Un blog vide est pire qu'un blog inexistant (signal de site abandonné). Voici les 3 articles prioritaires avec leur plan complet.
+
+---
+
+### Article 1 — "Marchand de biens à Lille : ce que ça change pour vous"
+
+**Slug** : `/blog/marchand-de-biens-lille-acquereur`
+**Requête cible** : "marchand de biens Lille acquéreur"
+**Pilier** : P1 — L'opérateur expliqué
+**Longueur** : 900-1000 mots
+
+**Plan** :
+```
+H1 : Marchand de biens à Lille : ce que ça change pour vous
+
+[Chapeau] Un marchand de biens n'est pas une agence immobilière. Ce n'est
+pas non plus un particulier qui revend. Voici ce que ça change quand vous
+achetez un bien issu d'une opération professionnelle.
+
+H2 : Ce qu'est un marchand de biens (et ce qu'il n'est pas)
+  - Définition opérationnelle : achat, transformation, revente
+  - Différence avec une agence (l'agence est intermédiaire, le MDB est vendeur)
+  - Différence avec un particulier (responsabilité, garanties, traçabilité)
+
+H2 : Ce que vous gagnez à acheter chez un marchand de biens
+  - Traçabilité de l'opération : vous savez ce qui a été fait, par qui, quand
+  - Garanties professionnelles : garantie décennale sur les travaux structurels
+  - Prix net : pas de commission d'agence (Versi vend en direct)
+  - Précommercialisation : accès avant la mise sur marché classique
+
+H2 : Ce que Versi Immobilier fait spécifiquement
+  - Opérations sur Lille et métropole française
+  - Segment 250k-1M€ (résidentiel et mixte)
+  - Documentation systématique de chaque opération
+  - Structuration financière possible via le groupe (Versi Finance)
+
+H2 : Comment ça se passe concrètement
+  - Étape 1 : vous consultez le portefeuille disponible
+  - Étape 2 : vous contactez directement Versi (pas d'intermédiaire)
+  - Étape 3 : visite + remise de la documentation complète de l'opération
+  - Étape 4 : offre et signature
+
+[CTA] Voir nos biens disponibles → /nos-biens
+[Auteur] Thomas Issa — Co-fondateur, Versi Immobilier | [date]
+```
+
+**Instructions de brief pour l'IA** : ajouter 1-2 exemples tirés des opérations réelles Versi (surface, quartier, chiffre clé) — à récupérer depuis `projects.js` ou la BDD réalisations.
+
+---
+
+### Article 2 — "10 rue des Muguets, Lille : histoire d'une transformation"
+
+**Slug** : `/blog/10-rue-des-muguets-lille-renovation`
+**Requête cible** : "appartement rénové Lille marchand de biens"
+**Pilier** : P2 — Histoires de réalisations
+**Longueur** : 1000-1200 mots + photos avant/après
+
+**Plan** :
+```
+H1 : 10 rue des Muguets, Lille : histoire d'une transformation
+
+[Chapeau] Voici comment ce [T3 / T2 / préciser] de [surface]m² a été acquis,
+transformé et préparé à la vente. Les chiffres. Les délais. Ce qui a été décidé.
+
+H2 : L'opération en quelques chiffres
+  - Adresse : 10 rue des Muguets, Lille
+  - Surface : [X]m² / [type]
+  - Acquisition : [mois et année], prix [si communicable]
+  - Durée de transformation : [X mois]
+  - État initial : [description factuelle — DPE, état général]
+
+H2 : Ce qui a été transformé
+  - Liste des travaux réalisés (électricité, plomberie, cuisine, salle de bain...)
+  - Décisions prises et pourquoi (ex : "on a choisi de garder le parquet d'origine...")
+  - Ce qui n'a PAS été changé et pourquoi (signal de sobriété, pas de surenchère)
+
+H2 : Photos [section visuelle — galerie avant/après]
+
+H2 : Ce que ça donne aujourd'hui
+  - État actuel du bien (disponible à la vente / vendu / en précommercialisation)
+  - DPE post-travaux
+  - Ce que l'acquéreur obtient
+
+[CTA] Voir ce bien / Voir nos autres biens → /nos-biens ou /fiche-bien
+[Auteur] Thomas Issa — Co-fondateur, Versi Immobilier | [date]
+```
+
+**Instructions de brief pour l'IA** : cet article nécessite des données réelles sur cette adresse spécifique. Le fondateur doit fournir : surface, type de bien, mois d'acquisition, travaux réalisés, état du bien. L'IA génère la narration à partir de ces données — elle n'invente pas les faits.
+
+---
+
+### Article 3 — "Précommercialisation immobilière : comment acheter avant les autres"
+
+**Slug** : `/blog/precommercialisation-immobilier-lille`
+**Requête cible** : "précommercialisation immobilier Lille"
+**Pilier** : P4 — Décryptage immobilier
+**Longueur** : 800-900 mots
+
+**Plan** :
+```
+H1 : Précommercialisation immobilière : comment accéder aux biens avant les autres
+
+[Chapeau] La plupart des acquéreurs arrivent sur un bien déjà vu par 10 autres.
+La précommercialisation change ça. Voici ce que c'est, et comment ça marche.
+
+H2 : Ce qu'est la précommercialisation
+  - Définition : bien en cours de transformation, pas encore disponible officiellement
+  - Différence avec le VEFA (vente en l'état futur d'achèvement)
+  - Pourquoi les marchands de biens proposent ça
+
+H2 : Avantages pour l'acquéreur
+  - Pas de concurrence (premier servi)
+  - Prix fixé avant la mise sur marché
+  - Temps de réflexion plus long qu'une annonce classique
+  - Documentation de l'opération accessible dès la réservation
+
+H2 : Ce qu'il faut savoir avant de s'engager
+  - Délai de livraison réaliste (et comment le vérifier)
+  - Ce qui est garanti, ce qui ne l'est pas
+  - Questions à poser au marchand de biens
+
+H2 : Comment fonctionne la précommercialisation chez Versi Immobilier
+  - Biens visibles sur le site avec statut "En cours de transformation"
+  - Contact direct pour accéder au dossier complet
+  - Réservation possible sur dossier avant livraison
+
+[CTA] Voir nos biens en précommercialisation → /nos-biens (filtré sur statut)
+[Auteur] Thomas Issa — Co-fondateur, Versi Immobilier | [date]
+```
+
+---
+
+### Transformation des réalisations existantes en articles (sans effort)
+
+Les réalisations dans le site (page RÉALISATIONS) sont déjà du contenu blog en attente. Pour chaque réalisation dans `projects.js` :
+
+1. Vérifier que la fiche contient : adresse, photos avant/après, type de travaux, chiffres clés
+2. Utiliser le prompt Pilier 2 (section 4.4) avec ces données
+3. Publier en 15 minutes
+
+**Règle** : ne pas publier un article réalisation sans au moins 2 photos avant/après et 3 chiffres réels (surface, délai, type de travaux). Sans ces éléments, l'article n'apporte pas de valeur E-E-A-T.
+
 ## 6. Handoff → @fullstack
+
+---
+
+**Handoff → @fullstack**
+
+**Fichiers produits** :
+- `/home/user/Versi/docs/seo/vi-blog-strategy.md` (ce fichier)
+
+**Décisions prises par @seo :**
+
+1. **Structure URL** : `/blog` (index) + `/blog/:slug` (article). Pas de `/articles`, pas de `/actualites`.
+
+2. **Stockage articles** : deux options documentées (section 3.3). Décision à prendre avec le fondateur : si un back office admin est déjà en place pour les réalisations, opter pour Option B (PostgreSQL, table `blog_articles`). Si pas de back office, Option A (fichiers Markdown dans `src/src/data/blog/`). @fullstack implémente selon la décision.
+
+3. **Schema.org** : `BlogPosting` JSON-LD par article — template complet en section 3.4. À générer dynamiquement à partir des métadonnées de l'article.
+
+4. **IndexNow** : endpoint POST à créer sur le serveur backend pour notifier Bing à chaque publication. Clé IndexNow à générer (gratuit, 1 minute) et stocker en variable d'environnement.
+
+5. **Sitemap dynamique** : les URLs blog doivent s'ajouter automatiquement au sitemap.xml avec le `lastmod` = `dateModified` réel (pas la date du build).
+
+6. **Auteur** : champ `author` dans le schema = "Thomas Issa" par défaut (seul auteur en V1). Prévoir le multi-auteur pour V2 (Maxime ou Carl pourraient signer des articles).
+
+**Pages à créer :**
+
+| Page | Route | Composant | Priorité |
+|---|---|---|---|
+| Index blog | `/blog` | `BlogIndex.jsx` | P0 |
+| Fiche article | `/blog/:slug` | `BlogPost.jsx` | P0 |
+| Archives par pilier (optionnel) | `/blog/tag/:tag` | `BlogTag.jsx` | P2 |
+
+**Modifications back office (si Option B retenue) :**
+- Table SQL `blog_articles` (schéma en section 3.3)
+- Interface CRUD admin : liste des articles + formulaire de création/édition (Markdown avec preview)
+- Bouton "Publier" qui : (1) passe `published = true`, (2) définit `published_at = NOW()`, (3) déclenche IndexNow
+- Champs obligatoires dans le formulaire : titre, slug (généré auto depuis le titre, éditable), excerpt, contenu, seoTitle (max 70 car), seoDescription (max 160 car), image cover
+
+**Composant `BlogPost.jsx` — specs minimales :**
+- Rendu du Markdown en HTML (librairie `react-markdown` ou équivalent)
+- Injection du schema JSON-LD `BlogPosting` dans le head (via `react-helmet-async` déjà utilisé sur le site)
+- Image cover en header d'article (format WebP, lazy-loading)
+- Mention auteur en fin d'article avec lien vers la page équipe/about
+- CTA en fin d'article : "Voir nos biens disponibles" → `/nos-biens`
+- Breadcrumb : Accueil > Blog > [Titre article]
+- Schema.org `BreadcrumbList` pour le breadcrumb
+
+**Composant `BlogIndex.jsx` — specs minimales :**
+- Grille d'articles (3 colonnes desktop, 1 colonne mobile) avec : image cover, titre H2, excerpt, date, CTA "Lire"
+- Pagination simple si > 9 articles (`?page=N`)
+- Pas de barre de recherche en V1
+
+**Navigation :**
+- Ajouter "BLOG" dans le menu principal de `Nav.jsx` — entre "RÉALISATIONS" et "NOTRE APPROCHE"
+- Ajouter lien "Blog" dans le footer
+
+**Points d'attention :**
+- La date `lastmod` du sitemap doit être celle du champ `updated_at` de la BDD (ou `dateModified` du frontmatter) — PAS la date du build. Critique pour Bing.
+- Les pages blog doivent avoir un rendu SSR complet ou un pré-rendu statique (Bing crawle moins bien le JS client-side). Si le site est purement SPA React, envisager `vite-plugin-prerender` sur les routes blog comme recommandé dans `docs/seo/seo-strategy.md` pour versi.fr.
+- `noindex` sur les pages de tag si créées (risque de contenu dupliqué).
+
+---

@@ -213,6 +213,21 @@
   color: #92400e;
 }
 
+.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-archived {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 /* Filtres */
 
 .admin-filters {

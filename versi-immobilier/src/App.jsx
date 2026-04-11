@@ -19,6 +19,10 @@ import AdminBienForm from './admin/AdminBienForm.jsx';
 import AdminRealisations from './admin/AdminRealisations.jsx';
 import AdminRealisationForm from './admin/AdminRealisationForm.jsx';
 import AdminInscrits from './admin/AdminInscrits.jsx';
+import AdminArticles from './admin/AdminArticles.jsx';
+import AdminArticleForm from './admin/AdminArticleForm.jsx';
+import BlogPage from './pages/BlogPage.jsx';
+import BlogArticlePage from './pages/BlogArticlePage.jsx';
 import ProtectedRoute from './admin/ProtectedRoute.jsx';
 
 function App() {
@@ -36,6 +40,8 @@ function App() {
         <Route path="/notre-approche" element={<ApprochePage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogArticlePage />} />
 
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -48,6 +54,9 @@ function App() {
           <Route path="realisations/nouveau" element={<AdminRealisationForm />} />
           <Route path="realisations/:id/editer" element={<AdminRealisationForm />} />
           <Route path="inscrits" element={<AdminInscrits />} />
+          <Route path="articles" element={<AdminArticles />} />
+          <Route path="articles/nouveau" element={<AdminArticleForm />} />
+          <Route path="articles/:id/editer" element={<AdminArticleForm />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
