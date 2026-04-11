@@ -243,6 +243,7 @@
 | geo | 2026-04-11 | docs/reviews/geo-final-audit.md | Audit GEO final post-corrections. versi.fr : 8/10 (llms.txt absent malgre correction listee, FAQ HTML visible manquante). versi-immobilier.fr : 9/10 (founders manquants dans Schema.org Organization). Corrections restantes documentees : 3 actions versi.fr (llms.txt P1, FAQ.jsx P2, mainEntityOfPage optionnel), 1 action versi-immobilier (founders avec sameAs LinkedIn dans Schema.org). | versi-immobilier.fr note plus haute car llms.txt present et complet, Schema plus riche (RealEstateAgent, parentOrganization @id), passages extractibles plus nombreux (8 vs 5), chiffres plus concrets (3,2M€, 21 appartements, tickets 250k-1M€). versi.fr penalise uniquement sur llms.txt absent (1 pt) et FAQ HTML visible manquante (0,5 pt) — tout le reste est PASS. |
 | growth | 2026-04-11 | docs/growth/vi-blog-growth-assessment.md | Evaluation blog versi-immobilier.fr. Verdict GO conditionnel. Blog pertinent pour capter Sophie (vendeuse) et acquéreurs locaux via SEO longue traîne (volume 50-200 req/mois, concurrence faible). Funnel : nourrit Acquisition + Activation. CAC temps : 30 min/article avec pipeline IA (vs 2h manuel). 0 cannibalisation si séparation stricte mots-clés informationnels (blog) vs transactionnels (/vendre, /nos-biens). Synergie LinkedIn : 1 article → 1 post par fondateur. 3 KPIs Umami définis. 3 risques et mitigations. Fréquence recommandée : 1-2 articles/mois. Lancement avec 3 articles déjà publiés. | Blog sur versi-immobilier.fr uniquement (pas versi.fr holding) — les requêtes grand public créeraient un signal confus sur la holding institutionnelle. GO conditionnel et non GO absolu car le blog ne donne des résultats SEO qu'à M+6 minimum — le réseau prescripteurs reste la priorité court terme. Pipeline IA non négociable avant lancement : un blog abandonné après 3 articles est pire qu'aucun blog. Mots-clés "acheter appartement Lille" écartés (trop concurrentiels) au profit de longue traîne géo-sectorielle (marchands de biens + secteur géographique + situation-type). |
 | seo | 2026-04-11 | docs/seo/vi-blog-strategy.md | Stratégie blog complète versi-immobilier.fr. Argumentaire (pivot acquéreur, E-E-A-T, longue traîne). 4 piliers éditoriaux. 10 articles cibles avec requêtes SEO. Architecture technique (URL /blog/:slug, Option A fichiers Markdown ou Option B PostgreSQL, Schema.org BlogPosting, IndexNow Bing, sitemap dynamique). Pipeline IA complet (prompt de génération calibré brand voice, workflow 4 étapes, transformation réalisations → articles, anti-répétition content_registry.json). Plans détaillés 3 premiers articles. Handoff @fullstack avec specs composants et décisions à prendre. | Blog écarté en V1 (persona Laurent = intention transactionnelle directe). Pivot acquéreur Kévin change la donne : phase de recherche informationnelle avant achat (1-6 mois). Blog ciblé sur versi-immobilier.fr uniquement (pas versi.fr). Fréquence 2 articles/mois choisie car réaliste pour opérateur actif solo — 24 articles en 12 mois = masse critique topical authority. Option A (Markdown) vs Option B (PostgreSQL) laissée à la décision @fullstack selon si back office admin déjà en place. IndexNow retenu comme priorité Bing (crawl moins fréquent que Google, compensé par notification push). Requêtes longue traîne "marchand de biens Lille acquéreur" et "précommercialisation immobilier Lille" identifiées comme quasi-zéro concurrence = opportunité forte. |
+| orchestrator | 2026-04-11 | Back office complet + corrections design/SEO/GEO + blog | Session s5 majeure. (1) Back office admin complet : specs @product-manager → implémentation @fullstack (BDD PostgreSQL 6 tables, API Express 25+ endpoints, frontend admin 10 fichiers React, migration frontend public 4 hooks). (2) 3 itérations d'audits qualité : @design 6.3→9.5, @qa 5.5→9.2 GO, @reviewer 7.4→8.8, @moi 7.5. 27 corrections appliquées (sécurité, accessibilité, UX). (3) Corrections design : Hero padding-top, responsive tablette, WCAG contraste. (4) SEO/GEO : Umami Analytics, favicons complets, og:image, robots.txt/sitemap, Schema.org enrichi, llms.txt, FAQ visible, sameAs LinkedIn. (5) Blog versi-immobilier : table PostgreSQL, API, admin, pages publiques /blog + /blog/:slug avec parseur Markdown + Schema.org BlogPosting. (6) Lien versi-immobilier.fr activé sur versi.fr. | Back office en PostgreSQL (pas fichiers statiques) car filesystem Replit éphémère. Photos en base64 (pas filesystem) pour la même raison. Cookie httpOnly (pas localStorage) pour la sécurité — imposé par audit @qa. Blog en PostgreSQL via le back office admin existant (pas fichiers Markdown) — cohérent avec l'architecture back office et permet aux 3 fondateurs de publier sans toucher au code. Umami retenu (pas Plausible) — décision fondateur explicite. 3 itérations d'audits nécessaires car le premier code produit par @fullstack avait des lacunes sécurité (5.5/10 @qa) — l'itération a prouvé sa valeur (5.5→9.2). |
 
 ---
 
@@ -272,36 +273,32 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/extract-project-context-n7Q8o`
+- Branche de développement : `claude/resume-backoffice-session-qRZZn`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-**Branche** : `claude/extract-project-context-n7Q8o`
-**Date de clôture** : 2026-04-10
-**Dernier commit** : `a130ec3` — feat(vi): PropertyDetailPage — features, emplacement, prix, diagnostics
+**Branche** : `claude/resume-backoffice-session-qRZZn`
+**Date de clôture** : 2026-04-11
+**Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s4)** : Session majeure. Pivot acquéreur complet de versi-immobilier.fr — le persona principal passe de vendeur (Sophie) à acquéreur (primo-accédant/famille). Creative rethink complet : Hero "Peu de biens. Pas d'approximation.", brand voice adapté (sujet = bien/acheteur, pas Versi), copy retravaillé par @creative-strategy + @copywriter depuis les brand docs. Design audit et corrections CSS (spacing, grille, badges). Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Photos fondateurs alignées. Testeur-persona Sophie créé. 216 tests E2E PASS.
+**Résumé session (versi-s5)** : Session majeure axée back office + SEO/GEO + blog. (1) Back office admin complet : specs @product-manager, implémentation @fullstack (PostgreSQL 6+1 tables, API Express 30+ endpoints, 12 fichiers admin React, migration frontend public vers hooks API). 3 itérations d'audits qualité (design 6.3→9.5, QA 5.5→9.2 GO, reviewer 7.4→8.8). 27 corrections appliquées (sécurité : cookie httpOnly, timing-safe compare, CSP headers ; accessibilité : focus-visible, aria-labels, WCAG contraste ; UX : toast succès, ConfirmModal, breadcrumbs, upload parallèle). (2) Corrections design : Hero padding-top 2 sites, responsive tablette, grilles CSS. (3) SEO/GEO pré-lancement : Umami Analytics, favicons complets, og:image, robots.txt/sitemap cohérents, Schema.org enrichi (RealEstateAgent, founders, sameAs), llms.txt, FAQ visible versi.fr, lien cross-entités. (4) Blog versi-immobilier : table blog_articles, API, admin (liste + formulaire Markdown), pages publiques /blog + /blog/:slug avec parseur Markdown + Schema.org BlogPosting. Stratégie blog documentée (4 piliers, 10 articles, pipeline IA).
 
 **État des 2 sites** :
-- **versi.fr** : Photos fondateurs mises à jour (têtes alignées, luminosité Maxime corrigée). Ordre Maxime → Thomas → Carl. Reste inchangé sinon. Build OK.
-- **versi-immobilier.fr** : Pivot acquéreur implémenté. Hero "Peu de biens. Pas d'approximation." Homepage : Arguments → Biens → Stats (fond sombre) → TeamTeaser (photos réelles) → SellerBanner. Copy retravaillé depuis brand voice adapté. Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Build OK.
+- **versi.fr** : FAQ visible ajoutée (3 questions accordion). Hero enrichi (passage LLM-extractible). Mission stats contextualisées. Footer lien versi-immobilier.fr cliquable. Favicons complets. og:image. Umami Analytics. _headers sécurité. sameAs LinkedIn. Plausible supprimé → Umami. Build OK.
+- **versi-immobilier.fr** : Back office admin complet (/admin — biens, réalisations, inscrits, articles). Blog complet (/blog + /blog/:slug). Nav + Footer du site public sur les pages admin. Cookie httpOnly auth. Photos base64 PostgreSQL. Notifications email Resend. Schema.org enrichi (RealEstateAgent, founders, FAQPage). Favicons complets. og:image. Umami Analytics. Build OK.
 
 **Travail restant — PROCHAINE SESSION** :
 
-1. **BACK OFFICE (priorité)** — @product-manager doit specer puis @fullstack implémenter :
-   - Admin protégé par mot de passe (allezpsg)
-   - Interface pour ajouter/archiver des biens ET des réalisations
-   - Upload texte + photos, bouton ajouter/archiver
-   - BDD PostgreSQL Replit
-   - Images stockées en base ou sur le filesystem Replit
-   - 3 admins (les 3 fondateurs)
-   - Notifications email aux inscrits quand nouveau bien ajouté
-   - Même interface pour biens en vente ET réalisations (projets terminés)
+1. **Tests E2E back office + blog (priorité)** — @qa doit produire les tests Playwright pour les nouvelles pages admin et blog. Les 216 tests existants couvrent le site public pré-back office.
 
-2. **InvestirPage** — page faible (6,5/10), nécessite validation fondateur sur les chiffres co-investissement
+2. **3 premiers articles blog** — Condition de lancement blog. @seo a produit les plans détaillés des 3 premiers articles dans docs/seo/vi-blog-strategy.md. À rédiger via pipeline IA puis publier via le back office admin.
 
-3. **Déploiement Replit** — problème `src/dist` non résolu
+3. **Déploiement Replit** — @infrastructure : DNS versi-immobilier.fr, configuration .replit, problème `src/dist` non résolu depuis s4.
+
+4. **InvestirPage** — page faible (6.5/10). Nécessite validation fondateur sur les chiffres co-investissement.
+
+5. **Données réelles** — Remplacer les placeholders dans la BDD par les vraies données des biens (adresses, photos, descriptions). Utiliser le back office admin pour ajouter les biens réels.
 
 4. **Données réelles** — remplacer les placeholders dans properties.js par les vraies données des biens (adresses, photos, descriptions)
 
@@ -310,14 +307,19 @@
 6. **Tests E2E** — relancer après toutes les modifications de cette session
 
 **Décisions fondateur cette session** :
+**Décisions fondateur cette session (s5)** :
+- Analytics = Umami uniquement, jamais Plausible
+- Back office : Nav + Footer du site public permanents sur toutes les pages admin
+- Blog validé : SEO organique + E-E-A-T + automatisation IA + histoires de rénovation
+- Itérer les audits jusqu'à 10/10 (exigence de qualité maximale)
+- "Fixer même les petits points" (ne pas laisser de dette technique cosmétique)
+
+**Décisions fondateur session s4 (conservées)** :
 - Pivot : acquéreur = persona principal, vendeur = secondaire
 - Hero validé : "Peu de biens. Pas d'approximation."
-- Régions : Hauts-de-France ET Île-de-France (pas "Lille" seul)
+- Régions : Hauts-de-France ET Île-de-France
 - Prix : toujours net vendeur
-- Ordre fondateurs : Maxime → Thomas → Carl partout
-- Descriptions fondateurs : identiques à versi.fr
-- Pas anti-agence dans le copy (Pierre = persona secondaire)
-- "Rénové" trop restrictif — Versi vend aussi des biens avec projet de rénovation
-- Back office : admin custom avec mdp, PostgreSQL Replit, 3 admins, notifications email
+- Ordre fondateurs : Maxime → Thomas → Carl
+- Back office : admin custom avec mdp PostgreSQL Replit
 
-**Prompt de reprise** : `Lis project-context.md (mémo de reprise). Priorité : @product-manager spec back office (admin biens + réalisations, PostgreSQL, notifications), puis @fullstack implémentation. Vérifier aussi le rendu desktop/mobile post-corrections CSS.`
+**Prompt de reprise** : `@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise). Priorité : (1) @qa tests E2E back office + blog, (2) rédiger les 3 premiers articles blog via pipeline IA, (3) @infrastructure déploiement Replit + DNS.`

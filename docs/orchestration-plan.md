@@ -1,6 +1,6 @@
-# Plan d'orchestration — Versi (versi.fr)
+# Plan d'orchestration — Versi (versi.fr + versi-immobilier.fr)
 
-> Dernière mise à jour : 2026-04-08
+> Dernière mise à jour : 2026-04-11
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
@@ -75,6 +75,57 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 | @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | TERMINÉ — GO CONDITIONNEL |
 | @reviewer | Actions correctives G7 + G15 | Après revue | TERMINÉ |
 | testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN COURS |
+
+---
+
+## versi-immobilier.fr — Phases ajoutées (sessions s3-s5)
+
+### Phase VI-0 — Stratégie & Specs (session s3)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @creative-strategy | Personas VI + brand platform VI | TERMINÉ |
+| @legal | Audit juridique VI (Loi Hoguet, offre ferme 7j) | TERMINÉ |
+| @product-manager | Specs fonctionnelles 10 pages | TERMINÉ |
+| @copywriter | Copy complet 10 pages | TERMINÉ |
+| @seo | SEO strategy VI | TERMINÉ |
+| @geo | GEO strategy VI | TERMINÉ |
+| @growth | Growth strategy VI | TERMINÉ |
+
+### Phase VI-1 — Développement (sessions s3-s4)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @fullstack | Site complet 10 pages + serveur Express | TERMINÉ |
+| @qa | 216 tests E2E Playwright | TERMINÉ |
+
+### Phase VI-2 — Back office admin (session s5)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @product-manager | Specs back office (vi-backoffice-specs.md) | TERMINÉ |
+| @fullstack | BDD PostgreSQL + API + frontend admin + migration | TERMINÉ |
+| @design | Audit design back office (3 itérations : 6.3→8.2→9.5) | TERMINÉ |
+| @qa | Audit QA back office (3 itérations : 5.5→7.4→9.2 GO) | TERMINÉ |
+| @reviewer | Audit reviewer back office (7.4→8.8 GO CONDITIONNEL) | TERMINÉ |
+| @moi | Audit fondateur back office (7.5 — "J'utilise après corrections") | TERMINÉ |
+
+### Phase VI-3 — Blog (session s5)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @seo | Stratégie blog (vi-blog-strategy.md) | TERMINÉ |
+| @growth | Évaluation blog (GO conditionnel) | TERMINÉ |
+| @fullstack | Implémentation blog (BDD, API, admin, pages publiques) | TERMINÉ |
+
+### Phase VI-4 — SEO/GEO pré-lancement (session s5)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @seo | Audit SEO final (versi.fr 7.5, VI 8/10) | TERMINÉ |
+| @geo | Audit GEO final (versi.fr 8, VI 9/10) | TERMINÉ |
+| orchestrator | Corrections SEO/GEO (og:image, sitemap, Schema, FAQ visible, favicons) | TERMINÉ |
+
+### Phase VI-5 — Pré-déploiement (À FAIRE)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @qa | Tests E2E back office + blog | À FAIRE |
+| @infrastructure | Déploiement Replit + DNS versi-immobilier.fr | À FAIRE |
 
 ## Décisions clés
 
