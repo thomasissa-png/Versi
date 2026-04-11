@@ -387,6 +387,8 @@ export default function AdminBienForm() {
               <div key={i} className="dynamic-list-item">
                 <input
                   type="text"
+                  id={`works-${i}`}
+                  aria-label={`Travaux réalisés — item ${i + 1}`}
                   value={item}
                   onChange={(e) => handleListChange('works', i, e.target.value)}
                   placeholder="Ex : Réfection électricité"
@@ -410,6 +412,8 @@ export default function AdminBienForm() {
               <div key={i} className="dynamic-list-item">
                 <input
                   type="text"
+                  id={`features-${i}`}
+                  aria-label={`Équipements — item ${i + 1}`}
                   value={item}
                   onChange={(e) => handleListChange('features', i, e.target.value)}
                   placeholder="Ex : Parquet massif"

@@ -128,10 +128,11 @@ export default function AdminRealisationForm() {
   }
 
   function validate() {
+    const FIELD_LABELS = { title: 'Titre', city: 'Ville', type: 'Type', surface: 'Surface', description: 'Description' };
     const required = ['title', 'city', 'type', 'surface', 'description'];
     for (const field of required) {
       if (!form[field].trim()) {
-        return `Le champ "${field}" est obligatoire.`;
+        return `Le champ « ${FIELD_LABELS[field] || field} » est obligatoire.`;
       }
     }
     return null;
