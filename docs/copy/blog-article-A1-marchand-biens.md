@@ -174,11 +174,11 @@ Ce mécanisme vous donne accès à des biens avant qu'ils soient disponibles au 
 
 ## Ce que ça change pour vous à Lille
 
-Le marché immobilier de la métropole lilloise — Lille, Roubaix, Tourcoing, Valenciennes et les communes environnantes — présente une caractéristique utile pour l'acheteur qui recherche un bien rénové : il existe un tissu actif de marchands de biens qui opèrent sur de l'ancien à transformer.
+Le marché immobilier de la métropole lilloise présente une diversité utile pour l'acquéreur. Les prix médians varient sensiblement selon la commune : Roubaix se situe autour de 1 994 à 2 182 €/m² (Meilleurs Agents, avril 2026), Tourcoing autour de 1 702 €/m² (action.immo, 2026), Valenciennes autour de 1 984 €/m² (lagence-exclusive.fr, 2026). Ces villes de la métropole sont significativement plus accessibles que Lille pour un budget comparable.
 
-Ce tissu produit des biens que les portails grand public ne montrent pas toujours en premier. Les biens en précommercialisation, les transactions en cours de finalisation, les opérations récemment achevées — tout ce stock passe d'abord par les réseaux des opérateurs avant d'atterrir sur SeLoger ou LeBonCoin.
+Dans chacune de ces zones, Versi Immobilier opère sur de l'ancien à transformer. Ce tissu produit des biens que les portails grand public ne montrent pas toujours en premier. Les biens en précommercialisation, les transactions en cours de finalisation, les opérations récemment achevées — tout ce stock passe d'abord par les réseaux des opérateurs avant d'atterrir sur les portails.
 
-En tant qu'acquéreur, connaître le fonctionnement d'un marchand de biens vous donne accès à ces biens plus tôt. Et être en mesure d'évaluer la sérieux d'un opérateur — ses garanties, ses réalisations passées, sa traçabilité — vous protège avant de signer.
+En tant qu'acquéreur, connaître le fonctionnement d'un marchand de biens vous donne accès à ces biens plus tôt. Être en mesure d'évaluer le sérieux d'un opérateur — ses garanties, ses réalisations passées, sa traçabilité — vous protège avant de signer.
 
 Chez Versi Immobilier, nous opérons en direct sur chaque bien que nous vendons. Pas d'intermédiaire entre vous et l'opérateur qui a mené l'opération.
 
@@ -228,7 +228,7 @@ CHECKLIST QUALITÉ 32 CRITÈRES — AUTO-ÉVALUATION
 ### Checklist contenu et E-E-A-T
 | # | Critère | OUI / NON |
 |---|---|---|
-| 21 | Chaque donnée chiffrée citée a une source explicite | OUI — pas de données chiffrées sans source dans cet article (données légales: garantie décennale 10 ans, donnée juridique publique) |
+| 21 | Chaque donnée chiffrée citée a une source explicite | OUI — Roubaix 1 994-2 182 €/m² (Meilleurs Agents, avril 2026) ; Tourcoing 1 702 €/m² (action.immo, 2026) ; Valenciennes 1 984 €/m² (lagence-exclusive.fr, 2026) ; garantie décennale 10 ans (droit civil français, art. 1792 CC) |
 | 22 | Au moins 1 exemple concret issu des opérations Versi Immobilier | OUI — mention des villes HdF opérées, référence aux réalisations |
 | 23 | Signature auteur présente | OUI — Thomas Issa — Co-fondateur, Versi Immobilier |
 | 24 | Aucune information factuelle invérifiable sans validation fondateur | OUI |
