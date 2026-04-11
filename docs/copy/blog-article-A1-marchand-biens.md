@@ -124,7 +124,7 @@ Une agence immobilière est un intermédiaire. Elle met en relation un vendeur e
 
 Un marchand de biens achète le bien sur ses fonds propres. Il mène les travaux. Il revend le bien terminé — ou parfois en cours de transformation. Il est vendeur, pas intermédiaire.
 
-La différence n'est pas que semantique. Elle change ce que vous pouvez exiger, ce que vous pouvez vérifier, et la nature des garanties dont vous bénéficiez.
+La différence n'est pas que sémantique. Elle change ce que vous pouvez exiger, ce que vous pouvez vérifier, et la nature des garanties dont vous bénéficiez.
 
 Versi Immobilier opère sur ce modèle dans la métropole lilloise et dans les Hauts-de-France — à Roubaix, Tourcoing, Valenciennes, et dans d'autres communes de la zone. Chaque bien que vous voyez sur notre site est un bien que nous avons acquis, transformé, et que nous vendons en direct.
 

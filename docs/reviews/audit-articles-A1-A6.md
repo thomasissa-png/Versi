@@ -134,37 +134,170 @@ Fichier : `docs/copy/blog-article-A1-marchand-biens.md`
 
 | Critère | Note /10 | Détail |
 |---|---|---|
-| 1. Brand voice | — | voir ci-dessous |
-| 2. SEO on-page | — | voir ci-dessous |
-| 3. Qualité du contenu | — | voir ci-dessous |
-| 4. Maillage et conversion | — | voir ci-dessous |
-| 5. Cohérence positionnement | — | voir ci-dessous |
-| **Note globale A6** | — | |
+| 1. Brand voice | 9,5/10 | Quasi-parfait. Un glissement de registre isolé dans H2 3 ("C'est la question que Kévin pose le plus souvent"). |
+| 2. SEO on-page | 8,5/10 | Meta title trop court, requête dans les H2 insuffisante, longueur MOFU sous-optimale. |
+| 3. Qualité du contenu | 9,5/10 | Meilleur article des deux. La section garanties est remarquable par son honnêteté. |
+| 4. Maillage et conversion | 9/10 | Maillage complet. CTA final sans pont logique, identique au défaut A1. |
+| 5. Cohérence positionnement | 9/10 | Positionnement MDB bien tenu. Mentions HdF peu présentes (MOFU, logique différente). |
+| **Note globale A6** | **9,1/10** | |
 
 ### 1. Brand voice — A6
 
+**Note : 9,5/10**
+
+**Vouvoiement** : systématique sur tout l'article. Aucun tutoiement. Conforme.
+
+**Points d'exclamation** : zéro. Conforme.
+
+**Mots interdits** : aucun. "Expertise", "Clé en main", "Solutions", "Découvrez", "N'hésitez pas", "Bienvenue" : tous absents. Conforme.
+
+**Premier paragraphe** : "La précommercialisation immobilière permet d'acheter un appartement avant sa mise en vente officielle..." — entrée directe dans la définition du sujet, sans introduction molle. Conforme.
+
+**Ton** : confiant, pédagogique, honnête. La section H2 3 ("Les garanties d'un achat en précommercialisation") est le meilleur exemple : Versi annonce ce qui est garanti, ce qui ne l'est pas, et ce qu'il faut vérifier — sans chercher à rassurer à tout prix. C'est exactement le ton "Pas des clowns" prescrit par founder-preferences.md.
+
+**Phrases courtes** : tenues. Les sous-listes en gras dans H2 3 et H2 4 sont bien découpées. Aucun paragraphe de plus de 5 lignes. Conforme.
+
+**Point mineur (-0,5)** : une seule ligne casse le vouvoiement dans le registre de narration. H2 3, premier paragraphe : "C'est la question que Kévin pose le plus souvent : est-ce que j'achète quelque chose de sécurisé...". Nommer Kévin explicitement dans le corps de l'article est une rupture de convention — le persona est interne, il ne doit pas apparaître nommément dans le contenu public. Reformuler : "C'est la question que posent la plupart des acquéreurs en précommercialisation : est-ce sécurisé ou est-ce que je prends un risque ?"
+
 ### 2. SEO on-page — A6
+
+**Note : 8,5/10**
+
+**H1** : "Précommercialisation immobilière : comment accéder aux biens avant les autres" — contient "précommercialisation immobilière". Conforme à la requête cible principale.
+
+**Requête dans le premier paragraphe** : "La précommercialisation immobilière permet d'acheter un appartement avant sa mise en vente officielle" — dans les 30 premiers mots. Conforme.
+
+**Structure H2** : 5 H2, progression logique (définition → ce qu'on achète → garanties → avantages → conclusion). Conforme.
+
+**Longueur** : ~900 mots selon l'auto-évaluation de @copywriter, dans la fourchette 800-1 000 mots. Conforme.
+
+**Slug** : `precommercialisation-immobilier-lille` — minuscules, sans accents, tirets. Conforme.
+
+**Point (-0,5) — Requête dans les H2 limite** : le brief prescrit la requête cible dans "au moins 2 H2". L'analyse montre : H2 1 "La précommercialisation : qu'est-ce que c'est concrètement" (mot "précommercialisation" présent, mais requête complète "précommercialisation immobilier Lille" absente). H2 5 "Ce que ça change pour vous" (la requête complète apparaît dans le CORPS du H2 : "La précommercialisation immobilière à Lille change une chose fondamentale..." mais pas dans le titre H2 lui-même). Tecniquement conforme à la lettre (variante dans les H2), mais la requête exacte "précommercialisation immobilier Lille" ne figure dans aucun titre H2. Recommandation : reformuler H2 5 en "Ce que la précommercialisation immobilière change pour vous à Lille" pour ancrer la requête cible dans le titre.
+
+**Point (-0,5) — Meta title trop court** : "Précommercialisation immobilier Lille : comment ça marche | Versi" — 56 caractères selon le brief. La limite est 60 caractères. Il reste 4 caractères exploitables. Le mot "Versi" seul est moins mémorable que "Versi Immobilier" en footer de title. Reformuler : "Précommercialisation immobilier Lille : comment ça marche | Versi" est conforme techniquement, mais l'espace disponible n'est pas pleinement utilisé. Un title plus complet aurait un meilleur CTR.
+
+**Point (-0,5) — "Lille" absent du H1** : le H1 est "Précommercialisation immobilière : comment accéder aux biens avant les autres". La requête cible est "précommercialisation immobilier Lille" — "Lille" est absent du H1, présent dans le slug et le meta title mais pas dans le titre visible. Pour un article MOFU sur une requête géolocalisée, l'absence de "Lille" dans le H1 est un manque sémantique. Reformuler : "Précommercialisation immobilière à Lille : comment accéder aux biens avant les autres" (66 caractères — légèrement au-dessus des 70 du framework mais acceptable).
 
 ### 3. Qualité du contenu — A6
 
+**Note : 9,5/10**
+
+**Utilité pour Kévin** : très élevée. C'est l'article le plus utile des deux. Il répond à trois questions distinctes : qu'est-ce que la précommercialisation (H2 1), qu'est-ce qu'on achète exactement (H2 2), est-ce sécurisé (H2 3). La section H2 3 est remarquable : elle dit à Kévin ce qui est garanti, ce qui ne l'est pas, et quelles questions poser — sans minimiser les risques ni surprotéger Versi. C'est exactement le niveau de transparence que le framework prescrit.
+
+**Informations concrètes** : le délai de rétractation de 10 jours SRU est correctement cité (droit immobilier français, source publique). La distinction VEFA / précommercialisation est claire et juridiquement correcte. Les délais estimés (2 à 5 mois) sont présentés explicitement comme estimations, pas comme garanties. Conforme à la règle "zéro donnée inventée".
+
+**Angle éditorial tenu** : l'angle prescrit dans le brief est "cet article existe parce que tous les résultats SERP s'adressent aux marchands de biens, pas aux acheteurs". L'angle acquéreur est tenu de bout en bout — l'article répond à "est-ce bon pour moi ?", pas à "comment ça marche pour un MDB ?".
+
+**Différenciation** : la section H2 3 ("Ce qui est garanti / Ce qui ne l'est pas / Ce qu'il faut vérifier") est la plus différenciante des deux articles. Aucun contenu SERP sur cette requête n'aborde les risques honnêtement — tous les contenus existants sont des argumentaires vendeurs. Versi se positionne différemment : "voici ce que vous devez vérifier avant de signer chez n'importe quel marchand de biens, y compris nous."
+
+**Point mineur (-0,5)** : H2 4 ("Les avantages concrets") liste quatre avantages en gras avec texte. L'avantage "Un délai de préparation" (2 à 5 mois) est léger : "Entre la signature du compromis et la livraison du bien, deux à cinq mois s'écoulent. C'est le temps dont vous disposez pour finaliser votre crédit..." Ce n'est pas vraiment un avantage de la précommercialisation — c'est une conséquence neutre. Le reformuler comme avantage positif ou le supprimer au profit d'un avantage plus fort (ex : le fait de pouvoir influencer certaines finitions pendant le chantier, si c'est le cas chez Versi — à valider avec les fondateurs).
+
 ### 4. Maillage et conversion — A6
+
+**Note : 9/10**
+
+**Liens internes blog** :
+- Lien vers A1 dans H2 1 ("ce qu'est un marchand de biens"). Naturel, bien intégré dans la logique explicative.
+- Lien vers A2 dans H2 3 ("les garanties qui vous protègent"). Contextuel et logique — Kévin veut en savoir plus sur les garanties, le lien répond à ce besoin.
+
+**Liens vers pages site** :
+- Lien vers `/notre-approche` dans H2 2 ("process de rénovation"). Bien intégré dans le corps du texte.
+- CTA final vers `/nos-biens` ("Voir les biens en précommercialisation"). Ancre précise et contextualisée — meilleure que le CTA générique de A1.
+
+**Qualité des ancres** : toutes les ancres sont descriptives et contextuelles. Aucune ancre "cliquez ici". Conforme.
+
+**Point mineur (-1)** : le même défaut structurel que A1 — le CTA final ("[Voir les biens en précommercialisation](/nos-biens)") arrive après un court paragraphe de conclusion ("Chez Versi Immobilier, les biens en précommercialisation sont signalés sur notre page dédiée. Vous y trouvez l'état d'avancement de chaque opération, le dossier disponible et le contact direct."). Ce paragraphe est la meilleure transition de CTA des deux articles — il décrit ce que Kévin va trouver en cliquant. La phrase "l'état d'avancement de chaque opération, le dossier disponible et le contact direct" est concrète et motivante. Elle pourrait néanmoins être plus directe : "Si vous cherchez un bien en cours de transformation dans la métropole lilloise, voici ce qui est disponible actuellement."
 
 ### 5. Cohérence avec le positionnement — A6
 
+**Note : 9/10**
+
+**Versi comme expert MDB** : le positionnement est incarné. L'article décrit le process Versi (dossier fourni en préco, conditions de réservation, lien vers /notre-approche) sans jamais se qualifier d'"expert". La maîtrise se démontre par la précision des informations sur les garanties et sur le cadre contractuel.
+
+**Mentions géographiques HdF** : plus discrètes que dans A1 — "à Lille" dans le H1 du brief (mais absent du H1 rédigé), "à Lille" dans la meta title et le slug. Dans le corps de l'article : H2 5 mentionne "La précommercialisation immobilière à Lille change une chose fondamentale pour Kévin" et "avant que le bien soit sur SeLoger". L'ancrage géographique est moins prononcé que dans A1 — c'est cohérent avec la position MOFU de l'article (Kévin connaît déjà Versi ou la zone, il cherche à comprendre le mécanisme). Acceptable mais une mention supplémentaire naturelle de la métropole lilloise dans H2 2 ou H2 4 renforcerait l'ancrage local.
+
+**"Ces gens savent de quoi ils parlent"** : oui, et encore plus clairement que dans A1. La section H2 3 — avec sa structure "Ce qui est garanti / Ce qui ne l'est pas / Ce qu'il faut vérifier" — est le meilleur signal de crédibilité du blog Versi à ce stade. Elle dit : nous n'avons pas peur de vous dire ce qui peut aller de travers, parce que nous sommes confiants dans notre process.
+
+**Point (-1)** : l'article ne mentionne aucune réalisation Versi nommée (même défaut que A1). Pour un article MOFU sur la précommercialisation, un exemple réel ("nous avons proposé cet appartement en préco à Roubaix — il était réservé avant la fin du chantier") serait encore plus décisif que dans A1, car Kévin est en phase de décision et cherche une preuve concrète que le mécanisme fonctionne. À valider avec les fondateurs.
+
 ### Points forts A6
 
+1. **Section garanties exemplaire** : la structure "Ce qui est garanti / Ce qui ne l'est pas / Ce qu'il faut vérifier" est la section la plus différenciante des deux articles. Elle dit la vérité sur les risques — et c'est précisément ce qui crée la confiance.
+2. **Distinction VEFA / précommercialisation claire** : l'article résout une confusion fréquente de Kévin sans être condescendant. La distinction est factuelle et utile.
+3. **Dossier Versi décrit précisément** : H2 2 détaille le contenu du dossier fourni en préco (plan coté, liste des travaux, matériaux, date de livraison, prix net vendeur). C'est du contenu first-hand — pas du générique.
+4. **Ton honnête tenu** : "Ce qui ne l'est pas" dans la section garanties est courageux éditorialement. Un article qui dit "la date de livraison est une estimation, un chantier peut prendre du retard" crée plus de confiance qu'un article qui promet des délais garantis.
+5. **Lien entrant/sortant naturel** : le croisement avec A1 (lien en H2 1) crée un parcours de lecture cohérent : Kévin lit A1 pour comprendre le MDB, lit A6 pour comprendre la préco, et atterrit sur /nos-biens.
+
 ### Corrections A6
+
+**C1 — Retirer la mention explicite de "Kévin" dans le corps (priorité haute)**
+H2 3, premier paragraphe : "C'est la question que Kévin pose le plus souvent : est-ce que j'achète quelque chose de sécurisé, ou est-ce que je prends un risque ?"
+→ Corriger en : "C'est la question que posent la plupart des acquéreurs en précommercialisation : est-ce sécurisé, ou est-ce que je prends un risque ?"
+Le persona est interne — il ne doit pas apparaître nommément dans le contenu public.
+Fichier : `docs/copy/blog-article-A6-precommercialisation.md`
+
+**C2 — Ajouter "Lille" dans le H1 (priorité haute — impact SEO)**
+H1 actuel : "Précommercialisation immobilière : comment accéder aux biens avant les autres"
+→ Corriger en : "Précommercialisation immobilière à Lille : comment accéder aux biens avant les autres"
+La requête cible inclut "Lille" — son absence du H1 est un manque sémantique sur une requête géolocalisée.
+Fichier : `docs/copy/blog-article-A6-precommercialisation.md` + mise à jour du frontmatter H1.
+
+**C3 — Ancrer la requête complète dans un titre H2 (priorité moyenne — impact SEO)**
+Reformuler H2 5 : "Ce que ça change pour vous" → "Ce que la précommercialisation immobilière change pour vous à Lille"
+Cela place la requête exacte dans un titre H2, renforçant le signal sémantique sans altérer la structure.
+Fichier : `docs/copy/blog-article-A6-precommercialisation.md`
+
+**C4 — Retravailler l'avantage "délai de préparation" dans H2 4 (priorité basse)**
+L'avantage "Un délai de préparation" est neutre — ce n'est pas vraiment un bénéfice de la précommercialisation mais une conséquence mécanique. Deux options : (a) le reformuler positivement ("Deux à cinq mois pour préparer votre financement sans pression — votre crédit est en place avant la livraison"), ou (b) le remplacer par un avantage plus distinctif si les fondateurs confirment que Kévin peut influencer certaines finitions pendant le chantier.
+Fichier : `docs/copy/blog-article-A6-precommercialisation.md`
+
+**C5 — Ajouter une mention géographique HdF naturelle (priorité basse)**
+Ajouter dans H2 2 ou H2 4 une référence à la métropole lilloise ou aux Hauts-de-France. Exemple dans H2 4 : "Dans la métropole lilloise, où les biens qui sortent sur les portails reçoivent souvent plusieurs dizaines de contacts en 48h, accéder à un bien en préco avant sa publication change radicalement la position de l'acquéreur."
+Fichier : `docs/copy/blog-article-A6-precommercialisation.md`
+
+---
 
 ---
 
 ## Synthèse
 
-| Article | Note globale |
-|---|---|
-| A1 | — |
-| A6 | — |
-| **Note moyenne** | — |
+| Article | Note globale | Brand voice | SEO | Contenu | Maillage | Positionnement |
+|---|---|---|---|---|---|---|
+| A1 | **9,2/10** | 9/10 | 9,5/10 | 9/10 | 9/10 | 9,5/10 |
+| A6 | **9,1/10** | 9,5/10 | 8,5/10 | 9,5/10 | 9/10 | 9/10 |
+| **Note moyenne** | **9,15/10** | | | | | |
+
+---
 
 ## Verdict
 
+**ITÉRER — corrections requises avant publication**
+
+Les deux articles sont de très haute tenue et constituent une base solide. Ils respectent la brand voice Versi, sont sourcés, différenciants et utiles pour Kévin. Ils atteignent ou frôlent le seuil de 9/10 sur la plupart des critères.
+
+Deux corrections empêchent un PASS immédiat :
+
+**Sur A1 :**
+- C1 (priorité haute) : faute typographique "semantique" → "sémantique" — un article publié avec une faute d'accent sur un adjectif courant est inacceptable pour un blog qui vise la crédibilité professionnelle.
+
+**Sur A6 :**
+- C1 (priorité haute) : mention du persona "Kévin" dans le corps public de l'article — à retirer.
+- C2 (priorité haute, impact SEO) : "Lille" absent du H1 alors que la requête cible est "précommercialisation immobilier Lille".
+
+Les corrections C2-C4 de A1 et C3-C5 de A6 sont de priorité moyenne à basse — elles améliorent la performance sans conditionner la publication.
+
+**Condition de PASS** : appliquer A1-C1, A6-C1 et A6-C2. Les autres corrections peuvent être intégrées en V2.
+
+---
+
+**Handoff → @copywriter**
+- Fichiers produits : `docs/reviews/audit-articles-A1-A6.md`
+- Décisions prises : A1 note 9,2/10 — A6 note 9,1/10 — Verdict ITÉRER
+- Corrections bloquantes (à appliquer avant publication) :
+  - A1-C1 : "semantique" → "sémantique" dans `docs/copy/blog-article-A1-marchand-biens.md`
+  - A6-C1 : remplacer "C'est la question que Kévin pose le plus souvent" par "C'est la question que posent la plupart des acquéreurs en précommercialisation" dans `docs/copy/blog-article-A6-precommercialisation.md`
+  - A6-C2 : ajouter "à Lille" dans le H1 de A6 (frontmatter + corps) dans `docs/copy/blog-article-A6-precommercialisation.md`
+- Corrections recommandées (V2) : A1-C2, A1-C3, A1-C4 (à valider fondateurs), A6-C3, A6-C4 (à valider fondateurs), A6-C5
+- Points d'attention : les données chiffrées (prix médians HdF, délais légaux) sont correctement sourcées dans les deux articles — ne pas les modifier sans nouvelle vérification des sources
 ---

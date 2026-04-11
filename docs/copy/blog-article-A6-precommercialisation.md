@@ -114,7 +114,7 @@ VALIDATION PRÉ-RÉDACTION
 
 ---
 
-# Précommercialisation immobilière : comment accéder aux biens avant les autres
+# Précommercialisation immobilière à Lille : comment accéder aux biens avant les autres
 
 La précommercialisation immobilière permet d'acheter un appartement avant sa mise en vente officielle — pendant les travaux, parfois même avant qu'ils commencent. Chez un marchand de biens comme Versi Immobilier, c'est une pratique courante. Voici comment elle fonctionne, ce qu'elle vous apporte et ce qu'elle exige de vous.
 
@@ -144,7 +144,7 @@ Notre [process de rénovation](/notre-approche) précise ce qui est systématiqu
 
 ## Les garanties d'un achat en précommercialisation
 
-C'est la question que Kévin pose le plus souvent : est-ce que j'achète quelque chose de sécurisé, ou est-ce que je prends un risque ?
+C'est la question que les acquéreurs posent le plus souvent : est-ce que j'achète quelque chose de sécurisé, ou est-ce que je prends un risque ?
 
 La réponse est nuancée — et honnête.
 
@@ -170,7 +170,7 @@ La réponse est nuancée — et honnête.
 
 ## Ce que ça change pour vous
 
-La précommercialisation immobilière à Lille change une chose fondamentale pour Kévin : il n'est plus en position de réaction face au marché. Il accède à un stock de biens avant qu'ils soient publics. Il décide sans pression de concurrence. Il achète avec un dossier complet en main.
+La précommercialisation immobilière à Lille change une chose fondamentale : vous n'êtes plus en position de réaction face au marché. Vous accédez à un stock de biens avant qu'ils soient publics. Vous décidez sans pression de concurrence. Vous achetez avec un dossier complet en main.
 
 Ce mécanisme n'est pas réservé aux investisseurs ou aux acheteurs avertis. Il est accessible à tout acquéreur qui prend le temps de contacter un marchand de biens directement — avant que le bien soit sur SeLoger.
 
