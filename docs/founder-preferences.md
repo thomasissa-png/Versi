@@ -36,5 +36,11 @@
 ### Contenu & Blog
 - **Content marketing terrain = validé.** Thomas voit chaque réalisation comme une histoire à raconter. Citation : "On est des marchands, on peut avoir de jolies histoires à raconter sur l'acquisition, la rénovation etc." Le blog doit être factuel et narratif, pas du marketing générique.
 
+### Positionnement éditorial (blog & contenu)
+- **Experts marchands de biens Hauts-de-France.** Le positionnement éditorial cible = être reconnu comme les grands experts MDB des Hauts-de-France. Également présents en région parisienne mais en montants plus modestes — ne pas surjouer la taille sur l'IDF.
+- **Super qualitatifs, pros, qui savent ce qu'ils font.** Chaque article, chaque contenu doit transpirer la maîtrise métier. Pas de contenu générique copié d'un blog immobilier lambda. Le lecteur doit sentir que les auteurs font ce métier tous les jours.
+- **Respect des fournisseurs, partenaires et acquéreurs.** Le ton n'est jamais condescendant, jamais commercial agressif. On parle aux gens comme à des adultes intelligents. On respecte l'écosystème (artisans, notaires, courtiers, acquéreurs).
+- **"Pas des clowns."** Zéro humour forcé, zéro ton startup/cool, zéro emoji, zéro exclamation. Sérieux sans être ennuyeux. Confiant sans être arrogant. Le contenu doit donner envie de travailler avec Versi, pas de liker un post.
+
 ### Process
 - Ne pas changer de branche sans vérification. Le fondateur attend que le travail validé soit préservé.
