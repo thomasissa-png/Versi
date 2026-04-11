@@ -1,4 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import Nav from '../components/Nav.jsx';
+import Footer from '../components/Footer.jsx';
 import './admin.css';
 
 export default function AdminLayout() {
@@ -19,26 +21,30 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="admin-layout">
-      <nav className="admin-nav">
-        <span className="nav-brand">Versi Admin</span>
-        <NavLink to="/admin/biens" className={({ isActive }) => isActive ? 'active' : ''}>
-          Biens
-        </NavLink>
-        <NavLink to="/admin/realisations" className={({ isActive }) => isActive ? 'active' : ''}>
-          Réalisations
-        </NavLink>
-        <NavLink to="/admin/inscrits" className={({ isActive }) => isActive ? 'active' : ''}>
-          Inscrits
-        </NavLink>
-        <div className="nav-spacer" />
-        <button className="btn-logout" onClick={handleLogout}>
-          Déconnexion
-        </button>
-      </nav>
-      <div className="admin-content">
-        <Outlet />
+    <>
+      <Nav />
+      <div className="admin-layout" style={{ paddingTop: 'var(--nav-height)' }}>
+        <nav className="admin-nav">
+          <span className="nav-brand">Versi Admin</span>
+          <NavLink to="/admin/biens" className={({ isActive }) => isActive ? 'active' : ''}>
+            Biens
+          </NavLink>
+          <NavLink to="/admin/realisations" className={({ isActive }) => isActive ? 'active' : ''}>
+            Réalisations
+          </NavLink>
+          <NavLink to="/admin/inscrits" className={({ isActive }) => isActive ? 'active' : ''}>
+            Inscrits
+          </NavLink>
+          <div className="nav-spacer" />
+          <button className="btn-logout" onClick={handleLogout}>
+            Déconnexion
+          </button>
+        </nav>
+        <div className="admin-content">
+          <Outlet />
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 }
