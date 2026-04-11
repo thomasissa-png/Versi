@@ -1,5 +1,5 @@
 export const ENTITY_SITES_ACTIVE = {
-  immobilier: false,
+  immobilier: true,
   invest: false,
   capital: false,
   finance: false,

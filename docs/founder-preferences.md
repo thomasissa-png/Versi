@@ -23,5 +23,8 @@
 - Menu versi.fr : VISION, ACTIVITÉS, APPROCHE, ÉQUIPE, CONTACT. IMPLANTATION supprimé (trop vide pour l'instant).
 - APPROCHE toujours présent dans le menu.
 
+### Analytics
+- **Umami Analytics uniquement.** Jamais Plausible, jamais GA4. Umami est cookieless, RGPD-exempt, hébergé EU. Toute mention de Plausible dans le code ou les docs client-facing doit être remplacée par Umami.
+
 ### Process
 - Ne pas changer de branche sans vérification. Le fondateur attend que le travail validé soit préservé.
