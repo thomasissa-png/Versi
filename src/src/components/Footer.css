@@ -57,6 +57,18 @@
   opacity: var(--opacity-muted);
 }
 
+.footer__entity-link {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity var(--duration-normal) ease;
+}
+
+.footer__entity-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .footer__legal {
   display: flex;
   gap: 0;
