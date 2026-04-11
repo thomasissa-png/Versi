@@ -6,6 +6,7 @@ import Approach from '../components/Approach.jsx';
 import Location from '../components/Location.jsx';
 import Team from '../components/Team.jsx';
 import Contact from '../components/Contact.jsx';
+import FAQ from '../components/FAQ.jsx';
 import Footer from '../components/Footer.jsx';
 
 export default function HomePage() {
@@ -22,6 +23,7 @@ export default function HomePage() {
         <Approach />
         <Location />
         <Team />
+        <FAQ />
         <Contact />
       </main>
       <Footer />
