@@ -131,10 +131,25 @@ function slugify(text) {
 }
 
 // ---------------------------------------------------------------------------
+// Cookie parser (manual — no dependency)
+// ---------------------------------------------------------------------------
+function parseCookies(req) {
+  const cookies = {};
+  const header = req.headers.cookie;
+  if (!header) return cookies;
+  header.split(';').forEach(c => {
+    const [name, ...rest] = c.trim().split('=');
+    if (name) cookies[name.trim()] = decodeURIComponent(rest.join('='));
+  });
+  return cookies;
+}
+
+// ---------------------------------------------------------------------------
 // Auth middleware
 // ---------------------------------------------------------------------------
 async function checkAdminAuth(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const cookies = parseCookies(req);
+  const token = cookies.vi_admin_token;
   if (!token) {
     return res.status(401).json({ ok: false, error: 'Non authentifié' });
   }
@@ -147,6 +162,7 @@ async function checkAdminAuth(req, res, next) {
     if (result.rows.length === 0) {
       return res.status(401).json({ ok: false, error: 'Session expirée' });
     }
+    req.adminSessionId = token;
     next();
   } catch (err) {
     console.error('[AUTH] Erreur vérification session :', err.message);
@@ -234,18 +250,33 @@ app.post('/api/admin/login', async (req, res) => {
   }
 
   const { password } = req.body;
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!password || !ADMIN_PASSWORD) {
+    return res.status(401).json({ ok: false, error: 'Mot de passe incorrect' });
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  const passwordBuffer = Buffer.from(String(password));
+  const adminBuffer = Buffer.from(ADMIN_PASSWORD);
+  const isValid = passwordBuffer.length === adminBuffer.length &&
+    crypto.timingSafeEqual(passwordBuffer, adminBuffer);
+  if (!isValid) {
     return res.status(401).json({ ok: false, error: 'Mot de passe incorrect' });
   }
 
   try {
-    const token = crypto.randomUUID();
+    const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
     await pool.query(
       'INSERT INTO admin_sessions (id, expires_at, ip) VALUES ($1, $2, $3)',
-      [token, expiresAt.toISOString(), ip]
+      [sessionId, expiresAt.toISOString(), ip]
     );
-    return res.json({ ok: true, token, expiresAt: expiresAt.toISOString() });
+
+    // Set httpOnly cookie — not accessible via JavaScript
+    res.setHeader('Set-Cookie',
+      `vi_admin_token=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${8 * 60 * 60}; Path=/api/admin`
+    );
+
+    return res.json({ ok: true, expiresAt: expiresAt.toISOString() });
   } catch (err) {
     console.error('[AUTH] Erreur création session :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });
@@ -254,9 +285,12 @@ app.post('/api/admin/login', async (req, res) => {
 
 // POST /api/admin/logout
 app.post('/api/admin/logout', checkAdminAuth, async (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
   try {
-    await pool.query('DELETE FROM admin_sessions WHERE id = $1', [token]);
+    await pool.query('DELETE FROM admin_sessions WHERE id = $1', [req.adminSessionId]);
+    // Clear the httpOnly cookie
+    res.setHeader('Set-Cookie',
+      'vi_admin_token=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/api/admin'
+    );
     return res.json({ ok: true });
   } catch (err) {
     console.error('[AUTH] Erreur suppression session :', err.message);
@@ -386,6 +420,24 @@ app.get('/api/admin/properties', checkAdminAuth, async (req, res) => {
   } catch (err) {
     console.error('[API] Erreur GET /api/admin/properties :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/admin/properties/:id (single item for edit form)
+app.get('/api/admin/properties/:id', checkAdminAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM properties WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Bien non trouvé' });
+    }
+    const photos = await pool.query(
+      'SELECT id, filename, mime_type, sort_order, data FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
+      [req.params.id]
+    );
+    return res.json({ ok: true, property: rows[0], photos: photos.rows });
+  } catch (err) {
+    console.error('[ERROR] GET /api/admin/properties/:id :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur' });
   }
 });
 
@@ -600,12 +652,15 @@ app.post('/api/admin/properties/:id/photos', checkAdminAuth, async (req, res) =>
     return res.status(400).json({ ok: false, error: `Type MIME invalide. Autorisés : ${validMimes.join(', ')}` });
   }
 
-  if (size_bytes && size_bytes > 5242880) {
-    return res.status(413).json({ ok: false, error: 'Photo trop volumineuse. Taille maximum : 5 Mo' });
-  }
-
   if (!data.startsWith('data:image/')) {
     return res.status(400).json({ ok: false, error: 'Le champ data doit commencer par data:image/' });
+  }
+
+  // Server-side size validation: compute real size from base64 (client size_bytes is untrusted)
+  const base64Data = data.split(',')[1] || data;
+  const realSizeBytes = Math.ceil(base64Data.length * 3 / 4);
+  if (realSizeBytes > 5242880) {
+    return res.status(413).json({ ok: false, error: 'Photo trop lourde (max 5 Mo)' });
   }
 
   try {
@@ -689,6 +744,24 @@ app.get('/api/admin/projects', checkAdminAuth, async (req, res) => {
   } catch (err) {
     console.error('[API] Erreur GET /api/admin/projects :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/admin/projects/:id (single item for edit form)
+app.get('/api/admin/projects/:id', checkAdminAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM projects WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Réalisation non trouvée' });
+    }
+    const photos = await pool.query(
+      'SELECT id, filename, mime_type, sort_order, data FROM project_photos WHERE project_id = $1 ORDER BY sort_order ASC',
+      [req.params.id]
+    );
+    return res.json({ ok: true, project: rows[0], photos: photos.rows });
+  } catch (err) {
+    console.error('[ERROR] GET /api/admin/projects/:id :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur serveur' });
   }
 });
 
@@ -847,12 +920,15 @@ app.post('/api/admin/projects/:id/photos', checkAdminAuth, async (req, res) => {
     return res.status(400).json({ ok: false, error: `Type MIME invalide. Autorisés : ${validMimes.join(', ')}` });
   }
 
-  if (size_bytes && size_bytes > 5242880) {
-    return res.status(413).json({ ok: false, error: 'Photo trop volumineuse. Taille maximum : 5 Mo' });
-  }
-
   if (!data.startsWith('data:image/')) {
     return res.status(400).json({ ok: false, error: 'Le champ data doit commencer par data:image/' });
+  }
+
+  // Server-side size validation: compute real size from base64 (client size_bytes is untrusted)
+  const base64Data = data.split(',')[1] || data;
+  const realSizeBytes = Math.ceil(base64Data.length * 3 / 4);
+  if (realSizeBytes > 5242880) {
+    return res.status(413).json({ ok: false, error: 'Photo trop lourde (max 5 Mo)' });
   }
 
   try {

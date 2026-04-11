@@ -9,11 +9,19 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('vi_admin_token');
-    const expiresAt = localStorage.getItem('vi_admin_expires');
-    if (token && expiresAt && new Date(expiresAt) > new Date()) {
-      navigate('/admin/biens', { replace: true });
-    }
+    // Check if already authenticated via cookie
+    fetch('/api/admin/me')
+      .then(async (r) => {
+        if (r.ok) {
+          const data = await r.json();
+          if (data.ok) {
+            navigate('/admin/biens', { replace: true });
+          }
+        }
+      })
+      .catch(() => {
+        // Not authenticated, stay on login page
+      });
   }, [navigate]);
 
   async function handleSubmit(e) {
@@ -36,8 +44,10 @@ export default function AdminLogin() {
         return;
       }
 
-      localStorage.setItem('vi_admin_token', data.token);
-      localStorage.setItem('vi_admin_expires', data.expiresAt);
+      // Store expiresAt for client-side heuristic only (token is in httpOnly cookie)
+      if (data.expiresAt) {
+        localStorage.setItem('vi_admin_expires', data.expiresAt);
+      }
       navigate('/admin/biens', { replace: true });
     } catch {
       setError('Erreur de connexion au serveur');

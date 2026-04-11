@@ -5,21 +5,15 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   async function handleLogout() {
-    const token = localStorage.getItem('vi_admin_token');
-
     try {
       await fetch('/api/admin/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
     } catch {
-      // Silently continue — we clear the session locally regardless
+      // Silently continue — the server clears the cookie regardless
     }
 
-    localStorage.removeItem('vi_admin_token');
     localStorage.removeItem('vi_admin_expires');
     navigate('/admin/login', { replace: true });
   }
