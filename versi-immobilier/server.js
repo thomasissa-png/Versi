@@ -20,6 +20,17 @@ if (!ADMIN_PASSWORD) {
 // Middleware
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '10mb' }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none';");
+  next();
+});
+
 app.use(express.static(join(__dirname, 'dist')));
 
 // ---------------------------------------------------------------------------
@@ -309,8 +320,13 @@ app.get('/api/admin/me', checkAdminAuth, (req, res) => {
 
 // GET /api/public/properties
 app.get('/api/public/properties', async (req, res) => {
+  const VALID_PROPERTY_STATUS = ['disponible', 'archive', 'vendu', 'all'];
+  const status = req.query.status || 'disponible';
+  if (!VALID_PROPERTY_STATUS.includes(status)) {
+    return res.status(400).json({ ok: false, error: 'Statut invalide' });
+  }
+
   try {
-    const status = req.query.status || 'disponible';
     let result;
     if (status === 'all') {
       result = await pool.query(
@@ -349,8 +365,13 @@ app.get('/api/public/properties/:id', async (req, res) => {
 
 // GET /api/public/projects
 app.get('/api/public/projects', async (req, res) => {
+  const VALID_PROJECT_STATUS = ['completed', 'in-progress', 'archive', 'all'];
+  const status = req.query.status || 'completed';
+  if (!VALID_PROJECT_STATUS.includes(status)) {
+    return res.status(400).json({ ok: false, error: 'Statut invalide' });
+  }
+
   try {
-    const status = req.query.status || 'completed';
     let result;
     if (status === 'all') {
       result = await pool.query(
@@ -466,9 +487,12 @@ app.post('/api/admin/properties', checkAdminAuth, async (req, res) => {
 
   try {
     let id = slugify(title);
-    const existing = await pool.query('SELECT id FROM properties WHERE id = $1', [id]);
-    if (existing.rows.length > 0) {
-      id = id + '-' + crypto.randomUUID().slice(0, 4);
+    if (!id) id = crypto.randomUUID().slice(0, 8);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = attempt === 0 ? id : id + '-' + crypto.randomUUID().slice(0, 6);
+      const existing = await pool.query('SELECT id FROM properties WHERE id = $1', [candidate]);
+      if (existing.rows.length === 0) { id = candidate; break; }
+      if (attempt === 4) return res.status(409).json({ ok: false, error: 'Impossible de générer un identifiant unique' });
     }
 
     const result = await pool.query(
@@ -785,9 +809,12 @@ app.post('/api/admin/projects', checkAdminAuth, async (req, res) => {
 
   try {
     let id = slugify(title);
-    const existing = await pool.query('SELECT id FROM projects WHERE id = $1', [id]);
-    if (existing.rows.length > 0) {
-      id = id + '-' + crypto.randomUUID().slice(0, 4);
+    if (!id) id = crypto.randomUUID().slice(0, 8);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = attempt === 0 ? id : id + '-' + crypto.randomUUID().slice(0, 6);
+      const existing = await pool.query('SELECT id FROM projects WHERE id = $1', [candidate]);
+      if (existing.rows.length === 0) { id = candidate; break; }
+      if (attempt === 4) return res.status(409).json({ ok: false, error: 'Impossible de générer un identifiant unique' });
     }
 
     const result = await pool.query(

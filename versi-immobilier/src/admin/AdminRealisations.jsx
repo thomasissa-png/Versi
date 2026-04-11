@@ -54,7 +54,7 @@ export default function AdminRealisations() {
         setProjects((prev) => prev.filter((p) => p.id !== id));
         showSuccess('Réalisation supprimée.');
       } catch {
-        alert('Erreur lors de la suppression.');
+        setError('Erreur lors de la suppression.');
       }
       return;
     }
@@ -65,7 +65,7 @@ export default function AdminRealisations() {
         showSuccess('Réalisation archivée.');
         loadProjects();
       } catch {
-        alert('Erreur lors de l\'archivage.');
+        setError('Erreur lors de l\'archivage.');
       }
       return;
     }
@@ -79,7 +79,7 @@ export default function AdminRealisations() {
         showSuccess('Réalisation marquée comme terminée.');
         loadProjects();
       } catch {
-        alert('Erreur lors de la mise à jour.');
+        setError('Erreur lors de la mise à jour.');
       }
     }
   }
@@ -101,6 +101,8 @@ export default function AdminRealisations() {
 
   return (
     <div>
+      {successMsg && <div className="admin-toast">{successMsg}</div>}
+      {error && <p className="admin-error">{error}</p>}
       <div className="admin-section-header">
         <h2>Réalisations</h2>
         <Link to="/admin/realisations/nouveau" className="btn btn-primary">+ Ajouter</Link>

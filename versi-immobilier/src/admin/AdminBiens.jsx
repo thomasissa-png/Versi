@@ -54,7 +54,7 @@ export default function AdminBiens() {
         setBiens((prev) => prev.filter((b) => b.id !== id));
         showSuccess('Bien supprimé.');
       } catch {
-        alert('Erreur lors de la suppression.');
+        setError('Erreur lors de la suppression.');
       }
       return;
     }
@@ -71,7 +71,7 @@ export default function AdminBiens() {
       showSuccess(ACTION_LABELS[action] || 'Action effectuée.');
       loadBiens();
     } catch {
-      alert('Erreur lors de la mise à jour.');
+      setError('Erreur lors de la mise à jour.');
     }
   }
 
@@ -93,6 +93,7 @@ export default function AdminBiens() {
   return (
     <div>
       {successMsg && <div className="admin-toast">{successMsg}</div>}
+      {error && <p className="admin-error">{error}</p>}
       <div className="admin-section-header">
         <h2>Biens en vente</h2>
         <Link to="/admin/biens/nouveau" className="btn btn-primary">+ Ajouter</Link>

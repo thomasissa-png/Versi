@@ -123,7 +123,7 @@ export default function AdminRealisationForm() {
       await adminFetch(`/api/admin/projects/${id}/photos/${photoId}`, { method: 'DELETE' });
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } catch {
-      alert('Erreur lors de la suppression de la photo.');
+      setError('Erreur lors de la suppression de la photo.');
     }
   }
 
