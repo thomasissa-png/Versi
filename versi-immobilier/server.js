@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import fs from 'fs';
 import pool from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,8 +13,38 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
+// ---------------------------------------------------------------------------
+// Chemins des dossiers dist pour les deux sites
+// ---------------------------------------------------------------------------
+const VERSI_IMMO_DIST = join(__dirname, 'dist');
+const VERSI_FR_DIST = join(__dirname, '..', 'src', 'dist');
+
+// Vérification au boot que les dossiers dist existent
+if (!fs.existsSync(VERSI_IMMO_DIST)) {
+  console.error('[FATAL] versi-immobilier/dist/ introuvable. Exécutez le build avant de démarrer.');
+}
+if (!fs.existsSync(VERSI_FR_DIST)) {
+  console.warn('[WARN] src/dist/ introuvable. Le site versi.fr ne sera pas servi. Exécutez "cd src && npm run build".');
+}
+
 if (!ADMIN_PASSWORD) {
   console.warn('[WARN] ADMIN_PASSWORD non configurée. Le login admin sera impossible.');
+}
+
+// ---------------------------------------------------------------------------
+// Helper : détecter si la requête cible versi.fr (holding)
+// ---------------------------------------------------------------------------
+function isVersiFr(req) {
+  const host = (req.hostname || req.headers.host || '').toLowerCase();
+  // Matcher versi.fr mais PAS versi-immobilier.fr
+  // Couvre : versi.fr, www.versi.fr, versi-fr.repl.co, etc.
+  if (host.includes('versi-immobilier') || host.includes('versi--immobilier')) {
+    return false;
+  }
+  if (host.includes('versi.fr') || host.includes('versi-fr')) {
+    return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,7 +62,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(join(__dirname, 'dist')));
+// ---------------------------------------------------------------------------
+// Routing multi-site par hostname
+// ---------------------------------------------------------------------------
+// Servir les fichiers statiques du bon site selon le hostname
+const versiImmoStatic = express.static(VERSI_IMMO_DIST);
+const versiFrStatic = express.static(VERSI_FR_DIST);
+
+app.use((req, res, next) => {
+  if (isVersiFr(req)) {
+    return versiFrStatic(req, res, next);
+  }
+  return versiImmoStatic(req, res, next);
+});
 
 // ---------------------------------------------------------------------------
 // Resend (email transactionnel)
@@ -1428,15 +1471,51 @@ app.post('/api/sell', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// SPA fallback
+// Health check
+// ---------------------------------------------------------------------------
+app.get('/api/health', async (req, res) => {
+  const health = { status: 'ok', timestamp: new Date().toISOString(), services: {} };
+
+  // Vérifier la connexion DB
+  try {
+    const start = Date.now();
+    await pool.query('SELECT 1');
+    health.services.database = { status: 'ok', latency_ms: Date.now() - start };
+  } catch (err) {
+    health.status = 'degraded';
+    health.services.database = { status: 'error', error: err.message };
+  }
+
+  // Vérifier que les dossiers dist existent
+  health.services.versi_immobilier_dist = { status: fs.existsSync(VERSI_IMMO_DIST) ? 'ok' : 'missing' };
+  health.services.versi_fr_dist = { status: fs.existsSync(VERSI_FR_DIST) ? 'ok' : 'missing' };
+
+  // Vérifier Resend
+  health.services.email = { status: resend ? 'configured' : 'not_configured' };
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
+});
+
+// ---------------------------------------------------------------------------
+// SPA fallback (multi-site par hostname)
 // ---------------------------------------------------------------------------
 app.get('/{*splat}', (req, res) => {
-  res.sendFile(join(__dirname, 'dist', 'index.html'));
+  if (isVersiFr(req)) {
+    const indexPath = join(VERSI_FR_DIST, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    return res.status(503).send('Site versi.fr en cours de déploiement.');
+  }
+  res.sendFile(join(VERSI_IMMO_DIST, 'index.html'));
 });
 
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
 app.listen(PORT, () => {
-  console.log(`[versi-immobilier] Serveur démarré sur le port ${PORT}`);
+  console.log(`[versi] Serveur multi-site démarré sur le port ${PORT}`);
+  console.log(`  - versi-immobilier : ${VERSI_IMMO_DIST}`);
+  console.log(`  - versi.fr         : ${VERSI_FR_DIST}`);
 });
