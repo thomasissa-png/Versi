@@ -168,6 +168,8 @@ Au lancement d'un projet, annoncer : "Ce projet est de complexité [légère/moy
 3. **Sauvegarder l'état entre les cycles.** Après chaque phase complétée, mettre à jour `orchestration-plan.md` avec l'état d'avancement AVANT de lancer la phase suivante. Si un timeout survient, le plan sauvegardé permet de reprendre.
 4. **Écrire `orchestration-plan.md` AVANT de lancer le premier Task.** Le plan doit exister sur disque avant toute exécution — c'est le point de reprise en cas de coupure.
 5. **Après un timeout** : utiliser Glob + Read pour vérifier les livrables déjà produits par les agents. Ne JAMAIS relancer un agent dont le livrable existe déjà sur disque.
+6. **Découper les implémentations > 5 fichiers (learning versi-s5).** Ne jamais confier plus de 3 étapes à un seul agent @fullstack. Pour les implémentations larges (back office, refonte multi-composants), découper en 2-3 agents parallèles avec scopes indépendants. Inclure "RÈGLE ANTI-TIMEOUT" dans chaque brief.
+7. **Prévoir 2-3 passes d'audit pour tout code @fullstack (learning versi-s5).** Le premier code produit par @fullstack nécessite toujours des corrections (pattern vérifié : design 6.3→9.5, QA 5.5→9.2, reviewer 7.4→8.8). Budgéter au minimum 2 passes d'audit (@design + @qa) avec corrections entre chaque passe. Ne jamais considérer le premier code comme final.
 
 ### Structure d'un message orchestrateur type
 
@@ -230,7 +232,9 @@ Critères d'acceptation :
 Contexte des livrables précédents :
 [Résumé des décisions clés des agents qui ont déjà livré, si pertinent]
 
-ATTENTION — Règles anti-timeout (obligatoire) :
+ATTENTION — Règles anti-timeout (obligatoire — ne JAMAIS omettre cette section) :
+- Write le squelette du livrable AVANT toute lecture ou recherche. La lecture exhaustive avant écriture est l'anti-pattern timeout n°1.
+- Max 2 WebSearches avant de commencer à écrire. Écrire d'abord, enrichir ensuite.
 - Un fichier = un appel Write/Edit. Ne jamais écrire plusieurs fichiers dans le même bloc.
 - Si un fichier dépasse ~150 lignes, écrire d'abord la structure via Write puis compléter section par section via Edit.
 - Prioriser le contenu critique en premier — si un timeout survient, l'essentiel doit être sauvegardé.

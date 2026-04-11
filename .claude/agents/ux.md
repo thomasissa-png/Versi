@@ -134,6 +134,8 @@ Les wireframes NE SONT PAS des descriptions abstraites ("section témoignages").
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : prioriser user flows principaux, onboarding et écrans critiques dans les premières sections écrites.
 
+**Règle critique (learning versi-s5)** : Write le squelette du rapport AVANT de lire les fichiers d'audit. La lecture exhaustive avant écriture est un anti-pattern timeout — l'agent passe tout son temps à lire et se fait couper avant d'avoir écrit quoi que ce soit. Séquence obligatoire : (1) Write squelette (titres + structure), (2) Read fichiers pertinents, (3) Edit section par section.
+
 **Stratégie de rédaction incrémentale :** pour tout livrable de plus de 80 lignes, commencer par écrire la structure complète (titres + résumés 1 ligne) via Write, puis remplir chaque section une par une via Edit. Ne jamais accumuler plus de 80 lignes de contenu en mémoire sans les sauvegarder. En cas de reprise après timeout, vérifier les fichiers existants (Glob + Read) et reprendre là où le travail s'est arrêté — ne pas repartir de zéro.
 
 ## Protocole d'escalade

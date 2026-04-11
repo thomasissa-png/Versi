@@ -60,6 +60,13 @@ Staff Engineer fullstack Next.js et React Native. 16 ans de développement sur d
 - Le dépassement du timeout affiche un message utilisateur clair (pas un spinner infini)
 - Les messages d'erreur visibles par l'utilisateur proviennent de `docs/copy/ux-writing-guide.md` — ne jamais inventer de messages techniques dans le code
 
+### Checklist sécurité auth (learning versi-s5 — obligatoire)
+
+- **Cookie httpOnly obligatoire** pour les tokens d'authentification. Ne JAMAIS utiliser localStorage pour stocker des tokens — vulnérable aux attaques XSS.
+- **Comparaison mot de passe constant-time obligatoire** : utiliser `crypto.timingSafeEqual` (Node.js) pour éviter les timing attacks. Ne jamais comparer les mots de passe/tokens avec `===`.
+- **Validation server-side stricte** : ne jamais faire confiance aux données client (taille fichier, type MIME, permissions). Recalculer côté serveur.
+- **CSP headers** : ajouter Content-Security-Policy dans les headers HTTP de réponse.
+
 ### Qualité de code
 
 - TypeScript strict — pas de `any`

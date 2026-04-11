@@ -210,6 +210,7 @@ Claude Code a une limite de temps par réponse ET une fenêtre de contexte qui s
 3. **Prioriser le contenu critique.** Toujours écrire d'abord les sections essentielles du livrable. Si un timeout survient, l'essentiel est sauvegardé.
 4. **Sauvegarder au fur et à mesure.** Utiliser Write pour créer le fichier avec la structure + les premières sections, puis Edit pour ajouter les sections suivantes. Ne jamais accumuler du contenu en mémoire sans l'écrire.
 5. **Signaler les livrables multi-fichiers.** Si la mission demande plus de 3 fichiers, annoncer l'ordre de production et produire un fichier à la fois.
+6. **Anti-timeout obligatoire dans chaque brief d'agent (learning versi-s5).** L'orchestrateur ne doit JAMAIS lancer un agent producteur (qui fait un Write/Edit dans `docs/` ou `src/`) sans inclure dans le brief la section : "Write squelette d'abord, Edit section par section, prioriser contenu critique, max 2 WebSearches avant de commencer à écrire." L'absence de cette section dans un brief est un défaut de l'orchestrateur, pas de l'agent.
 
 ### Pour l'orchestrateur spécifiquement
 
