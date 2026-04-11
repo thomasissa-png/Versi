@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import adminFetch from './adminFetch.js';
+import ConfirmModal from './ConfirmModal.jsx';
 
 const STATUT_LABELS = {
   disponible: 'Disponible',
@@ -21,6 +22,7 @@ export default function AdminBiens() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   function showSuccess(msg) {
     setSuccessMsg(msg);
@@ -46,16 +48,7 @@ export default function AdminBiens() {
 
   async function handleAction(id, action) {
     if (action === 'delete') {
-      if (!window.confirm('Supprimer définitivement ce bien ? Cette action est irréversible.')) {
-        return;
-      }
-      try {
-        await adminFetch(`/api/admin/properties/${id}`, { method: 'DELETE' });
-        setBiens((prev) => prev.filter((b) => b.id !== id));
-        showSuccess('Bien supprimé.');
-      } catch {
-        setError('Erreur lors de la suppression.');
-      }
+      setConfirmAction({ id, action, message: 'Supprimer définitivement ce bien ? Cette action est irréversible.' });
       return;
     }
 
@@ -75,6 +68,19 @@ export default function AdminBiens() {
     }
   }
 
+  const handleConfirm = useCallback(async () => {
+    if (!confirmAction) return;
+    const { id } = confirmAction;
+    setConfirmAction(null);
+    try {
+      await adminFetch(`/api/admin/properties/${id}`, { method: 'DELETE' });
+      setBiens((prev) => prev.filter((b) => b.id !== id));
+      showSuccess('Bien supprimé.');
+    } catch {
+      setError('Erreur lors de la suppression.');
+    }
+  }, [confirmAction]);
+
   const filtered = filter === 'all' ? biens : biens.filter((b) => b.status === filter);
 
   if (loading) {
@@ -93,7 +99,6 @@ export default function AdminBiens() {
   return (
     <div>
       {successMsg && <div className="admin-toast">{successMsg}</div>}
-      {error && <p className="admin-error">{error}</p>}
       <div className="admin-section-header">
         <h2>Biens en vente</h2>
         <Link to="/admin/biens/nouveau" className="btn btn-primary">+ Ajouter</Link>
@@ -175,6 +180,13 @@ export default function AdminBiens() {
             ))}
           </tbody>
         </table>
+      )}
+      {confirmAction && (
+        <ConfirmModal
+          message={confirmAction.message}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );

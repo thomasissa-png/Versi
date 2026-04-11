@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import adminFetch from './adminFetch.js';
+import ConfirmModal from './ConfirmModal.jsx';
 
 export default function AdminInscrits() {
   const [subscribers, setSubscribers] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     loadSubscribers();
@@ -25,8 +27,13 @@ export default function AdminInscrits() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Supprimer cet inscrit ?')) return;
+  function handleDelete(id) {
+    setConfirmDelete(id);
+  }
+
+  const handleConfirmDelete = useCallback(async () => {
+    const id = confirmDelete;
+    setConfirmDelete(null);
     try {
       await adminFetch(`/api/admin/subscribers/${id}`, { method: 'DELETE' });
       setSubscribers((prev) => prev.filter((s) => s.id !== id));
@@ -34,7 +41,7 @@ export default function AdminInscrits() {
     } catch {
       setError('Erreur lors de la suppression.');
     }
-  }
+  }, [confirmDelete]);
 
   function exportCSV() {
     const header = 'Email,Date inscription\n';
@@ -110,6 +117,13 @@ export default function AdminInscrits() {
             ))}
           </tbody>
         </table>
+      )}
+      {confirmDelete && (
+        <ConfirmModal
+          message="Supprimer cet inscrit ?"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );

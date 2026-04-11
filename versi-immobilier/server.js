@@ -283,8 +283,10 @@ app.post('/api/admin/login', async (req, res) => {
     );
 
     // Set httpOnly cookie — not accessible via JavaScript
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const securePart = isSecure ? '; Secure' : '';
     res.setHeader('Set-Cookie',
-      `vi_admin_token=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${8 * 60 * 60}; Path=/api/admin`
+      `vi_admin_token=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${8 * 60 * 60}; Path=/api/admin${securePart}`
     );
 
     return res.json({ ok: true, expiresAt: expiresAt.toISOString() });
@@ -299,8 +301,10 @@ app.post('/api/admin/logout', checkAdminAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM admin_sessions WHERE id = $1', [req.adminSessionId]);
     // Clear the httpOnly cookie
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const securePart = isSecure ? '; Secure' : '';
     res.setHeader('Set-Cookie',
-      'vi_admin_token=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/api/admin'
+      `vi_admin_token=; HttpOnly; SameSite=Strict; Max-Age=0; Path=/api/admin${securePart}`
     );
     return res.json({ ok: true });
   } catch (err) {

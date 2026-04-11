@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import adminFetch from './adminFetch.js';
+import ConfirmModal from './ConfirmModal.jsx';
 
 const STATUT_LABELS = {
   completed: 'Terminée',
@@ -21,6 +22,7 @@ export default function AdminRealisations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   function showSuccess(msg) {
     setSuccessMsg(msg);
@@ -46,16 +48,7 @@ export default function AdminRealisations() {
 
   async function handleAction(id, action) {
     if (action === 'delete') {
-      if (!window.confirm('Supprimer définitivement cette réalisation ? Cette action est irréversible.')) {
-        return;
-      }
-      try {
-        await adminFetch(`/api/admin/projects/${id}`, { method: 'DELETE' });
-        setProjects((prev) => prev.filter((p) => p.id !== id));
-        showSuccess('Réalisation supprimée.');
-      } catch {
-        setError('Erreur lors de la suppression.');
-      }
+      setConfirmAction({ id, message: 'Supprimer définitivement cette réalisation ? Cette action est irréversible.' });
       return;
     }
 
@@ -84,6 +77,19 @@ export default function AdminRealisations() {
     }
   }
 
+  const handleConfirm = useCallback(async () => {
+    if (!confirmAction) return;
+    const { id } = confirmAction;
+    setConfirmAction(null);
+    try {
+      await adminFetch(`/api/admin/projects/${id}`, { method: 'DELETE' });
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+      showSuccess('Réalisation supprimée.');
+    } catch {
+      setError('Erreur lors de la suppression.');
+    }
+  }, [confirmAction]);
+
   const filtered = filter === 'all' ? projects : projects.filter((p) => p.status === filter);
 
   if (loading) {
@@ -102,7 +108,6 @@ export default function AdminRealisations() {
   return (
     <div>
       {successMsg && <div className="admin-toast">{successMsg}</div>}
-      {error && <p className="admin-error">{error}</p>}
       <div className="admin-section-header">
         <h2>Réalisations</h2>
         <Link to="/admin/realisations/nouveau" className="btn btn-primary">+ Ajouter</Link>
@@ -174,6 +179,13 @@ export default function AdminRealisations() {
             ))}
           </tbody>
         </table>
+      )}
+      {confirmAction && (
+        <ConfirmModal
+          message={confirmAction.message}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
       )}
     </div>
   );

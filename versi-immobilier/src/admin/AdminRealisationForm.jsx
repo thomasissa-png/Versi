@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import adminFetch from './adminFetch.js';
+import fileToBase64 from './fileToBase64.js';
+import ConfirmModal from './ConfirmModal.jsx';
 import './admin.css';
 
 const TYPES = ['Immeuble de rapport', 'Actif mixte', 'Maison', 'Appartement', 'Local commercial', 'Autre'];
@@ -24,14 +26,6 @@ const EMPTY_FORM = {
   featured: false,
 };
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function AdminRealisationForm() {
   const { id } = useParams();
@@ -44,6 +38,7 @@ export default function AdminRealisationForm() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [confirmPhotoDelete, setConfirmPhotoDelete] = useState(null);
   const [photoError, setPhotoError] = useState('');
 
   useEffect(() => {
@@ -118,14 +113,19 @@ export default function AdminRealisationForm() {
   }
 
   async function handleDeleteExistingPhoto(photoId) {
-    if (!window.confirm('Supprimer cette photo ?')) return;
+    setConfirmPhotoDelete(photoId);
+  }
+
+  const handleConfirmPhotoDelete = useCallback(async () => {
+    const photoId = confirmPhotoDelete;
+    setConfirmPhotoDelete(null);
     try {
       await adminFetch(`/api/admin/projects/${id}/photos/${photoId}`, { method: 'DELETE' });
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } catch {
       setError('Erreur lors de la suppression de la photo.');
     }
-  }
+  }, [confirmPhotoDelete, id]);
 
   function validate() {
     const FIELD_LABELS = { title: 'Titre', city: 'Ville', type: 'Type', surface: 'Surface', description: 'Description' };
@@ -346,6 +346,13 @@ export default function AdminRealisationForm() {
           </button>
         </div>
       </form>
+      {confirmPhotoDelete && (
+        <ConfirmModal
+          message="Supprimer cette photo ?"
+          onConfirm={handleConfirmPhotoDelete}
+          onCancel={() => setConfirmPhotoDelete(null)}
+        />
+      )}
     </div>
   );
 }
