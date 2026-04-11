@@ -26,7 +26,7 @@
 
 .admin-login-page input[type="password"] {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   font-size: 0.95rem;
 }
@@ -80,7 +80,7 @@
 
 .admin-nav .btn-logout {
   background: none;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -102,7 +102,7 @@
 .btn {
   display: inline-block;
   padding: 0.4rem 0.85rem;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   background: #fff;
   color: #333;
@@ -221,7 +221,7 @@
 
 .admin-filters button {
   padding: 0.35rem 0.75rem;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
@@ -282,7 +282,7 @@
 .admin-form textarea {
   width: 100%;
   padding: 0.45rem 0.65rem;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   font-size: 0.9rem;
   font-family: inherit;
@@ -341,7 +341,7 @@
 .dynamic-list-item input {
   flex: 1;
   padding: 0.35rem 0.5rem;
-  border: 1px solid #ccc;
+  border: 1px solid #999;
   border-radius: 4px;
   font-size: 0.85rem;
 }
@@ -422,4 +422,70 @@
   font-size: 0.9rem;
   color: #555;
   margin-bottom: 1rem;
+}
+
+/* C2 — Accessibilité : focus visible */
+.admin-page button:focus-visible,
+.admin-page input:focus-visible,
+.admin-page select:focus-visible,
+.admin-page textarea:focus-visible,
+.admin-page a:focus-visible,
+.admin-layout button:focus-visible,
+.admin-layout input:focus-visible,
+.admin-layout select:focus-visible,
+.admin-layout textarea:focus-visible,
+.admin-layout a:focus-visible,
+.admin-login-page button:focus-visible,
+.admin-login-page input:focus-visible,
+.admin-login-page a:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+/* C4 — Bouton suppression photo : taille min 28x28 + aria */
+.photo-grid .photo-item .photo-remove {
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+/* C6 — Toast succès */
+.admin-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #28a745;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  z-index: 1000;
+  animation: fadeInOut 3s ease forwards;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* C10 — Nav active plus visible */
+.admin-nav a.active {
+  font-weight: 600;
+  border-bottom: 2px solid #111;
+  text-decoration: none;
+  padding-bottom: 2px;
+}
+
+/* C11 — Responsive formulaires mobile */
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+  }
+  .form-row > * {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }

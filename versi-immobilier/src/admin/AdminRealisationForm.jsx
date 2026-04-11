@@ -173,12 +173,12 @@ export default function AdminRealisationForm() {
       }
 
       if (projectId && newPhotos.length > 0) {
-        for (const photo of newPhotos) {
-          await adminFetch(`/api/admin/projects/${projectId}/photos`, {
+        await Promise.all(newPhotos.map((photo) =>
+          adminFetch(`/api/admin/projects/${projectId}/photos`, {
             method: 'POST',
             body: JSON.stringify(photo),
-          });
-        }
+          })
+        ));
       }
 
       navigate('/admin/realisations');
@@ -195,6 +195,9 @@ export default function AdminRealisationForm() {
 
   return (
     <div>
+      <Link to="/admin/realisations" style={{ color: '#666', textDecoration: 'none', fontSize: '14px', marginBottom: '16px', display: 'inline-block' }}>
+        ← Retour aux réalisations
+      </Link>
       <div className="admin-section-header">
         <h2>{isEdit ? 'Modifier la réalisation' : 'Ajouter une réalisation'}</h2>
       </div>
@@ -295,6 +298,7 @@ export default function AdminRealisationForm() {
                     className="photo-remove"
                     onClick={() => handleDeleteExistingPhoto(photo.id)}
                     title="Supprimer"
+                    aria-label="Supprimer cette photo"
                   >
                     ×
                   </button>
@@ -324,6 +328,7 @@ export default function AdminRealisationForm() {
                     className="photo-remove"
                     onClick={() => removeNewPhoto(i)}
                     title="Retirer"
+                    aria-label="Supprimer cette photo"
                   >
                     ×
                   </button>

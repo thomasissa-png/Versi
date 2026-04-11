@@ -11,13 +11,17 @@ export default function adminFetch(url, options = {}) {
       'Authorization': `Bearer ${token}`,
       ...options.headers,
     },
-  }).then((r) => {
+  }).then(async (r) => {
     if (r.status === 401) {
       localStorage.removeItem('vi_admin_token');
       localStorage.removeItem('vi_admin_expires');
       window.location.href = '/admin/login';
       throw new Error('Session expirée');
     }
-    return r.json();
+    const data = await r.json().catch(() => ({ ok: false, error: 'Réponse serveur invalide' }));
+    if (!r.ok) {
+      throw new Error(data.error || `Erreur ${r.status}`);
+    }
+    return data;
   });
 }

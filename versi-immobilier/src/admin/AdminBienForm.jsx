@@ -165,14 +165,19 @@ export default function AdminBienForm() {
   }
 
   function validate() {
+    const FIELD_LABELS = {
+      title: 'Titre', city: 'Ville', location: 'Localisation',
+      type: 'Type de bien', surface: 'Surface', price: 'Prix affiché',
+      price_num: 'Prix en chiffres', description: 'Description',
+    };
     const required = ['title', 'city', 'location', 'type', 'surface', 'price', 'description'];
     for (const field of required) {
       if (!form[field].trim()) {
-        return `Le champ "${field}" est obligatoire.`;
+        return `Le champ « ${FIELD_LABELS[field] || field} » est obligatoire.`;
       }
     }
     if (form.price_num && isNaN(Number(form.price_num))) {
-      return 'Le prix numérique doit être un nombre.';
+      return 'Le champ « Prix en chiffres » doit être un nombre.';
     }
     if (form.rooms && isNaN(Number(form.rooms))) {
       return 'Le nombre de pièces doit être un nombre.';
@@ -218,12 +223,12 @@ export default function AdminBienForm() {
       }
 
       if (propertyId && newPhotos.length > 0) {
-        for (const photo of newPhotos) {
-          await adminFetch(`/api/admin/properties/${propertyId}/photos`, {
+        await Promise.all(newPhotos.map((photo) =>
+          adminFetch(`/api/admin/properties/${propertyId}/photos`, {
             method: 'POST',
             body: JSON.stringify(photo),
-          });
-        }
+          })
+        ));
       }
 
       navigate('/admin/biens');
@@ -240,6 +245,9 @@ export default function AdminBienForm() {
 
   return (
     <div>
+      <Link to="/admin/biens" style={{ color: '#666', textDecoration: 'none', fontSize: '14px', marginBottom: '16px', display: 'inline-block' }}>
+        ← Retour aux biens
+      </Link>
       <div className="admin-section-header">
         <h2>{isEdit ? 'Modifier le bien' : 'Ajouter un bien'}</h2>
       </div>
@@ -332,8 +340,8 @@ export default function AdminBienForm() {
             <input type="text" name="price" value={form.price} onChange={handleChange} placeholder="185 000 €" />
           </div>
           <div className="form-group">
-            <label>Prix numérique (tri)</label>
-            <input type="number" name="price_num" value={form.price_num} onChange={handleChange} min="0" />
+            <label>Prix en chiffres (pour le tri)</label>
+            <input type="number" name="price_num" value={form.price_num} onChange={handleChange} min="0" placeholder="ex : 185000" />
           </div>
         </div>
 
@@ -426,6 +434,7 @@ export default function AdminBienForm() {
                     className="photo-remove"
                     onClick={() => handleDeleteExistingPhoto(photo.id)}
                     title="Supprimer"
+                    aria-label="Supprimer cette photo"
                   >
                     ×
                   </button>
@@ -455,6 +464,7 @@ export default function AdminBienForm() {
                     className="photo-remove"
                     onClick={() => removeNewPhoto(i)}
                     title="Retirer"
+                    aria-label="Supprimer cette photo"
                   >
                     ×
                   </button>

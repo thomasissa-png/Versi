@@ -49,7 +49,9 @@ export default function AdminLogin() {
     <div className="admin-login-page">
       <h1>Versi Immobilier — Admin</h1>
       <form onSubmit={handleSubmit}>
+        <label htmlFor="admin-password" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Mot de passe</label>
         <input
+          id="admin-password"
           type="password"
           placeholder="Mot de passe"
           value={password}

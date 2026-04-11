@@ -20,6 +20,12 @@ export default function AdminBiens() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  function showSuccess(msg) {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  }
 
   useEffect(() => {
     loadBiens();
@@ -46,6 +52,7 @@ export default function AdminBiens() {
       try {
         await adminFetch(`/api/admin/properties/${id}`, { method: 'DELETE' });
         setBiens((prev) => prev.filter((b) => b.id !== id));
+        showSuccess('Bien supprimé.');
       } catch {
         alert('Erreur lors de la suppression.');
       }
@@ -58,8 +65,10 @@ export default function AdminBiens() {
       restaurer: `/api/admin/properties/${id}/restaurer`,
     };
 
+    const ACTION_LABELS = { archive: 'Bien archivé.', vendu: 'Bien marqué comme vendu.', restaurer: 'Bien restauré.' };
     try {
       await adminFetch(endpoints[action], { method: 'PATCH' });
+      showSuccess(ACTION_LABELS[action] || 'Action effectuée.');
       loadBiens();
     } catch {
       alert('Erreur lors de la mise à jour.');
@@ -83,6 +92,7 @@ export default function AdminBiens() {
 
   return (
     <div>
+      {successMsg && <div className="admin-toast">{successMsg}</div>}
       <div className="admin-section-header">
         <h2>Biens en vente</h2>
         <Link to="/admin/biens/nouveau" className="btn btn-primary">+ Ajouter</Link>
@@ -112,7 +122,7 @@ export default function AdminBiens() {
             <tr>
               <th>Titre</th>
               <th>Ville</th>
-              <th>Prix</th>
+              <th style={{ textAlign: 'right' }}>Prix</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -122,7 +132,7 @@ export default function AdminBiens() {
               <tr key={bien.id}>
                 <td>{bien.title}</td>
                 <td>{bien.city}</td>
-                <td>{bien.price}</td>
+                <td style={{ textAlign: 'right' }}>{bien.price}</td>
                 <td>
                   <span className={`status-badge status-${bien.status}`}>
                     {STATUT_LABELS[bien.status] || bien.status}

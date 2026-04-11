@@ -20,6 +20,12 @@ export default function AdminRealisations() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  function showSuccess(msg) {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  }
 
   useEffect(() => {
     loadProjects();
@@ -46,6 +52,7 @@ export default function AdminRealisations() {
       try {
         await adminFetch(`/api/admin/projects/${id}`, { method: 'DELETE' });
         setProjects((prev) => prev.filter((p) => p.id !== id));
+        showSuccess('Réalisation supprimée.');
       } catch {
         alert('Erreur lors de la suppression.');
       }
@@ -55,6 +62,7 @@ export default function AdminRealisations() {
     if (action === 'archive') {
       try {
         await adminFetch(`/api/admin/projects/${id}/archive`, { method: 'PATCH' });
+        showSuccess('Réalisation archivée.');
         loadProjects();
       } catch {
         alert('Erreur lors de l\'archivage.');
@@ -68,6 +76,7 @@ export default function AdminRealisations() {
           method: 'PUT',
           body: JSON.stringify({ status: 'completed' }),
         });
+        showSuccess('Réalisation marquée comme terminée.');
         loadProjects();
       } catch {
         alert('Erreur lors de la mise à jour.');
