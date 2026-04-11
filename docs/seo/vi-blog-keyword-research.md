@@ -724,7 +724,11 @@ Chaque critère est noté de 1 (faible) à 3 (fort). Le score composite = somme 
 | 6 | **A7 — DPE D ou E : faut-il avoir peur ?** | 2 (volume local moyen, concurrence diagnostiqueurs) | 2 (angle "conseil acheteur" inexploité par les diagnostiqueurs) | 2 (utile pour Kévin mais n'est pas le déclencheur principal d'achat) | **6/9** | Publication 7 |
 | 7 | **A5+A9 fusionnés — Financement premier achat Lille 2026** | 2 (volume élevé sur financement/PTZ, mais concurrence très forte des courtiers) | 1 (portails et courtiers très bien positionnés — difficile en Top 5 sur la requête générale) | 3 (répond à la question de financement de Kévin — critique pour la conversion) | **6/9** | Publication 6 |
 | 8 | **A4 — Prix au m² Lille 2026 (angle rénové revu)** | 2 (volume élevé sur la requête générale, mais angle rénové = longue traîne) | 1 (portails impossibles à déloger sur la requête générale) | 2 (contexte utile pour Kévin mais pas décisif — il voit les prix sur nos fiches biens) | **5/9** | Publication 8 |
-| 9 | **A10 — Immeuble de rapport Lille : notre méthode** | 1 (volume faible, public B2B) | 3 (concurrence éditoriale nulle sur l'angle méthodologique) | 1 (public prescripteur/vendeur, pas Kévin primo-accédant) | **5/9** | Publication 9 |
+| 9 | **A10 — Immeuble de rapport Lille : notre méthode** | 1 (volume faible, public B2B) | 3 (concurrence éditoriale nulle sur l'angle méthodologique) | 1 (public prescripteur/vendeur, pas Kévin primo-accédant) | **5/9** | Publication 10 |
+| 10 | **A11 — Vendre son bien à un MDB dans le Nord (flux Sophie)** | 2 (volume faible-moyen, requêtes vendeur actif HdF) | 3 (aucun contenu local ciblant les vendeurs HdF) | 2 (indirect — Sophie n'est pas Kévin, mais un vendeur converti = une opération pour Versi) | **7/9** | Publication 9 |
+| 11 | **A12 — Partenariat prescripteurs MDB Lille (flux apporteurs)** | 1 (volume très faible, cible B2B niche) | 3 (concurrence nulle sur l'angle local HdF) | 2 (indirect — chaque prescripteur converti = pipeline d'affaires récurrent) | **6/9** | Publication 11 |
+
+**Note sur le scoring A11 et A12 :** la métrique "pertinence business Kévin" n'est pas la bonne pour ces articles. Réinterprétation pour le flux vendeur/apporteur : la pertinence business se mesure en valeur par conversion (un vendeur converti = une acquisition, un prescripteur converti = un pipeline récurrent). L'impact financier par conversion est supérieur à celui de Kévin — mais le volume d'intention de recherche est plus faible. Score 2/3 sur pertinence business = conservateur mais honnête.
 
 ---
 
@@ -746,7 +750,11 @@ Chaque critère est noté de 1 (faible) à 3 (fort). Le score composite = somme 
 
 8. **A4** (publication 8) — Contenu de contexte marché. Utile pour la topical authority mais faible potentiel de ranking sur la requête générale. Angle à ajuster impérativement vers "quel quartier Lille pour un rénové" pour éviter la confrontation directe avec les portails.
 
-9. **A10** (publication 9) — Public B2B, secondaire pour Kévin. À publier en dernier, sert la crédibilité auprès de Sophie (vendeurs) et Pierre (prescripteurs).
+9. **A11** (publication 9) — Premier article du flux vendeur/apporteur. Sophie (propriétaire vendeuse) et les propriétaires HdF qui cherchent à céder rapidement. À publier quand le blog acquéreur est rodé (A1-A8) — le flux vendeur dépend d'une crédibilité déjà établie. Cet article pointe vers `/vendre` via CTA fort.
+
+10. **A10** (publication 10) — Public B2B prescripteur, secondaire pour Kévin. Topical authority sur "immeuble de rapport Lille MDB". Renforce la crédibilité auprès de Pierre et Sophie.
+
+11. **A12** (publication 11) — Article prescripteurs professionnel. À publier en fin de cycle — nécessite que le blog soit déjà crédible pour que les notaires/agents prennent Versi au sérieux. Valeur par conversion = maximale (pipeline d'affaires récurrent).
 
 ---
 
@@ -761,26 +769,28 @@ Chaque critère est noté de 1 (faible) à 3 (fort). Le score composite = somme 
 
 **Handoff → @copywriter + @creative-strategy**
 
-- **Fichiers produits :** `docs/seo/vi-blog-keyword-research.md`
+- **Fichiers produits :** `docs/seo/vi-blog-keyword-research.md` (v3 — itération suite audit @creative-strategy note 7,6/10)
 
-- **Décisions prises :**
-  1. Ordre de publication confirmé : A1 → A6 → A2 → A3 → A8 → A5+A9 (fusionnés) → A7 → A4 → A10
-  2. Fusion A5+A9 recommandée (même cluster sémantique, cannibalisation inévitable si deux articles séparés)
-  3. Angle A4 à revoir : pas "prix m² Lille 2026 quartier" (concurrence portails impossible) mais "quel quartier Lille pour un achat rénové" — longue traîne exploitable
-  4. A10 reclassé en priorité basse : public prescripteur/vendeur, pas Kévin primo-accédant
-  5. A6 (précommercialisation) identifié comme meilleure opportunité de positionnement — concurrence éditoriale nulle sur l'angle acquéreur
-  6. Featured snippets à viser : A6 (définition) et A8 (listicle "5 questions")
-  7. PAA à exploiter dans A2, A5+A9 fusionnés, A7
+- **Décisions prises (v3 — ajouts vs v2) :**
+  1. **Flux vendeur/apporteur ajouté** : 2 nouveaux clusters C10 (Sophie, propriétaire vendeuse) et C11 (Pierre, prescripteurs professionnels) + 2 nouveaux articles A11 et A12
+  2. **Zone géographique élargie HdF** : variantes Roubaix, Tourcoing, Valenciennes ajoutées dans C1, C3, C10, C11. Données de marché sourcées (Meilleurs Agents, action.immo, lagence-exclusive.fr, avril 2026)
+  3. **Section périmètre géographique** ajoutée (section 2bis) : justification du choix HdF prioritaire, stratégie par ville (article dédié vs enrichissement), et conditions d'ajout IDF en V2
+  4. Ordre de publication mis à jour : A1 → A6 → A2 → A3 → A8 → A5+A9 (fusionnés) → A7 → A4 → A11 → A10 → A12
+  5. (Décisions v2 conservées) Fusion A5+A9, angle A4 revu, A6 meilleure opportunité, featured snippets A6+A8, PAA A2+A5+A9+A7+A11
 
 - **Points d'attention pour @copywriter :**
   - L'article A3 (réalisation rue des Muguets) nécessite des données réelles des fondateurs avant rédaction (prix d'achat, budget, durée, prix de revente). Ne pas rédiger avec des placeholders.
   - La fusion A5+A9 implique de traiter PTZ 2026 + financement sans apport dans un seul article de 1 200-1 500 mots. Angle clé : "le PTZ s'applique-t-il à un achat chez un MDB ?" — réponse honnête = différenciation forte.
-  - L'article A4 doit impérativement s'appuyer sur des sources tierces vérifiables pour les données de prix (PAP, SeLoger, Meilleurs Agents, Efficity). Citer la source et la date dans le corps de l'article — signal E-E-A-T et protection contre l'accusation d'invention de données.
-  - Tous les articles doivent se terminer par un CTA vers `/nos-biens` et non vers la page de contact directement (Kévin en TOFU/MOFU n'est pas prêt à contacter, mais il peut regarder les biens).
+  - L'article A4 doit s'appuyer sur des sources tierces vérifiables pour les données de prix (PAP, SeLoger, Meilleurs Agents, Efficity, action.immo). Les données Roubaix/Tourcoing/Valenciennes de la section 2bis sont utilisables directement avec citation des sources.
+  - **Article A11 (flux vendeur)** : ton différent de Kévin. Sophie est propriétaire, elle a quelque chose à perdre (son bien). Le ton doit être rassurant, factuel, transparent sur le processus MDB (comment ça se passe concrètement, délai, pas de prise de tête). CTA impératif vers `/vendre`.
+  - **Article A12 (flux prescripteurs)** : ton B2B. Pierre est un professionnel qui cherche un partenaire sérieux, pas un guide éducatif. Mettre en avant le sérieux de Versi, la clarté des processus, la rémunération transparente de l'apport d'affaires.
+  - Tous les articles acquéreurs se terminent par un CTA vers `/nos-biens`. A11 et A12 pointent vers `/vendre`.
+  - Articles A11 et A12 doivent mentionner les villes HdF (Roubaix, Tourcoing, Valenciennes) de manière naturelle pour capter les variantes géographiques sans article dédié.
 
 - **Points d'attention pour @creative-strategy :**
-  - Le blog confirme le positionnement "pédagogue transparent" de Versi Immobilier : on explique honnêtement ce qui s'applique ou non (PTZ, DPE), on montre des chiffres réels (A3), on répond aux vraies questions de Kévin. Cohérence avec le brand voice "zéro bullshit, premium par la substance".
-  - L'article A8 ("5 questions à poser à un MDB avant d'acheter") positionne implicitement Versi comme le seul MDB prêt à répondre à ces questions — ce qui est un différenciateur fort à exploiter dans le copy.
+  - Le blog couvre maintenant les DEUX flux (acquéreurs + vendeurs/apporteurs) — cohérence avec l'objectif éditorial de project-context.md : "être top-of-mind pour acheter des biens ET pour en proposer".
+  - L'article A8 ("5 questions à poser à un MDB avant d'acheter") positionne implicitement Versi comme le seul MDB prêt à répondre à ces questions — différenciateur fort à exploiter dans le copy.
+  - Les articles vendeur (A11, A12) doivent transpirer la même rigueur/solidité que les articles acquéreur. Ton : partenaire respectueux des fournisseurs et partenaires (brand voice project-context.md).
   - Cannibalisation SEO/GEO à surveiller : coordonner avec @geo pour s'assurer que les contenus blog (orientés moteurs de recherche traditionnels) ne contredisent pas les passages LLM-ready (orientés IA générative).
 
-Sources de l'étude : WebSearch du 2026-04-11 (requêtes analysées : "marchand de biens Lille acquéreur", "précommercialisation immobilier Lille", "prix m² Lille 2026 quartier", "appartement rénové marchand de biens garanties", "PTZ 2026 Lille primo-accédant", "DPE appartement rénové Lille", "questions poser marchand de biens avant acheter", "financement premier achat Lille sans apport 2026", "immeuble rapport Lille marchand de biens", "acheter appartement rénové neuf Lille comparaison", "marchand de biens Lille blog article rénové acquéreur").
+Sources de l'étude : WebSearch du 2026-04-11 (requêtes analysées v1-v2 : "marchand de biens Lille acquéreur", "précommercialisation immobilier Lille", "prix m² Lille 2026 quartier", "appartement rénové marchand de biens garanties", "PTZ 2026 Lille primo-accédant", "DPE appartement rénové Lille", "questions poser marchand de biens avant acheter", "financement premier achat Lille sans apport 2026", "immeuble rapport Lille marchand de biens") + WebSearch du 2026-04-11 (requêtes v3 : "vendre immeuble marchand de biens Roubaix Tourcoing Valenciennes Hauts-de-France", "marchand de biens Hauts-de-France nord pas de calais vendre proposer bien immobilier", "marchand de biens Roubaix Tourcoing Valenciennes achat immeuble rénovation 2025 2026", "prix immobilier Roubaix Tourcoing Valenciennes 2026 appartement m2 marché").
