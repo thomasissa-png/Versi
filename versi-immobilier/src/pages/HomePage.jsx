@@ -4,6 +4,7 @@ import AvailableProperties from '../components/AvailableProperties.jsx';
 import Arguments from '../components/Arguments.jsx';
 import Stats from '../components/Stats.jsx';
 import TeamTeaser from '../components/TeamTeaser.jsx';
+import BlogTeaser from '../components/BlogTeaser.jsx';
 import SellerBanner from '../components/SellerBanner.jsx';
 import Footer from '../components/Footer.jsx';
 
@@ -20,6 +21,7 @@ export default function HomePage() {
         <AvailableProperties />
         <Stats />
         <TeamTeaser />
+        <BlogTeaser />
         <SellerBanner />
       </main>
       <Footer />

@@ -124,6 +124,7 @@ export default function Footer() {
             <Link to="/nos-biens" className="footer__nav-link">Nos biens disponibles</Link>
             <Link to="/realisations" className="footer__nav-link">Nos réalisations</Link>
             <Link to="/notre-approche" className="footer__nav-link">Notre approche</Link>
+            <Link to="/blog" className="footer__nav-link">Blog</Link>
             <Link to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
               Être notifié en avant-première
             </Link>

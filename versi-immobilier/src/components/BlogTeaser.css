@@ -1,0 +1,104 @@
+.blog-teaser {
+  background: var(--color-bg-secondary);
+}
+
+.blog-teaser__label {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--spacing-sm);
+}
+
+.blog-teaser__title {
+  margin-bottom: var(--spacing-md);
+}
+
+.blog-teaser__subtitle {
+  color: var(--color-text-muted);
+  max-width: var(--text-max-width-md);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.blog-teaser__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: var(--spacing-xl);
+}
+
+.blog-teaser__card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  transition: box-shadow var(--duration-normal) ease;
+}
+
+.blog-teaser__card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.blog-teaser__card-link {
+  display: block;
+  padding: var(--spacing-lg);
+  text-decoration: none;
+  color: inherit;
+}
+
+.blog-teaser__date {
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: var(--spacing-sm);
+}
+
+.blog-teaser__card-title {
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
+}
+
+.blog-teaser__excerpt {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-teaser__read {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.blog-teaser__cta-wrap {
+  text-align: center;
+  margin-top: var(--spacing-2xl);
+}
+
+.blog-teaser__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-charcoal-950);
+  color: var(--color-calcaire-50);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md) var(--spacing-2xl);
+  text-decoration: none;
+  transition: background-color var(--duration-normal) ease;
+  min-height: 48px;
+}
+
+.blog-teaser__cta:hover {
+  background: var(--color-charcoal-800);
+}
+
+@media (max-width: 767px) {
+  .blog-teaser__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .blog-teaser__cta {
+    width: 100%;
+  }
+}
