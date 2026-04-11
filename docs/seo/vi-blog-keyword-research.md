@@ -473,49 +473,137 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 ## 3. Analyse de cannibalisation
 
-### Risques identifiés
+### Principe de différenciation articles blog / pages existantes
 
-| Article blog | Page site existante | Risque de cannibalisation | Recommandation |
-|---|---|---|---|
-| A1 — Marchand de biens Lille acquéreur | `/notre-approche` | À analyser | À compléter |
-| A2 — Appartement rénové garanties | `/nos-biens` (fiches biens) | À analyser | À compléter |
-| A6 — Précommercialisation | `/nos-biens` (biens en préco) | À analyser | À compléter |
-| A10 — Immeuble rapport Lille MDB | `/realisations` | À analyser | À compléter |
+Une page blog et une page site existante ne se cannibalisent que si elles ciblent la même intention de recherche avec le même format. La règle est : **blog = informatif + éducatif / pages site = commercial + transactionnel**.
+
+---
+
+### Risques identifiés et recommandations
+
+| Article blog | Page site existante potentiellement concurrente | Requêtes communes | Risque | Recommandation |
+|---|---|---|---|---|
+| A1 — "Marchand de biens Lille : ce que ça change pour l'acquéreur" | `/notre-approche` | "marchand de biens Lille" | FAIBLE | `/notre-approche` a une intention commerciale (convaincre de contacter Versi). A1 a une intention informationnelle (éduquer Kévin). Intentions différentes = pas de cannibalisation. Différencier explicitement : A1 cible "qu'est-ce qu'un MDB" (TOFU), `/notre-approche` cible "pourquoi Versi en particulier" (BOFU). Maillage interne : A1 pointe vers `/notre-approche` comme CTA. |
+| A2 — "Appartement rénové par un opérateur vs particulier : les vraies différences" | `/nos-biens` (fiches biens) | "appartement rénové Lille" | FAIBLE | Intentions radicalement différentes : A2 = éducatif sur les garanties (MOFU), fiches biens = transactionnel (BOFU). Pas de risque si les fiches biens ne comportent pas de contenu éducatif redondant. Maillage interne : A2 pointe vers `/nos-biens` via CTA. |
+| A6 — "Précommercialisation immobilière : comment acheter avant les autres" | `/nos-biens` (section biens en préco) | "précommercialisation appartement Lille" | MOYEN | La section précommercialisation de `/nos-biens` peut expliquer brièvement le concept. Risque si cette page prend une dimension éditoriale. **Recommandation : garder la page `/nos-biens` strictement transactionnelle** (liste des biens en préco, prix, CTA). L'article A6 = contenu éducatif "comment ça marche". Sur les fiches biens en préco : lien vers A6 pour l'explication complète. |
+| A3 — "Rénovation rue des Muguets Lille : comment ce T3 a été transformé" | `/realisations` (fiche réalisation) | "réalisation Versi Immobilier Lille" | FORT — à gérer activement | L'article A3 et la fiche réalisation `/realisations/muguets` traitent la même opération. Risque de duplicate content si les contenus sont similaires. **Recommandation : différencier les formats de manière franche.** Fiche réalisation = présentation visuelle + chiffres clés (galerie, budget, surface, durée). Article A3 = récit first-hand long (1 200-1 500 mots, angle storytelling, réflexions du fondateur). Canonical de l'article blog vers lui-même (pas vers la fiche réalisation). Lien réciproque entre les deux pages. |
+| A4 — "Prix au m² à Lille en 2026 : quartier par quartier" | `/nos-biens` (page liste des biens avec prix) | "appartement Lille prix" | FAIBLE | La page `/nos-biens` liste des biens spécifiques avec prix. A4 = analyse de marché générale. Intentions différentes. Pas de cannibalisation si A4 ne liste pas les biens de Versi (lien CTA recommandé en bas). |
+| A10 — "Immeuble de rapport Lille : notre méthode" | `/realisations` | "immeuble rapport Lille Versi" | MOYEN | Même raisonnement qu'A3/réalisations. Si `/realisations` présente des opérations d'immeubles de rapport : différencier visuellement et éditorialement. Article A10 = méthode et process (comment on sourçe, analyse, rénove, revend). Fiches réalisations = résultats (avant/après, chiffres). |
+| A5+A9 — Financement primo-accédant | Aucune page existante | — | INTERNE (cannibalisation entre A5 et A9) | Cannibalisation interne A5 vs A9 : les deux articles ciblent le même cluster sémantique "financement primo-accédant Lille". **Recommandation : fusionner en un seul article.** Titre unifié : "Financer son premier achat immobilier à Lille en 2026 : PTZ, sans apport, toutes les options". Valeur = un guide complet vs deux articles partiels. Gain de maillage interne. |
+
+---
+
+### Règle de maillage interne anti-cannibalisation
+
+Pour chaque article blog, la règle suivante s'applique :
+
+- **Article TOFU** (A1, A4, A5+A9, A7) → lien vers 1-2 articles MOFU du blog + lien vers `/nos-biens`
+- **Article MOFU** (A2, A6, A8) → lien vers 1 article TOFU (contexte) + lien vers `/nos-biens` + CTA contact
+- **Article E-E-A-T** (A3, A10) → lien vers `/realisations` correspondante + lien vers `/nos-biens` + CTA contact
 
 ---
 
 ## 4. Mapping intention de recherche
 
-| Mot-clé | Intention | Position funnel | Page cible recommandée |
-|---|---|---|---|
-| marchand de biens Lille acquéreur | Informationnel → Commercial | TOFU/MOFU | Blog article A1 |
-| appartement rénové marchand de biens garanties | Commercial investigation | MOFU | Blog article A2 |
-| prix m² Lille 2026 quartier | Informationnel | TOFU | Blog article A4 |
-| PTZ 2026 Lille primo-accédant | Informationnel | TOFU | Blog article A5 |
-| précommercialisation immobilier Lille | Commercial investigation | MOFU | Blog article A6 |
-| DPE appartement Lille rénové | Informationnel | MOFU | Blog article A7 |
-| questions marchand de biens acheteur | Informationnel | MOFU | Blog article A8 |
-| financement premier achat Lille 2026 | Informationnel | TOFU | Blog article A9 |
-| immeuble rapport Lille marchand de biens | Commercial investigation | MOFU/BOFU | Blog article A10 |
+| Mot-clé cible | Intention | Position funnel | SERP features à viser | Page cible recommandée |
+|---|---|---|---|---|
+| marchand de biens Lille acquéreur | Informationnel → Commercial investigation | TOFU | Aucune (pas de featured snippet visible) | Blog A1 |
+| appartement rénové marchand de biens garanties | Commercial investigation | MOFU | PAA (structurer en Q&R) | Blog A2 |
+| prix m² Lille 2026 quartier (angle rénové) | Informationnel | TOFU | Aucune (portails dominants) — viser la longue traîne | Blog A4 — angle revu "quel quartier Lille pour acheter rénové" |
+| financement premier achat Lille 2026 (fusion A5+A9) | Informationnel | TOFU | PAA, potential featured snippet sur PTZ | Blog A5+A9 fusionnés |
+| précommercialisation immobilier Lille | Commercial investigation | MOFU | Featured snippet possible (définition + avantages) | Blog A6 |
+| DPE appartement Lille rénové | Informationnel | MOFU | PAA, potential featured snippet | Blog A7 |
+| questions poser marchand de biens avant acheter | Informationnel | MOFU | Featured snippet (listicle) | Blog A8 |
+| rénovation appartement Lille Fives (branded/E-E-A-T) | Informationnel + Branded | MOFU | Rich result BlogPosting | Blog A3 |
+| immeuble rapport Lille marchand de biens | Commercial investigation | MOFU/BOFU | Aucune | Blog A10 — public B2B/prescripteur |
+
+### Notes sur les SERP features à viser
+
+- **Featured snippet (position zéro)** : viser sur A6 (définition de la précommercialisation) et A8 (listicle "5 questions"). Format attendu : paragraphe court (<150 mots) ou liste numérotée.
+- **PAA (People Also Ask)** : viser sur A2 (garanties), A5+A9 (PTZ/financement), A7 (DPE). Format attendu : questions H2 avec réponse directe dans les 2-3 premières phrases.
+- **Rich result BlogPosting** : tous les articles doivent avoir le schema.org BlogPosting (déjà documenté dans vi-blog-strategy.md). Améliore le CTR en SERP sans changer le ranking.
 
 ---
 
 ## 5. Priorisation finale
 
-| Rang | Article | Potentiel trafic | Difficulté positionnement | Pertinence business (Kévin + prises de contact) | Score composite | Ordre publication |
+### Méthodologie du score composite
+
+Chaque critère est noté de 1 (faible) à 3 (fort). Le score composite = somme des 3 critères (max 9).
+
+- **Potentiel trafic** : basé sur l'analyse SERP réelle (nombre et qualité de la concurrence éditoriale, présence de portails leaders, volume de recherche estimé qualitativement). Non inventé — signalé comme estimation qualitative.
+- **Difficulté de positionnement** : basé sur la concurrence SERP réelle (type de sites en Top 10 : portails vs blogs vs annuaires). Note inversée : 3 = facile, 1 = difficile.
+- **Pertinence business** : lien direct avec l'intention d'achat de Kévin et le KPI "prises de contact via le formulaire". Un article qui répond à une question de Kévin en phase d'évaluation d'un vendeur = score 3.
+
+---
+
+| Rang | Article | Potentiel trafic (1-3) | Difficulté positionnement (1=difficile, 3=facile) | Pertinence business Kévin + prises de contact (1-3) | Score composite (/9) | Ordre publication recommandé |
 |---|---|---|---|---|---|---|
-| — | À compléter après analyses SERP | — | — | — | — | — |
+| 1 | **A6 — Précommercialisation immobilière** | 2 (volume faible-moyen, mais concurrence nulle) | 3 (concurrence quasi inexistante sur l'angle acquéreur) | 3 (intention d'achat directe, conversion forte) | **8/9** | Publication 2 |
+| 2 | **A1 — Marchand de biens Lille, ce que ça change pour l'acquéreur** | 2 (volume faible-moyen, concurrence annuaires) | 3 (aucun contenu éditorial concurrent sur cet angle) | 3 (pilier éducatif, construit la confiance avant toute décision d'achat) | **8/9** | Publication 1 |
+| 3 | **A2 — Appartement rénové vs particulier : garanties** | 2 (volume moyen, concurrence B2B) | 2 (concurrence présente mais mal alignée sur l'intention acquéreur) | 3 (répond à l'objection principale de Kévin avant achat) | **7/9** | Publication 3 |
+| 4 | **A8 — 5 questions à poser à un MDB avant d'acheter** | 2 (volume moyen, concurrence générique) | 2 (concurrence présente mais angle MDB-spécifique inexploité) | 3 (outil de décision directement actionnable par Kévin) | **7/9** | Publication 5 |
+| 5 | **A3 — Réalisation rue des Muguets (E-E-A-T)** | 1 (volume zéro sur requête branded) | 3 (aucune concurrence — requête propriétaire) | 3 (contenu de preuve — Kévin veut voir du concret) | **7/9** | Publication 4 |
+| 6 | **A7 — DPE D ou E : faut-il avoir peur ?** | 2 (volume local moyen, concurrence diagnostiqueurs) | 2 (angle "conseil acheteur" inexploité par les diagnostiqueurs) | 2 (utile pour Kévin mais n'est pas le déclencheur principal d'achat) | **6/9** | Publication 7 |
+| 7 | **A5+A9 fusionnés — Financement premier achat Lille 2026** | 2 (volume élevé sur financement/PTZ, mais concurrence très forte des courtiers) | 1 (portails et courtiers très bien positionnés — difficile en Top 5 sur la requête générale) | 3 (répond à la question de financement de Kévin — critique pour la conversion) | **6/9** | Publication 6 |
+| 8 | **A4 — Prix au m² Lille 2026 (angle rénové revu)** | 2 (volume élevé sur la requête générale, mais angle rénové = longue traîne) | 1 (portails impossibles à déloger sur la requête générale) | 2 (contexte utile pour Kévin mais pas décisif — il voit les prix sur nos fiches biens) | **5/9** | Publication 8 |
+| 9 | **A10 — Immeuble de rapport Lille : notre méthode** | 1 (volume faible, public B2B) | 3 (concurrence éditoriale nulle sur l'angle méthodologique) | 1 (public prescripteur/vendeur, pas Kévin primo-accédant) | **5/9** | Publication 9 |
+
+---
+
+### Ordre de publication recommandé (avec justification)
+
+1. **A1** (publication 1) — Pilier fondamental. Définit Versi Immobilier comme référence "marchand de biens acquéreur Lille". Construit la topical authority de base. Doit exister avant que tous les autres articles puissent s'y lier.
+
+2. **A6** (publication 2) — Meilleure opportunité de positionnement. Requête à quasi-zéro concurrence éditoriale sur l'angle acquéreur. Conversion directe (précommercialisation = biens Versi actuellement disponibles). Lien fort vers `/nos-biens`.
+
+3. **A2** (publication 3) — Répond à l'objection principale de Kévin ("est-ce que j'ai des garanties si j'achète chez un MDB ?"). Construit la confiance post-A1. Lien naturel vers A8.
+
+4. **A3** (publication 4) — Preuve sociale concrète. Kévin a lu A1, A6, A2 — il veut maintenant voir du concret. Cet article lui montre une opération réelle avec chiffres. Nécessite que les données de l'opération rue des Muguets soient disponibles (données fondateurs à fournir).
+
+5. **A8** (publication 5) — Outil actionnable. Kévin est maintenant en phase d'évaluation active. Cet article l'arme pour sa visite chez Versi Immobilier et les concurrents. CTA naturel vers formulaire de contact.
+
+6. **A5+A9 fusionnés** (publication 6) — Répond à la question financement qui bloque potentiellement la décision. À publier après les articles de confiance (A1, A2, A3) pour que Kévin soit déjà convaincu avant de voir les contraintes du financement.
+
+7. **A7** (publication 7) — Contenu de service utile, mais pas déclencheur d'achat. À publier quand les articles critiques sont en ligne.
+
+8. **A4** (publication 8) — Contenu de contexte marché. Utile pour la topical authority mais faible potentiel de ranking sur la requête générale. Angle à ajuster impérativement vers "quel quartier Lille pour un rénové" pour éviter la confrontation directe avec les portails.
+
+9. **A10** (publication 9) — Public B2B, secondaire pour Kévin. À publier en dernier, sert la crédibilité auprès de Sophie (vendeurs) et Pierre (prescripteurs).
 
 ---
 
 ## Hypothèses à valider
 
-- [HYPOTHÈSE : les volumes exacts sur les requêtes longue traîne "marchand de biens Lille acquéreur" sont très faibles (<100/mois) — à valider avec Google Search Console une fois le site indexé]
-- [HYPOTHÈSE : la concurrence sur "précommercialisation immobilier Lille" est quasi nulle — à confirmer par l'analyse SERP]
+- [HYPOTHÈSE : les volumes exacts des requêtes longue traîne "marchand de biens Lille acquéreur" et "précommercialisation immobilier Lille" sont inférieurs à 200 recherches/mois — estimé d'après l'absence de portails leaders en page 1 et la faible qualité de la concurrence éditoriale. À valider avec Google Search Console une fois indexé.]
+- [HYPOTHÈSE : le PTZ 2026 ne s'applique pas à l'achat d'appartements anciens rénovés par un MDB (applicable uniquement au neuf collectif) — confirmation nécessaire via les textes officiels avant publication de l'article A5+A9. Si l'hypothèse est vraie, l'article devient encore plus différenciant : Versi explique honnêtement ce qui s'applique ou non.]
+- [HYPOTHÈSE : les données opération rue des Muguets (prix d'achat, budget travaux, prix de revente, durée) sont disponibles auprès des fondateurs pour l'article A3 — à confirmer avant de programmer cet article en publication 4.]
+- [HYPOTHÈSE : la section `/nos-biens` de versi-immobilier.fr ne contient pas de contenu éditorial long sur le thème "marchand de biens acquéreur" — à vérifier sur le code src/ avant publication de A1 pour confirmer l'absence de risque de cannibalisation.]
 
 ---
 
 **Handoff → @copywriter + @creative-strategy**
-- Fichiers produits : `docs/seo/vi-blog-keyword-research.md`
-- Décisions prises : À compléter après analyses SERP
-- Points d'attention : À compléter
+
+- **Fichiers produits :** `docs/seo/vi-blog-keyword-research.md`
+
+- **Décisions prises :**
+  1. Ordre de publication confirmé : A1 → A6 → A2 → A3 → A8 → A5+A9 (fusionnés) → A7 → A4 → A10
+  2. Fusion A5+A9 recommandée (même cluster sémantique, cannibalisation inévitable si deux articles séparés)
+  3. Angle A4 à revoir : pas "prix m² Lille 2026 quartier" (concurrence portails impossible) mais "quel quartier Lille pour un achat rénové" — longue traîne exploitable
+  4. A10 reclassé en priorité basse : public prescripteur/vendeur, pas Kévin primo-accédant
+  5. A6 (précommercialisation) identifié comme meilleure opportunité de positionnement — concurrence éditoriale nulle sur l'angle acquéreur
+  6. Featured snippets à viser : A6 (définition) et A8 (listicle "5 questions")
+  7. PAA à exploiter dans A2, A5+A9 fusionnés, A7
+
+- **Points d'attention pour @copywriter :**
+  - L'article A3 (réalisation rue des Muguets) nécessite des données réelles des fondateurs avant rédaction (prix d'achat, budget, durée, prix de revente). Ne pas rédiger avec des placeholders.
+  - La fusion A5+A9 implique de traiter PTZ 2026 + financement sans apport dans un seul article de 1 200-1 500 mots. Angle clé : "le PTZ s'applique-t-il à un achat chez un MDB ?" — réponse honnête = différenciation forte.
+  - L'article A4 doit impérativement s'appuyer sur des sources tierces vérifiables pour les données de prix (PAP, SeLoger, Meilleurs Agents, Efficity). Citer la source et la date dans le corps de l'article — signal E-E-A-T et protection contre l'accusation d'invention de données.
+  - Tous les articles doivent se terminer par un CTA vers `/nos-biens` et non vers la page de contact directement (Kévin en TOFU/MOFU n'est pas prêt à contacter, mais il peut regarder les biens).
+
+- **Points d'attention pour @creative-strategy :**
+  - Le blog confirme le positionnement "pédagogue transparent" de Versi Immobilier : on explique honnêtement ce qui s'applique ou non (PTZ, DPE), on montre des chiffres réels (A3), on répond aux vraies questions de Kévin. Cohérence avec le brand voice "zéro bullshit, premium par la substance".
+  - L'article A8 ("5 questions à poser à un MDB avant d'acheter") positionne implicitement Versi comme le seul MDB prêt à répondre à ces questions — ce qui est un différenciateur fort à exploiter dans le copy.
+  - Cannibalisation SEO/GEO à surveiller : coordonner avec @geo pour s'assurer que les contenus blog (orientés moteurs de recherche traditionnels) ne contredisent pas les passages LLM-ready (orientés IA générative).
+
+Sources de l'étude : WebSearch du 2026-04-11 (requêtes analysées : "marchand de biens Lille acquéreur", "précommercialisation immobilier Lille", "prix m² Lille 2026 quartier", "appartement rénové marchand de biens garanties", "PTZ 2026 Lille primo-accédant", "DPE appartement rénové Lille", "questions poser marchand de biens avant acheter", "financement premier achat Lille sans apport 2026", "immeuble rapport Lille marchand de biens", "acheter appartement rénové neuf Lille comparaison", "marchand de biens Lille blog article rénové acquéreur").
