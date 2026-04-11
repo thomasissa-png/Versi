@@ -161,15 +161,21 @@ $$;
 `;
 
 async function initDB() {
-  const client = await pool.connect();
+  if (!process.env.DATABASE_URL) {
+    console.error('[init-db] DATABASE_URL non définie. Configurez-la dans Replit Secrets.');
+    process.exit(1);
+  }
+
+  let client;
   try {
+    client = await pool.connect();
     await client.query(SQL);
     console.log('[init-db] Tables, index et triggers créés avec succès.');
   } catch (err) {
     console.error('[init-db] Erreur :', err.message);
     process.exit(1);
   } finally {
-    client.release();
+    if (client) client.release();
     await pool.end();
   }
 }

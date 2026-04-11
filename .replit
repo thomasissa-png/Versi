@@ -7,4 +7,4 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "autoscale"
 run = ["sh", "-c", "npm start"]
-build = ["sh", "-c", "cd src && npm install && npm run build && cd ../versi-immobilier && npm run build"]
+build = ["sh", "-c", "cd src && npm install && npm run build && cd ../versi-immobilier && npm install && npm run build"]

@@ -1354,13 +1354,25 @@ app.post('/api/contact', async (req, res) => {
     return res.json({ ok: true });
   }
 
+  // Détection du site source pour adapter la validation et l'email
+  const fromVersiFr = isVersiFr(req);
+
   const { prenom, nom, email, telephone, objet, message } = req.body;
   const missing = [];
-  if (!prenom || !String(prenom).trim()) missing.push('prenom');
-  if (!nom || !String(nom).trim()) missing.push('nom');
-  if (!email || !String(email).trim()) missing.push('email');
-  if (!telephone || !String(telephone).trim()) missing.push('telephone');
-  if (!message || !String(message).trim()) missing.push('message');
+
+  if (fromVersiFr) {
+    // versi.fr : champs = nom, email, telephone (opt), message
+    if (!nom || !String(nom).trim()) missing.push('nom');
+    if (!email || !String(email).trim()) missing.push('email');
+    if (!message || !String(message).trim()) missing.push('message');
+  } else {
+    // versi-immobilier.fr : champs = prenom, nom, email, telephone, objet (opt), message
+    if (!prenom || !String(prenom).trim()) missing.push('prenom');
+    if (!nom || !String(nom).trim()) missing.push('nom');
+    if (!email || !String(email).trim()) missing.push('email');
+    if (!telephone || !String(telephone).trim()) missing.push('telephone');
+    if (!message || !String(message).trim()) missing.push('message');
+  }
 
   if (missing.length > 0) {
     return res.status(400).json({ ok: false, error: `Champs requis manquants : ${missing.join(', ')}` });
@@ -1380,21 +1392,38 @@ app.post('/api/contact', async (req, res) => {
     return res.status(503).json({ ok: false, error: 'Service d\'envoi d\'email temporairement indisponible.' });
   }
 
-  const htmlBody = buildHtmlTable([
-    ['Prénom', String(prenom)],
-    ['Nom', String(nom)],
-    ['Email', String(email)],
-    ['Téléphone', String(telephone)],
-    ['Objet', String(objet || '')],
-    ['Message', String(message)],
-  ]);
+  let htmlBody, subject, toEmail;
+
+  if (fromVersiFr) {
+    // Email pour versi.fr (holding)
+    toEmail = process.env.CONTACT_EMAIL_VERSI || 'contact@versi.fr';
+    htmlBody = buildHtmlTable([
+      ['Nom', String(nom)],
+      ['Email', String(email)],
+      ['Téléphone', String(telephone || '')],
+      ['Message', String(message)],
+    ]);
+    subject = `[Versi] Contact de ${escapeHtml(String(nom).trim())}`;
+  } else {
+    // Email pour versi-immobilier.fr
+    toEmail = CONTACT_EMAIL;
+    htmlBody = buildHtmlTable([
+      ['Prénom', String(prenom)],
+      ['Nom', String(nom)],
+      ['Email', String(email)],
+      ['Téléphone', String(telephone)],
+      ['Objet', String(objet || '')],
+      ['Message', String(message)],
+    ]);
+    subject = `[Versi Immobilier] Contact de ${escapeHtml(String(prenom).trim())} ${escapeHtml(String(nom).trim())}`;
+  }
 
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: CONTACT_EMAIL,
+      to: toEmail,
       replyTo: String(email).trim(),
-      subject: `[Versi Immobilier] Contact de ${escapeHtml(String(prenom).trim())} ${escapeHtml(String(nom).trim())}`,
+      subject,
       html: htmlBody,
     });
 
