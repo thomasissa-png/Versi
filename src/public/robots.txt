@@ -1,6 +1,17 @@
 User-agent: *
 Allow: /
-Disallow: /mentions-legales
-Disallow: /politique-de-confidentialite
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
 
 Sitemap: https://versi.fr/sitemap.xml
