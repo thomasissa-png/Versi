@@ -36,7 +36,7 @@
 - **3 mots qui ne DÉFINISSENT PAS la marque** : Flashy, Startup, Discount
 - **Concurrent principal** : Opérateurs immobiliers intégrés avec présence web institutionnelle (type Enclave, fonds immobiliers avec sites premium)
 - **Notre différence clé vs lui** : Trio complémentaire marketing/stratégie/sales avec track record prouvé (Sony, Algolia, Inbolt, TEOS, 35+ biens locatifs), opérant en direct sur l'ensemble de la chaîne de valeur (pas juste un fonds passif)
-- **Positionnement éditorial (blog & contenu)** : Experts marchands de biens Hauts-de-France. Super qualitatifs, pros, qui savent ce qu'ils font. Respectueux des fournisseurs, partenaires et acquéreurs. Pas des clowns — sérieux sans être ennuyeux, confiant sans être arrogant. Également présents en IDF mais en montants plus modestes (ne pas surjouer). Chaque contenu doit transpirer la maîtrise métier quotidienne.
+- **Positionnement éditorial (blog & contenu)** : Experts marchands de biens Hauts-de-France. Super qualitatifs, pros, qui savent ce qu'ils font. Respectueux des fournisseurs, partenaires et acquéreurs. Pas des clowns — sérieux sans être ennuyeux, confiant sans être arrogant. Également présents en IDF mais en montants plus modestes (ne pas surjouer). Chaque contenu doit transpirer la maîtrise métier quotidienne. **Objectif éditorial** : être top-of-mind dans la zone de chalandise — que les gens pensent à Versi en premier, à la fois pour acheter des biens ET pour en proposer.
 
 ---
 
