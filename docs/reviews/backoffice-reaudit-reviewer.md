@@ -85,16 +85,177 @@ Ligne 1021 : toujours `DELETE FROM subscribers WHERE id = $1`. Le champ `active`
 
 ## Re-notation des 8 critères
 
-_A remplir_
+| # | Critère | Audit 1 | Ré-audit | Delta | Justification |
+|---|---|---|---|---|---|
+| 1 | Conformité aux specs | 7 | **9** | +2 | P0-1 corrigé (32/32 endpoints). Restent P1-1/P1-2 (price_num) et P1-3 (message succès). |
+| 2 | Cohérence API / Frontend | 6 | **9.5** | +3.5 | 21/21 appels frontend - serveur corrects. Noms de champs cohérents. |
+| 3 | Cohérence admin / public | 9 | **9.5** | +0.5 | Hooks publics parfaits. ProtectedRoute vérifie le serveur. |
+| 4 | Sécurité | 8 | **9.5** | +1.5 | httpOnly cookie, timing-safe compare, validation photo server-side réelle. Manque uniquement flag `Secure` pour HTTPS. |
+| 5 | Gestion d'erreurs | 8 | **8.5** | +0.5 | 5 états UI quasi-complets. Message succès formulaire toujours manquant (P1-3). |
+| 6 | Complétude | 7 | **9** | +2 | 21/21 user stories PASS (édition fonctionne). Photo reorder API sans UI = V1 acceptable. |
+| 7 | Qualité du code | 7 | **7.5** | +0.5 | Design CSS propre, patterns cohérents, ProtectedRoute amélioré. fileToBase64 toujours dupliquée. |
+| 8 | Intégration projet global | 8 | **8.5** | +0.5 | Cookie sécurisé, fallback SPA inchangé. Hooks publics rétrocompatibles. |
+
+**Note globale ré-audit : 8.8 / 10** (moyenne pondérée : critères 1/2/4/6 à poids supérieur car corrections majeures)
 
 ---
 
 ## Problèmes restants pour 10/10
 
-_A remplir_
+### R1 (P1) : price_num non requis — frontend + serveur
+
+**Impact** : Un bien peut être créé sans prix numérique, cassant le tri/filtre du site public.
+**Correction précise** :
+
+**Fichier 1** : `src/admin/AdminBienForm.jsx:173`
+```javascript
+// AVANT
+const required = ['title', 'city', 'location', 'type', 'surface', 'price', 'description'];
+
+// APRES
+const required = ['title', 'city', 'location', 'type', 'surface', 'price', 'price_num', 'description'];
+```
+
+**Fichier 2** : `versi-immobilier/server.js:453`
+```javascript
+// AVANT
+if (!title || !city || !location || !type || !surface || !price || !description) {
+
+// APRES
+if (!title || !city || !location || !type || !surface || !price || !description) {
+    return res.status(400).json({ ok: false, error: 'Champs requis manquants (title, city, location, type, surface, price, description)' });
+  }
+  if (price_num == null || isNaN(Number(price_num))) {
+    return res.status(400).json({ ok: false, error: 'price_num est requis et doit être un nombre' });
+  }
+```
 
 ---
 
+### R2 (P1) : Message succès absent après création/édition
+
+**Impact** : L'admin ne sait pas si l'enregistrement a fonctionné (la redirection seule est ambigue).
+**Spec 4.8** : "Succès : Redirection vers /admin/biens + message 'Bien enregistré'"
+**Correction précise** :
+
+**Fichier 1** : `src/admin/AdminBienForm.jsx:234`
+```javascript
+// AVANT
+navigate('/admin/biens');
+
+// APRES
+navigate('/admin/biens', { state: { success: isEdit ? 'Bien modifié.' : 'Bien créé.' } });
+```
+
+**Fichier 2** : `src/admin/AdminRealisationForm.jsx:184`
+```javascript
+// AVANT
+navigate('/admin/realisations');
+
+// APRES
+navigate('/admin/realisations', { state: { success: isEdit ? 'Réalisation modifiée.' : 'Réalisation créée.' } });
+```
+
+**Fichier 3** : `src/admin/AdminBiens.jsx` — ajouter après ligne 2 :
+```javascript
+import { Link, useLocation } from 'react-router-dom';
+```
+Et dans le composant, ajouter :
+```javascript
+const location = useLocation();
+useEffect(() => {
+  if (location.state?.success) {
+    showSuccess(location.state.success);
+    window.history.replaceState({}, '');
+  }
+}, [location.state]);
+```
+Idem pour `AdminRealisations.jsx`.
+
+---
+
+### R3 (P2) : Select statut biens affiche les valeurs brutes
+
+**Impact** : UX mineure — "disponible" au lieu de "Disponible".
+**Correction précise** :
+
+**Fichier** : `src/admin/AdminBienForm.jsx:369`
+```javascript
+// AVANT
+{STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}
+
+// APRES — Ajouter en haut du fichier (après STATUS_VALUES) :
+const STATUS_LABELS = { disponible: 'Disponible', archive: 'Archivé', vendu: 'Vendu' };
+
+// Puis ligne 369 :
+{STATUS_VALUES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+```
+
+---
+
+### R4 (P2) : Cookie sans flag Secure
+
+**Impact** : En production HTTPS, le cookie peut être transmis en clair sur une connexion HTTP non sécurisée.
+**Correction précise** :
+
+**Fichier** : `versi-immobilier/server.js:276` et `server.js:292`
+```javascript
+// AVANT
+`vi_admin_token=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${8 * 60 * 60}; Path=/api/admin`
+
+// APRES
+`vi_admin_token=${sessionId}; HttpOnly; SameSite=Strict; Max-Age=${8 * 60 * 60}; Path=/api/admin${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
+```
+Appliquer le meme changement aux 2 occurrences (login L276 et logout L292).
+
+---
+
+### R5 (P2) : fileToBase64 dupliquée
+
+**Impact** : Dette technique — meme fonction dans AdminBienForm.jsx:37-44 et AdminRealisationForm.jsx:27-34.
+**Correction précise** :
+
+**Nouveau fichier** : `src/admin/utils.js`
+```javascript
+export function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+```
+Puis remplacer dans les deux formulaires :
+```javascript
+import { fileToBase64 } from './utils.js';
+```
+Et supprimer la fonction locale dans chaque fichier.
+
+---
+
+## Synthèse des corrections appliquées vs restantes
+
+| Catégorie | Appliquées | Restantes |
+|---|---|---|
+| P0 fonctionnel (endpoints manquants) | 1/1 | 0 |
+| P0 sécurité (4 corrections) | 4/4 | 0 |
+| P1 design/UX (13 corrections) | 13/13 | 0 |
+| P1 fonctionnel (specs) | 0/3 | 3 (R1, R2, R3) |
+| P2 technique | 0/2 | 2 (R4, R5) |
+| **Total** | **18/23** | **5** |
+
 ## Verdict final
 
-_A remplir_
+**8.8 / 10 — GO CONDITIONNEL**
+
+Le back office est passé de 7.4 a 8.8 (+1.4 points). Les corrections critiques (securite + P0 fonctionnel) sont toutes appliquées. Le système est opérationnel pour les 3 fondateurs.
+
+**Pour atteindre 10/10** : corriger les 5 points restants (R1-R5). Estimation : ~30 minutes de travail. Aucun n'est bloquant pour un usage interne V1, mais R1 (price_num) et R2 (message succès) sont les plus impactants pour l'UX admin.
+
+**Priorité de correction** :
+1. **R1** (price_num) — conformité spec, impact tri/filtre public
+2. **R2** (message succès) — conformité spec, feedback UX
+3. **R3** (labels statut) — polish UX
+4. **R4** (cookie Secure) — sécurité production
+5. **R5** (fileToBase64) — dette technique

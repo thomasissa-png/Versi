@@ -32,8 +32,20 @@ export default function AdminInscrits() {
       setSubscribers((prev) => prev.filter((s) => s.id !== id));
       setTotal((prev) => prev - 1);
     } catch {
-      alert('Erreur lors de la suppression.');
+      setError('Erreur lors de la suppression.');
     }
+  }
+
+  function exportCSV() {
+    const header = 'Email,Date inscription\n';
+    const rows = subscribers.map(s => `${s.email},${new Date(s.created_at).toLocaleDateString('fr-FR')}`).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inscrits-versi-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function formatDate(dateStr) {
@@ -66,6 +78,9 @@ export default function AdminInscrits() {
     <div>
       <div className="admin-section-header">
         <h2>Inscrits aux notifications</h2>
+        {subscribers.length > 0 && (
+          <button className="btn" onClick={exportCSV}>Exporter CSV</button>
+        )}
       </div>
 
       <p className="admin-counter">Total : {total} inscrit{total > 1 ? 's' : ''}</p>

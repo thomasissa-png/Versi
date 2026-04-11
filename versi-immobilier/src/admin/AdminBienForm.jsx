@@ -6,7 +6,11 @@ import './admin.css';
 const TYPES = ['Appartement', 'Maison', 'Immeuble', 'Local commercial', 'Local mixte', 'Terrain', 'Autre'];
 const DPE_VALUES = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
 const TENANCY_VALUES = ['', 'Libre', 'Loué'];
-const STATUS_VALUES = ['disponible', 'archive', 'vendu'];
+const STATUS_OPTIONS = [
+  { value: 'disponible', label: 'Disponible' },
+  { value: 'archive', label: 'Archivé' },
+  { value: 'vendu', label: 'Vendu' },
+];
 
 const EMPTY_FORM = {
   title: '',
@@ -160,7 +164,7 @@ export default function AdminBienForm() {
       await adminFetch(`/api/admin/properties/${id}/photos/${photoId}`, { method: 'DELETE' });
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     } catch {
-      alert('Erreur lors de la suppression de la photo.');
+      setError('Erreur lors de la suppression de la photo.');
     }
   }
 
@@ -366,7 +370,7 @@ export default function AdminBienForm() {
         <div className="form-group">
           <label>Statut</label>
           <select name="status" value={form.status} onChange={handleChange}>
-            {STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
 
