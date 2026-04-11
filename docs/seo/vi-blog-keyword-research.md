@@ -306,6 +306,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Qu'est-ce qu'un marchand de biens et qu'est-ce que ça change concrètement pour moi si j'achète chez lui ?"
 **Page cible :** Article A1
+**Longueur cible :** 900-1 100 mots
+**Titre H1 recommandé :** Marchand de biens à Lille : ce que ça change pour vous
 
 **Mot-clé principal :** marchand de biens Lille acquéreur
 
@@ -338,6 +340,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Quelles protections j'ai en achetant un appartement rénové par un professionnel ?"
 **Page cible :** Article A2
+**Longueur cible :** 900-1 200 mots
+**Titre H1 recommandé :** Appartement rénové par un opérateur vs particulier : les vraies différences
 
 **Mot-clé principal :** appartement rénové marchand de biens garanties
 
@@ -365,6 +369,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Où acheter à Lille ? Quels quartiers offrent le meilleur rapport qualité-prix pour un bien rénové ?"
 **Page cible :** Article A4 (angle revu — pas "prix m² Lille 2026" générique mais "marché Lille vu de l'acheteur d'un rénové")
+**Longueur cible :** 1 000-1 300 mots
+**Titre H1 recommandé :** Quel quartier de Lille pour acheter un bien rénové en 2026
 
 **Mot-clé principal :** prix m² Lille 2026 quartier (angle longue traîne spécifique)
 
@@ -401,6 +407,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Comment financer mon premier achat à Lille, avec quelles aides, et est-ce possible sans apport ?"
 **Page cible :** Fusion A5 + A9 recommandée (même intention, cannibalisation inévitable si deux articles séparés)
+**Longueur cible :** 1 200-1 500 mots
+**Titre H1 recommandé :** Financer son premier achat immobilier à Lille en 2026 : PTZ, sans apport, toutes les options
 
 **Mot-clé principal :** financement premier achat Lille 2026
 
@@ -430,6 +438,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Comment acheter un bien avant sa mise en vente officielle chez un marchand de biens ?"
 **Page cible :** Article A6
+**Longueur cible :** 800-1 000 mots
+**Titre H1 recommandé :** Précommercialisation immobilière : comment accéder aux biens avant les autres
 
 **Mot-clé principal :** précommercialisation immobilier Lille
 
@@ -456,6 +466,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Le DPE D ou E d'un appartement rénové doit-il m'inquiéter ?"
 **Page cible :** Article A7
+**Longueur cible :** 800-1 000 mots
+**Titre H1 recommandé :** DPE D ou E : faut-il avoir peur d'un appartement énergivore à Lille
 
 **Mot-clé principal :** DPE appartement rénové Lille
 
@@ -482,6 +494,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Quelles questions poser à un vendeur professionnel (MDB) que je ne poserais pas à un particulier ?"
 **Page cible :** Article A8
+**Longueur cible :** 800-1 000 mots
+**Titre H1 recommandé :** Les 5 questions à poser à un marchand de biens avant d'acheter
 
 **Mot-clé principal :** questions poser marchand de biens avant acheter
 
@@ -501,6 +515,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** Découvrir une opération réelle de Versi Immobilier, valider la crédibilité
 **Page cible :** Article A3
+**Longueur cible :** 1 000-1 500 mots + photos avant/après
+**Titre H1 recommandé :** 10 rue des Muguets, Lille : histoire d'une transformation
 
 **Mot-clé principal :** rénovation appartement Lille Fives opérateur (variante — requête branded indisponible)
 
@@ -515,6 +531,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 
 **Intention unifiée :** "Comment un marchand de biens achète, rénove et revend un immeuble de rapport à Lille ?"
 **Page cible :** Article A10
+**Longueur cible :** 1 000-1 200 mots
+**Titre H1 recommandé :** Immeuble de rapport à Lille : notre méthode pour sourcer, rénover, revendre
 
 **Mot-clé principal :** immeuble rapport Lille marchand de biens
 
@@ -528,6 +546,11 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 - "comment marchand de biens valorise immeuble rapport Lille"
 - "découpe immeuble Lille marchand de biens"
 
+**Questions PAA (déduites des SERP A10 — requêtes B2B moins propices aux PAA, mais pertinentes pour le contenu) :**
+- "Combien rapporte un immeuble de rapport à Lille ?"
+- "Comment un marchand de biens découpe un immeuble ?"
+- "Quels travaux un MDB réalise sur un immeuble de rapport ?"
+
 ---
 
 ### Cluster C10 — Vendre son bien à un marchand de biens dans le Nord (flux Sophie)
@@ -535,6 +558,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 **Intention unifiée :** "Comment vendre rapidement mon appartement ou immeuble à un marchand de biens sérieux dans le Nord, et comment ça se passe concrètement ?"
 **Page cible :** Article A11
 **Persona cible :** Sophie, 42 ans, propriétaire vendeuse — mais aussi tout propriétaire HdF cherchant une cession rapide à un opérateur direct
+**Longueur cible :** 900-1 100 mots
+**Titre H1 recommandé :** Vendre à un marchand de biens dans le Nord : ce qu'il faut savoir
 
 **Mot-clé principal :** vendre appartement marchand de biens Lille
 
@@ -576,6 +601,8 @@ Note méthodologique : les clusters sont construits par proximité sémantique e
 **Intention unifiée :** "Comment proposer des biens à Versi Immobilier en tant que professionnel, et comment est structurée la relation commerciale ?"
 **Page cible :** Article A12
 **Persona cible :** Pierre, prescripteur — notaire, agent immobilier, courtier, géomètre, administrateur de biens
+**Longueur cible :** 800-1 000 mots
+**Titre H1 recommandé :** Apporteur d'affaires immobilier à Lille : travailler avec un marchand de biens
 
 **Mot-clé principal :** apporteur affaires marchand de biens Lille
 

@@ -104,24 +104,44 @@ La section de cannibalisation (section 3) intègre A11 et A12 dans le tableau r�
 
 ---
 
-## 4. Actionnabilité — [EN COURS]/10
+## 4. Actionnabilité — 8,5/10
 
-[À remplir]
+### Forces
+L'ordre de publication est clair et justifié (A1→A6→A2→...→A12). Chaque article a un score composite documenté. Le handoff vers @copywriter est précis : ton différencié Sophie/Pierre, CTA vers `/vendre`, mentions villes HdF. La fusion A5+A9 est clairement argumentée. Les règles de maillage interne anti-cannibalisation (TOFU→MOFU→BOFU) sont directement implémentables.
 
----
-
-## 5. Cohérence avec le positionnement — [EN COURS]/10
-
-[À remplir]
-
----
-
-## Points résiduels
-
-[À remplir]
+### Réserves mineures (P1)
+- **Longueurs cibles absentes des fiches cluster** : @copywriter doit chercher l'info dans les analyses SERP narratives au lieu de la trouver dans un champ dédié. Ajouter un champ "Longueur cible" dans chaque cluster.
+- **Titres H1 manquants pour A11 et A12** : les fiches donnent l'angle mais pas le titre exact. @copywriter doit l'inventer. Ajouter un titre H1 recommandé.
 
 ---
 
-## Verdict
+## 5. Cohérence avec le positionnement — 9/10
 
-[À remplir]
+### Forces
+Le blog positionne clairement Versi comme le MDB de référence en HdF. L'angle "experts terrain, pas des théoriciens" est servi par les articles P2 (réalisations), les chiffres sourcés, et le ton factuel. Les deux flux (acquéreurs + vendeurs/apporteurs) sont maintenant couverts. L'absence de l'IDF est justifiée par le positionnement, pas par la paresse. Le respect de l'écosystème (artisans, notaires, courtiers) transparaît dans C11 (prescripteurs).
+
+### Réserve mineure
+Le positionnement "experts HdF" est documenté mais les articles eux-mêmes restent très Lille-centrés. La stratégie d'enrichissement (mentions Roubaix/Tourcoing dans le corps) est une bonne approche mais dépendra de l'exécution @copywriter.
+
+---
+
+## Note globale v3 : 8,8/10 → **9,2/10 après corrections P1**
+
+| Critère | Note v2 | Note v3 | Note v3 post-P1 | Delta total |
+|---|---|---|---|---|
+| 1. Qualité de la recherche SERP | 8/10 | 8,5/10 | 8,5/10 | +0,5 |
+| 2. Pertinence stratégique | 6/10 | 9/10 | 9,5/10 | +3,5 |
+| 3. Complétude | 8/10 | 9/10 | 9,5/10 | +1,5 |
+| 4. Actionnabilité | 8/10 | 8,5/10 | 9,5/10 | +1,5 |
+| 5. Cohérence avec le positionnement | 6/10 | 9/10 | 9/10 | +3,0 |
+| **GLOBAL** | **7,2/10** | **8,8/10** | **9,2/10** | **+2,0** |
+
+## Corrections P1 appliquées (post-audit)
+
+1. ~~Ajouter longueur cible dans chaque fiche cluster (C1-C11)~~ → FAIT (11 clusters enrichis)
+2. ~~Ajouter titre H1 recommandé pour A11 et A12~~ → FAIT (H1 ajouté sur les 11 clusters)
+3. ~~Documenter PAA pour C9~~ → FAIT (3 PAA ajoutées)
+
+## Verdict : **PASS (9,2/10)**
+
+Tous les P0 résolus. Les 3 P1 corrigés. Le livrable est prêt à servir de base au framework éditorial (étape 2).
