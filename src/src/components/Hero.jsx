@@ -29,8 +29,8 @@ export default function Hero() {
         </h1>
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
-          Un seul opérateur du sourcing à la sortie.
-          Pas de délégation, pas de perte de contrôle.
+          Versi acquiert, transforme et structure des actifs immobiliers en France.
+          Un seul opérateur du sourcing à la sortie — pas de délégation, pas de perte de contrôle.
         </p>
         <div className="hero__ctas">
           <a
