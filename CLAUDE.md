@@ -56,6 +56,8 @@ Tout contenu récurrent (articles de blog, posts réseaux sociaux, newsletters, 
 
 **Règle** : ne jamais recommander une stratégie de contenu qui suppose une production manuelle régulière sans proposer son automatisation IA. Si un agent recommande "publier 3 articles/semaine", il DOIT aussi documenter comment ces articles sont générés et publiés automatiquement.
 
+**Règle (learning versi-s6 P0)** : ne JAMAIS rédiger de contenu éditorial (articles, annonces, copy marketing) sans avoir d'abord : (1) une étude de mots-clés validée par @creative-strategy, (2) un framework éditorial avec checklist qualité, (3) un brief par article rempli selon le template. L'ordre est non-négociable. Rédiger avant d'avoir les fondations produit du contenu générique non calibré.
+
 ## Stratégie de modèles
 
 Les agents utilisent deux modèles selon la complexité de leur tâche :

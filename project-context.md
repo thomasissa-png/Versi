@@ -240,6 +240,12 @@
 | copywriter | 2026-04-10 | docs/copy/vi-final-copy.md | Copy final versi-immobilier.fr pret a implementer. 11 fichiers source concernes. Chaque chaine CONSERVER/RECRIRE documentee avec fichier:constante. Affinement Arguments Bloc 1 corps. Variante B AvailableProperties H2. Messages systeme formulaire documentes. 4 hypotheses formalisees. | Approche gardien qualite (pas simple transcription de vi-full-copy-directions.md). Bloc 1 corps affine : "connaissent l'historique complet" plus factuel que "connaissent chaque detail". Variante B "Les biens du moment." soumise a arbitrage Thomas. Hero et SellPage non touches. Jargon proscrit nettoye ApprochePage. Footer tagline consolidee avec suppression ligne geo separee. |
 | creative-strategy | 2026-04-12 | docs/reviews/audit-plan-editorial-12-mois.md | Audit plan éditorial blog versi-immobilier.fr. Note globale 7,2/10. 6 notes détaillées : Alignement business 6,5/10, Rythme 7,5/10, Couverture personas 5,5/10, Pertinence sujets 7,5/10, Diffusion/automatisation 7,0/10, KPIs 6,5/10. 4 corrections P0 (Sophie dès M2, CTA formalisés, UTM avant publication, articles décryptage), 4 corrections P1, 3 corrections P2. Verdict ITÉRER. | Sophie en M6 = erreur de priorisation P0 : elle est le persona générateur de revenus directs (le modèle économique MDB repose sur l'acquisition de biens, pas sur la vente d'appartements). Le plan mesure le trafic mais pas les PCQ : un blog sans UTM + Umami events est invisible pour le KPI North Star. Articles "décryptage d'opération" identifiés comme gold éditorial irremplaçable (seul Versi peut les écrire) vs articles informationnels génériques copiables par n'importe quel concurrent. Topical authority = 12-24 mois, pas 6 — la section M7-M12 est non-négociable pour tenir dans la durée. |
 | seo | 2026-04-12 | docs/seo/vi-blog-editorial-framework.md (corrections P0+P1) | 7 corrections appliquées sur le framework éditorial blog suite à l'audit @creative-strategy 7,2/10. P0.1 : calendrier réorganisé — Sophie avancée en M2 (était M5), Pierre (A-Pierre, nouveau) en M3, A-Décryptage en M5 ; A10 supprimé du plan pour le remplacer par le décryptage. P0.2 : CTA principal + CTA secondaire marqués OBLIGATOIRES et bloquants dans le template brief. P0.3 : section Convention UTM + événements Umami (4 events à configurer avant A1) ajoutée dans section 7 KPIs avec handoff @fullstack explicite. P0.4 : Règle 5 décryptage d'opération ajoutée dans les règles du calendrier (min 2 en 6 mois, A3 compte comme premier). P1.1 : A-Pierre ajouté au tableau de maillage avec liens bidirectionnels vers A12 et A11. P1.2 : Process distribution LinkedIn enrichi — 3 posts par article (Thomas/Maxime/Carl avec angles distincts), prompt de génération batch IA inclus dans le brief. P1.3 : section M7-M12 ajoutée (cadence, rotation clusters 50/25/25, critère scale ou pivot à M6, mise à jour articles M1-M3). P1.4 : Email capture documenté (formulaire J+2 emails, table blog_subscribers, séquence nurturing 3 emails, handoff @fullstack). | Sophie en M5 → M2 : l'audit a correctement identifié que 4 articles acquéreurs publiés (A1, A6, A2, A8) constituent une base de crédibilité suffisante pour accueillir une première visite vendeur — attendre M5 pour Sophie alors que son article est le plus directement générateur de revenu (acquisition de biens) était une erreur de séquencement. A-Pierre en M3 (pas M5) : un prescripteur peut lire le blog dès M3 — s'il tombe sur 3 articles acquéreurs sans aucune adresse directe à son métier, il repart. UTM et Umami events comme P0 : sans ces deux éléments, le KPI North Star (PCQ) est invisible — le trafic blog n'est pas traçable jusqu'à la conversion. Articles décryptage prioritaires : ce sont les seuls contenus irremplaçables — tout le reste peut être produit par un concurrent. |
+| copywriter | 2026-04-12 | docs/copy/blog-article-A1-marchand-biens.md, docs/copy/blog-article-A6-precommercialisation.md | Rédaction des 2 premiers articles blog VI sur base du framework éditorial. A1 "Marchand de biens à Lille : ce que ça change pour vous" (251L, 1050 mots) et A6 "Précommercialisation immobilière à Lille" (245L, 980 mots). Briefs complets, checklist 32 critères auto-vérifiée (28/32 PASS). Maillage interne conforme au tableau du framework. 3 corrections bloquantes appliquées post-audit (typo, persona interne, H1 SEO). | Articles rédigés AVANT le framework éditorial final — ont été vérifiés a posteriori et validés comme conformes (audit 8,75/10). Le ton "pas des clowns" est bien tenu : section transparence/risques de A6 ("Ce qui est garanti / Ce qui ne l'est pas") est le point fort éditorial. |
+| fullstack | 2026-04-12 | versi-immobilier/scripts/seed-blog-articles.js, versi-immobilier/src/components/BlogTeaser.jsx+css, Nav.jsx, Footer.jsx, HomePage.jsx | Publication blog : script seed idempotent A1+A6 en BDD, lien BLOG dans la nav (entre RÉALISATIONS et NOTRE APPROCHE), section BlogTeaser sur la homepage (3 derniers articles, responsive), lien Blog dans le footer. Build OK. | Blog rendu accessible depuis la homepage via 3 points d'entrée (nav, teaser, footer). Composant BlogTeaser graceful degradation si pas d'articles en BDD. |
+| fullstack | 2026-04-12 | versi-immobilier/server.js, versi-immobilier/src/admin/AdminBienForm.jsx+css, AdminPage.jsx, AdminLoginForm.jsx+css, adminFetch.js | Générateur d'annonces IA : endpoint POST /api/admin/generate-listing avec prompt Versimo adapté brand voice Versi + Claude Sonnet 4.6. Géocodage API Adresse gouv.fr. Bouton "Générer l'annonce" dans le formulaire admin. Auto-remplissage titre + description + ville + CP. 8 corrections appliquées post-audit : nouveau prompt (vouvoiement, identité MDB, mots interdits), titre LLM, fix timeout, fix adminFetch, Nav+Footer admin, alert supprimé, avertissement IA, bouton Régénérer. | Prompt Versimo récupéré depuis repo Architecture branche claude/extract-project-context-cnNx6. Adapté à Claude (pas OpenAI) et à la brand voice Versi. Titre généré par LLM (première ligne parsée) au lieu de programmatique. |
+| infrastructure | 2026-04-12 | versi-immobilier/server.js, .replit, package.json, versi-immobilier/package.json, versi-immobilier/scripts/init-db.js, .env.example, docs/infra/deployment-checklist.md | 8 corrections déploiement Replit : routing multi-site par hostname (versi.fr + VI depuis un seul serveur), npm install dans build, /api/health, init-db au boot, /api/contact multi-site, CSP Umami, error handling init-db. Documentation deployment-checklist.md. | Routing par hostname (pas préfixe de chemin) retenu car 2 sites = 2 domaines distincts. src/server.js désormais obsolète en production. |
+| qa | 2026-04-12 | tests/e2e/versi-immobilier-admin.spec.js | 47 tests E2E Playwright pour le back office admin + blog : auth (login/logout/protection), CRUD biens, CRUD réalisations, inscrits, CRUD articles blog, blog public (/blog, /blog/:slug, 404, Schema.org). | Couvre les 6 user stories US-BO-01 à US-BO-06 + blog public. Les 216 tests existants couvrent le site public pré-back office. |
+| moi | 2026-04-12 | docs/reviews/audit-moi-generateur-annonces.md | Audit UX/technique du générateur d'annonces. Note 7/10 ITÉRER. 2 P0 (timeout mort, adminFetch crash JSON), 4 P1 (Nav/Footer absents, titre générique, alert amateur, hallucination quartier), 3 P2. Toutes les corrections appliquées par @fullstack dans la même session. | "Le générateur marche bien mais le titre est une blague et l'alert() est le truc le plus amateur". Thomas verrait immédiatement l'absence de Nav/Footer (préférence fondateur documentée). |
 
 ---
 
@@ -275,46 +281,33 @@
 ### Mémo de reprise
 
 **Branche** : `claude/extract-project-context-n7Q8o`
-**Date de clôture** : 2026-04-10
-**Dernier commit** : `a130ec3` — feat(vi): PropertyDetailPage — features, emplacement, prix, diagnostics
+**Date de clôture** : 2026-04-12
+**Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s4)** : Session majeure. Pivot acquéreur complet de versi-immobilier.fr — le persona principal passe de vendeur (Sophie) à acquéreur (primo-accédant/famille). Creative rethink complet : Hero "Peu de biens. Pas d'approximation.", brand voice adapté (sujet = bien/acheteur, pas Versi), copy retravaillé par @creative-strategy + @copywriter depuis les brand docs. Design audit et corrections CSS (spacing, grille, badges). Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Photos fondateurs alignées. Testeur-persona Sophie créé. 216 tests E2E PASS.
+**Résumé session (versi-s6)** : Session majeure axée blog + générateur d'annonces IA. (1) Pipeline blog complet : étude mots-clés SERP 11 requêtes (9,2/10 PASS), framework éditorial 777 lignes 32 critères (8,3/10 PASS → corrections P0/P1 → re-audit PASS), articles A1+A6 rédigés et publiés (8,75/10 PUBLIABLES). Blog accessible depuis homepage (nav, teaser, footer). (2) Générateur d'annonces IA back office : prompt Versimo récupéré depuis repo Architecture, adapté brand voice Versi + Claude Sonnet 4.6. Endpoint /api/admin/generate-listing avec géocodage API Adresse gouv. Audit @moi 7/10 + @copywriter 5,5/10 → 8 corrections appliquées (prompt amélioré, titre LLM, timeout, Nav/Footer, régénérer). (3) Tests E2E : 47 tests Playwright back office + blog. (4) Infra : 8 corrections déploiement Replit (routing multi-site hostname, build, health check, CSP Umami). (5) Plan éditorial 12 mois audité et corrigé (Sophie M2, Pierre M3, UTM, décryptages, M7-M12). (6) Positionnement éditorial fondateur documenté : "experts MDB HdF, pas des clowns".
 
 **État des 2 sites** :
-- **versi.fr** : Photos fondateurs mises à jour (têtes alignées, luminosité Maxime corrigée). Ordre Maxime → Thomas → Carl. Reste inchangé sinon. Build OK.
-- **versi-immobilier.fr** : Pivot acquéreur implémenté. Hero "Peu de biens. Pas d'approximation." Homepage : Arguments → Biens → Stats (fond sombre) → TeamTeaser (photos réelles) → SellerBanner. Copy retravaillé depuis brand voice adapté. Fiche bien enrichie (features, emplacement, prix net vendeur, diagnostics, charges). Build OK.
+- **versi.fr** : FAQ visible, Hero enrichi, Mission stats, og:image, Umami, favicons. Inchangé cette session sauf propagation learnings dans les agents.
+- **versi-immobilier.fr** : Blog complet (A1+A6 publiés, nav BLOG, section homepage, footer). Générateur annonces IA dans le back office (bouton Générer, Régénérer, avertissement IA, titre+description auto). Routing multi-site par hostname. Init-db au boot. /api/health. CSP Umami. Build OK.
 
 **Travail restant — PROCHAINE SESSION** :
 
-1. **BACK OFFICE (priorité)** — @product-manager doit specer puis @fullstack implémenter :
-   - Admin protégé par mot de passe (allezpsg)
-   - Interface pour ajouter/archiver des biens ET des réalisations
-   - Upload texte + photos, bouton ajouter/archiver
-   - BDD PostgreSQL Replit
-   - Images stockées en base ou sur le filesystem Replit
-   - 3 admins (les 3 fondateurs)
-   - Notifications email aux inscrits quand nouveau bien ajouté
-   - Même interface pour biens en vente ET réalisations (projets terminés)
+1. **Événements Umami + UTM (priorité — P0 avant mise en ligne)** — @fullstack : configurer les 4 événements Umami (click:cta-blog, click:internal-link-blog, scroll:80pct, form:submit-from-blog) + convention UTM dans les composants blog. Sans ça, le blog est invisible pour le KPI North Star.
 
-2. **InvestirPage** — page faible (6,5/10), nécessite validation fondateur sur les chiffres co-investissement
+2. **Article A2 (garanties) + article A11 Sophie (vendre à un MDB)** — @copywriter : rédiger sur base du framework éditorial. A2 = M2-S1 dans le calendrier. A11 avancé en M2-S3.
 
-3. **Déploiement Replit** — problème `src/dist` non résolu
+3. **Email capture blog** — @fullstack : formulaire d'abonnement en bas des articles, table blog_subscribers, séquence nurturing 3 emails (J+0, J+7, J+14).
 
-4. **Données réelles** — remplacer les placeholders dans properties.js par les vraies données des biens (adresses, photos, descriptions)
+4. **Données réelles** — Fondateur : adresses, photos, descriptions des vrais biens à insérer via le back office admin. Données rue des Muguets pour l'article A3.
 
-5. **Design audit en cours** — @design a produit des corrections CSS (spacing, breakpoints) qui sont commitées. Vérifier le rendu visuel desktop + mobile.
+5. **InvestirPage** — page faible (6,5/10). Nécessite validation fondateur sur les chiffres co-investissement.
 
-6. **Tests E2E** — relancer après toutes les modifications de cette session
+6. **Re-audit générateur annonces** — @moi + @copywriter : re-auditer après corrections pour viser 9+/10.
 
-**Décisions fondateur cette session** :
-- Pivot : acquéreur = persona principal, vendeur = secondaire
-- Hero validé : "Peu de biens. Pas d'approximation."
-- Régions : Hauts-de-France ET Île-de-France (pas "Lille" seul)
-- Prix : toujours net vendeur
-- Ordre fondateurs : Maxime → Thomas → Carl partout
-- Descriptions fondateurs : identiques à versi.fr
-- Pas anti-agence dans le copy (Pierre = persona secondaire)
-- "Rénové" trop restrictif — Versi vend aussi des biens avec projet de rénovation
-- Back office : admin custom avec mdp, PostgreSQL Replit, 3 admins, notifications email
+**Décisions fondateur cette session (s6)** :
+- Positionnement éditorial : experts MDB Hauts-de-France, super qualitatifs, respectueux de l'écosystème, "pas des clowns"
+- Blog : étude mots-clés + framework éditorial + checklist 32 critères AVANT toute rédaction
+- Générateur annonces : prompt Versimo adapté, Claude (pas OpenAI), éditable avant publication
+- Les deux flux doivent être couverts par le blog : acquéreurs ET vendeurs/apporteurs
 
-**Prompt de reprise** : `Lis project-context.md (mémo de reprise). Priorité : @product-manager spec back office (admin biens + réalisations, PostgreSQL, notifications), puis @fullstack implémentation. Vérifier aussi le rendu desktop/mobile post-corrections CSS.`
+**Prompt de reprise** : `@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise). Priorité : (1) @fullstack événements Umami + UTM blog (P0 avant mise en ligne), (2) @copywriter articles A2 + A11 Sophie, (3) @fullstack email capture blog.`
