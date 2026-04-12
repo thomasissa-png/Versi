@@ -1,6 +1,6 @@
 # Checklist de deploiement Replit -- Versi
 
-> Derniere mise a jour : 2026-04-11
+> Derniere mise a jour : 2026-04-12
 > Auteur : @infrastructure
 
 ---
@@ -104,6 +104,46 @@ Replit Autoscale n'expose qu'un seul port par deploiement.
 
 ---
 
+## Configuration DNS
+
+Les deux domaines doivent pointer vers le deploiement Replit Autoscale. Replit fournit un domaine interne (ex: `versi.repl.app`) qui sert de cible pour les enregistrements DNS.
+
+### Etapes de configuration
+
+1. Dans Replit : aller dans "Deployments" > "Custom Domains"
+2. Ajouter `versi.fr` et `versi-immobilier.fr`
+3. Replit genere les instructions DNS specifiques (CNAME target)
+
+### Enregistrements DNS requis
+
+Configurer chez le registrar des deux domaines :
+
+**versi.fr**
+
+| Type | Nom | Valeur | TTL |
+|---|---|---|---|
+| CNAME | www | [cible fournie par Replit, ex: versi.repl.app] | 3600 |
+| A ou ALIAS | @ | [IP ou ALIAS fourni par Replit pour apex domain] | 3600 |
+
+**versi-immobilier.fr**
+
+| Type | Nom | Valeur | TTL |
+|---|---|---|---|
+| CNAME | www | [cible fournie par Replit, ex: versi.repl.app] | 3600 |
+| A ou ALIAS | @ | [IP ou ALIAS fourni par Replit pour apex domain] | 3600 |
+
+**Attention domaines apex (@)** : Replit Autoscale utilise un load balancer. Les CNAME ne fonctionnent pas sur les apex domains (versi.fr sans www). Deux solutions :
+- Si le registrar supporte ALIAS/ANAME (Cloudflare, Route53) : utiliser un enregistrement ALIAS vers la cible Replit
+- Sinon : rediriger @ vers www via le registrar, et configurer le CNAME sur www uniquement
+
+**Verification** : apres propagation DNS (quelques minutes a 48h), tester :
+- `curl -I https://versi.fr` → doit retourner HTTP 200 avec le contenu versi.fr
+- `curl -I https://versi-immobilier.fr` → doit retourner HTTP 200 avec le contenu versi-immobilier
+
+**HTTPS** : Replit Autoscale fournit automatiquement un certificat TLS (Let's Encrypt) pour les custom domains. Aucune configuration supplementaire.
+
+---
+
 ## Variables d'environnement (Replit Secrets)
 
 Toutes ces variables doivent etre configurees dans Replit Secrets (jamais dans .env ou en dur) :
@@ -138,25 +178,82 @@ Toutes ces variables doivent etre configurees dans Replit Secrets (jamais dans .
 
 ## Procedure de deploiement
 
-### Premier deploiement
+### Premier deploiement (checklist pas-a-pas)
 
-1. Provisionner PostgreSQL depuis le dashboard Replit
-2. Configurer toutes les variables dans Replit Secrets (voir tableau ci-dessus)
-3. Cliquer "Deploy" dans Replit -- le build command s'execute automatiquement
-4. Verifier `/api/health` retourne `{ "status": "ok" }`
-5. Configurer les domaines custom (versi.fr et versi-immobilier.fr) dans Replit
+**Phase 1 : Prerequis**
+
+- [ ] Compte Replit actif avec plan supportant Autoscale (Core ou Teams)
+- [ ] Repository GitHub connecte a Replit
+- [ ] Domaines versi.fr et versi-immobilier.fr achetes et accessibles chez le registrar
+- [ ] Compte Resend cree avec domaines verifies (versi.fr et versi-immobilier.fr)
+- [ ] Compte Umami Cloud cree (cloud.umami.is) avec les deux sites ajoutes
+
+**Phase 2 : PostgreSQL Replit**
+
+- [ ] Depuis le dashboard Replit : onglet "Database" > "Create a PostgreSQL database"
+- [ ] Replit injecte automatiquement DATABASE_URL dans les Secrets — verifier sa presence
+- [ ] Tester la connexion : dans le shell Replit, `node -e "const pg=require('pg');const p=new pg.Pool({connectionString:process.env.DATABASE_URL});p.query('SELECT 1').then(()=>console.log('OK')).catch(e=>console.error(e)).finally(()=>p.end())"`
+
+**Phase 3 : Replit Secrets**
+
+Configurer toutes les variables obligatoires (voir tableau "Variables d'environnement" ci-dessus) :
+
+- [ ] DATABASE_URL — fournie automatiquement par Replit (verifier qu'elle est presente)
+- [ ] ADMIN_PASSWORD — mot de passe fort (min 16 caracteres, melange alpha/num/special)
+- [ ] RESEND_API_KEY — cle API Resend (re_xxxxxxxxxx)
+- [ ] FROM_EMAIL — adresse expeditrice (domaine verifie dans Resend)
+- [ ] CONTACT_EMAIL — adresse de reception versi-immobilier
+- [ ] CONTACT_EMAIL_VERSI — adresse de reception versi.fr
+
+**Phase 4 : Deploy**
+
+- [ ] Verifier que `.replit` est present a la racine avec deploymentTarget = "autoscale"
+- [ ] Dans Replit : cliquer "Deploy" > choisir "Autoscale"
+- [ ] Le build command s'execute automatiquement (construit les deux sites)
+- [ ] Si le build echoue : verifier les logs de build dans Replit. Causes frequentes : npm install timeout, erreur Vite build
+- [ ] Au demarrage : init-db.js cree les tables PostgreSQL automatiquement
+
+**Phase 5 : Verification post-deploy**
+
+- [ ] `GET /api/health` retourne `{ "status": "ok" }` avec database.status = "ok"
+- [ ] Acceder au domaine Replit par defaut (*.repl.app) — versi-immobilier s'affiche (comportement par defaut)
+- [ ] Tester les pages principales : accueil, biens, realisations, blog, contact
+- [ ] Tester le formulaire de contact — verifier reception de l'email
+- [ ] Tester le formulaire "Vendre un bien" — verifier reception
+- [ ] Acceder a /admin — se connecter avec ADMIN_PASSWORD
+- [ ] Creer un bien de test via l'admin, verifier qu'il apparait en public
+
+**Phase 6 : Custom domains**
+
+- [ ] Configurer les DNS (voir section "Configuration DNS" ci-dessus)
+- [ ] Dans Replit : "Deployments" > "Custom Domains" > ajouter versi.fr
+- [ ] Dans Replit : "Deployments" > "Custom Domains" > ajouter versi-immobilier.fr
+- [ ] Attendre la propagation DNS et la generation du certificat TLS
+- [ ] Tester : `https://versi.fr` affiche le site holding
+- [ ] Tester : `https://versi-immobilier.fr` affiche le site marchand de biens
+- [ ] Tester : `https://versi-immobilier.fr/api/health` retourne status "ok"
+
+**Phase 7 : Monitoring**
+
+- [ ] Configurer UptimeRobot ou BetterStack : endpoint `https://versi-immobilier.fr/api/health` toutes les 60s
+- [ ] Configurer une alerte email/Slack si downtime > 1 min
+- [ ] Verifier que Umami collecte les visites (verifier dans le dashboard Umami Cloud)
 
 ### Redeploiement
 
 1. Push le code sur GitHub (ou edition directe dans Replit)
-2. Replit rebuild automatiquement (build command dans .replit)
-3. Verifier `/api/health` apres le redeploy
-4. Si `/api/health` retourne `"degraded"` : verifier que DATABASE_URL est toujours valide dans Replit Secrets
+2. Replit detecte les changements et rebuild automatiquement (build command dans .replit)
+3. Verifier `/api/health` apres le redeploy — le serveur se relance avec init-db.js (recree les tables si necessaire)
+4. Si `/api/health` retourne `"degraded"` :
+   - Verifier que DATABASE_URL est toujours valide dans Replit Secrets
+   - Replit peut changer la DATABASE_URL apres un redeploy — le code lit process.env au runtime, pas de cache
+   - Si la DB a ete reinitialisee : init-db.js recree les tables, mais les donnees sont perdues (restaurer depuis backup)
 
 ### Rollback
 
-1. Dans Replit : "Deployments" > selectionner un deployment precedent
-2. Ou : `git revert` du commit problematique + redeploy
+1. Dans Replit : "Deployments" > historique > selectionner un deployment precedent > "Promote"
+2. Alternative : `git revert` du commit problematique, push, attendre le rebuild Replit
+3. Si rollback DB necessaire : restaurer depuis le dernier pg_dump (voir section Backup)
 
 ---
 
