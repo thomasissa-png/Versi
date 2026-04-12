@@ -1,5 +1,7 @@
 import express from 'express';
 import { Resend } from 'resend';
+import Anthropic from '@anthropic-ai/sdk';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -31,6 +33,67 @@ if (!resend) {
 
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'contact@versi-immobilier.fr';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'formulaire@versi-immobilier.fr';
+
+// ---------------------------------------------------------------------------
+// Anthropic (génération d'annonces IA)
+// ---------------------------------------------------------------------------
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+if (!anthropic) {
+  console.warn(
+    '[WARN] ANTHROPIC_API_KEY non configurée. ' +
+    "L'endpoint /api/admin/generate-listing retournera 503."
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auth admin (cookie httpOnly — mot de passe en variable d'environnement)
+// ---------------------------------------------------------------------------
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || null;
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const ADMIN_COOKIE_NAME = 'versi_admin_session';
+const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+// Sessions admin en mémoire (suffisant pour un admin solo)
+const adminSessions = new Map();
+
+function createAdminSession() {
+  const token = crypto.randomBytes(32).toString('hex');
+  adminSessions.set(token, { createdAt: Date.now() });
+  return token;
+}
+
+function isValidAdminSession(token) {
+  if (!token) return false;
+  const session = adminSessions.get(token);
+  if (!session) return false;
+  if (Date.now() - session.createdAt > ADMIN_SESSION_TTL_MS) {
+    adminSessions.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(';').forEach((pair) => {
+    const [name, ...rest] = pair.trim().split('=');
+    if (name) cookies[name.trim()] = rest.join('=').trim();
+  });
+  return cookies;
+}
+
+function requireAdmin(req, res, next) {
+  const cookies = parseCookies(req.headers.cookie);
+  const token = cookies[ADMIN_COOKIE_NAME];
+  if (!isValidAdminSession(token)) {
+    return res.status(401).json({ ok: false, error: 'Non authentifié. Connectez-vous à /admin.' });
+  }
+  next();
+}
 
 // ---------------------------------------------------------------------------
 // Rate limiting simple en mémoire (max 5 envois / IP / heure)
