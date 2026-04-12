@@ -1,6 +1,6 @@
 # Checklist de deploiement Replit -- Versi
 
-> Derniere mise a jour : 2026-04-12
+> Derniere mise a jour : 2026-04-12 (v2 — CSP corrige, sections email/analytics/securite/performance ajoutees)
 > Auteur : @infrastructure
 
 ---
@@ -101,6 +101,23 @@ Replit Autoscale n'expose qu'un seul port par deploiement.
 **Probleme** : si DATABASE_URL est absente ou la connexion echoue, `pool.connect()` leve une exception non capturee (hors du try/catch).
 
 **Correction** : verification explicite de DATABASE_URL avant la connexion, et `pool.connect()` place dans le bloc try/catch.
+
+### 9. CSP incomplet -- Google Fonts et CDN Fonts bloques
+
+**Probleme** : le Content-Security-Policy autorisait `script-src` et `connect-src` pour cloud.umami.is, mais pas les domaines de polices. Les deux sites chargent PP Neue Montreal depuis `fonts.cdnfonts.com` et DM Sans depuis `fonts.googleapis.com` / `fonts.gstatic.com`. Le navigateur bloquait silencieusement le chargement des polices.
+
+**Correction** : ajout de `https://fonts.cdnfonts.com` et `https://fonts.googleapis.com` dans `style-src`, et `https://fonts.cdnfonts.com` et `https://fonts.gstatic.com` dans `font-src`.
+
+CSP final :
+```
+default-src 'self';
+img-src 'self' data:;
+style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com https://fonts.googleapis.com;
+font-src 'self' https://fonts.cdnfonts.com https://fonts.gstatic.com;
+script-src 'self' https://cloud.umami.is;
+connect-src 'self' https://cloud.umami.is;
+frame-ancestors 'none';
+```
 
 ---
 
@@ -275,3 +292,109 @@ Configurer toutes les variables obligatoires (voir tableau "Variables d'environn
 **RPO** : < 24h (backup quotidien)
 
 A implementer : un workflow GitHub Actions avec `pg_dump` schedule daily.
+
+### Procedure de restauration
+
+1. Recuperer le dernier dump depuis l'artifact GitHub Actions ou le bucket S3/R2
+2. Se connecter au shell Replit
+3. Executer : `psql $DATABASE_URL < backup.sql`
+4. Verifier : `node -e "import('pg').then(m => { const p = new m.default.Pool({connectionString: process.env.DATABASE_URL}); p.query('SELECT count(*) FROM properties').then(r => console.log(r.rows[0])).finally(() => p.end()) })"`
+5. Redemarrer le serveur si necessaire (le pool se reconnecte automatiquement)
+
+---
+
+## Delivrabilite email (Resend)
+
+### Configuration DNS email
+
+Les deux domaines d'envoi doivent avoir les enregistrements DNS email configures dans Resend :
+
+**Pour chaque domaine (versi.fr et versi-immobilier.fr) :**
+
+1. Aller dans Resend > Domains > ajouter le domaine
+2. Resend fournit les enregistrements DNS a ajouter chez le registrar :
+
+| Type | Nom | Valeur | But |
+|---|---|---|---|
+| TXT | (fourni par Resend) | (fourni par Resend) | SPF — autorise Resend a envoyer |
+| CNAME | (fourni par Resend) | (fourni par Resend) | DKIM — signature cryptographique |
+| TXT | _dmarc | v=DMARC1; p=quarantine; rua=mailto:dmarc@versi.fr | DMARC — politique anti-usurpation |
+
+3. Attendre la verification dans le dashboard Resend (quelques minutes a 24h)
+
+### Seuils de delivrabilite
+
+| Metrique | Seuil acceptable | Action si depasse |
+|---|---|---|
+| Taux de delivrance | > 95% | Verifier SPF/DKIM/DMARC, contenu des emails |
+| Taux de bounce | < 5% | Verifier les adresses email invalides |
+| Spam complaints | < 0.1% | Revoir le contenu, verifier opt-in |
+
+### Checklist email
+
+- [ ] Domaine versi.fr verifie dans Resend
+- [ ] Domaine versi-immobilier.fr verifie dans Resend
+- [ ] SPF configure pour les deux domaines
+- [ ] DKIM configure pour les deux domaines
+- [ ] DMARC configure pour les deux domaines
+- [ ] Test d'envoi depuis le formulaire de contact versi-immobilier.fr
+- [ ] Test d'envoi depuis le formulaire de contact versi.fr
+- [ ] Verifier que les emails arrivent en inbox (pas en spam)
+
+---
+
+## Analytics (Umami Cloud)
+
+### Configuration
+
+1. Creer un compte sur [cloud.umami.is](https://cloud.umami.is) (gratuit jusqu'a 10K events/mois)
+2. Ajouter deux sites :
+   - `versi.fr` — recuperer le website ID
+   - `versi-immobilier.fr` — recuperer le website ID
+3. Le script Umami est deja integre dans les deux `index.html` (src/ et versi-immobilier/)
+4. Verifier que le `data-website-id` correspond au bon site dans chaque index.html
+
+### Verification post-deploy
+
+- [ ] Visiter versi.fr et verifier qu'une visite apparait dans le dashboard Umami
+- [ ] Visiter versi-immobilier.fr et verifier qu'une visite apparait dans le dashboard Umami
+- [ ] Verifier que le CSP autorise bien `cloud.umami.is` (script-src + connect-src) — fait dans la correction #8/#9
+- [ ] Verifier les evenements custom si configures (formulaire contact, clics CTA)
+
+---
+
+## Securite — Verification pre-launch
+
+| Check | Statut | Notes |
+|---|---|---|
+| HTTPS force (TLS via Replit) | Auto | Replit fournit le certificat Let's Encrypt |
+| CSP header complet | OK | Inclut fonts, Umami, inline styles |
+| X-Frame-Options: DENY | OK | Protection clickjacking |
+| X-Content-Type-Options: nosniff | OK | Protection MIME sniffing |
+| Referrer-Policy: strict-origin-when-cross-origin | OK | Limite les donnees de referrer |
+| Rate limiting formulaires | OK | 5 envois/IP/heure |
+| Rate limiting login admin | OK | 5 tentatives/IP/heure |
+| Sessions admin HttpOnly + Secure | OK | Cookie non accessible en JS |
+| Sessions admin expiration | OK | 8h + nettoyage automatique toutes les 30 min |
+| ADMIN_PASSWORD dans Secrets | A verifier | Jamais en dur dans le code |
+| Input sanitization (escapeHtml) | OK | Protection XSS sur les formulaires |
+| Validation server-side photos | OK | Verification base64, taille max 5 Mo |
+| npm audit | A executer | `cd versi-immobilier && npm audit` avant chaque deploy |
+
+---
+
+## Limites de performance connues
+
+### Photos base64 en PostgreSQL
+
+Les photos sont stockees en base64 dans la colonne `data` (TEXT) des tables `property_photos` et `project_photos`. Ceci est un choix delibere (filesystem ephemere sur Replit), mais a des implications :
+
+- **Memoire** : chaque photo base64 prend ~33% de plus que le fichier original. Une photo de 3 Mo = ~4 Mo en base64. Le serveur charge tout en memoire lors d'un `SELECT *`.
+- **Latence** : le transfert de photos base64 dans les reponses JSON est plus lent qu'un CDN.
+- **Migration future** : quand le volume de photos augmentera (>50 biens avec 5+ photos chacun), envisager une migration vers Cloudflare R2 ou AWS S3. Stocker l'URL dans la DB au lieu du base64. Le serveur proxy les images depuis le bucket.
+
+### Cold starts Autoscale
+
+- Premier acces apres inactivite : 2-5 secondes de latence (demarrage du process + init-db)
+- Mitigation : le monitoring externe (BetterStack/UptimeRobot) ping `/api/health` toutes les 60s, ce qui maintient le serveur actif
+- Si cold starts trop frequents : passer au plan Replit avec "Always On" ou augmenter la frequence du health check
