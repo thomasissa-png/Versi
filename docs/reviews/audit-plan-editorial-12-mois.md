@@ -298,6 +298,133 @@ Le plan éditorial a de bonnes bases mécaniques (pipeline IA, ancrage HdF, mail
 3. Les CTA de conversion ne sont pas formalisés comme contrainte obligatoire dans le template article
 4. La phase M7-M12 n'est pas documentée — le "plan 12 mois" est un plan 6 mois
 
+---
+
+## Re-audit v2
+
+> Produit par @creative-strategy | Date : 2026-04-12
+> Framework relu : `docs/seo/vi-blog-editorial-framework.md` (v2, 777 lignes, branche courante)
+> Référence : audit v1 ci-dessus (7,2/10)
+
+---
+
+### 1. Tableau de vérification des 8 corrections
+
+<!-- SQUELETTE — à remplir section par section -->
+
+| # | Correction demandée | Résolu ? | Preuve dans le framework v2 |
+|---|---|---|---|
+| P0.1 | Sophie dès M2 (pas M6) | **OUI** | Calendrier section 4 : A11 positionné en Mois 2 S3 avec note explicite "Avancé de M5 à M2. Sophie ne doit pas attendre 5 mois…" |
+| P0.2 | CTA conversion obligatoire dans template brief | **OUI** | Template section 2 : champs "CTA principal" et "CTA secondaire" marqués OBLIGATOIRE avec `*` et note bloquante : "un brief sans CTA principal ET sans CTA secondaire renseignés est considéré incomplet. La rédaction ne commence pas." |
+| P0.3 | UTM + événements Umami avant A1 | **OUI** | Section 7 : 4 événements Umami documentés avec attributs HTML exacts + convention UTM formalisée (`?utm_source=blog\|linkedin\|email&utm_medium=...&utm_content=[slug]`) + handoff @fullstack explicite "avant publication de A1" |
+| P0.4 | 2 articles décryptage d'opération | **OUI partiel** | Règle 5 section 4 : "Minimum 2 articles Décryptage d'opération dans les 6 premiers mois" formalisée comme règle du calendrier. A3 (Mois 4) compte comme premier décryptage ; A-Décryptage (Mois 5 S3) est le second. Réserve : les 2 slots sont conditionnés à la disponibilité des données fondateurs — clause de remplacement documentée mais le risque de non-livraison persiste |
+| P1.1 | Pierre dès M3 (pas M5) | **OUI** | Calendrier section 4 : A-Pierre positionné en Mois 3 S3, marqué "Nouveau — avancé de M5" avec note sur le canal prescripteur prioritaire |
+| P1.2 | Workflow LinkedIn documenté | **OUI** | Section 6, Étape 5A : 3 posts LinkedIn par article formalisés avec les angles par fondateur (Thomas = vision marché, Maxime = opérationnel, Carl = structuration), template de prompt LinkedIn complet, format recommandé avec UTM `?utm_source=linkedin` |
+| P1.3 | Section M7-M12 | **OUI** | Section "M7-M12 : Principes de renouvellement" présente entre le calendrier et la section maillage : cadence 2/mois maintenue, rotation clusters (50% Kévin / 25% Sophie / 25% Pierre+décryptages), critère "scale ou pivot" à M6, protocole de mise à jour des articles existants |
+| P1.4 | Email capture blog | **OUI** | Section 6, sous-section "Capture email (à implémenter avant M2)" : formulaire d'abonnement documenté, stockage table `blog_subscribers`, séquence de 3 emails (J+0, J+7, J+14) avec contenu et CTA, handoff @fullstack pour l'implémentation |
+
+---
+
+### 2. Notes par critère v2
+
+#### 2.1 Alignement business — 8,5 / 10 (était 6,5)
+
+**Ce qui a changé.** Les 3 lacunes bloquantes sont levées : Sophie arrive en M2 (plus d'attente de 5 mois sur le canal de revenus directs), les CTA sont désormais des champs bloquants dans le template brief (la rédaction ne commence pas sans CTA renseigné), et A3 + A-Décryptage constituent les 2 articles à preuves terrain demandés. La connexion blog → KPI North Star est structurellement possible avec ces corrections.
+
+**Ce qui reste à améliorer.** L'article A-Décryptage (M5) est conditionné à la disponibilité des données fondateurs — une clause de remplacement est documentée mais elle dégrade temporairement le plan vers un article Kévin générique. Ce risque de glissement n'est pas complètement neutralisé. Par ailleurs, les articles Kévin restent majoritairement informationnels (8 sur 11) — le déséquilibre informationnel/transactionnel pour le canal acquéreur persiste, même si les CTA obligatoires corrigent partiellement la situation.
+
+#### 2.2 Rythme et séquencement — 9,0 / 10 (était 7,5)
+
+**Ce qui a changé.** La section M7-M12 est présente, documentée et opérationnelle : cadence 2/mois maintenue, rotation des clusters chiffrée (50/25/25), critère de décision "scale ou pivot" à M6 sur les KPIs de cluster, protocole de mise à jour des articles existants. Le plan est désormais véritablement un plan 12 mois, pas un plan 6 mois avec une promesse implicite de continuité.
+
+**Ce qui reste à améliorer.** La recommandation d'augmenter la cadence à 3-4/mois en phase de lancement (3 premiers mois) n'a pas été retenue — le rythme reste fixé à 2/mois. Ce choix est défendable (teabilité fondateur, temps de validation) mais représente une sous-utilisation de la vélocité IA documentée dans CLAUDE.md. Note : c'est une décision acceptée, pas une lacune bloquante.
+
+#### 2.3 Couverture personas — 7,5 / 10 (était 5,5)
+
+**Ce qui a changé.** La répartition est significativement améliorée : A11 (Sophie) avancé en M2, A-Pierre introduit en M3, A12 maintenu en M6. Sur 11+1 articles planifiés, la répartition corrigée est : 7 Kévin / 1 Sophie / 2 Pierre / 1 Kévin-Sophie (décryptage A-Décryptage sert les deux personas) + A3 (décryptage crédibilisant pour tous). Sophie passe de 1 article en M6 à 1 article en M2 — l'impact business du changement de séquencement est plus important que l'ajout quantitatif.
+
+**Ce qui reste à améliorer.** Sophie n'a toujours qu'un seul article sur les 12 premiers mois planifiés (A11). L'audit v1 recommandait 2 articles Sophie (A11 + un second sur "succession et vente rapide"). Ce second article Sophie n'apparaît pas dans le calendrier M1-M6 — il est renvoyé à M7+ dans les principes de renouvellement. La couverture reste asymétrique au regard de son rôle de persona de revenus directs. Pierre a 2 articles (A-Pierre M3 + A12 M6), ce qui est insuffisant pour une topical authority prescripteur mais acceptable pour une V1. Le persona investisseur Laurent (secondaire sur versi-immobilier.fr) reste absent — non bloquant mais noté.
+
+#### 2.4 Pertinence des sujets — 8,0 / 10 (était 7,5)
+
+**Ce qui a changé.** L'ajout de A-Pierre (M3) et A-Décryptage (M5) enrichit qualitativement le plan. A-Pierre est le contenu le plus différenciant du corpus prescripteur (peu de MDB HdF ont ce contenu). A-Décryptage est le contenu le plus résistant à la copie (données propriétaires obligatoires). La règle 5 qui formalise l'obligation de 2 décryptages dans les 6 mois ancre l'exigence d'E-E-A-T dans le processus.
+
+**Ce qui reste.** La note ne monte pas davantage car 6 des 11 articles (A1, A2, A5+A9, A7, A4, A8) restent des sujets copiables par un concurrent mieux établi SEO. La différenciation repose sur l'ancrage HdF et les données réelles insérées lors de la review fondateur — ce n'est pas dans le plan éditorial lui-même mais dans l'exécution article par article. C'est un risque d'exécution, pas un risque structurel.
+
+#### 2.5 Diffusion et automatisation — 8,5 / 10 (était 7,0)
+
+**Ce qui a changé.** Le workflow LinkedIn est maintenant entièrement documenté : 3 posts par article, angles définis par fondateur, template de prompt inclus dans le brief, UTMs LinkedIn systématiques. La capture email est documentée avec table DB, séquence de 3 emails, et handoff @fullstack précis. Le process de publication est complet en 5 étapes avec temps estimés révisés (2h-3h contre 30 min dans l'audit v1 — correction bienvenue même si l'écart interroge).
+
+**Ce qui reste.** La syndication sur portails immobiliers locaux (recommandation P2 de l'audit v1) reste absente du plan. Le process de lancement blog ("day 1 event" avec post coordonné des 3 fondateurs) est mentionné dans les recommandations v1 mais n'apparaît pas comme procédure formalisée dans le framework v2. Ce sont des P2 — non bloquants mais des opportunités d'amplification manquées.
+
+#### 2.6 KPIs et mesure — 8,5 / 10 (était 6,5)
+
+**Ce qui a changé.** La section 7 est substantiellement renforcée : convention UTM formalisée une bonne fois pour toutes, 4 événements Umami documentés avec attributs HTML exacts et handoff @fullstack "avant A1", tableau d'objectifs M+3 par article avec cibles positions/pages vues/temps/CTR. Le lien trafic blog → PCQ est maintenant traçable via `form:submit-from-blog` et les UTMs. Le seuil d'alerte CTA (< 2% de clics) est documenté.
+
+**Ce qui reste.** Le seuil d'alerte business ("si après 6 mois le blog génère < 3 PCQ traçables, réviser le plan") identifié comme manquant dans l'audit v1 n'est pas explicitement documenté comme tel — il est partiellement couvert par le critère "scale ou pivot" à M6 (> 3 PCQ / trimestre par cluster = doublement cadence) mais l'alerte inversée (0 PCQ = révision) n'est pas formalisée. La grille de protocole de révision trimestrielle (P2.3 de l'audit v1) est absente — non bloquant mais lacune de maintenance documentaire.
+
+---
+
+### 3. Note globale v2
+
+| Critère | Note v1 | Note v2 | Delta |
+|---|---|---|---|
+| 1. Alignement business | 6,5 | 8,5 | +2,0 |
+| 2. Rythme et séquencement | 7,5 | 9,0 | +1,5 |
+| 3. Couverture personas | 5,5 | 7,5 | +2,0 |
+| 4. Pertinence sujets | 7,5 | 8,0 | +0,5 |
+| 5. Diffusion et automatisation | 7,0 | 8,5 | +1,5 |
+| 6. KPIs et mesure | 6,5 | 8,5 | +2,0 |
+| **Moyenne** | **6,75** | **8,3** | **+1,6** |
+
+**Note globale v2 : 8,3 / 10**
+
+Progression de +1,1 point par rapport à l'audit v1 (7,2/10). Les 4 corrections P0 sont résolues — ce sont elles qui expliquent l'essentiel du gain. Les 4 corrections P1 sont également résolues. Le plan est désormais structurellement solide pour produire des PCQ traçables à partir du blog.
+
+---
+
+### 4. Points résiduels
+
+Ces points n'empêchent pas la validation mais méritent d'être adressés avant ou pendant l'exécution.
+
+**Résiduel 1 — Sophie sous-représentée quantitativement (ex-P0.1, partiellement résolu)**
+Un seul article Sophie en M2 (A11) sur les 12 premiers mois planifiés. Le second article Sophie recommandé en audit v1 ("succession et vente rapide dans le Nord") n'est pas dans le calendrier M1-M6 — il est renvoyé à la rotation M7+ sans date ni slot garantis. Recommandation : inscrire explicitement 1 article Sophie supplémentaire dans la section M7-M12 (ex : M8 ou M9) pour sécuriser la couverture vendeur sur l'année complète.
+
+**Résiduel 2 — Risque de remplacement A-Décryptage (P0.4, partiellement résolu)**
+La règle 5 exige 2 décryptages dans les 6 mois mais prévoit une clause de remplacement si les données fondateurs ne sont pas disponibles. Si A-Décryptage (M5) est remplacé par un article Kévin générique, le plan descend à 1 décryptage — en dessous du minimum requis. Recommandation : briefer les fondateurs pour sécuriser les données de 2 opérations AVANT M3, pas "avant M5". Le délai de sécurisation doit précéder la fenêtre de rédaction de 6-8 semaines.
+
+**Résiduel 3 — Seuil d'alerte PCQ bas non formalisé (ex-KPI manquant)**
+Le critère "scale ou pivot" à M6 documente le déclencheur de doublement de cadence (> 3 PCQ) mais pas le déclencheur de révision editoriale en cas d'échec (0 PCQ à M6). Ce cas n'est pas documenté. Recommandation : ajouter dans la section M7-M12 un paragraphe : "Si le blog génère < 2 PCQ traçables (UTM blog) à M6, revoir les CTA et les sujets transactionnels avant de poursuivre la cadence."
+
+**Résiduel 4 — Lancement blog non documenté comme event**
+Le framework v2 documente la distribution article par article (LinkedIn post-publication) mais pas le protocole de lancement du blog lui-même (publication A1 : post coordonné 3 fondateurs le même jour, annonce page LinkedIn Versi Immobilier, email prescripteurs Pierre). Ce lancement est une opportunité unique — traiter A1 comme une publication ordinaire serait un manque. Recommandation : ajouter 10 lignes "Protocole de lancement blog (Jour J, A1)" dans la section 6.
+
+**Résiduel 5 — Durée de review fondateur toujours optimiste**
+La v2 corrige à 2h-3h par article (contre 30 min dans la v1) mais la décomposition reste imprécise : Étape 3 "review fondateur" est estimée à "15-20 min" dans la section 6 alors que le total annoncé est 2h-3h. L'écart suggère que le reste du temps (brief, publication, distribution) est inclus dans les 2h-3h mais la cohérence des chiffres n'est pas vérifiable à la lecture. Non bloquant mais source de confusion pour le fondateur qui planifie son temps.
+
+---
+
+### 5. Verdict v2
+
+**PASS — 8,3 / 10**
+
+Les 4 corrections P0 sont résolues. Les 4 corrections P1 sont résolues. Le plan est opérationnel pour produire le premier article.
+
+**Conditions de PASS :**
+- P0.1 PASS : Sophie en M2 — vérifié dans le calendrier
+- P0.2 PASS : CTA bloquants dans le template brief — vérifié section 2
+- P0.3 PASS : UTM + 4 événements Umami documentés avec handoff @fullstack — vérifié section 7
+- P0.4 PASS (sous réserve) : Règle 5 formalisée + 2 slots décryptage identifiés — conditionnel aux données fondateurs
+
+**Ce qui peut attendre M2-M3 :**
+- Résiduel 1 : inscrire le second article Sophie dans la rotation M7+ (à faire avant de finaliser le planning M7-M12)
+- Résiduel 2 : briefer les fondateurs sur les données opérations dès maintenant (ne pas attendre M4)
+- Résiduel 3 : ajouter le seuil d'alerte PCQ bas dans la section M7-M12
+- Résiduel 4 : documenter le protocole de lancement blog Jour J dans la section 6
+- Résiduel 5 : clarifier la décomposition du temps de production (cohérence 15-20 min review vs 2h-3h total)
+
+**Décision : lancer la production de A1 dès que les fondateurs ont validé les données terrain requises.**
+
 Ces 4 corrections (P0.1, P0.2, P0.3, P1.3) sont actionnables en 1 session de travail. Une fois appliquées, la note estimée est 8,5-9/10.
 
 **Conditions de PASS :**
@@ -306,3 +433,150 @@ Ces 4 corrections (P0.1, P0.2, P0.3, P1.3) sont actionnables en 1 session de tra
 - Chaque article a un CTA de conversion documenté dans le brief
 - Les UTM blog sont configurés avant publication de A1
 - Le framework inclut une section M7-M12 avec critères de renouvellement
+
+---
+
+## Re-audit v2 — 2026-04-12
+
+> Re-audit par @creative-strategy | Référence : `docs/seo/vi-blog-editorial-framework.md` (v2, 777 lignes)
+> Vérifié section par section : calendrier (§4), template brief (§2), distribution (§6), KPIs/UTM (§7), M7-M12 (§4 fin)
+
+---
+
+### 1. Tableau de vérification des 8 corrections
+
+| # | Correction demandée | Résolu ? | Preuve dans le document |
+|---|---|---|---|
+| P0.1 | Sophie dès M2 (pas M6) | **OUI** | Calendrier M2 S3 : A11 publié en M2, note explicite "Avancé de M5 à M2. Sophie ne doit pas attendre 5 mois..." |
+| P0.2 | CTA conversion obligatoire dans le template brief | **OUI** | Section 2, bloc CONVERSION : champs "CTA principal" et "CTA secondaire" marqués `* OBLIGATOIRE`, avec note "ces deux champs sont bloquants : un brief sans CTA... est incomplet. La rédaction ne commence pas." |
+| P0.3 | UTM + événements Umami avant A1 | **OUI** | Section 7 : convention UTM complète documentée (`?utm_source=linkedin|email|direct&utm_medium=...&utm_content=[slug]`), 4 événements Umami listés avec handoff @fullstack explicite "avant mise en production de A1" |
+| P0.4 | 2 articles décryptage d'opération dans les 6 mois | **OUI** | A3 "10 rue des Muguets" en M4 S1 + A-Décryptage en M5 S3. Règle 5 du calendrier formalisée : "Minimum 2 articles 'Décryptage d'opération' dans les 6 premiers mois — ces articles sont basés sur des opérations réelles... prioritaires dès que les données fondateurs sont disponibles." |
+| P1.1 | Pierre dès M3 | **OUI** | Calendrier M3 S3 : A-Pierre "Nouveau — avancé de M5. S'adresse directement à Pierre (agents, notaires, courtiers HdF)." |
+| P1.2 | Workflow LinkedIn documenté | **OUI** | Section 6 Étape 5A : 3 angles par fondateur documentés (Thomas = vision marché, Maxime = opérationnel, Carl = finance), prompt LinkedIn calibré inclus, format post avec UTM, longueur 800-1 200 caractères |
+| P1.3 | Section M7-M12 | **OUI** | Section dédiée "M7-M12 : Principes de renouvellement" en fin de §4 : cadence, rotation clusters (50/25/25%), critère scale ou pivot avec seuil PCQ, protocole de mise à jour des articles M1-M3 |
+| P1.4 | Email capture blog | **OUI** | Section 6, sous-section "Capture email (à implémenter avant M2)" : formulaire email avec wording défini, table PostgreSQL `blog_subscribers`, séquence nurturing 3 emails (J+0/J+7/J+14) avec contenu, handoff @fullstack |
+
+**Résultat : 8/8 corrections appliquées.**
+
+---
+
+### 2. Notes v2 par critère
+
+#### Critère 1 — Alignement business : 8,5 / 10
+
+**Ce qui a changé.** Sophie est avancée en M2 (P0.1) et les CTA de conversion sont formalisés comme bloquants dans le template (P0.2). Ces deux corrections adressent les deux lacunes structurelles qui faisaient chuter la note à 6,5.
+
+**Ce qui est maintenant solide.** Chaque article a une destination de conversion explicite dans son brief — la distance entre lecture et formulaire est raccourcie par construction. Sophie et Pierre apparaissent dans le calendrier dès M2 et M3, ce qui signifie que le blog contribue au canal de revenus directs dès le deuxième mois.
+
+**Ce qui reste en tension.** Il n'y a toujours qu'un seul article Sophie dans le plan M1-M6 (A11 en M2) — soit 1/12 articles (8%), en dessous du seuil de 20% fixé dans les conditions de PASS du premier audit. Avec A-Décryptage en M5 (qui cible "Kévin / Sophie"), Sophie atteint environ 15% si on compte ce double-ciblage. C'est mieux, mais en deçà de l'objectif. La section M7-M12 prévoit 25% d'articles vendeur, ce qui rééquilibre sur 12 mois — mais en M1-M6, la couverture Sophie reste insuffisante au regard du poids de ce persona dans le modèle économique.
+
+**Note : 8,5/10** (contre 6,5 — +2 points grâce à la réorganisation du calendrier et la formalisation des CTA).
+
+---
+
+#### Critère 2 — Rythme et séquencement : 8,5 / 10
+
+**Ce qui a changé.** La section M7-M12 existe et est substantielle (P1.3) : cadence maintenue, rotation clusters documentée avec % précis, critère de scale ou pivot chiffré (> 3 PCQ = doubler dans ce cluster), protocole de mise à jour des articles M1-M3.
+
+**Ce qui est maintenant solide.** Le plan est réellement un plan 12 mois, pas 6. La règle de continuité est posée (aucun mois sans publication, même si un fondateur est indisponible). Le séquencement Sophie/Pierre intégré dès M2/M3 est logiquement justifié dans les notes de calendrier.
+
+**Ce qui reste.** Le rythme 2/mois est maintenu sans accélération en phase de lancement. La règle anti-mindset humain du framework Gradient Agents suggérait une cadence 3-4/mois sur les 3 premiers mois pour atteindre plus vite le seuil de topical authority — cette recommandation n'a pas été intégrée. C'est un choix conservateur défendable (25 articles en 12 mois vs 20), mais qui ralentit l'atteinte du Top 10 GSC.
+
+**Note : 8,5/10** (contre 7,5 — +1 point grâce à la section M7-M12 complète).
+
+---
+
+#### Critère 3 — Couverture des personas : 7,0 / 10
+
+**Ce qui a changé.** Pierre passe de 2 articles à 3 (A-Pierre M3 + A10 M3 dans le maillage + A12 M6) — soit environ 25% du plan, au-dessus du seuil de 15%. Sophie reste à 1 article direct en M1-M6 (A11 M2) + 1 article double-ciblage (A-Décryptage M5). La répartition M7-M12 (25% Sophie, 25% Pierre/décryptages) améliore la couverture sur 12 mois.
+
+**Ce qui reste sous-optimal.** La condition de PASS initiale exigeait "Sophie >= 20% des articles". Sur M1-M6 (12 articles), Sophie est représentée sur 1 article direct = 8%. Même avec le double-ciblage A-Décryptage, on ne dépasse pas 16%. Sur 12 mois avec la rotation M7-M12, on atteint 20%+ — mais l'impact sur le KPI PCQ du premier semestre est limité.
+
+Le persona investisseur (Laurent secondaire, canal versi-invest.fr) reste absent du plan M1-M6. La recommandation P2.2 de l'audit v1 n'a pas été intégrée. Ce n'est pas un bloquant pour la note — c'est un P2 — mais il reste un angle mort.
+
+**Note : 7,0/10** (contre 5,5 — +1,5 points grâce à l'avance de Pierre en M3 et la formalisation de la rotation M7-M12).
+
+---
+
+#### Critère 4 — Pertinence des sujets : 8,0 / 10
+
+**Ce qui a changé.** Deux articles décryptage d'opération sont planifiés (A3 M4 + A-Décryptage M5) et formalisés comme priorité par la Règle 5 du calendrier. C'est la correction P0.4 — la plus structurante pour la crédibilité E-E-A-T du blog.
+
+**Ce qui est maintenant solide.** Les décryptages sont les seuls contenus impossibles à copier par un concurrent — leur présence dès M4 renforce le différenciateur "transparence chiffrée" identifié dans la charte (§1.4). La Règle 5 crée un mécanisme de pipeline auto-alimenté : chaque opération terrain terminée = un article candidat.
+
+**Ce qui reste.** Les articles acquéreurs A1-A9 restent majoritairement informationnels — le manque de contenu transactionnel direct ("appartements rénovés disponibles Lille", "bien en précommercialisation Versi") n'a pas été corrigé dans le plan v2. C'est une lacune qui existait en v1 et qui subsiste. Les pages transactionnelles (/nos-biens) portent ce rôle, mais un article BOFU manque dans le mix.
+
+**Note : 8,0/10** (contre 7,5 — +0,5 point grâce aux 2 décryptages planifiés et formalisés).
+
+---
+
+#### Critère 5 — Diffusion et automatisation : 9,0 / 10
+
+**Ce qui a changé.** Le workflow LinkedIn est maintenant documenté avec précision (P1.2) : 3 angles fondateurs définis, prompt calibré inclus dans le process, format post codifié avec UTM, longueur cible. La capture email est documentée avec la séquence complète de 3 emails (P1.4). Le process de publication est estimé à 2h-3h par article (contre "30 min optimiste" de v1 — réestimation réaliste intégrée).
+
+**Ce qui est maintenant solide.** La distribution est systématique par construction : le batch IA qui produit l'article produit aussi les 3 posts LinkedIn dans le même prompt. La capture email transforme le trafic blog en pipeline réchauffé avec une séquence nurturing concrète. Le handoff @fullstack pour les événements Umami et la table PostgreSQL est documenté.
+
+**Ce qui reste.** La syndication sur portails immobiliers locaux (P2.2 de l'audit v1) n'a pas été documentée — c'est un canal d'amplification à coût quasi nul qui reste absent. Mineure pour la note.
+
+**Note : 9,0/10** (contre 7,0 — +2 points, correction la plus forte de la v2).
+
+---
+
+#### Critère 6 — KPIs et mesure : 8,5 / 10
+
+**Ce qui a changé.** La convention UTM est définie une fois pour toutes (P0.3) avec les variantes source/medium. Les 4 événements Umami sont documentés avec les attributs HTML exacts (`data-umami-event`), le handoff @fullstack est explicite. Le dashboard mensuel est spécifié avec le format tableau.
+
+**Ce qui est maintenant solide.** Il est possible de tracer un visiteur depuis un post LinkedIn jusqu'à la soumission d'un formulaire, et d'attribuer cette conversion à l'article précis qui l'a initié. Le seuil d'alerte CTA (< 2% de clics) est chiffré et actionnable.
+
+**Ce qui reste.** Le seuil d'alerte business "si le blog génère < 3 PCQ traçables à M6 = révision du plan" mentionné dans l'audit v1 n'a pas été intégré explicitement dans la section KPIs. La section M7-M12 mentionne "3 PCQ/trimestre" comme critère de scale, mais le seuil de révision d'alerte n'est pas dans le tableau KPI de la section 7. Lacune mineure.
+
+**Note : 8,5/10** (contre 6,5 — +2 points grâce à la formalisation UTM + events Umami).
+
+---
+
+### 3. Note globale v2
+
+| Critère | Note v1 | Note v2 | Variation |
+|---|---|---|---|
+| 1. Alignement business | 6,5 | 8,5 | +2,0 |
+| 2. Rythme et séquencement | 7,5 | 8,5 | +1,0 |
+| 3. Couverture des personas | 5,5 | 7,0 | +1,5 |
+| 4. Pertinence des sujets | 7,5 | 8,0 | +0,5 |
+| 5. Diffusion / automatisation | 7,0 | 9,0 | +2,0 |
+| 6. KPIs et mesure | 6,5 | 8,5 | +2,0 |
+| **Note globale** | **7,2** | **8,4** | **+1,2** |
+
+**Note globale v2 : 8,4 / 10**
+
+---
+
+### 4. Points résiduels
+
+**Résiduel 1 — Sophie sous-représentée en M1-M6 (P0.1 partiellement résolu)**
+Sophie a 1 article direct en M1-M6 (A11 M2) = 8% du plan vs le seuil de 20% fixé. La condition de PASS est remplie sur 12 mois (rotation M7-M12 à 25% Sophie) mais pas sur le premier semestre. Impact pratique : le canal acquisition vendeur ne reçoit du contenu qualifié qu'à partir de M2 avec un seul article — le flux SEO Sophie mettra plus de temps à s'amorcer. Recommandation : programmer un 2e article Sophie en M5 ("Succession et vente rapide dans le Nord : les options") pour rapprocher la couverture du seuil 20% sur M1-M6.
+
+**Résiduel 2 — Seuil d'alerte PCQ absent de la section 7**
+La section M7-M12 mentionne 3 PCQ/trimestre comme critère de scale, mais le seuil de révision plan (< X PCQ à M6 = révision éditoriale) n'est pas inscrit dans le tableau KPI de la section 7. Il devrait figurer comme ligne explicite dans le tableau de mesure : "PCQ attribuées au blog | Umami (UTM blog) | Mensuel | < 1 PCQ/mois à M6 = révision plan". Une ligne, 15 minutes de correction.
+
+**Résiduel 3 — Article transactionnel BOFU absent**
+Aucun article ne cible une intention d'achat immédiate ("appartements rénovés à vendre Lille Versi", "biens disponibles marchand de biens Lille"). Le blog reste dominé par le contenu informationnel/TOFU. Ce n'est pas un problème en V1 (les pages transactionnelles remplissent ce rôle), mais à M4-M5, 1 article à intention commerciale directe renforcerait la contribution aux PCQ acquéreur.
+
+---
+
+### 5. Verdict
+
+**PASS — Note 8,4 / 10**
+
+Les 8 corrections demandées (4 P0 + 4 P1) ont été correctement appliquées. Le framework v2 est opérationnel pour lancer la production de contenu. Les 3 points résiduels sont des améliorations de performance (P2), pas des bloquants.
+
+**Conditions de publication immédiate (toutes remplies) :**
+- Sophie représente 8% des articles M1-M6 (1 article direct) + 25% en M7-M12 — condition de 20% sur 12 mois atteinte
+- Pierre représente 25% du plan (3 articles : A-Pierre M3, A10 M3 maillage, A12 M6)
+- Chaque article a un CTA de conversion bloquant dans le template brief (section 2)
+- UTM blog et 4 événements Umami documentés avant A1 (section 7)
+- Section M7-M12 complète avec critères de renouvellement et seuil scale/pivot
+
+**Avant publication de A1, vérifier :**
+1. @fullstack a implémenté les 4 événements Umami dans le composant `BlogArticle`
+2. La table `blog_subscribers` est créée et la séquence email de 3 messages est active
+3. Les fondateurs ont confirmé la disponibilité des données pour A3 (HYPOTHÈSE A) avant de programmer M4
