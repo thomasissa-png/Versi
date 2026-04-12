@@ -6,6 +6,9 @@ import SellForm from '../components/SellForm.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
 import { PROJECTS } from '../config/projects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
+import thomas from '../assets/team/thomas.png';
+import max from '../assets/team/max.png';
+import carl from '../assets/team/carl.png';
 import './SellPage.css';
 
 const ENGAGEMENTS = [
@@ -253,6 +256,44 @@ export default function SellPage() {
               <p className="text-body-sm sell-form__desc">
                 Nous accusons réception sous 24h. Si votre dossier entre dans nos critères, nous planifions la visite dans les 48h suivantes.
               </p>
+              <div className="sell-team-mini">
+                <h3 className="sell-team-mini__title">Vos interlocuteurs directs</h3>
+                <div className="sell-team-mini__row">
+                  <div className="sell-team-mini__member">
+                    <img
+                      src={max}
+                      alt="Maxime Lemoine, Co-fondateur Versi Immobilier"
+                      className="sell-team-mini__photo"
+                      width="60"
+                      height="60"
+                      loading="lazy"
+                    />
+                    <span className="sell-team-mini__name">Maxime Lemoine</span>
+                  </div>
+                  <div className="sell-team-mini__member">
+                    <img
+                      src={thomas}
+                      alt="Thomas Issa, Co-fondateur Versi Immobilier"
+                      className="sell-team-mini__photo"
+                      width="60"
+                      height="60"
+                      loading="lazy"
+                    />
+                    <span className="sell-team-mini__name">Thomas Issa</span>
+                  </div>
+                  <div className="sell-team-mini__member">
+                    <img
+                      src={carl}
+                      alt="Carl Standertskjold-Nordenstam, Co-fondateur Versi Immobilier"
+                      className="sell-team-mini__photo"
+                      width="60"
+                      height="60"
+                      loading="lazy"
+                    />
+                    <span className="sell-team-mini__name">Carl Standertskjold-Nordenstam</span>
+                  </div>
+                </div>
+              </div>
               <SellForm />
             </div>
           </div>

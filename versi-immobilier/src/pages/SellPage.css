@@ -285,6 +285,53 @@
   color: var(--color-text-muted);
 }
 
+/* --- Mini-bloc équipe (avant formulaire) --- */
+.sell-team-mini {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sell-team-mini__title {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-lg);
+}
+
+.sell-team-mini__row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+}
+
+.sell-team-mini__member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.sell-team-mini__photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sell-team-mini__name {
+  font-size: 13px;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  text-align: center;
+  max-width: 100px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 767px) {
   .sell-hero__title {
