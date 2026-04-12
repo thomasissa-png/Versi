@@ -277,6 +277,207 @@ app.post('/api/sell', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/admin/login
+// ---------------------------------------------------------------------------
+app.post('/api/admin/login', (req, res) => {
+  if (!ADMIN_PASSWORD) {
+    return res.status(503).json({ ok: false, error: 'Authentification admin non configurée.' });
+  }
+
+  const { password } = req.body;
+  if (!password || String(password) !== ADMIN_PASSWORD) {
+    return res.status(401).json({ ok: false, error: 'Mot de passe incorrect.' });
+  }
+
+  const token = createAdminSession();
+  res.setHeader('Set-Cookie', `${ADMIN_COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(ADMIN_SESSION_TTL_MS / 1000)}`);
+  return res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/check — vérifie si la session admin est active
+// ---------------------------------------------------------------------------
+app.get('/api/admin/check', (req, res) => {
+  const cookies = parseCookies(req.headers.cookie);
+  const token = cookies[ADMIN_COOKIE_NAME];
+  if (isValidAdminSession(token)) {
+    return res.json({ ok: true, authenticated: true });
+  }
+  return res.json({ ok: true, authenticated: false });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/generate-listing — Génération d'annonce IA
+// ---------------------------------------------------------------------------
+app.post('/api/admin/generate-listing', requireAdmin, async (req, res) => {
+  if (!anthropic) {
+    return res.status(503).json({
+      ok: false,
+      error: 'Service de génération IA indisponible. Vérifiez la configuration ANTHROPIC_API_KEY.',
+    });
+  }
+
+  const { adresse, surface, nbPieces, type, prix, etage, dpe, etat } = req.body;
+
+  if (!adresse || !String(adresse).trim()) {
+    return res.status(400).json({ ok: false, error: 'L\'adresse est obligatoire pour générer une annonce.' });
+  }
+
+  // -------------------------------------------------------------------------
+  // 1. Géocodage via API Adresse gouv.fr — normaliser adresse, extraire ville/CP
+  // -------------------------------------------------------------------------
+  let city = '';
+  let postcode = '';
+  let normalizedAddress = String(adresse).trim();
+
+  try {
+    const geoUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(normalizedAddress)}&limit=1`;
+    const geoController = new AbortController();
+    const geoTimeout = setTimeout(() => geoController.abort(), 5000);
+
+    const geoRes = await fetch(geoUrl, { signal: geoController.signal });
+    clearTimeout(geoTimeout);
+
+    if (geoRes.ok) {
+      const geoData = await geoRes.json();
+      if (geoData.features && geoData.features.length > 0) {
+        const props = geoData.features[0].properties;
+        city = props.city || '';
+        postcode = props.postcode || '';
+        if (props.label) {
+          normalizedAddress = props.label;
+        }
+      }
+    }
+  } catch (geoErr) {
+    // Le géocodage est best-effort — on continue sans
+    console.warn('[WARN] Géocodage échoué :', geoErr.message);
+  }
+
+  // -------------------------------------------------------------------------
+  // 2. Construire le prompt et appeler Claude
+  // -------------------------------------------------------------------------
+  const systemPrompt = `Tu es un rédacteur d'annonces immobilières expert du marché français. Tu rédiges des descriptions commerciales pour Versi Immobilier, marchand de biens basé à Lille et Hauts-de-France. Ton : professionnel, factuel, sobre — pas d'exagération. Prix toujours net vendeur.
+
+Ton style : précis, factuel, sobre. Aucun superlatif sans preuve. Chaque affirmation est vérifiable.
+
+Structure de sortie (respecter cet ordre) :
+1. ACCROCHE (2-3 phrases) : projeter le lecteur dans la vie possible, ancrage local concret, ambiance du quartier
+2. DESCRIPTION DU BIEN (3-4 phrases) : surface, distribution des pièces, état général, orientation, étage, luminosité
+3. LE QUARTIER (3-4 phrases) : transports à proximité avec lignes et temps à pied, commerces nommés, écoles si pertinent. Déduis ces informations à partir de l'adresse — tu connais les quartiers français.
+4. POINTS FORTS (2-3 phrases) : résumé des atouts principaux, potentiel d'aménagement si applicable
+5. POTENTIEL (optionnel, 2-3 phrases) : si le bien est brut, à rénover ou a une configuration optimisable, décrire le potentiel factuel.
+
+Mise en forme OBLIGATOIRE :
+- Sépare chaque section par UNE ligne vide (double retour à la ligne).
+- NE PAS écrire les numéros de section ni les titres — enchaîner directement les paragraphes.
+- Le texte final doit contenir exactement 3 à 5 paragraphes séparés par des lignes vides.
+
+Règles :
+- NE JAMAIS écrire "bel appartement", "charmant", "magnifique", "spacieux" sans donnée factuelle
+- NE JAMAIS écrire "proche de toutes commodités" — citer les transports et commerces spécifiques
+- Si une donnée n'est pas fournie, la déduire intelligemment de l'adresse ou l'omettre — ne PAS écrire "[DONNÉE MANQUANTE]"
+- Si le DPE n'est pas fourni, conclure par : "Le diagnostic de performance énergétique (DPE) sera communiqué sur demande."
+
+Longueur cible : 200-350 mots. Réponds uniquement avec la description, sans guillemets ni préfixe ni numérotation.`;
+
+  const bienDetails = [];
+  bienDetails.push(`Adresse : ${normalizedAddress}`);
+  if (surface) bienDetails.push(`Surface : ${surface} m²`);
+  if (nbPieces) bienDetails.push(`Nombre de pièces : ${nbPieces}`);
+  if (type) bienDetails.push(`Type de bien : ${type}`);
+  if (prix) bienDetails.push(`Prix : ${prix} € net vendeur`);
+  if (etage) bienDetails.push(`Étage : ${etage}`);
+  if (dpe) bienDetails.push(`DPE : ${dpe}`);
+  if (etat) bienDetails.push(`État : ${etat}`);
+
+  const userPrompt = `Génère l'annonce immobilière pour ce bien :\n\n${bienDetails.join('\n')}`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    clearTimeout(timeout);
+
+    const description = response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n');
+
+    // Générer le titre : "Type — Surface m² — Ville"
+    const typeLabel = type || 'Bien';
+    const surfaceLabel = surface ? `${surface} m²` : '';
+    const locationLabel = city || normalizedAddress.split(',').pop()?.trim() || '';
+    const titleParts = [typeLabel, surfaceLabel, locationLabel].filter(Boolean);
+    const title = titleParts.join(' — ');
+
+    // Normaliser le type de bien
+    const typeNormalized = normalizePropertyType(type);
+
+    return res.json({
+      ok: true,
+      title,
+      description,
+      city,
+      postcode,
+      type_normalized: typeNormalized,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.error('[ERROR] Génération annonce — timeout 30s dépassé');
+      return res.status(504).json({
+        ok: false,
+        error: 'La génération a pris trop de temps. Réessayez dans quelques instants.',
+      });
+    }
+    console.error('[ERROR] Génération annonce :', err.message);
+    return res.status(500).json({
+      ok: false,
+      error: 'Erreur lors de la génération de l\'annonce. Réessayez.',
+    });
+  }
+});
+
+/**
+ * Normalise le type de bien vers une catégorie standard.
+ */
+function normalizePropertyType(raw) {
+  if (!raw) return '';
+  const lower = String(raw).toLowerCase().trim();
+  const mapping = {
+    appartement: 'Appartement',
+    appart: 'Appartement',
+    t1: 'Appartement',
+    t2: 'Appartement',
+    t3: 'Appartement',
+    t4: 'Appartement',
+    t5: 'Appartement',
+    studio: 'Appartement',
+    maison: 'Maison',
+    pavillon: 'Maison',
+    villa: 'Maison',
+    local: 'Local professionnel',
+    'local commercial': 'Local professionnel',
+    'local professionnel': 'Local professionnel',
+    commerce: 'Local professionnel',
+    bureau: 'Local professionnel',
+    immeuble: 'Immeuble',
+    'immeuble de rapport': 'Immeuble',
+    terrain: 'Terrain',
+    parking: 'Parking',
+    garage: 'Parking',
+  };
+  return mapping[lower] || String(raw).trim();
+}
+
+// ---------------------------------------------------------------------------
 // SPA fallback
 // ---------------------------------------------------------------------------
 app.get('/{*splat}', (req, res) => {

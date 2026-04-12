@@ -10,6 +10,7 @@ import InvestirPage from './pages/InvestirPage.jsx';
 import ApprochePage from './pages/ApprochePage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import MentionsLegales from './pages/MentionsLegales.jsx';
+import AdminPage from './admin/AdminPage.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 function App() {
@@ -27,6 +28,8 @@ function App() {
       <Route path="/notre-approche" element={<ApprochePage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/mentions-legales" element={<MentionsLegales />} />
+      <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin/biens" element={<AdminPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
     </>

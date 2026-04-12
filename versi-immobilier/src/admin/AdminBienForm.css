@@ -1,0 +1,211 @@
+/* ============================================
+   AdminBienForm — Formulaire back-office
+   ============================================ */
+
+.admin-bien-form {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-xl, 40px) var(--spacing-md, 24px);
+}
+
+.admin-bien-form__title {
+  font-family: var(--font-family);
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg, 32px);
+}
+
+/* --- Fieldset / Legend --- */
+
+.admin-bien-form__fieldset {
+  border: 1px solid var(--color-border, #D9D4CE);
+  border-radius: var(--card-radius, 8px);
+  padding: var(--spacing-md, 24px);
+  margin-bottom: var(--spacing-md, 24px);
+}
+
+.admin-bien-form__legend {
+  font-family: var(--font-family);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-muted, #6B6560);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 8px;
+}
+
+/* --- Grid --- */
+
+.admin-bien-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm, 16px);
+}
+
+.admin-bien-form__field--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .admin-bien-form__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Fields --- */
+
+.admin-bien-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.admin-bien-form__label {
+  font-family: var(--font-family);
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-primary);
+}
+
+.admin-bien-form__required {
+  color: var(--color-error, #DC3545);
+}
+
+.admin-bien-form__input,
+.admin-bien-form__select,
+.admin-bien-form__textarea {
+  font-family: var(--font-family);
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary, #fff);
+  border: 1px solid var(--color-border, #D9D4CE);
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.admin-bien-form__input:focus,
+.admin-bien-form__select:focus,
+.admin-bien-form__textarea:focus {
+  border-color: var(--color-border-focus, #C8B9A6);
+  box-shadow: 0 0 0 3px rgba(200, 185, 166, 0.2);
+}
+
+.admin-bien-form__textarea {
+  resize: vertical;
+  min-height: 200px;
+  line-height: 1.6;
+}
+
+.admin-bien-form__select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B6560' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* --- Generate section --- */
+
+.admin-bien-form__generate-section {
+  margin-bottom: var(--spacing-md, 24px);
+  text-align: center;
+}
+
+.admin-bien-form__generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-family);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-bg-secondary, #fff);
+  background: var(--color-mineral-900, #1E2A23);
+  border: none;
+  border-radius: 6px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-bien-form__generate-btn:hover:not(:disabled) {
+  background: var(--color-charcoal-800, #1A1A1A);
+}
+
+.admin-bien-form__generate-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus, #C8B9A6);
+  outline-offset: 2px;
+}
+
+.admin-bien-form__generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-bien-form__generate-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6B6560);
+  margin-top: 8px;
+}
+
+.admin-bien-form__generate-error {
+  font-size: 0.8125rem;
+  color: var(--color-error, #DC3545);
+  margin-top: 8px;
+}
+
+.admin-bien-form__generate-success {
+  font-size: 0.8125rem;
+  color: var(--color-success, #28A745);
+  margin-top: 8px;
+}
+
+/* --- Spinner --- */
+
+.admin-bien-form__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: admin-spin 0.6s linear infinite;
+}
+
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Actions --- */
+
+.admin-bien-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--spacing-sm, 16px);
+}
+
+.admin-bien-form__save-btn {
+  font-family: var(--font-family);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-bg-secondary, #fff);
+  background: var(--color-accent, #C8B9A6);
+  border: none;
+  border-radius: 6px;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.admin-bien-form__save-btn:hover {
+  background: var(--color-stone-600, #6B6560);
+}
+
+.admin-bien-form__save-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus, #C8B9A6);
+  outline-offset: 2px;
+}
