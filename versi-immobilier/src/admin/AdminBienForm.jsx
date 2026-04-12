@@ -93,7 +93,6 @@ export default function AdminBienForm() {
     e.preventDefault();
     // Sauvegarde du bien — à connecter au backend quand l'endpoint CRUD sera prêt
     console.log('Bien à sauvegarder :', form);
-    alert('Sauvegarde du bien : fonctionnalité à venir.');
   }, [form]);
 
   return (
@@ -251,6 +250,17 @@ export default function AdminBienForm() {
         <p className="admin-bien-form__generate-hint">
           Renseignez au minimum l'adresse. Plus vous remplissez de champs, meilleure sera l'annonce générée.
         </p>
+        {generateSuccess && (
+          <button
+            type="button"
+            className="admin-bien-form__regenerate-btn"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            aria-busy={generating ? 'true' : undefined}
+          >
+            {generating ? 'Régénération…' : 'Régénérer'}
+          </button>
+        )}
         {generateError && (
           <p className="admin-bien-form__generate-error" role="alert">
             {generateError}
@@ -259,6 +269,11 @@ export default function AdminBienForm() {
         {generateSuccess && (
           <p className="admin-bien-form__generate-success" role="status">
             Annonce générée avec succès. Vous pouvez la modifier avant de sauvegarder.
+          </p>
+        )}
+        {generateSuccess && (
+          <p className="admin-bien-form__ia-warning" role="note">
+            Les informations de quartier sont générées par IA — vérifiez-les avant publication.
           </p>
         )}
       </div>
@@ -329,7 +344,12 @@ export default function AdminBienForm() {
 
       {/* --- Sauvegarde --- */}
       <div className="admin-bien-form__actions">
-        <button type="submit" className="admin-bien-form__save-btn">
+        <button
+          type="button"
+          className="admin-bien-form__save-btn admin-bien-form__save-btn--disabled"
+          disabled
+          title="Fonctionnalité bientôt disponible"
+        >
           Enregistrer le bien
         </button>
       </div>

@@ -164,6 +164,49 @@
   margin-top: 8px;
 }
 
+/* --- Regenerate button --- */
+
+.admin-bien-form__regenerate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-family);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-mineral-900, #1E2A23);
+  background: transparent;
+  border: 1px solid var(--color-mineral-900, #1E2A23);
+  border-radius: 6px;
+  padding: 8px 20px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.admin-bien-form__regenerate-btn:hover:not(:disabled) {
+  background: var(--color-mineral-900, #1E2A23);
+  color: var(--color-bg-secondary, #fff);
+}
+
+.admin-bien-form__regenerate-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus, #C8B9A6);
+  outline-offset: 2px;
+}
+
+.admin-bien-form__regenerate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- IA warning --- */
+
+.admin-bien-form__ia-warning {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6B6560);
+  margin-top: 6px;
+  font-style: italic;
+}
+
 /* --- Spinner --- */
 
 .admin-bien-form__spinner {
@@ -208,4 +251,15 @@
 .admin-bien-form__save-btn:focus-visible {
   outline: 2px solid var(--color-border-focus, #C8B9A6);
   outline-offset: 2px;
+}
+
+.admin-bien-form__save-btn--disabled {
+  background: var(--color-border, #D9D4CE);
+  color: var(--color-text-muted, #6B6560);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-bien-form__save-btn--disabled:hover {
+  background: var(--color-border, #D9D4CE);
 }
