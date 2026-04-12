@@ -22,7 +22,17 @@ export async function adminFetch(url, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    // La réponse n'est pas du JSON valide (ex : page HTML d'erreur)
+    throw new Error(
+      res.ok
+        ? 'Réponse inattendue du serveur (format non-JSON).'
+        : `Erreur ${res.status} — le serveur n'a pas renvoyé de réponse exploitable.`,
+    );
+  }
 
   if (!res.ok) {
     const message = data?.error || `Erreur ${res.status}`;

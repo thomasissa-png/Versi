@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { adminCheckSession } from './adminFetch.js';
 import AdminLoginForm from './AdminLoginForm.jsx';
 import AdminBienForm from './AdminBienForm.jsx';
+import Nav from '../components/Nav.jsx';
+import Footer from '../components/Footer.jsx';
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -33,8 +35,12 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ background: 'var(--color-bg-primary, #F7F5F2)', minHeight: '100vh' }}>
-      <AdminBienForm />
+    <div style={{ background: 'var(--color-bg-primary, #F7F5F2)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Nav />
+      <main style={{ flex: '1 1 auto' }}>
+        <AdminBienForm />
+      </main>
+      <Footer />
     </div>
   );
 }

@@ -357,29 +357,39 @@ app.post('/api/admin/generate-listing', requireAdmin, async (req, res) => {
   // -------------------------------------------------------------------------
   // 2. Construire le prompt et appeler Claude
   // -------------------------------------------------------------------------
-  const systemPrompt = `Tu es un rédacteur d'annonces immobilières expert du marché français. Tu rédiges des descriptions commerciales pour Versi Immobilier, marchand de biens basé à Lille et Hauts-de-France. Ton : professionnel, factuel, sobre — pas d'exagération. Prix toujours net vendeur.
+  const systemPrompt = `Tu es le rédacteur d'annonces de Versi Immobilier, marchand de biens professionnel basé à Lille, opérant dans les Hauts-de-France (Lille, Roubaix, Tourcoing, Valenciennes) et en Île-de-France.
 
-Ton style : précis, factuel, sobre. Aucun superlatif sans preuve. Chaque affirmation est vérifiable.
+IDENTITÉ : Tu rédiges pour un marchand de biens, pas une agence immobilière. Versi achète, transforme et revend ses propres biens. Chaque annonce doit refléter cette maîtrise opérationnelle.
 
-Structure de sortie (respecter cet ordre) :
-1. ACCROCHE (2-3 phrases) : projeter le lecteur dans la vie possible, ancrage local concret, ambiance du quartier
-2. DESCRIPTION DU BIEN (3-4 phrases) : surface, distribution des pièces, état général, orientation, étage, luminosité
-3. LE QUARTIER (3-4 phrases) : transports à proximité avec lignes et temps à pied, commerces nommés, écoles si pertinent. Déduis ces informations à partir de l'adresse — tu connais les quartiers français.
-4. POINTS FORTS (2-3 phrases) : résumé des atouts principaux, potentiel d'aménagement si applicable
-5. POTENTIEL (optionnel, 2-3 phrases) : si le bien est brut, à rénover ou a une configuration optimisable, décrire le potentiel factuel.
+TON : Factuel, sobre, confiant. Vouvoiement systématique. Zéro projection émotionnelle. Zéro superlatif sans donnée vérifiable. Chaque phrase doit pouvoir être prouvée par une visite.
 
-Mise en forme OBLIGATOIRE :
-- Sépare chaque section par UNE ligne vide (double retour à la ligne).
-- NE PAS écrire les numéros de section ni les titres — enchaîner directement les paragraphes.
-- Le texte final doit contenir exactement 3 à 5 paragraphes séparés par des lignes vides.
+MOTS INTERDITS : "bel appartement", "belle maison", "charmant", "magnifique", "spacieux", "lumineux" (sauf si orientation/fenêtres documentées), "proche de toutes commodités", "idéalement situé", "rare", "exceptionnel", "coup de coeur", "à saisir", "n'hésitez pas", "découvrez", "clé en main", "expertise", "solutions".
 
-Règles :
-- NE JAMAIS écrire "bel appartement", "charmant", "magnifique", "spacieux" sans donnée factuelle
-- NE JAMAIS écrire "proche de toutes commodités" — citer les transports et commerces spécifiques
-- Si une donnée n'est pas fournie, la déduire intelligemment de l'adresse ou l'omettre — ne PAS écrire "[DONNÉE MANQUANTE]"
-- Si le DPE n'est pas fourni, conclure par : "Le diagnostic de performance énergétique (DPE) sera communiqué sur demande."
+FORMAT DE SORTIE :
+- PREMIÈRE LIGNE : un titre d'annonce de max 80 caractères (type + surface + quartier ou ville + état si pertinent + prix net vendeur si fourni). Exemple : "T3 65 m² rénové — Lille-Fives — 185 000 € net vendeur"
+- DEUXIÈME LIGNE : vide
+- ENSUITE : la description en 3 à 5 paragraphes séparés par des lignes vides, SANS titres de section, SANS numéros.
 
-Longueur cible : 200-350 mots. Réponds uniquement avec la description, sans guillemets ni préfixe ni numérotation.`;
+STRUCTURE DE LA DESCRIPTION (respecter cet ordre) :
+
+1. ACCROCHE (2-3 phrases) : type de bien + adresse précise + configuration principale. Ancrage factuel immédiat — pas de narration, pas de projection.
+
+2. DESCRIPTION (3-4 phrases) : surface exacte, distribution des pièces, état du bien, étage si applicable, orientation si connue. Si le bien a été rénové par Versi, le mentionner factuellement.
+
+3. QUARTIER (3-4 phrases) : transports (nom de la station + ligne + temps à pied estimé), commerces nommés si connus, écoles si pertinent. ATTENTION : ne cite un transport ou commerce QUE si tu es raisonnablement certain qu'il existe à cette adresse. En cas de doute, reste au niveau du quartier/secteur sans nommer d'établissement précis. Mieux vaut omettre qu'inventer.
+
+4. POINTS FORTS (2-3 phrases) : résumé des atouts vérifiables. Si le prix est fourni et la surface connue, mentionner le prix au m².
+
+5. POTENTIEL (conditionnel) : inclure UNIQUEMENT si l'état du bien est "à rénover", "brut", "à rafraîchir" ou si le type est "immeuble". Si le bien est en bon état ou rénové, OMETTRE cette section.
+
+LONGUEUR : adapter au type de bien.
+- Studio/T1/T2 : 150-200 mots
+- T3/T4/maison : 200-300 mots
+- Immeuble/local commercial : 300-400 mots
+
+Si le DPE n'est pas fourni, conclure par : "Diagnostic de performance énergétique communiqué sur demande."
+
+Réponds UNIQUEMENT avec le titre (première ligne) puis la description. Pas de guillemets, pas de préfixe, pas de commentaire.`;
 
   const bienDetails = [];
   bienDetails.push(`Adresse : ${normalizedAddress}`);
@@ -395,28 +405,45 @@ Longueur cible : 200-350 mots. Réponds uniquement avec la description, sans gui
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const abortTimeout = setTimeout(() => controller.abort(), 30000);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    const response = await anthropic.messages.create(
+      {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      },
+      { signal: controller.signal },
+    );
 
-    clearTimeout(timeout);
+    clearTimeout(abortTimeout);
 
-    const description = response.content
+    const rawText = response.content
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('\n');
 
-    // Générer le titre : "Type — Surface m² — Ville"
-    const typeLabel = type || 'Bien';
-    const surfaceLabel = surface ? `${surface} m²` : '';
-    const locationLabel = city || normalizedAddress.split(',').pop()?.trim() || '';
-    const titleParts = [typeLabel, surfaceLabel, locationLabel].filter(Boolean);
-    const title = titleParts.join(' — ');
+    // Parser le titre (première ligne non-vide) et la description (le reste)
+    const lines = rawText.split('\n');
+    let title = '';
+    let descriptionStartIndex = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.length > 0) {
+        title = trimmed;
+        descriptionStartIndex = i + 1;
+        break;
+      }
+    }
+
+    // Sauter les lignes vides entre le titre et la description
+    while (descriptionStartIndex < lines.length && lines[descriptionStartIndex].trim() === '') {
+      descriptionStartIndex++;
+    }
+
+    const description = lines.slice(descriptionStartIndex).join('\n').trim();
 
     // Normaliser le type de bien
     const typeNormalized = normalizePropertyType(type);
