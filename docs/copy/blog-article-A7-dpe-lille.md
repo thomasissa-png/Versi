@@ -6,7 +6,7 @@ author: "Thomas Issa"
 pillar: "P3 — Guide acquéreur Lille"
 excerpt: "Un DPE D ou E ne signifie pas que l'appartement est à éviter. Ce que ce classement mesure réellement, ce qu'il change pour vos charges et votre revente, et pourquoi un bien rénové par un professionnel change la donne."
 seoTitle: "DPE D ou E appartement Lille : ce que ça change vraiment"
-seoDescription: "DPE D ou E à Lille : charges, confort, interdictions de location, valeur revente. Ce qu'il faut vérifier avant d'acheter."
+seoDescription: "DPE D ou E après rénovation à Lille : charges, loi Climat, valeur revente. Ce qu'il faut vérifier avant d'acheter un appartement rénové chez un professionnel."
 keywords: ["DPE appartement rénové Lille", "DPE D E appartement Lille", "DPE appartement Lille achat", "interdiction location DPE loi Climat", "DPE bien rénové marchand de biens"]
 ---
 
@@ -117,7 +117,7 @@ Confondre D et G, c'est surévaluer le problème.
 
 Trois points ont un impact direct sur votre décision d'achat.
 
-**Les charges de chauffage.** Un logement classé D coûte plus cher à chauffer qu'un A ou B, moins qu'un F ou G. À Lille, où les hivers sont rigoureux, la différence de facture entre un D isolé et un F non-rénové peut représenter plusieurs centaines d'euros par an pour un T3. Ce n'est pas négligeable — mais c'est un écart qui s'intègre dans le calcul d'achat si le prix du bien en tient compte.
+**Les charges de chauffage.** Un logement classé D coûte plus cher à chauffer qu'un A ou B, moins qu'un F ou G. À Lille, où les hivers sont rigoureux, [HYPOTHÈSE : l'écart de charges annuel entre un D post-rénovation et un F non-rénové pour un T3 de 65 m² se situe entre 500 € et 900 € selon les relevés de consommation moyens — à confirmer selon le système de chauffage du bien considéré]. Ce n'est pas négligeable — mais c'est un écart qui s'intègre dans le calcul d'achat si le prix du bien en tient compte.
 
 **Le confort thermique.** L'étiquette énergétique est aussi un indicateur de confort. Un E sans isolation des murs, c'est des parois froides en hiver, parfois de la condensation sur les vitres. Un D avec menuiseries remplacées, ventilation en état et isolation des combles se vit différemment — même étiquette, conditions très différentes selon l'état réel des matériaux.
 
@@ -125,9 +125,9 @@ Trois points ont un impact direct sur votre décision d'achat.
 
 ---
 
-## Ce qui change quand le bien a été rénové par un professionnel
+## DPE appartement rénové : ce que révèle le diagnostic d'un bien professionnel
 
-Un DPE présenté lors d'une vente par un marchand de biens n'est pas le DPE d'origine du bâtiment. C'est le DPE post-travaux, établi une fois la rénovation menée.
+Le DPE d'un appartement rénové présenté lors d'une vente par un marchand de biens n'est pas le DPE d'origine du bâtiment. C'est le DPE post-travaux, établi une fois la rénovation menée.
 
 Versi Immobilier intervient sur les postes qui pèsent le plus dans l'étiquette énergétique : isolation des combles et des murs lorsque c'est techniquement possible, remplacement des menuiseries par du double ou triple vitrage, mise en conformité ou remplacement de la ventilation. L'ensemble des travaux est documenté — corps d'état, artisans intervenants, dates, surfaces traitées. Ce dossier est transmissible à l'acquéreur avant la signature.
 
@@ -149,9 +149,9 @@ Le principe : les logements les plus énergivores sont progressivement interdits
 
 Ces interdictions concernent la mise en location — pas la vente ni l'occupation par le propriétaire. Un acquéreur qui achète pour habiter n'est soumis à aucune obligation légale immédiate liée au DPE.
 
-Pour un investisseur achetant un bien classé E aujourd'hui, l'horizon 2034 laisse une marge pour planifier des travaux. Un bien en D post-rénovation n'est pas concerné par le calendrier actuel.
+Pour un investisseur achetant un bien classé E aujourd'hui, l'horizon 2034 laisse une marge pour planifier des travaux.
 
-Les F et G décotent fortement à l'achat, ce qui peut sembler attractif. Mais l'impossibilité de louer après 2025 ou 2028 transforme l'actif en bien à usage personnel exclusif ou à rénover — avec le coût et les délais que ça suppose. Un D ou E documenté post-travaux est une position très différente.
+Les F et G décotent fortement à l'achat, ce qui peut sembler attractif. Mais l'impossibilité de louer après 2025 ou 2028 transforme l'actif en bien à usage personnel exclusif ou à rénover — avec le coût et les délais que ça suppose.
 
 ---
 
@@ -167,11 +167,7 @@ Avant de signer quoi que ce soit, trois éléments dans le DPE méritent votre a
 
 Pour une liste complète des points à aborder avant de signer, [les questions à poser à un marchand de biens avant d'acheter](/blog/questions-marchand-de-biens-acheteur) vous donne une trame structurée.
 
----
-
 Si vous cherchez un appartement rénové à Lille dont le DPE reflète les travaux réellement réalisés, consultez directement [nos biens disponibles](/nos-biens).
-
----
 
 *Thomas Issa — Co-fondateur, Versi Immobilier*
 

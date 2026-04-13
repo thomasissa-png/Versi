@@ -56,7 +56,7 @@ Cet article fait le tour des options disponibles pour un primo-accédant qui cib
 
 ---
 
-## Ce que coûte réellement un premier achat à Lille en 2026
+## Combien coûte réellement un premier achat à Lille en 2026 ?
 
 Le prix affiché n'est pas le coût total. Pour un T3 à 185 000 € dans l'ancien à Lille ou dans sa périphérie, voici les postes à anticiper.
 
@@ -82,23 +82,27 @@ Concrètement, pour un bien acheté 145 000 € avec 50 000 € de travaux (coû
 
 **Ce que couvre le PTZ.** Il permet de financer jusqu'à 40 % du coût de l'opération (selon zone et composition du ménage), sans intérêts, avec un différé de remboursement pouvant aller jusqu'à 15 ans selon les revenus.
 
-**Un cas concret pour Kévin.** Pour un T3 acheté à un marchand de biens qui a conduit des travaux importants — comme [un appartement rénové par Versi Immobilier](/blog/appartement-renove-marchand-de-biens-garanties) —, la documentation des travaux est disponible. Cette traçabilité facilite la justification du seuil de travaux auprès de la banque.
+**Un cas concret pour Kévin.** Pour un T3 acheté à un marchand de biens qui a conduit des travaux importants — comme [un appartement rénové par Versi Immobilier](/blog/appartement-renove-marchand-de-biens-garanties) —, la documentation des travaux est disponible. Cette traçabilité facilite la justification du seuil de travaux auprès de la banque. Avant de signer, [les questions à poser à un marchand de biens](/blog/questions-marchand-de-biens-acheteur) vous donnent une trame pour vérifier que ce dossier est bien en place.
 
 **Ce que le PTZ ne couvre pas.** Les frais de notaire ne sont pas inclus dans l'assiette du PTZ. Il ne se substitue pas à un apport : il complète un crédit principal.
 
 ---
 
-## Acheter sans apport : conditions et réalité en 2026
+## Peut-on acheter sans apport à Lille en 2026 ?
 
 Acheter sans apport est possible. C'est plus difficile qu'avant 2022, et les conditions sont précises.
 
-**Le profil attendu par les banques.** Un dossier sans apport passe généralement lorsque trois conditions sont réunies : un CDI (ou statut fonctionnaire), un taux d'endettement inférieur à 35 % revenus nets inclus l'assurance emprunteur, et une épargne résiduelle après achat (épargne de précaution, 3 à 6 mois de mensualités).
+**Le profil attendu par les banques.** Un dossier sans apport passe généralement lorsque trois conditions sont réunies : un CDI (ou statut fonctionnaire), un taux d'endettement inférieur à 35 % revenus nets inclus l'assurance emprunteur, et une épargne résiduelle après achat (épargne de précaution, 3 à 6 mois de mensualités). La qualité du bien joue aussi : un bien acheté chez un marchand de biens comme Versi Immobilier vient avec un dossier de travaux complet — corps d'état, artisans, surfaces, garanties. Ce niveau de documentation réduit le risque perçu par la banque et renforce un dossier sans apport.
 
 **Les taux en 2026.** Les taux fixes pour un primo-accédant sur 25 ans se situent, à la date de rédaction, entre 3,20 % et 3,60 % selon le profil et l'établissement. Ces données évoluent : les comparer via un courtier reste la méthode la plus fiable.
 
-**La durée maximale.** Le HCSF (Haut Conseil de Stabilité Financière) fixe à 25 ans la durée maximale des crédits immobiliers, avec une dérogation à 27 ans pour les achats dans le neuf ou avec travaux importants. Dans le cadre d'un achat chez un marchand de biens avec travaux justifiés, la dérogation à 27 ans peut s'appliquer — ce qui réduit la mensualité.
+**La durée maximale.** Le HCSF (Haut Conseil de Stabilité Financière, l'organisme qui encadre les conditions d'octroi de crédit immobilier en France) fixe à 25 ans la durée maximale des crédits immobiliers, avec une dérogation à 27 ans pour les achats dans le neuf ou avec travaux importants. Dans le cadre d'un achat chez un marchand de biens avec travaux justifiés, la dérogation à 27 ans peut s'appliquer — ce qui réduit la mensualité.
 
 **Ce que le sans-apport implique vraiment.** Emprunter 100 % du prix de vente et les frais de notaire alourdit la mensualité et peut dégrader le taux obtenu. Sur 185 000 € à 3,40 % sur 25 ans, la mensualité hors assurance est d'environ 913 €. Si les frais de notaire (13 000 €) sont aussi financés, la mensualité monte à environ 977 €.
+
+**Le rôle de la documentation travaux dans un dossier sans apport.** Acheter auprès d'un marchand de biens comme Versi Immobilier apporte un avantage concret dans ce contexte : la totalité des travaux réalisés est documentée — corps d'état, artisans, surfaces, dates. Un dossier sans mauvaise surprise technique réduit le risque perçu par la banque et peut compenser partiellement l'absence d'apport. Il n'existe pas de passoire thermique cachée ni de travaux à chiffrer a posteriori : le bien est livré dans l'état décrit.
+
+Pour évaluer ce que vous pouvez réellement emprunter dans votre situation, l'accompagnement d'un courtier reste la démarche la plus efficace — il compare les établissements et simule plusieurs scénarios selon votre profil.
 
 ---
 
@@ -108,7 +112,7 @@ Plusieurs dispositifs peuvent compléter votre financement, au-delà du PTZ et d
 
 **Action Logement (ex-1 % logement).** Si votre employeur verse une cotisation à Action Logement (entreprises de plus de 10 salariés du secteur privé), vous pouvez prétendre au prêt accession Action Logement. [HYPOTHÈSE : en 2026, ce prêt porte sur un montant pouvant aller jusqu'à 40 000 € à un taux préférentiel (autour de 1,5 %), sous conditions de ressources. Les plafonds sont révisés annuellement — vérifier sur actionlogement.fr avant de constituer votre dossier.]
 
-**La garantie Visale.** Également proposée par Action Logement, la garantie Visale se positionne comme une caution gratuite pour les jeunes actifs (moins de 36 ans au moment de la demande). Elle ne finance pas votre achat, mais peut remplacer la caution bancaire et réduire les frais de garantie.
+**La garantie Visale.** Également proposée par Action Logement, la garantie Visale se positionne comme une caution gratuite pour les jeunes actifs (moins de 36 ans au moment de la demande). Elle ne finance pas votre achat, mais remplace la caution bancaire — ce qui réduit les frais de garantie de 1 à 2 % du montant emprunté, soit entre 1 700 € et 3 400 € sur un emprunt de 170 000 €.
 
 **Les aides de la région Hauts-de-France.** [HYPOTHÈSE : la région Hauts-de-France et certaines communes de la métropole lilloise proposent des dispositifs d'aide à l'accession, notamment pour les ménages primo-accédants sous plafonds de ressources. Ces aides évoluent selon les budgets régionaux et municipaux — les données précises pour 2026 sont à vérifier auprès de votre mairie ou de l'ADIL (Agence Départementale d'Information sur le Logement) du Nord.]
 

@@ -130,9 +130,17 @@ Sur les travaux eux-mêmes, aucune obligation de vous couvrir. Il n'a pas néces
 
 Résultat : vous achetez un appartement dont vous ne savez pas avec certitude qui a fait quoi, avec quelle assurance, ni quels recours vous aurez si quelque chose se passe.
 
+| Ce que vous pouvez exiger | Particulier vendeur | Marchand de biens |
+|---|---|---|
+| Garantie décennale sur les travaux | Non obligatoire — dépend des artisans retenus | Oui — attestations exigibles par lot de travaux |
+| Assurance dommage-ouvrage | Non obligatoire pour un usage propre | Oui — obligation légale avant démarrage du chantier |
+| Traçabilité des artisans intervenus | Variable — souvent absente ou incomplète | Oui — dossier avec liste des entreprises et dates |
+| Historique de l'état initial du bien | Rarement disponible sous forme documentée | Oui — diagnostics avant acquisition conservés |
+| Recours identifié en cas de désordre | Limité aux vices cachés connus du vendeur | Structuré — assurance DO + décennale par entreprise |
+
 ---
 
-## Ce que vous obtenez quand vous achetez à un professionnel
+## Ce que vous obtenez quand vous achetez à un marchand de biens : les garanties incluses
 
 Un [marchand de biens à Lille](/blog/marchand-de-biens-lille-acquereur) est maître d'ouvrage. Il a commandé les travaux, réceptionné les chantiers, signé les procès-verbaux avec les entreprises. Ce statut active des obligations légales dont vous bénéficiez directement.
 
@@ -142,13 +150,17 @@ Un [marchand de biens à Lille](/blog/marchand-de-biens-lille-acquereur) est ma�
 
 **Le dossier de travaux existe.** Chaque intervention est documentée : entreprise, nature des travaux, date d'intervention. Ce dossier est transmissible à l'acheteur.
 
+Chez Versi Immobilier à Lille, ce dossier est constitué pour chaque opération et transmis à l'acheteur avec l'avant-contrat.
+
 ---
 
 ## La garantie décennale : 10 ans de couverture sur les travaux
 
 La garantie décennale est régie par l'article 1792 du Code civil. Elle couvre pendant dix ans les désordres qui compromettent la solidité de l'ouvrage ou le rendent impropre à sa destination — structure, toiture, étanchéité, réseaux selon la nature des travaux réalisés.
 
-Elle est souscrite par les entreprises qui ont réalisé les travaux. Quand un marchand de biens fait intervenir un professionnel du bâtiment, ce professionnel est tenu de fournir son attestation décennale à la réception du chantier.
+Point important pour éviter toute confusion : la décennale est souscrite par chaque entreprise artisan qui intervient sur le chantier — c'est leur obligation professionnelle. L'assurance dommage-ouvrage, elle, est souscrite par le maître d'ouvrage — le marchand de biens. Ce sont deux assurances distinctes, portées par des acteurs différents.
+
+Quand un marchand de biens fait intervenir un professionnel du bâtiment, ce professionnel est tenu de fournir son attestation décennale à la réception du chantier. C'est l'entreprise artisan qui est couverte, et c'est contre elle que vous disposez d'un recours.
 
 Concrètement pour vous : si un désordre couvert par la décennale apparaît dans les dix ans suivant la réalisation des travaux, vous avez un recours direct contre l'entreprise concernée. Ce recours existe parce qu'un professionnel a supervisé les travaux dans les règles.
 
@@ -164,7 +176,7 @@ Son rôle est distinct de la garantie décennale : elle ne désigne pas le respo
 
 Pour vous en tant qu'acquéreur : si un désordre décennal survient sur votre appartement, vous n'attendez pas une procédure pour obtenir réparation. L'assurance prend en charge rapidement.
 
-Un particulier n'est pas systématiquement tenu de souscrire une DO pour des travaux réalisés sur son bien propre. Ce mécanisme de protection n'est donc pas disponible dans toutes les transactions entre particuliers.
+Un particulier n'est pas systématiquement tenu de souscrire une DO pour des travaux réalisés sur son bien propre. Ce mécanisme de protection n'est donc pas disponible dans toutes les transactions entre particuliers — ce qui est courant dans l'ancien non suivi à Lille et dans sa métropole, où une partie du parc rénové l'a été sans maître d'ouvrage professionnel.
 
 ---
 

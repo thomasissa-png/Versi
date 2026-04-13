@@ -117,7 +117,7 @@ VALIDATION PRÉ-RÉDACTION
 [Framework : FAB — Feature → Advantage → Benefit par question]
 [Conscience : Solution-Aware → Product-Aware]
 
-Acheter chez un [marchand de biens](/blog/marchand-de-biens-lille-acquereur) n'est pas la même chose qu'acheter à un particulier ou à une agence. Les questions à poser ne sont pas les mêmes non plus. Les listes génériques "questions à poser lors d'une visite" ne couvrent pas ce qui compte vraiment dans ce type de transaction — les garanties professionnelles, l'historique d'opération, la traçabilité des travaux.
+Acheter chez un [marchand de biens](/blog/marchand-de-biens-lille-acquereur) à Lille ou dans la métropole n'est pas la même chose qu'acheter à un particulier ou à une agence. Les questions à poser ne sont pas les mêmes non plus. Les listes génériques "questions à poser lors d'une visite" ne couvrent pas ce qui compte vraiment dans ce type de transaction — les garanties professionnelles, l'historique d'opération, la traçabilité des travaux.
 
 Voici les 5 questions que seul un marchand de biens peut — et doit — vous répondre.
 
@@ -149,6 +149,8 @@ Vous devez pouvoir identifier les entreprises pour exercer un recours si nécess
 
 **Ce que la réponse vous dit sur l'opérateur :** Un opérateur sérieux a ce dossier constitué. S'il ne peut pas vous le fournir avant la signature, posez-vous la question de la rigueur avec laquelle l'opération a été conduite.
 
+Chez Versi Immobilier, nous constituons ce dossier d'attestations à la réception de chaque lot. Il est transmis à l'acheteur avec l'avant-contrat — pas après la signature.
+
 ---
 
 ## Question 3 — Quel était l'état du bien avant les travaux, et quel est son historique ?
@@ -163,6 +165,8 @@ Un particulier qui a acheté son appartement il y a dix ans et l'a rénové prog
 
 **Ce que la réponse vous dit sur l'opérateur :** Elle vous montre comment il travaille. Un opérateur qui documente l'état initial prend l'opération au sérieux. Un opérateur qui ne peut pas répondre à cette question a peut-être acheté vite et travaillé vite.
 
+Sur chaque opération, nous réalisons les diagnostics avant acquisition et conservons le rapport d'état initial. C'est la base du dossier de transformation que nous transmettons à l'acheteur.
+
 ---
 
 ## Question 4 — Qui a supervisé le chantier, et comment les travaux ont-ils été réceptionnés ?
@@ -174,6 +178,8 @@ Un particulier qui a acheté son appartement il y a dix ans et l'a rénové prog
 **Ce que vous obtenez si la réponse est rigoureuse :** Des procès-verbaux de réception datés, une date de départ claire pour vos garanties, et la preuve que le chantier a été suivi sérieusement.
 
 **Ce que la réponse vous dit sur l'opérateur :** La réception formelle est une étape que les opérateurs peu structurés négligent. Si votre interlocuteur ne sait pas répondre à cette question, les garanties dont vous bénéficierez seront plus difficiles à activer.
+
+Chez Versi Immobilier, chaque chantier est réceptionné avec un procès-verbal signé par lot d'entreprise. La date de réception figure dans le dossier transmis — c'est le point de départ vérifiable de vos garanties. Sur nos opérations en cours dans la métropole lilloise, ce dossier inclut les PV de réception par corps d'état, les attestations décennales et la date de départ des garanties : vous avez les pièces avant de signer, pas après.
 
 ---
 
