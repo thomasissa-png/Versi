@@ -9,33 +9,70 @@ const STATUS_CONFIG = {
 
 export default function PropertyCard({ property }) {
   const statusInfo = STATUS_CONFIG[property.status] || { label: property.status, className: '' };
+  const hasPhoto = property.mainPhoto || property.photo;
 
   return (
     <article className="property-card">
-      <Link to={`/nos-biens/${property.id}`} className="property-card__image-link">
-        <div className="property-card__image image-placeholder">
-          <span className="property-card__image-text text-label">Visuel bientôt disponible</span>
-          <span className={`property-card__badge ${statusInfo.className}`}>
-            {statusInfo.label}
-          </span>
-        </div>
-      </Link>
+      {/* Zone image — aria-hidden, la navigation clavier passe par le titre */}
+      <div className="property-card__image-wrap">
+        <Link
+          to={`/nos-biens/${property.id}`}
+          className="property-card__image-link"
+          tabIndex="-1"
+          aria-hidden="true"
+        >
+          {hasPhoto ? (
+            <img
+              src={hasPhoto}
+              alt=""
+              className="property-card__image property-card__image--photo"
+            />
+          ) : (
+            <div className="property-card__image property-card__placeholder">
+              <span className="property-card__placeholder-label">
+                Visuel bientôt disponible
+              </span>
+            </div>
+          )}
+        </Link>
+        {/* Badge positionné sur le conteneur wrap, pas dans le lien */}
+        <span
+          className={`property-card__badge ${statusInfo.className}`}
+          aria-label={`Statut : ${statusInfo.label}`}
+        >
+          {statusInfo.label}
+        </span>
+      </div>
+
       <div className="property-card__body">
         <span className="text-label property-card__location">{property.location}</span>
-        <h3 className="property-card__title">{property.title}</h3>
+        <h3 className="property-card__title">
+          <Link to={`/nos-biens/${property.id}`} className="property-card__title-link">
+            {property.title}
+          </Link>
+        </h3>
         <div className="property-card__details">
-          <span className="text-body-sm">{property.type}</span>
-          <span className="property-card__dot" aria-hidden="true">·</span>
-          <span className="text-body-sm">{property.surface}</span>
-          <span className="property-card__dot" aria-hidden="true">·</span>
-          <span className="text-body-sm">{property.rooms} pièces</span>
+          {property.type && <span className="text-body-sm">{property.type}</span>}
+          {property.type && property.surface && <span className="property-card__dot" aria-hidden="true">·</span>}
+          {property.surface && <span className="text-body-sm">{property.surface}</span>}
+          {property.surface && property.rooms && <span className="property-card__dot" aria-hidden="true">·</span>}
+          {property.rooms && <span className="text-body-sm">{property.rooms} pièces</span>}
         </div>
         <span className="property-card__price">{property.price}</span>
+        {property.priceNote && (
+          <span className="text-body-sm property-card__price-note">
+            {property.priceNote.includes('clé en main')
+              ? property.priceNote.split('.').find(s => /cl[eé]\s+en\s+main/i.test(s))?.trim()
+              : property.priceNote.split('.')[0]?.trim()
+            }
+          </span>
+        )}
         <Link
           to={`/nos-biens/${property.id}`}
           className="text-cta property-card__link"
+          aria-label={`Découvrir ce lot : ${property.title}`}
         >
-          Voir le bien
+          Découvrir ce lot →
         </Link>
       </div>
     </article>

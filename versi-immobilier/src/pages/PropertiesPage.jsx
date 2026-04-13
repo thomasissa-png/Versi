@@ -6,7 +6,7 @@ import PropertyCard from '../components/PropertyCard.jsx';
 import { useProperties } from '../hooks/useProperties.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
-const TYPE_OPTIONS = ['Tous', 'Appartement', 'Maison', 'Immeuble', 'Local mixte'];
+const TYPE_OPTIONS = ['Tous', 'Appartement', 'Duplex', 'Maison', 'Immeuble', 'Local mixte'];
 const LOCATION_OPTIONS = ['Toutes', 'Hauts-de-France', 'Île-de-France'];
 const BUDGET_OPTIONS = [
   { label: 'Tous', min: 0, max: Infinity },
@@ -30,8 +30,10 @@ export default function PropertiesPage() {
     return available.filter((p) => {
       if (typeFilter !== 'Tous' && p.type !== typeFilter) return false;
       if (locationFilter !== 'Toutes') {
-        if (!p.city.toLowerCase().includes(locationFilter.toLowerCase()) &&
-            !p.location.toLowerCase().includes(locationFilter.toLowerCase())) {
+        if (
+          !p.city.toLowerCase().includes(locationFilter.toLowerCase()) &&
+          !p.location.toLowerCase().includes(locationFilter.toLowerCase())
+        ) {
           return false;
         }
       }
@@ -43,29 +45,13 @@ export default function PropertiesPage() {
     });
   }, [available, typeFilter, locationFilter, budgetFilter]);
 
-  const hasActiveFilters = typeFilter !== 'Tous' || locationFilter !== 'Toutes' || budgetFilter !== 'Tous';
+  const hasActiveFilters =
+    typeFilter !== 'Tous' || locationFilter !== 'Toutes' || budgetFilter !== 'Tous';
 
   const resetFilters = () => {
     setTypeFilter('Tous');
     setLocationFilter('Toutes');
     setBudgetFilter('Tous');
-  };
-
-  const selectStyle = {
-    background: 'var(--color-bg-secondary)',
-    border: '1px solid var(--color-border)',
-    borderRadius: '6px',
-    padding: '10px 16px',
-    fontFamily: 'var(--font-family)',
-    fontSize: '16px',
-    color: 'var(--color-text-primary)',
-    minHeight: '44px',
-    appearance: 'none',
-    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1.5L6 6.5L11 1.5\' stroke=\'%236B6560\' stroke-width=\'1.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/%3E%3C/svg%3E")',
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-    paddingRight: '36px',
-    cursor: 'pointer',
   };
 
   return (
@@ -77,30 +63,28 @@ export default function PropertiesPage() {
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
-            <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
+
+            {/* En-tête */}
+            <h1 className="text-heading-lg properties-page__header-title">
               Les biens disponibles.
             </h1>
-            <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
-              Appartements et biens mixtes en Hauts-de-France et Île-de-France. Dossier complet — diagnostics, historique, garanties — disponible avant la visite. Prix de vente : généralement entre 95 000 € et 350 000 €.
+            <p className="text-body-lg properties-page__header-subtitle">
+              Appartements et biens mixtes en Hauts-de-France et Île-de-France.
+              Dossier complet — diagnostics, historique, garanties — disponible avant la visite.
+              Prix de vente : généralement entre 95 000 € et 350 000 €.
             </p>
 
-            {/* Filters */}
-            <div style={{
-              display: 'flex',
-              gap: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-2xl)',
-              flexWrap: 'wrap',
-              alignItems: 'end',
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-type" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
+            {/* Filtres */}
+            <div className="properties-page__filters">
+              <div className="properties-page__filter-group">
+                <label htmlFor="filter-type" className="text-label">
                   Type de bien
                 </label>
                 <select
                   id="filter-type"
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  style={selectStyle}
+                  className="properties-page__select"
                 >
                   {TYPE_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -108,15 +92,15 @@ export default function PropertiesPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-location" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
+              <div className="properties-page__filter-group">
+                <label htmlFor="filter-location" className="text-label">
                   Localisation
                 </label>
                 <select
                   id="filter-location"
                   value={locationFilter}
                   onChange={(e) => setLocationFilter(e.target.value)}
-                  style={selectStyle}
+                  className="properties-page__select"
                 >
                   {LOCATION_OPTIONS.map((l) => (
                     <option key={l} value={l}>{l}</option>
@@ -124,15 +108,15 @@ export default function PropertiesPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="filter-budget" className="text-label" style={{ color: 'var(--color-text-primary)' }}>
+              <div className="properties-page__filter-group">
+                <label htmlFor="filter-budget" className="text-label">
                   Budget
                 </label>
                 <select
                   id="filter-budget"
                   value={budgetFilter}
                   onChange={(e) => setBudgetFilter(e.target.value)}
-                  style={selectStyle}
+                  className="properties-page__select"
                 >
                   {BUDGET_OPTIONS.map((b) => (
                     <option key={b.label} value={b.label}>{b.label}</option>
@@ -143,115 +127,65 @@ export default function PropertiesPage() {
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
-                  className="text-label"
-                  style={{
-                    color: 'var(--color-text-muted)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '10px 0',
-                    minHeight: '44px',
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '4px',
-                  }}
+                  className="properties-page__reset-btn"
+                  aria-label="Réinitialiser tous les filtres"
                 >
-                  Réinitialiser les filtres
+                  Réinitialiser
                 </button>
               )}
             </div>
 
-            {/* Grid */}
+            {/* États */}
             {loading ? (
-              <div style={{
-                textAlign: 'center',
-                padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
-              }}>
-                <p className="text-body-lg">Chargement des biens...</p>
+              <div className="properties-page__state">
+                <p className="text-body-lg">Chargement des biens…</p>
               </div>
             ) : error ? (
-              <div style={{
-                textAlign: 'center',
-                padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
-              }}>
-                <p className="text-body-lg">Une erreur est survenue lors du chargement des biens.</p>
+              <div className="properties-page__state">
+                <p className="text-body-lg">
+                  Une erreur est survenue lors du chargement des biens.
+                </p>
               </div>
             ) : allProperties.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="properties-page__state">
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-sm)' }}>
                   Nos biens partent vite.
                 </p>
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
                   Laissez-nous votre contact — nous vous prévenons avant la mise en ligne.
                 </p>
-                <Link to="/contact" className="text-cta" style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: 'var(--color-charcoal-950)',
-                  color: 'var(--color-calcaire-50)',
-                  padding: '12px 32px',
-                  borderRadius: 'var(--radius-sm)',
-                  textDecoration: 'none',
-                  minHeight: '44px',
-                }}>
+                <Link to="/contact" className="properties-page__state-cta">
                   Être notifié en avant-première
                 </Link>
               </div>
             ) : filtered.length > 0 ? (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 'var(--spacing-lg)',
-              }}>
+              <div className="properties-page__grid">
                 {filtered.map((property) => (
                   <PropertyCard key={property.id} property={property} />
                 ))}
               </div>
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="properties-page__state">
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
                   Aucun bien disponible avec ces critères.
                 </p>
                 <button
                   onClick={resetFilters}
-                  className="text-cta"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    border: '1px solid var(--color-border)',
-                    padding: '12px 32px',
-                    borderRadius: 'var(--radius-sm)',
-                    color: 'var(--color-text-primary)',
-                    background: 'none',
-                    cursor: 'pointer',
-                    minHeight: '44px',
-                  }}
+                  className="properties-page__state-cta properties-page__state-cta--outline"
+                  aria-label="Réinitialiser les filtres"
                 >
                   Réinitialiser les filtres
                 </button>
               </div>
             )}
-            {/* Sold properties — separate section */}
+
+            {/* Vendus */}
             {sold.length > 0 && (
-              <div style={{ marginTop: 'var(--spacing-4xl)' }}>
+              <div className="properties-page__sold-section">
                 <h2 className="text-heading-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
                   Vendus.
                 </h2>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                  gap: 'var(--spacing-lg)',
-                  opacity: 0.6,
-                }}>
+                <div className="properties-page__sold-grid">
                   {sold.map((property) => (
                     <PropertyCard key={property.id} property={property} />
                   ))}
@@ -261,25 +195,16 @@ export default function PropertiesPage() {
           </div>
         </section>
 
-        {/* Bandeau vendeur bas de page */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-dark-alt)', textAlign: 'center' }}>
+        {/* Bandeau vendeur */}
+        <section className="section-padding properties-page__seller-band">
           <div className="container">
-            <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
+            <p className="text-body-lg properties-page__seller-title">
               Vous avez un bien à céder ?
             </p>
-            <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
+            <p className="text-body-md properties-page__seller-sub">
               Offre ferme sous 7 jours. Fonds propres. Aucun mandat.
             </p>
-            <Link to="/vendre" className="text-cta" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              background: 'var(--color-accent)',
-              color: 'var(--color-bg-dark)',
-              padding: '16px 48px',
-              borderRadius: 'var(--radius-sm)',
-              textDecoration: 'none',
-              minHeight: '52px',
-            }}>
+            <Link to="/vendre" className="properties-page__seller-cta">
               Soumettre mon dossier
             </Link>
           </div>

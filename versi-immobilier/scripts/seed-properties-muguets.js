@@ -19,7 +19,7 @@ const PROPERTIES = [
     rooms: 2,
     price: '95 000 €',
     price_num: 95000,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 130 000 € — travaux et finitions inclus.',
+    price_note: 'Prix avant travaux, hors frais de notaire. Option clé en main livré prêt à habiter : 130 000 € HFN.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -27,24 +27,25 @@ const PROPERTIES = [
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Ancien bâtiment de bureaux en cours de transformation au 10 rue des Muguets, à Lille. Ce lot de rez-de-chaussée de 47 m² est proposé en pré-commercialisation avant le démarrage des travaux.
+    description: `Rez-de-chaussée de 47 m², accès direct à un espace extérieur privatif de 10 m². Un profil rare dans le collectif — et délibérément choisi pour ce lot dans la restructuration du 10 rue des Muguets.
 
-La configuration retenue organise le lot autour d'un séjour-cuisine ouvert de 26 m², donnant directement sur un espace extérieur privatif de 10 m². La chambre, de 10,2 m², complète la distribution. Chauffage collectif. Place de parking extérieur couverte incluse dans le prix.
+Séjour-cuisine ouvert de 26 m² en plain-pied, chambre de 10,2 m², chauffage collectif. La place de parking extérieure couverte est incluse dans le prix. Pas de charges d'ascenseur, pas de voisins au-dessus.
 
-La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs sous plafond atypiques pour du collectif neuf, avec une finition maîtrisée de A à Z par Versi Immobilier. Deux options de prix : acquisition avant travaux à 95 000 €, ou livraison clé en main à 130 000 €.`,
+Le lot est proposé en pré-commercialisation : les travaux ne sont pas encore démarrés. Versi Immobilier assure l'opération de bout en bout — restructuration, second-œuvre, finitions. Deux options d'acquisition : avant travaux à 95 000 €, ou clé en main livré prêt à habiter à 130 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine ouvert 26 m²',
+      'Chambre 10,2 m²',
       'Espace extérieur privatif 10 m²',
       'Chauffage collectif',
       'Parking extérieur couvert inclus',
-      'Pré-commercialisation avant travaux',
+      'Pas de charges d\'ascenseur',
     ]),
     sort_order: 0,
   },
   {
     id: 'muguets-lot-2-t3',
-    title: 'Rue des Muguets — T3 de 82 m², 1er étage',
+    title: 'Rue des Muguets — T3 de 82 m², séjour 40 m²',
     city: 'Lille',
     location: 'Lille',
     neighborhood: null,
@@ -56,7 +57,7 @@ La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs so
     rooms: 3,
     price: '165 000 €',
     price_num: 165000,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 230 000 € — travaux et finitions inclus.',
+    price_note: 'Prix avant travaux, hors frais de notaire. Option clé en main livré prêt à habiter : 230 000 € HFN.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -64,11 +65,11 @@ La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs so
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Au premier étage du 10 rue des Muguets, Lille, ce lot de 82,2 m² est issu de la transformation d'un immeuble de bureaux en appartements résidentiels. Bien proposé en pré-commercialisation avant travaux.
+    description: `Premier étage, 82,2 m². Un T3 avec un séjour-cuisine de 40,5 m² — soit deux fois la surface d'un séjour standard dans le neuf collectif lillois. Ce gabarit vient directement de l'ancienne destination bureaux de l'immeuble : des plateaux ouverts, sans les contraintes de distribution du résidentiel standard.
 
-La distribution comprend un séjour-cuisine de 40,5 m² et deux chambres de 14 m² et 9 m². Des volumes généreux, cohérents avec l'architecture d'origine du bâtiment. Chauffage collectif. Place de parking extérieur couverte incluse.
+Deux chambres — 14 m² et 9 m² — complètent la distribution. Chauffage collectif. Place de parking extérieur couverte incluse.
 
-Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâtiment à la livraison des lots — sans intermédiaire. Acquisition avant travaux à 165 000 €, ou livraison clé en main à 230 000 €.`,
+Lot proposé en pré-commercialisation : les travaux n'ont pas démarré. Versi Immobilier pilote l'opération sans intermédiaire, de l'acquisition à la livraison. Acquisition avant travaux à 165 000 €, ou clé en main livré prêt à habiter à 230 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 40,5 m²',
@@ -76,7 +77,6 @@ Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâti
       'Chambre 2 — 9 m²',
       'Chauffage collectif',
       'Parking extérieur couvert inclus',
-      'Pré-commercialisation avant travaux',
     ]),
     sort_order: 1,
   },
@@ -94,7 +94,7 @@ Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâti
     rooms: 5,
     price: '250 000 €',
     price_num: 250000,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 355 000 € — travaux et finitions inclus.',
+    price_note: 'Prix avant travaux, hors frais de notaire. Option clé en main livré prêt à habiter : 355 000 € HFN.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -102,20 +102,20 @@ Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâti
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Au sommet du 10 rue des Muguets, Lille, ce duplex de 126,3 m² occupe les deuxième et troisième étages de l'immeuble en cours de transformation. Lot proposé en pré-commercialisation avant travaux.
+    description: `Deuxième et troisième étages, 126,3 m² sur deux niveaux, terrasse avec vue sur l'église. Ce duplex occupe les étages supérieurs de l'immeuble du 10 rue des Muguets — le lot le plus élevé, le plus lumineux, et le seul à bénéficier d'un plafond cathédrale en partie haute.
 
-La configuration réunit trois chambres de 15 m² chacune, un séjour-cuisine de 47 m² bénéficiant d'une vue dégagée, et une terrasse de 12 m² avec vue sur l'église. Le plafond cathédrale en partie haute confère à l'ensemble un caractère rare dans le collectif lillois. Chauffage collectif. Place de parking extérieur couverte incluse.
+Trois chambres de 15 m² chacune — une symétrie de distribution que la construction neuve ne propose presque jamais. Séjour-cuisine de 47 m² avec vue dégagée, terrasse de 12 m². Chauffage collectif. Place de parking extérieur couverte incluse.
 
-La transformation d'un bâtiment de bureaux en logements permet de préserver des hauteurs et des volumes que la construction neuve standard ne propose plus. Versi Immobilier maîtrise l'intégralité du process, de la restructuration au second-œuvre. Acquisition avant travaux à 250 000 €, ou livraison clé en main à 355 000 €.`,
+Lot proposé en pré-commercialisation avant démarrage des travaux. Versi Immobilier maîtrise l'intégralité du process, de la restructuration structurelle au second-œuvre. Acquisition avant travaux à 250 000 €, ou clé en main livré prêt à habiter à 355 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 47 m²',
       '3 chambres de 15 m²',
       'Terrasse 12 m² — vue sur église',
       'Plafond cathédrale',
+      'Duplex sur deux niveaux',
       'Chauffage collectif',
       'Parking extérieur couvert inclus',
-      'Pré-commercialisation avant travaux',
     ]),
     sort_order: 2,
   },
