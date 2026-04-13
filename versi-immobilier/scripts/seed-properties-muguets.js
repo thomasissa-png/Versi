@@ -31,7 +31,7 @@ const PROPERTIES = [
 
 Séjour-cuisine ouvert de 26 m² en plain-pied, chambre de 10,2 m², chauffage collectif. La place de parking extérieure couverte est incluse dans le prix. Pas de charges d'ascenseur, pas de voisins au-dessus.
 
-Le lot est proposé en pré-commercialisation : les travaux ne sont pas encore démarrés. Versi Immobilier assure l'opération de bout en bout — restructuration, second-œuvre, finitions. Deux options d'acquisition : avant travaux à 95 000 €, ou clé en main livré prêt à habiter à 130 000 €.`,
+Le lot est proposé en pré-commercialisation : les travaux ne sont pas encore démarrés. Versi Immobilier assure l'opération de bout en bout — restructuration, second-œuvre, finitions. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses. Deux options d'acquisition : avant travaux à 95 000 €, ou clé en main livré prêt à habiter à 130 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine ouvert 26 m²',
@@ -69,7 +69,7 @@ Le lot est proposé en pré-commercialisation : les travaux ne sont pas encore d
 
 Deux chambres — 14 m² et 9 m² — complètent la distribution. Chauffage collectif. Place de parking extérieur couverte incluse.
 
-Lot proposé en pré-commercialisation : les travaux n'ont pas démarré. Versi Immobilier pilote l'opération sans intermédiaire, de l'acquisition à la livraison. Acquisition avant travaux à 165 000 €, ou clé en main livré prêt à habiter à 230 000 €.`,
+Lot proposé en pré-commercialisation : les travaux n'ont pas démarré. Versi Immobilier pilote l'opération sans intermédiaire, de l'acquisition à la livraison. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses. Acquisition avant travaux à 165 000 €, ou clé en main livré prêt à habiter à 230 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 40,5 m²',
@@ -106,7 +106,7 @@ Lot proposé en pré-commercialisation : les travaux n'ont pas démarré. Versi 
 
 Trois chambres de 15 m² chacune — une symétrie de distribution que la construction neuve ne propose presque jamais. Séjour-cuisine de 47 m² avec vue dégagée, terrasse de 12 m². Chauffage collectif. Place de parking extérieur couverte incluse.
 
-Lot proposé en pré-commercialisation avant démarrage des travaux. Versi Immobilier maîtrise l'intégralité du process, de la restructuration structurelle au second-œuvre. Acquisition avant travaux à 250 000 €, ou clé en main livré prêt à habiter à 355 000 €.`,
+Lot proposé en pré-commercialisation avant démarrage des travaux. Versi Immobilier maîtrise l'intégralité du process, de la restructuration structurelle au second-œuvre. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses. Acquisition avant travaux à 250 000 €, ou clé en main livré prêt à habiter à 355 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 47 m²',

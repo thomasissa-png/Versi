@@ -81,17 +81,19 @@ export default function PropertyDetailPage() {
   const badgeClass = STATUS_BADGE_CLASS[property.status] || '';
 
   /* Interprétation du price_note pour la double grille prix */
-  /* On tente de détecter un format "Avant travaux : X€ / Clé en main : Y€" */
-  const parseDualPricing = (note) => {
+  /* Détecte "avant travaux" + "clé en main : XXX €" dans la note */
+  const parseDualPricing = (note, mainPrice) => {
     if (!note) return null;
-    const match = note.match(/avant\s+travaux\s*:?\s*([\d\s€.,-]+).*?cl[eé]\s+en\s+main\s*:?\s*([\d\s€.,-]+)/i);
-    if (match) {
-      return { avantTravaux: match[1].trim(), cleEnMain: match[2].trim() };
+    // Format: "Prix avant travaux, ... Option clé en main ... : 130 000 € ..."
+    const isAvantTravaux = /avant\s+travaux/i.test(note);
+    const cleEnMainMatch = note.match(/cl[eé]\s+en\s+main[^:]*:\s*([\d\s]+\s*€)/i);
+    if (isAvantTravaux && cleEnMainMatch) {
+      return { avantTravaux: mainPrice, cleEnMain: cleEnMainMatch[1].trim() };
     }
     return null;
   };
 
-  const dualPricing = parseDualPricing(property.priceNote);
+  const dualPricing = parseDualPricing(property.priceNote, property.price);
 
   return (
     <>
