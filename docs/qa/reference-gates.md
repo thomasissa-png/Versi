@@ -1,6 +1,6 @@
 # Gates références / réalisations — Versi Immobilier
 
-> Produit par @orchestrator | Date : 2026-04-13, v2
+> Produit par @orchestrator + @creative-strategy + @copywriter + @sophie + @qa | Date : 2026-04-13, v3
 > Références : `docs/qa/property-listing-gates.md` (gates annonces), `project-context.md` (données source)
 > Usage : ces gates s'appliquent au champ `description` de TOUT projet/réalisation avant publication sur la page /realisations. Une gate BLOQUANT en FAIL interdit la publication.
 
@@ -12,7 +12,7 @@
 
 | # | Nom | Méthode | PASS | FAIL |
 |---|---|---|---|---|
-| GR-1 | Accroche factuelle — le bien d'origine en première phrase | IA review | La 1re phrase décrit concrètement ce que Versi a acheté (type de bâtiment, surface, situation). Le lecteur comprend le point de départ de l'opération | 1re phrase abstraite ou centrée sur Versi plutôt que sur le bien ("Versi a réalisé une opération...") |
+| GR-1 | Accroche factuelle — le bien d'origine en première phrase | IA review + regex proxy `grep -iE "^Versi (a\|est\|propose\|mène\|réalise)"` | La 1re phrase décrit concrètement ce que Versi a acheté (type de bâtiment, surface, situation). Le lecteur comprend le point de départ de l'opération | 1re phrase abstraite ou centrée sur Versi plutôt que sur le bien ("Versi a réalisé une opération...") |
 | GR-2 | Zéro donnée inventée | Cross-check `project-context.md` | Toutes surfaces, prix de vente, durées, caractéristiques correspondent exactement aux données confirmées par le fondateur | Au moins 1 donnée inventée, arrondie abusivement, ou non confirmée |
 | GR-3 | Zéro mot/formulation interdit(e) | Grep blacklist | Aucun mot de la blacklist annonces (`property-listing-gates.md` section 2). Aucune formulation agence | Au moins 1 occurrence |
 | GR-4 | Ton Versi — faits et réalisations, pas de posture | Grep + IA review | Zéro superlatif de la blacklist. Le texte décrit ce qui a été fait, pas ce que Versi "est". Pas de formulation auto-congratulatoire ("notre savoir-faire", "notre expertise", "nous avons su") | Au moins 1 formulation auto-congratulatoire ou superlatif creux |
@@ -30,7 +30,7 @@
 | GR-11 | Prix de cession mentionné | Grep pattern € | Le prix de vente est mentionné en euros | Aucun prix dans le texte |
 | GR-12 | Ville mentionnée | Grep | La ville de l'opération est citée dans le texte | Aucune mention géographique |
 | GR-13 | Paragraphes courts | Compteur | Chaque paragraphe fait max 5 lignes | Un paragraphe dépasse 5 lignes |
-| GR-14 | Longueur — 60 à 150 mots | Compteur | Description entre 60 et 150 mots. La référence doit être concise — c'est une fiche, pas un article | < 60 mots (trop sec) ou > 150 mots (trop long pour une fiche référence) |
+| GR-14 | Longueur — 60 à 150 mots | Compteur | Description entre 60 et 150 mots (un nombre comme "750 000" = 2 mots). La référence doit être concise — c'est une fiche, pas un article | < 60 mots (trop sec) ou > 150 mots (trop long pour une fiche référence) |
 | GR-15 | Zéro point d'exclamation | Grep `!` | 0 occurrence | Au moins 1 |
 
 ---
@@ -45,7 +45,8 @@ En plus de la blacklist annonces (`property-listing-gates.md` section 2), les fo
 notre savoir-faire, notre expertise, nous avons su, nous avons réussi,
 grâce à notre expérience, notre équipe a, nous sommes fiers,
 un défi que nous avons relevé, une opération réussie,
-une transformation remarquable, un résultat à la hauteur
+une transformation remarquable, un résultat à la hauteur,
+une belle opération, un bel exemple de
 ```
 
 ### Formulations financières interdites (GR-5) — grep
@@ -72,6 +73,20 @@ Prompt IA : "Lis la première phrase. PASS si elle décrit le bien d'origine (ty
 **Exemples FAIL**
 > "Versi a mené une opération de réhabilitation ambitieuse."
 > "Cette réalisation témoigne de notre capacité à transformer."
+
+---
+
+### GR-8 — Transformation décrite (avant/après)
+
+**Comment vérifier**
+Prompt IA : "PASS si le texte contient (a) une description de l'état AVANT incluant au moins 1 défaut, contrainte ou caractéristique d'origine, ET (b) une description de l'état APRÈS incluant au moins 1 usage ou caractéristique nouvelle. FAIL si l'un des deux est absent."
+
+**Exemples PASS**
+> "136 m² de bureaux désaffectés, un seul volume sans cloison. [...] transformé en un loft de 7 pièces avec patio intérieur privatif." → avant (bureaux désaffectés) + après (loft 7 pièces)
+> "Immeuble de rapport de 4 lots, vacant depuis 2 ans. [...] 4 appartements rénovés, reloués en 3 semaines." → avant (vacant 2 ans) + après (rénovés, reloués)
+
+**Exemples FAIL**
+> "Versi a transformé cet immeuble en logements de qualité." (pas d'état avant concret, pas d'état après précis)
 
 ---
 
