@@ -252,4 +252,9 @@ export default function Hero() {
   - Vocabulaire à bannir sur ce site : "actif", "opération", "cycle", "holding", "co-investisseur", "structuration"
   - Vouvoiement systématique — vérifier sur toutes les microcopy (labels, messages d'état, tooltips)
   - Les fiches biens devront respecter le même brand voice adapté : faits, m², DPE, prix net, zéro superlatif
+  - **Gates de validation** : tout contenu sur versi-immobilier.fr est soumis aux gates correspondantes :
+    - Annonces → `docs/qa/property-listing-gates.md` (v3, 22 gates)
+    - Emplacement → `docs/qa/location-gates.md` (v3, 12 gates)
+    - Références → `docs/qa/reference-gates.md` (v3, 15 gates)
+  - **Décision fondateur (2026-04-13)** : les références n'affichent que le prix de vente, jamais les marges
 ---

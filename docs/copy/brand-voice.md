@@ -114,6 +114,22 @@ Versi parle comme un bon directeur d'investissement : peu de mots, tous utiles. 
 
 ---
 
+## 7. Gates de validation par type de contenu
+
+Le brand voice s'applique à tout contenu Versi. Chaque type de contenu a ses propres gates de validation (PASS/FAIL) qui opérationnalisent les principes ci-dessus :
+
+| Type de contenu | Fichier de gates | Gates clés |
+|---|---|---|
+| **Annonces de biens** (description, titre, features) | `docs/qa/property-listing-gates.md` (v3, 22 gates GA-1 à GA-22) | GA-4 ton Versi, GA-5 projection d'usage, GA-15 zéro exclamation, GA-16 vouvoiement |
+| **Emplacement** (nearby_transport, nearby_amenities) | `docs/qa/location-gates.md` (v3, 12 gates GL-1 à GL-12) | GL-1/GL-2 zéro donnée inventée, GL-4 ton factuel, GL-12 longueur maîtrisée |
+| **Références / Réalisations** (description projets) | `docs/qa/reference-gates.md` (v3, 15 gates GR-1 à GR-15) | GR-1 accroche factuelle, GR-4 ton Versi, GR-5 prix de vente uniquement, GR-9 tangibilité 4 catégories |
+
+**Règle** : tout nouveau contenu DOIT passer les gates de son type AVANT publication. Les blacklists dans ces fichiers sont la source de vérité pour les mots interdits — elles étendent et précisent les listes de la section 3 ci-dessus.
+
+**Décision fondateur (2026-04-13)** : les références n'affichent que le prix de vente. Jamais les marges, prix d'achat, ou montant des travaux (GR-5 BLOQUANT).
+
+---
+
 **Handoff → @fullstack**
 - Fichier produit : `/home/user/Versi/docs/copy/brand-voice.md`
 - Décisions prises : vouvoiement absolu, registre factuel-élégant, zéro passif, zéro adjectif auto-décerné, CTA < 6 mots, zéro exclamation
