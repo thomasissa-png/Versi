@@ -112,6 +112,10 @@ CREATE TABLE IF NOT EXISTS blog_articles (
   tags          JSONB DEFAULT '[]',
   status        TEXT NOT NULL DEFAULT 'draft',
   published_at  TIMESTAMP WITH TIME ZONE,
+  scheduled_at  TIMESTAMP WITH TIME ZONE,
+  brief_json    JSONB,
+  gate_results  JSONB,
+  gate_status   TEXT DEFAULT NULL,
   created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -128,6 +132,24 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+
+-- Migration : ajout des colonnes gate system (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blog_articles' AND column_name='scheduled_at') THEN
+    ALTER TABLE blog_articles ADD COLUMN scheduled_at TIMESTAMP WITH TIME ZONE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blog_articles' AND column_name='brief_json') THEN
+    ALTER TABLE blog_articles ADD COLUMN brief_json JSONB;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blog_articles' AND column_name='gate_results') THEN
+    ALTER TABLE blog_articles ADD COLUMN gate_results JSONB;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blog_articles' AND column_name='gate_status') THEN
+    ALTER TABLE blog_articles ADD COLUMN gate_status TEXT DEFAULT NULL;
+  END IF;
+END;
+$$;
 
 -- Trigger pour updated_at automatique
 CREATE OR REPLACE FUNCTION update_updated_at()

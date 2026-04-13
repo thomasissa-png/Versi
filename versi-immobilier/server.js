@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import pool from './db.js';
+import { runGates } from './gate-runner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -147,6 +148,28 @@ setInterval(async () => {
     console.error('[CRON] Erreur nettoyage sessions :', err.message);
   }
 }, 30 * 60 * 1000);
+
+// Publication programmée — publie les articles validés dont scheduled_at est passé (toutes les 5 minutes)
+setInterval(async () => {
+  try {
+    const result = await pool.query(
+      `UPDATE blog_articles
+       SET status = 'published', published_at = NOW()
+       WHERE status = 'draft'
+         AND scheduled_at IS NOT NULL
+         AND scheduled_at <= NOW()
+         AND gate_status = 'pass'
+       RETURNING id, title, slug`
+    );
+    if (result.rowCount > 0) {
+      for (const article of result.rows) {
+        console.log(`[CRON] Article publié automatiquement : "${article.title}" (${article.slug})`);
+      }
+    }
+  } catch (err) {
+    console.error('[CRON] Erreur publication programmée :', err.message);
+  }
+}, 5 * 60 * 1000);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1307,17 +1330,34 @@ app.put('/api/admin/blog/:id', checkAdminAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/blog/:id/publish — publier un article
+// PATCH /api/admin/blog/:id/publish — publier un article (gate_status vérifié)
 app.patch('/api/admin/blog/:id/publish', checkAdminAuth, async (req, res) => {
   try {
+    const { force } = req.body || {};
+
+    // Vérifier le gate_status avant publication
+    const { rows: check } = await pool.query(
+      'SELECT gate_status FROM blog_articles WHERE id = $1',
+      [req.params.id]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+
+    const gateStatus = check[0].gate_status;
+    if (!force && gateStatus && gateStatus !== 'pass') {
+      return res.status(403).json({
+        ok: false,
+        error: `Publication bloquée : gate_status = "${gateStatus}". Validez les gates ou utilisez force=true.`,
+        gate_status: gateStatus,
+      });
+    }
+
     const result = await pool.query(
       "UPDATE blog_articles SET status = 'published', published_at = NOW() WHERE id = $1 RETURNING id",
       [req.params.id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
-    }
-    return res.json({ ok: true });
+    return res.json({ ok: true, forced: !!force && gateStatus !== 'pass' });
   } catch (err) {
     console.error('[API] Erreur PATCH publish blog :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });
@@ -1351,6 +1391,93 @@ app.delete('/api/admin/blog/:id', checkAdminAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     console.error('[API] Erreur DELETE blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/admin/blog/:id/validate — lancer les gates de validation
+// ---------------------------------------------------------------------------
+app.post('/api/admin/blog/:id/validate', checkAdminAuth, async (req, res) => {
+  try {
+    const result = await runGates(req.params.id, pool);
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[API] Erreur POST validate blog :', err.message);
+    if (err.message === 'Article non trouvé') {
+      return res.status(404).json({ ok: false, error: err.message });
+    }
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// GET /api/admin/blog/:id/gates — résultats des gates
+app.get('/api/admin/blog/:id/gates', checkAdminAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT gate_results, gate_status FROM blog_articles WHERE id = $1',
+      [req.params.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+    return res.json({
+      ok: true,
+      gate_status: rows[0].gate_status,
+      gates: rows[0].gate_results || {},
+    });
+  } catch (err) {
+    console.error('[API] Erreur GET gates blog :', err.message);
+    return res.status(500).json({ ok: false, error: 'Erreur interne' });
+  }
+});
+
+// PATCH /api/admin/blog/:id/gates/:gateId — override humain d'une gate
+app.patch('/api/admin/blog/:id/gates/:gateId', checkAdminAuth, async (req, res) => {
+  try {
+    const { id, gateId } = req.params;
+    const { pass, detail } = req.body;
+
+    if (typeof pass !== 'boolean') {
+      return res.status(400).json({ ok: false, error: 'Le champ "pass" (boolean) est requis' });
+    }
+
+    const { rows } = await pool.query(
+      'SELECT gate_results, gate_status FROM blog_articles WHERE id = $1',
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Article non trouvé' });
+    }
+
+    const gates = rows[0].gate_results || {};
+    if (!gates[gateId]) {
+      return res.status(404).json({ ok: false, error: `Gate ${gateId} non trouvée` });
+    }
+
+    // Appliquer l'override
+    gates[gateId].pass = pass;
+    gates[gateId].detail = detail || `Override humain — ${pass ? 'validé' : 'rejeté'}`;
+    gates[gateId].overridden_at = new Date().toISOString();
+
+    // Recalculer le statut global
+    const entries = Object.entries(gates);
+    const blockingFails = entries.filter(([, g]) => g.classe === 'BLOQUANT' && g.pass === false);
+    const pendingHuman = entries.filter(([, g]) => g.pass === null);
+    const newStatus = blockingFails.length > 0
+      ? 'fail'
+      : pendingHuman.length > 0
+        ? 'pending_human'
+        : 'pass';
+
+    await pool.query(
+      'UPDATE blog_articles SET gate_results = $1, gate_status = $2 WHERE id = $3',
+      [JSON.stringify(gates), newStatus, id]
+    );
+
+    return res.json({ ok: true, gate_status: newStatus, gate: gates[gateId] });
+  } catch (err) {
+    console.error('[API] Erreur PATCH gate override :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });
   }
 });
