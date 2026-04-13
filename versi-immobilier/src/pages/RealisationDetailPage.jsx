@@ -73,9 +73,7 @@ export default function RealisationDetailPage() {
   }
 
   const keyFigures = [
-    { label: 'Prix d\'acquisition', value: project.buyPrice },
-    { label: 'Budget travaux', value: project.worksAmount },
-    { label: 'Prix de revente', value: project.sellPrice || 'Confidentiel' },
+    { label: 'Prix de vente', value: project.sellPrice || 'Confidentiel' },
     { label: 'Délai offre', value: project.offerDelay ? `J+${project.offerDelay}` : null },
   ].filter((fig) => fig.value);
 

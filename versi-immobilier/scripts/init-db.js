@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS project_photos (
   filename    TEXT NOT NULL,
   mime_type   TEXT NOT NULL,
   size_bytes  INTEGER,
+  category    TEXT NOT NULL DEFAULT 'apres',
   sort_order  INTEGER DEFAULT 0,
   created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -445,10 +445,19 @@ app.get('/api/public/projects/:id', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Réalisation non trouvée' });
     }
     const photosResult = await pool.query(
-      'SELECT id, data, filename, mime_type, size_bytes, sort_order, created_at FROM project_photos WHERE project_id = $1 ORDER BY sort_order ASC',
+      'SELECT id, data, filename, mime_type, size_bytes, category, sort_order, created_at FROM project_photos WHERE project_id = $1 ORDER BY sort_order ASC',
       [req.params.id]
     );
-    return res.json({ project: projResult.rows[0], photos: photosResult.rows });
+    // Build photo URLs from base64 data
+    const photos = photosResult.rows.map((p) => ({
+      id: p.id,
+      url: p.data.startsWith('data:') ? p.data : `data:${p.mime_type};base64,${p.data}`,
+      filename: p.filename,
+      category: p.category || 'apres',
+      alt: null,
+      sort_order: p.sort_order,
+    }));
+    return res.json({ project: projResult.rows[0], photos });
   } catch (err) {
     console.error('[API] Erreur GET /api/public/projects/:id :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });

@@ -35,16 +35,16 @@ export default function ProjectCard({ project }) {
       <div className="project-card__body">
         <h3 className="project-card__title">{project.title}</h3>
         <div className="project-card__figures">
-          {project.offerDelay && (
+          {project.sellPrice && (
             <span className="text-body-sm project-card__figure">
-              Offre émise J+{project.offerDelay}
+              {project.sellPrice}
             </span>
           )}
-          {project.buyPrice && (
+          {project.offerDelay && (
             <>
               <span className="project-card__dot" aria-hidden="true">·</span>
               <span className="text-body-sm project-card__figure">
-                {project.buyPrice}
+                Offre J+{project.offerDelay}
               </span>
             </>
           )}
