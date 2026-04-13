@@ -27,11 +27,13 @@ const PROPERTIES = [
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Rez-de-chaussée, accès direct à l'extérieur. C'est le seul appartement de l'immeuble à avoir son propre espace extérieur : 10 m² privatifs, de plain-pied avec le séjour, sans vis-à-vis.
+    description: `C'est le seul appartement de l'immeuble avec un espace extérieur privatif : 10 m² de plain-pied avec le séjour, sans vis-à-vis. Rez-de-chaussée, accès direct.
 
-L'intérieur est simple et bien distribué. Un séjour-cuisine de 26 m² lumineux qui ouvre directement sur l'extérieur, sans marche, sans seuil. Une chambre de 10,2 m² côté cour, au calme. Chauffage collectif, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
+Le séjour-cuisine de 26 m² est lumineux et ouvre sur l'extérieur sans marche, sans seuil. L'été, on pose la table dehors et on mange à l'air libre. L'hiver, la lumière traverse le séjour toute la journée. La chambre de 10,2 m² donne côté cour, au calme. Chauffage collectif, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
 
-L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logements de qualité. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 95 000 € vous achetez avant travaux et vous choisissez vos finitions, à 130 000 € on vous livre prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.`,
+L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logements de qualité. Finitions soignées : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 95 000 € vous achetez avant travaux et vous choisissez vos finitions, à 130 000 € on vous livre prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.
+
+Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Espace extérieur privatif 10 m², de plain-pied',
@@ -65,11 +67,13 @@ L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logement
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Le premier étage, c'est celui qui a le plus grand volume habitable. 82 m² répartis simplement : un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. L'appartement est issu d'un ancien plateau de bureaux. C'est ce qui explique les volumes : pas de mur porteur au milieu, pas de couloir qui mange la surface. Tout l'espace est utile.
+    description: `82 m² d'un seul tenant, sans couloir qui mange la surface, sans mur porteur au milieu. C'est ce que donne un ancien plateau de bureaux quand on le transforme bien. Un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. Tout l'espace est utile.
 
 Le séjour donne une vraie liberté d'aménagement. Table de 8, canapé d'angle, coin bureau, tout rentre sans compromis. Les deux chambres sont séparées du séjour, chacune avec sa fenêtre. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
 
-L'immeuble, ancien bâtiment de bureaux, est entièrement repris par Versi et transformé en 3 logements de qualité. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 165 000 € avant travaux ou 230 000 € livré prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.`,
+Ancien bâtiment de bureaux transformé en 3 logements de qualité par Versi. Sols en parquet contrecollé chêne, double vitrage sur toutes les menuiseries, salle d'eau grand format, cuisine pré-équipée. À 165 000 € avant travaux ou 230 000 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
+
+Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine de 40,5 m² sans cloisonnement',
@@ -103,11 +107,13 @@ L'immeuble, ancien bâtiment de bureaux, est entièrement repris par Versi et tr
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Les deux derniers étages de l'immeuble, pour un seul appartement. 126 m² répartis sur deux niveaux, avec une terrasse de 12 m² donnant sur l'église du quartier. En haut, le plafond cathédrale donne au séjour une hauteur qu'on ne trouve pas dans du logement standard.
+    description: `Terrasse de 12 m² donnant sur l'église du quartier. Vue sur pierre, pas sur fenêtres d'immeuble. En haut, un plafond cathédrale qui donne au séjour une hauteur qu'on ne retrouve nulle part ailleurs dans l'immeuble. Les deux derniers étages, pour un seul appartement : 126 m² sur deux niveaux.
 
-En bas : trois chambres de 15 m² chacune et une salle d'eau. En haut : un séjour-cuisine de 47 m² sous les toits, lumineux, avec accès direct à la terrasse. C'est un vrai appartement familial, avec de la place pour chacun et un espace commun où l'on respire. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
+En bas : trois chambres de 15 m² chacune, chaque chambre indépendante, chacun son espace, et une salle d'eau. En haut : un séjour-cuisine de 47 m² sous les toits, lumineux, avec accès direct à la terrasse. On prend le café dehors le matin avec vue sur le clocher, on reçoit des amis le soir dans un séjour où personne n'est à l'étroit. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
 
-L'immeuble entier, ancien bâtiment de bureaux, est transformé par Versi en 3 logements de qualité. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 250 000 € avant travaux ou 355 000 € livré prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.`,
+L'immeuble, ancien bâtiment de bureaux, est intégralement transformé par Versi en 3 logements de qualité. Chaque finition est choisie pour durer : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 250 000 € avant travaux ou 355 000 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
+
+Pour visiter le duplex ou recevoir la plaquette détaillée, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Duplex 126 m² sur deux niveaux',
