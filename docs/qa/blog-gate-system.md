@@ -549,16 +549,362 @@ Quand le pipeline autonome genere un article (vi-blog-autonomous-pipeline.md, et
 
 ## 6. Gate runner — implementation
 
-[A REMPLIR]
+### 6.1 Architecture modulaire
+
+Le gate runner est une fonction Node.js qui orchestre l'exécution séquentielle des gates par catégorie.
+
+```js
+// gate-runner.js — orchestrateur de gates
+
+const GATE_REGISTRY = {
+  auto: ['V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17','V18','V19','V20','V21','V22'],
+  ia: ['GE-1','GE-2','GE-3','GE-4','GE-5','GS-1','GS-2','GS-3','GP-1','GP-2','GP-3'],
+  human: ['GH-1','GH-2','GH-3','GH-4'],
+};
+
+async function runGates(articleId, pool) {
+  const { rows } = await pool.query('SELECT * FROM blog_articles WHERE id = $1', [articleId]);
+  if (!rows.length) throw new Error('Article non trouvé');
+  const article = rows[0];
+  const brief = article.brief_json || {};
+
+  const results = {};
+
+  // 1. Gates auto (V1-V22) — exécution synchrone, ~10ms total
+  const autoResults = runAutoGates(article, brief);
+  Object.assign(results, autoResults);
+
+  // 2. Gates IA (GE/GS/GP) — appels Claude, ~15s total
+  const iaResults = await runIAGates(article, brief);
+  Object.assign(results, iaResults);
+
+  // 3. Gates humaines — marquées pending si déclenchées
+  const humanResults = resolveHumanGates(article, brief, results);
+  Object.assign(results, humanResults);
+
+  // 4. Calcul du statut global
+  const blockingFails = Object.entries(results)
+    .filter(([, g]) => g.classe === 'BLOQUANT' && g.pass === false);
+  const pendingHuman = Object.entries(results)
+    .filter(([, g]) => g.pass === null);
+
+  const gateStatus = blockingFails.length > 0 ? 'fail'
+    : pendingHuman.length > 0 ? 'pending_human'
+    : 'pass';
+
+  // 5. Persistence
+  await pool.query(
+    `UPDATE blog_articles SET gate_results = $1, gate_status = $2 WHERE id = $3`,
+    [JSON.stringify(results), gateStatus, articleId]
+  );
+
+  return { gateStatus, results, blockingFails: blockingFails.map(([k]) => k), pendingHuman: pendingHuman.map(([k]) => k) };
+}
+```
+
+### 6.2 Gates auto (V1-V22)
+
+```js
+function runAutoGates(article, brief) {
+  const content = article.content || '';
+  const results = {};
+
+  // V1 — Mots interdits
+  const FORBIDDEN = ['Expertise', 'Clé en main', 'Solutions', 'Découvrez', "N'hésitez pas", 'Bienvenue'];
+  const found = FORBIDDEN.filter(w => content.toLowerCase().includes(w.toLowerCase()));
+  results['V1'] = { pass: found.length === 0, label: 'Mots interdits absents', detail: found.length ? `Trouvés : ${found.join(', ')}` : null, classe: 'BLOQUANT' };
+
+  // V2 — Zéro exclamation
+  const exclCount = (content.match(/!/g) || []).length;
+  results['V2'] = { pass: exclCount === 0, label: 'Zéro point d\'exclamation', detail: exclCount ? `${exclCount} occurrence(s)` : null, classe: 'BLOQUANT' };
+
+  // V3 — Vouvoiement
+  const tuMatch = content.match(/\b(tu |ton |ta |tes |toi )/gi) || [];
+  results['V3'] = { pass: tuMatch.length === 0, label: 'Vouvoiement systématique', detail: tuMatch.length ? `Tutoiement détecté : ${tuMatch.slice(0,3).join(', ')}` : null, classe: 'BLOQUANT' };
+
+  // V4-V6 — Requête cible dans H1, chapeau, H2
+  const mainQuery = (brief.seo?.main_query || '').toLowerCase();
+  const h1Match = content.match(/^#\s+(.+)/m);
+  const h1Text = h1Match ? h1Match[1].toLowerCase() : '';
+  results['V4'] = { pass: mainQuery && h1Text.includes(mainQuery), label: 'Requête cible dans H1', detail: null, classe: 'BLOQUANT' };
+
+  const firstPara = content.split('\n\n').find(p => p && !p.startsWith('#')) || '';
+  results['V5'] = { pass: mainQuery && firstPara.toLowerCase().includes(mainQuery), label: 'Requête cible dans chapeau', detail: null, classe: 'BLOQUANT' };
+
+  const h2s = (content.match(/^##\s+(.+)/gm) || []).map(h => h.toLowerCase());
+  const h2Matches = h2s.filter(h => h.includes(mainQuery)).length;
+  results['V6'] = { pass: h2Matches >= 2, label: 'Requête cible dans >= 2 H2', detail: `${h2Matches} H2 contiennent la requête`, classe: 'BLOQUANT' };
+
+  // V7 — Longueur
+  const wordCount = content.split(/\s+/).filter(Boolean).length;
+  const target = brief.editorial?.word_count_target || 1000;
+  const tolerance = target * 0.1;
+  results['V7'] = { pass: wordCount >= target - tolerance && wordCount <= target + tolerance, label: 'Longueur dans fourchette', detail: `${wordCount} mots (cible ${target})`, classe: 'REQUIS' };
+
+  // V8 — Nombre de H2
+  const h2Count = h2s.length;
+  results['V8'] = { pass: h2Count >= 3 && h2Count <= 5, label: 'Nombre de H2 conforme (3-5)', detail: `${h2Count} H2`, classe: 'REQUIS' };
+
+  // V9 — CTA présent
+  const ctaUrl = brief.conversion?.cta_url || '/nos-biens';
+  results['V9'] = { pass: content.includes(ctaUrl), label: 'CTA présent avec bonne URL', detail: null, classe: 'BLOQUANT' };
+
+  // V10 — Liens internes blog
+  const internalLinks = (content.match(/\/blog\/[a-z0-9-]+/g) || []).length;
+  results['V10'] = { pass: internalLinks >= 1, label: 'Liens internes présents', detail: `${internalLinks} lien(s)`, classe: 'REQUIS' };
+
+  // V11 — Slug conforme
+  const slug = article.slug || '';
+  results['V11'] = { pass: /^[a-z0-9-]+$/.test(slug), label: 'Slug conforme', detail: slug, classe: 'BLOQUANT' };
+
+  // V12 — Frontmatter complet (vérif via brief_json)
+  const requiredFields = ['title', 'slug', 'excerpt', 'author'];
+  const missingFields = requiredFields.filter(f => !article[f]);
+  results['V12'] = { pass: missingFields.length === 0, label: 'Frontmatter complet', detail: missingFields.length ? `Manquants : ${missingFields.join(', ')}` : null, classe: 'BLOQUANT' };
+
+  // V13 — Zéro placeholder
+  const placeholders = content.match(/\{\{[A-Z_]+\}\}|\[A REMPLIR\]|\[TODO\]|\[PLACEHOLDER\]/g) || [];
+  results['V13'] = { pass: placeholders.length === 0, label: 'Zéro placeholder résiduel', detail: placeholders.length ? placeholders.join(', ') : null, classe: 'BLOQUANT' };
+
+  // V14 — Paragraphes <= 5 lignes
+  const longParas = content.split('\n\n').filter(p => p.split('\n').length > 5 && !p.startsWith('#'));
+  results['V14'] = { pass: longParas.length === 0, label: 'Paragraphes <= 5 lignes', detail: longParas.length ? `${longParas.length} paragraphe(s) trop longs` : null, classe: 'REQUIS' };
+
+  // V15 — Intro non molle
+  const mollePatterns = /^(dans le monde|vous vous demandez|il est important|de nos jours|aujourd'hui plus que jamais)/i;
+  results['V15'] = { pass: !mollePatterns.test(firstPara.trim()), label: 'Premier paragraphe sans intro molle', detail: null, classe: 'REQUIS' };
+
+  // V16 — Données chiffrées sourcées (semi-auto)
+  const numbers = content.match(/\d[\d\s]*[€%m²]/g) || [];
+  const sourcedNumbers = content.match(/\d[\d\s]*[€%m²].*?\(.*?source|selon|d'après/gi) || [];
+  results['V16'] = { pass: numbers.length === 0 || sourcedNumbers.length > 0, label: 'Données chiffrées sourcées', detail: `${numbers.length} chiffres, ${sourcedNumbers.length} sourcés`, classe: 'REQUIS' };
+
+  // V17-V18 — Meta title/description
+  const metaTitle = brief.seo?.meta_title || article.title || '';
+  const metaDesc = brief.seo?.meta_description || article.excerpt || '';
+  results['V17'] = { pass: metaTitle.length <= 60, label: 'Meta title <= 60 chars', detail: `${metaTitle.length} chars`, classe: 'BLOQUANT' };
+  results['V18'] = { pass: metaDesc.length <= 155, label: 'Meta description <= 155 chars', detail: `${metaDesc.length} chars`, classe: 'BLOQUANT' };
+
+  // V19 — Canonical
+  results['V19'] = { pass: !!article.slug, label: 'Canonical présent', detail: `/blog/${article.slug}`, classe: 'BLOQUANT' };
+
+  // V20 — Image alt
+  const imageAlt = brief.technique?.image_alt || '';
+  results['V20'] = { pass: imageAlt.length > 0 && (!mainQuery || imageAlt.toLowerCase().includes(mainQuery)), label: 'image_alt contient requête', detail: imageAlt || 'absent', classe: 'REQUIS' };
+
+  // V21 — Lien transactionnel
+  const transLinks = content.match(/\/(nos-biens|vendre|contact|realisations)/g) || [];
+  results['V21'] = { pass: transLinks.length >= 1, label: 'Lien vers page transactionnelle', detail: `${transLinks.length} lien(s)`, classe: 'REQUIS' };
+
+  // V22 — Schema.org BlogPosting
+  const schemaFields = ['title', 'author', 'excerpt'].filter(f => !article[f]);
+  results['V22'] = { pass: schemaFields.length === 0, label: 'Schema.org BlogPosting complet', detail: schemaFields.length ? `Manquants : ${schemaFields.join(', ')}` : null, classe: 'BLOQUANT' };
+
+  return results;
+}
+```
+
+### 6.3 Gates IA (GE/GS/GP)
+
+```js
+async function runIAGates(article, brief) {
+  const results = {};
+  const content = article.content || '';
+  const persona = brief.editorial?.persona || 'Kévin';
+
+  const IA_GATES = [
+    { id: 'GE-1', label: 'Ton conforme à la brand voice', classe: 'BLOQUANT',
+      prompt: `Évalue si cet article respecte la brand voice Versi Immobilier : confiant, direct, zéro blabla, premium par la substance. Vouvoiement systématique. Aucun superlatif auto-décerné. Score 1-10 et verdict PASS (>=7) ou FAIL.` },
+    { id: 'GE-2', label: 'Zéro formule générique IA', classe: 'BLOQUANT',
+      prompt: `Détecte les formules typiques de contenu IA : "en conclusion", "il est important de noter", "ainsi", "en effet", "n'hésitez pas", "il convient de". Liste chaque occurrence. PASS si 0, FAIL si >= 1.` },
+    { id: 'GE-3', label: 'Valeur actionnable pour le lecteur', classe: 'REQUIS',
+      prompt: `Le lecteur repart-il avec au moins 1 information concrète et actionnable (chiffre, processus, adresse, délai) ? Score 1-10, PASS >= 7.` },
+    { id: 'GE-4', label: 'Cohérence argumentaire', classe: 'REQUIS',
+      prompt: `La structure argumentaire est-elle logique ? Pas de saut logique ni contradiction interne. Score 1-10, PASS >= 7.` },
+    { id: 'GE-5', label: 'Chapeau accrocheur', classe: 'REQUIS',
+      prompt: `Le premier paragraphe entre-t-il directement dans le sujet ? Pas de banalité ni définition Wikipedia. Score 1-10, PASS >= 7.` },
+    { id: 'GS-1', label: 'Alignement persona cible', classe: 'BLOQUANT',
+      prompt: `Cet article s'adresse-t-il clairement au persona ${persona} avec son vocabulaire et ses préoccupations ? Score 1-10, PASS >= 7.` },
+    { id: 'GS-2', label: 'Positionnement Versi visible', classe: 'REQUIS',
+      prompt: `Versi Immobilier est-il positionné comme opérateur crédible sans autopromotion excessive ? Score 1-10, PASS >= 7.` },
+    { id: 'GS-3', label: 'Différenciation vs contenu générique', classe: 'REQUIS',
+      prompt: `Cet article apporte-t-il un angle ou des données que seul un marchand de biens actif pourrait fournir ? Score 1-10, PASS >= 7.` },
+    { id: 'GP-1', label: 'Compréhension immédiate', classe: 'BLOQUANT',
+      prompt: `En tant que ${persona}, je comprends en 10 secondes de quoi parle cet article et pourquoi ça me concerne. Score 1-10, PASS >= 7.` },
+    { id: 'GP-2', label: 'Crédibilité perçue', classe: 'BLOQUANT',
+      prompt: `En tant que ${persona}, cet article me donne confiance. Les affirmations sont étayées. Score 1-10, PASS >= 7.` },
+    { id: 'GP-3', label: 'Utilité perçue', classe: 'REQUIS',
+      prompt: `En tant que ${persona}, je trouve cet article utile pour mon projet immobilier. Score 1-10, PASS >= 7.` },
+  ];
+
+  // Batch en un seul appel Claude pour économiser les tokens
+  const batchPrompt = IA_GATES.map((g, i) =>
+    `[${g.id}] ${g.prompt}`
+  ).join('\n\n');
+
+  const systemPrompt = `Tu es un évaluateur qualité pour le blog de Versi Immobilier (marchand de biens Lille). Pour chaque gate ci-dessous, évalue l'article fourni. Réponds EXACTEMENT en JSON : {"gates": [{"id": "GE-1", "score": 8, "pass": true, "detail": "..."}, ...]}. Seuil PASS = score >= 7.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `ARTICLE :\n${content}\n\nGATES À ÉVALUER :\n${batchPrompt}` }],
+      }),
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      for (const gate of parsed.gates || []) {
+        const def = IA_GATES.find(g => g.id === gate.id);
+        if (def) {
+          results[gate.id] = {
+            pass: gate.pass,
+            label: def.label,
+            detail: `Score IA : ${gate.score}/10 — ${gate.detail || ''}`,
+            classe: def.classe,
+          };
+        }
+      }
+    }
+  } catch (err) {
+    // Fallback : toutes les gates IA en pending si l'API échoue
+    for (const g of IA_GATES) {
+      results[g.id] = { pass: null, label: g.label, detail: `Erreur API : ${err.message}`, classe: g.classe };
+    }
+  }
+
+  return results;
+}
+```
+
+### 6.4 Gates humaines
+
+```js
+function resolveHumanGates(article, brief, currentResults) {
+  const results = {};
+  const pillar = brief.editorial?.pillar || '';
+  const requiresProprietary = brief.editorial?.requires_proprietary_data || false;
+  const autoScore = Object.values(currentResults).filter(g => g.pass === true).length;
+  const autoTotal = Object.values(currentResults).length;
+
+  // GH-1 — Validation fondateur si pilier P2 (réalisation terrain)
+  if (pillar === 'P2') {
+    results['GH-1'] = { pass: null, label: 'Validation fondateur (P2)', detail: 'En attente — article réalisation terrain', classe: 'BLOQUANT' };
+  }
+
+  // GH-2 — Données propriétaires
+  if (requiresProprietary) {
+    results['GH-2'] = { pass: null, label: 'Validation données propriétaires', detail: 'En attente — chiffres Versi à vérifier', classe: 'BLOQUANT' };
+  }
+
+  // GH-3 — Escalade si score auto < 100% après 2 passes
+  if (autoScore < autoTotal) {
+    const passCount = article.gate_pass_count || 0;
+    if (passCount >= 2) {
+      results['GH-3'] = { pass: null, label: 'Escalade échec auto', detail: `Score ${autoScore}/${autoTotal} après ${passCount} passes`, classe: 'REQUIS' };
+    }
+  }
+
+  // GH-4 — Prévisualisation mobile (toujours requise)
+  results['GH-4'] = { pass: null, label: 'Prévisualisation mobile', detail: 'À valider dans l\'admin UI', classe: 'REQUIS' };
+
+  return results;
+}
+```
 
 ---
 
 ## 7. Specs admin UI
 
-[A REMPLIR]
+### 7.1 Page liste des articles — colonne gate_status
+
+Ajouter une colonne "Gates" dans le tableau admin existant (`AdminArticles.jsx`) :
+
+| Statut | Affichage | Couleur |
+|--------|-----------|---------|
+| `null` | — | gris |
+| `running` | En cours... | jaune clignotant |
+| `pass` | PASS (30/30) | vert |
+| `fail` | FAIL (27/30) | rouge |
+| `pending_human` | En attente (29/30) | orange |
+| `override` | Override | bleu |
+
+### 7.2 Page détail article — panneau de gates
+
+Sous le formulaire d'édition, ajouter un panneau "Validation" :
+
+```
+┌─────────────────────────────────────────────────┐
+│  Validation                    [Lancer les gates]│
+├─────────────────────────────────────────────────┤
+│  SEO (V1-V22)           22/22  ●                │
+│  ├ V1  Mots interdits          PASS             │
+│  ├ V2  Zéro exclamation        PASS             │
+│  └ ...                                          │
+│                                                 │
+│  Éditorial (GE-1 à GE-10)     8/10  ●          │
+│  ├ GE-1 Accroche              PASS  8/10        │
+│  ├ GE-2 Brand voice           PASS  9/10        │
+│  └ GE-3 Spécificité Versi     FAIL  5/10        │
+│         "Aucune donnée propriétaire Versi"       │
+│         [Override ▼]                             │
+│                                                 │
+│  Stratégique (GS-1 à GS-3)    3/3   ●          │
+│  Persona (GP-1 à GP-3)        3/3   ●          │
+│                                                 │
+│  Humain (GH-1 à GH-4)         1/2   ◐          │
+│  ├ GH-1 Validation fondateur  ◐ EN ATTENTE     │
+│  │       [Valider] [Rejeter]                     │
+│  └ GH-4 Prévisualisation      ✓ Validé          │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│  Statut global : PENDING HUMAN                  │
+│  Bloquant : 0 FAIL | Humain : 1 en attente     │
+│                                                 │
+│  [Publier]  (désactivé tant que gates != pass)  │
+└─────────────────────────────────────────────────┘
+```
+
+### 7.3 Interactions
+
+- **Lancer les gates** : appel `POST /api/admin/blog/:id/validate`, affiche un spinner, puis met à jour le panneau
+- **Override** : dropdown → "Override (fondateur)" → appel `PATCH /api/admin/blog/:id/gates/:gateId` avec `pass: true, override: true, reason: "..."`
+- **Valider/Rejeter** (gates humaines) : appel `PATCH /api/admin/blog/:id/gates/:gateId` avec `pass: true/false`
+- **Publier** : bouton actif uniquement si `gate_status === 'pass'` ou `gate_status === 'override'`. Sinon grisé avec tooltip "Toutes les gates doivent être PASS"
 
 ---
 
 ## 8. Handoff
 
-[A REMPLIR]
+**Fichiers produits :**
+- `docs/qa/blog-gate-system.md` — architecture technique complète (ce fichier)
+- `docs/qa/blog-gates-editorial.md` — gates éditoriales par @copywriter
+
+**Handoff → @fullstack — ordre d'implémentation :**
+
+1. **Migration SQL** : ajouter `gate_results JSONB`, `gate_status TEXT`, `brief_json JSONB`, `scheduled_at TIMESTAMP` à `blog_articles` (section 2.4)
+2. **Gate runner** : implémenter `runGates()`, `runAutoGates()`, `runIAGates()`, `resolveHumanGates()` dans un fichier `gate-runner.js` (section 6)
+3. **Endpoint `POST /validate`** : brancher le gate runner (section 4.1)
+4. **Endpoint `GET /gates`** : lecture simple du champ `gate_results` (section 4.2)
+5. **Endpoint `PATCH /gates/:gateId`** : override humain (section 4.3)
+6. **Modifier `PATCH /publish`** : refuser si `gate_status !== 'pass' && gate_status !== 'override'` (section 4.4)
+7. **Admin UI** : panneau de gates dans `AdminArticleForm.jsx` (section 7)
+8. **Cron publication** : publier les articles `scheduled_at <= NOW() AND gate_status = 'pass'` (section 5.3)
+9. **Intégration gates @copywriter** : ajouter les 10 gates GE du prompt de review éditorial (`docs/qa/blog-gates-editorial.md`)
+
+**Points d'attention :**
+- Les gates IA nécessitent `ANTHROPIC_API_KEY` en variable d'environnement
+- Utiliser `claude-sonnet-4-6` pour les gates IA (coût optimisé vs qualité suffisante)
+- Les gates humaines ne bloquent PAS le pipeline autonome si aucune condition de déclenchement n'est remplie (ex: article P1 sans données propriétaires → pas de GH-1 ni GH-2)
+- Le bouton "Publier" doit être visuellement distinct selon `gate_status` : vert si pass, grisé si fail/pending
