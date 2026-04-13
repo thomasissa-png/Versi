@@ -30,19 +30,13 @@ export default function Nav() {
   const isHome = location.pathname === '/';
 
   useEffect(() => {
-    if (!isHome) {
-      setScrolled(true);
-      return;
-    }
     const onScroll = () => {
-      const heroEl = document.getElementById('hero');
-      const threshold = heroEl ? heroEl.offsetHeight - 80 : 400;
-      setScrolled(window.scrollY >= threshold);
+      setScrolled(window.scrollY > 40);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, [isHome]);
+  }, []);
 
   // Focus trap in mobile menu
   useEffect(() => {
