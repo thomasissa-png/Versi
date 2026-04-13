@@ -10,9 +10,9 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const PROJECT = {
   id: 'nanterre-barbusse',
-  title: 'Nanterre Barbusse — Bâtiment administratif, 200 m²',
+  title: 'Nanterre Barbusse — Loft 7 pièces, 200 m²',
   city: 'Nanterre',
-  type: 'Bâtiment administratif désaffecté — réhabilitation en loft 7 pièces',
+  type: 'Réhabilitation complète en loft 7 pièces avec patio privatif',
   surface: '200 m²',
   units: 1,
   status: 'completed',

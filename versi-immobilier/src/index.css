@@ -607,6 +607,20 @@ ul, ol {
   color: var(--color-text-muted);
 }
 
+.property-detail__map {
+  width: 100%;
+  height: 400px;
+  border: 0;
+  border-radius: var(--card-radius);
+  margin-top: var(--spacing-md);
+}
+
+@media (max-width: 767px) {
+  .property-detail__map {
+    height: 300px;
+  }
+}
+
 /* Diagnostics grid */
 .property-detail__diagnostics {
   display: grid;
@@ -670,7 +684,7 @@ ul, ol {
   line-height: 1.5;
 }
 
-/* Double pricing (avant travaux / clé en main) */
+/* Double pricing (avant travaux / prêt à habiter) */
 .property-price-card__dual {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1101,8 +1115,8 @@ ul, ol {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  height: 60%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
   pointer-events: none;
 }
 
@@ -1112,6 +1126,10 @@ ul, ol {
   max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
+}
+
+.realisation-detail__hero-content h1 {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .realisation-detail__key-figures {
@@ -1285,9 +1303,13 @@ ul, ol {
   }
 
   .realisation-detail__key-figures {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-xl) var(--spacing-lg);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .realisation-detail__figure-value {
+    font-size: var(--font-size-display-num-mobile);
   }
 
   .realisation-detail__ctas {

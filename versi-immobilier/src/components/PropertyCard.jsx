@@ -61,8 +61,8 @@ export default function PropertyCard({ property }) {
         <span className="property-card__price">{property.price}</span>
         {property.priceNote && (
           <span className="text-body-sm property-card__price-note">
-            {property.priceNote.includes('clé en main')
-              ? property.priceNote.split('.').find(s => /cl[eé]\s+en\s+main/i.test(s))?.trim()
+            {property.priceNote.includes('prêt à habiter')
+              ? property.priceNote.split('.').find(s => /pr[eê]t\s+[àa]\s+habiter/i.test(s))?.trim()
               : property.priceNote.split('.')[0]?.trim()
             }
           </span>
@@ -70,9 +70,9 @@ export default function PropertyCard({ property }) {
         <Link
           to={`/nos-biens/${property.id}`}
           className="text-cta property-card__link"
-          aria-label={`Découvrir ce lot : ${property.title}`}
+          aria-label={`Voir ce bien : ${property.title}`}
         >
-          Découvrir ce lot →
+          Voir ce bien →
         </Link>
       </div>
     </article>

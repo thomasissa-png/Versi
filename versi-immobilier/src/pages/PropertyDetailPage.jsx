@@ -81,14 +81,14 @@ export default function PropertyDetailPage() {
   const badgeClass = STATUS_BADGE_CLASS[property.status] || '';
 
   /* Interprétation du price_note pour la double grille prix */
-  /* Détecte "avant travaux" + "clé en main : XXX €" dans la note */
+  /* Détecte "avant travaux" + "prêt à habiter : XXX €" dans la note */
   const parseDualPricing = (note, mainPrice) => {
     if (!note) return null;
-    // Format: "Prix avant travaux, ... Option clé en main ... : 130 000 € ..."
+    // Format: "Prix avant travaux, ... Option prêt à habiter : 130 000 € ..."
     const isAvantTravaux = /avant\s+travaux/i.test(note);
-    const cleEnMainMatch = note.match(/cl[eé]\s+en\s+main[^:]*:\s*([\d\s]+\s*€)/i);
-    if (isAvantTravaux && cleEnMainMatch) {
-      return { avantTravaux: mainPrice, cleEnMain: cleEnMainMatch[1].trim() };
+    const pretMatch = note.match(/pr[eê]t\s+[àa]\s+habiter[^:]*:\s*([\d\s]+\s*€)/i);
+    if (isAvantTravaux && pretMatch) {
+      return { avantTravaux: mainPrice, pretAHabiter: pretMatch[1].trim() };
     }
     return null;
   };
@@ -251,6 +251,21 @@ export default function PropertyDetailPage() {
                       <strong>À proximité :</strong> {property.nearbyAmenities}
                     </p>
                   )}
+                  {/* Carte OpenStreetMap — coordonnées 10 rue des Muguets, Lille */}
+                  {property.address && /muguets/i.test(property.address) && (() => {
+                    const lat = 50.6150;
+                    const lng = 3.0580;
+                    const bbox = `${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}`;
+                    return (
+                      <iframe
+                        title="Carte de l'emplacement"
+                        className="property-detail__map"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`}
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Diagnostics & charges — masqué si aucune donnée */}
@@ -288,7 +303,7 @@ export default function PropertyDetailPage() {
                   <span className="property-price-card__label">Prix</span>
                   <span className="property-price-card__price">{property.price}</span>
 
-                  {/* Double pricing si priceNote contient "avant travaux / clé en main" */}
+                  {/* Double pricing si priceNote contient "avant travaux / prêt à habiter" */}
                   {dualPricing ? (
                     <div className="property-price-card__dual">
                       <div className="property-price-card__dual-row">
@@ -296,8 +311,8 @@ export default function PropertyDetailPage() {
                         <span className="property-price-card__dual-value">{dualPricing.avantTravaux}</span>
                       </div>
                       <div className="property-price-card__dual-row">
-                        <span className="property-price-card__dual-label">Clé en main</span>
-                        <span className="property-price-card__dual-value">{dualPricing.cleEnMain}</span>
+                        <span className="property-price-card__dual-label">Prêt à habiter</span>
+                        <span className="property-price-card__dual-value">{dualPricing.pretAHabiter}</span>
                       </div>
                     </div>
                   ) : property.priceNote ? (

@@ -12,7 +12,7 @@ export default function RealisationDetailPage() {
   const { project, photos, loading, error } = useProject(id);
   const { projects: allProjectsRaw } = useProjects('completed');
   const { ref, isVisible } = useFadeIn();
-  const [galleryView, setGalleryView] = useState('avant');
+  const [galleryView, setGalleryView] = useState('apres');
   const [photoIndex, setPhotoIndex] = useState(0);
   const [fadeKey, setFadeKey] = useState(0);
 
@@ -76,8 +76,8 @@ export default function RealisationDetailPage() {
 
   const keyFigures = [
     { label: 'Prix de vente', value: project.sellPrice || 'Confidentiel' },
-    { label: 'Délai offre', value: project.offerDelay ? `J+${project.offerDelay}` : null },
-    { label: 'Acte authentique', value: project.signatureDelay ? `J+${project.signatureDelay}` : null },
+    { label: 'Durée chantier', value: project.duration || null },
+    { label: 'Surface', value: project.surface || null },
   ].filter((fig) => fig.value);
 
   const otherProjects = allProjectsRaw.filter(
@@ -168,21 +168,21 @@ export default function RealisationDetailPage() {
               >
                 <button
                   role="tab"
-                  aria-selected={galleryView === 'avant'}
-                  aria-controls="gallery-panel"
-                  onClick={() => handleViewChange('avant')}
-                  className={`text-label realisation-detail__toggle-btn${galleryView === 'avant' ? ' realisation-detail__toggle-btn--active' : ''}`}
-                >
-                  Avant{avantPhotos.length > 0 && ` (${avantPhotos.length})`}
-                </button>
-                <button
-                  role="tab"
                   aria-selected={galleryView === 'apres'}
                   aria-controls="gallery-panel"
                   onClick={() => handleViewChange('apres')}
                   className={`text-label realisation-detail__toggle-btn${galleryView === 'apres' ? ' realisation-detail__toggle-btn--active' : ''}`}
                 >
                   Après{apresPhotos.length > 0 && ` (${apresPhotos.length})`}
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={galleryView === 'avant'}
+                  aria-controls="gallery-panel"
+                  onClick={() => handleViewChange('avant')}
+                  className={`text-label realisation-detail__toggle-btn${galleryView === 'avant' ? ' realisation-detail__toggle-btn--active' : ''}`}
+                >
+                  Avant{avantPhotos.length > 0 && ` (${avantPhotos.length})`}
                 </button>
               </div>
 
