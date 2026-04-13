@@ -20,6 +20,7 @@ La fréquence cible est 1 à 2 articles par mois, comme recommandé par @growth.
 2. [Brief-type auto-générable](#2-brief-type-auto-générable)
 3. [Prompt système de génération](#3-prompt-système-de-génération)
 4. [Logique de renouvellement du calendrier éditorial](#4-logique-de-renouvellement-du-calendrier-éditorial)
+4bis. [Boucle de feedback — apprentissage des erreurs récurrentes](#4bis-boucle-de-feedback--apprentissage-des-erreurs-récurrentes)
 5. [Mécanisme de validation automatique](#5-mécanisme-de-validation-automatique)
 6. [Recommandations pour @fullstack](#6-recommandations-pour-fullstack)
 
@@ -176,7 +177,88 @@ Le champ `requires_proprietary_data` est `false`. Le pipeline s'exécute sans PA
 **Cas 2 — Article qui nécessite des données propriétaires** (ex : A3 rue des Muguets, A11 vendre à un MDB)
 Le champ `requires_proprietary_data` est `true`. La table `operations` doit avoir une entrée correspondante avec les champs requis. Si l'entrée est incomplète : PAUSE, email fondateur.
 
-### 2.4 Template de brief JSON (output de l'étape 2)
+### 2.4 Mémoire éditoriale — injection de contexte historique dans le brief
+
+**Pourquoi c'est indispensable :** après 15 articles, sans mémoire, le pipeline peut légitimement réécrire les mêmes exemples, réutiliser les mêmes opérations Versi comme illustrations, répéter les mêmes formulations d'ouverture. Le blog perd son identité et Google détecte le contenu thin/dupliqué interne.
+
+**Mécanisme :** à l'étape 2 (hydratation du brief), le pipeline injecte dans le brief JSON un champ `editorial_memory` construit depuis la table `articles`. Ce champ est transmis au prompt système sous la variable `{{EDITORIAL_MEMORY}}` et déclenche une instruction de différenciation active.
+
+**Table `editorial_memory` — données extraites automatiquement**
+
+```sql
+-- Résumé éditorial pour le prompt : exécuté avant chaque génération
+SELECT
+  code,
+  pillar,
+  h1,
+  -- Les 3 premiers mots de chaque H2 (signal d'angle couvert)
+  SUBSTRING(h2_1, 1, 40) AS h2_1_short,
+  SUBSTRING(h2_2, 1, 40) AS h2_2_short,
+  -- Données terrain utilisées (pour éviter de citer la même opération deux fois)
+  proprietary_data_ref,
+  published_at
+FROM articles
+WHERE status = 'published'
+ORDER BY published_at DESC
+LIMIT 20;
+-- Limite à 20 pour ne pas exploser le contexte prompt. Les plus récents en premier.
+```
+
+**Champ `editorial_memory` dans le brief JSON :**
+
+```json
+"editorial_memory": {
+  "published_articles_summary": [
+    {
+      "code": "A1",
+      "pillar": "P1",
+      "h1": "Marchand de biens : ce que ça veut vraiment dire",
+      "angles_covered": ["définition légale", "différence avec promoteur", "rôle en copropriété"],
+      "proprietary_data_ref": null
+    },
+    {
+      "code": "A3",
+      "pillar": "P2",
+      "h1": "La rue des Muguets : 4 appartements, 8 mois, les vrais chiffres",
+      "angles_covered": ["budget travaux poste par poste", "délai réel vs estimé", "prix de revente"],
+      "proprietary_data_ref": "operations.id=1"
+    }
+  ],
+  "angles_to_avoid": [
+    "Ne pas redéfinir ce qu'est un marchand de biens (couvert en A1)",
+    "Ne pas réutiliser l'opération rue des Muguets comme exemple principal (article A3 dédié)"
+  ],
+  "exemplary_anchors_used": [
+    "rue des Muguets",
+    "Fives, Lille"
+  ]
+}
+```
+
+**Instruction injectée dans le prompt système via `{{EDITORIAL_MEMORY}}` :**
+
+```
+═══════════════════════════════════════
+MÉMOIRE ÉDITORIALE — DIFFÉRENCIATION ACTIVE
+═══════════════════════════════════════
+
+Le blog Versi a déjà publié les articles suivants. Cet article DOIT s'en distinguer sur les angles, les exemples et les formulations d'ouverture.
+
+Articles déjà publiés :
+{{EDITORIAL_MEMORY.published_articles_summary}}
+
+Angles à ne pas reprendre :
+{{EDITORIAL_MEMORY.angles_to_avoid}}
+
+Exemples et lieux déjà utilisés comme ancres :
+{{EDITORIAL_MEMORY.exemplary_anchors_used}}
+
+Règle : si tu dois illustrer un point avec un exemple lillois concret, choisir un quartier ou une rue différents de ceux listés ci-dessus — ou préciser que c'est une mise à jour d'un article existant (dans ce cas, le brief le mentionne explicitement).
+```
+
+**Mise à jour automatique de `editorial_memory` :** à chaque publication (statut → `published`), le pipeline met à jour la table `articles` avec le champ `angles_covered` (extrait automatiquement par un mini-appel IA Sonnet : "extrais les 3 angles principaux de cet article en 5 mots chacun") et `proprietary_data_ref` (s'il y a des données terrain).
+
+### 2.5 Template de brief JSON (output de l'étape 2)
 
 ```json
 {
@@ -259,9 +341,16 @@ Le champ `requires_proprietary_data` est `true`. La table `operations` doit avoi
     "schema_section": "P1 — L'opérateur expliqué"
   },
   "requires_proprietary_data": false,
-  "proprietary_data": null
+  "proprietary_data": null,
+  "editorial_memory": {
+    "published_articles_summary": [],
+    "angles_to_avoid": [],
+    "exemplary_anchors_used": []
+  }
 }
 ```
+
+Le champ `editorial_memory` est vide pour A2 (premier article du lot). À partir de A3, il est hydraté automatiquement par la requête SQL de la section 2.4.
 
 Ce JSON est l'input direct du prompt système (section 3).
 
@@ -487,6 +576,13 @@ Avant de terminer, vérifier chaque point :
 [ ] Le frontmatter YAML contient : canonical, image_alt (avec la requête cible), schema_date_published, schema_date_modified, schema_article_section
 [ ] Le meta title fait moins de 60 caractères (compter exactement)
 
+CRITÈRES DE REJET ÉDITORIAL (si l'un de ces critères est rempli, recommencer la section concernée) :
+[ ] Aucun paragraphe ne commence par "Comme nous l'avons vu", "En conclusion", "Pour résumer" ou toute reformulation du chapeau
+[ ] L'article ne contient aucune promesse d'accompagnement, d'écoute ou d'engagement sans preuve factuelle associée
+[ ] La conclusion n'est pas une reformulation du chapeau — elle donne une information nouvelle (une règle actionnelle, un chiffre de référence, une mise en garde concrète)
+[ ] L'article passerait le test de l'auteur : si le nom {{TECHNICAL.AUTHOR}} était retiré, le lecteur devrait pouvoir deviner que l'auteur est un opérateur immobilier qui fait ce métier en direct, pas un rédacteur de contenu
+[ ] Pour P2 uniquement : aucun moment "inspirant" ou "leçon de vie" — seulement des faits opérationnels et ce qu'ils impliquent pour un acheteur ou un pair
+
 Rédige maintenant l'article complet en Markdown.
 ```
 
@@ -569,6 +665,72 @@ Après épuisement des articles A1-A12, le pipeline DOIT maintenir l'équilibre 
 Si un pilier passe sous son seuil minimum : le prochain brief généré DOIT appartenir à ce pilier, quelle que soit la source d'alimentation (A/B/C).
 
 Justification SEO : Google consolide la topical authority par cluster thématique. Un blog qui surpondère P3 (guide acquéreur) au détriment de P2 (réalisations terrain) perd son signal E-E-A-T Experience — qui est précisément le différenciant de Versi sur les requêtes YMYL immobilières.
+
+## 4bis. Boucle de feedback — apprentissage des erreurs récurrentes
+
+### Principe
+
+Le pipeline ne se contente pas de corriger les articles défaillants — il apprend quels checks échouent systématiquement, sur quels types d'articles, pour ajuster les paramètres en amont.
+
+### Table `validation_patterns` (nouvelle)
+
+```sql
+CREATE TABLE validation_patterns (
+  id           SERIAL PRIMARY KEY,
+  check_code   VARCHAR(5) NOT NULL,      -- V1, V3, V16, etc.
+  pillar       VARCHAR(10),              -- P1/P2/P3/P4 ou NULL (tous piliers)
+  persona      VARCHAR(20),             -- Kevin/Sophie/Laurent ou NULL
+  fail_count   INTEGER DEFAULT 0,
+  last_fail_at TIMESTAMPTZ,
+  alert_sent   BOOLEAN DEFAULT false,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Logique de détection
+
+À chaque étape 4 (validation), pour chaque check en échec, incrémenter `fail_count` dans `validation_patterns` par combinaison `(check_code, pillar, persona)`.
+
+**Seuils d'alerte :**
+
+| Seuil | Déclencheur | Action |
+|---|---|---|
+| 3 fails sur 5 derniers articles d'un même pilier | `fail_count >= 3 AND last_fail_at > NOW() - INTERVAL '90 days'` | Email fondateur : "Le check {{CHECK_CODE}} échoue systématiquement sur les articles {{PILIER}}. Vérifier le prompt de calibration ou la structure du brief." |
+| Check V1 (mots interdits) fail 2 fois consécutives | `check_code = 'V1' AND fail_count >= 2` | Alert immédiate — signe que la liste noire n'est pas correctement injectée dans le prompt |
+| Check V3 (vouvoiement) fail 2 fois consécutives sur un pilier | Idem | Alert — signe que la calibration persona du pilier génère du tutoiement (ex : P3 pour Kévin, ton "copain") |
+
+### Rapport mensuel automatique
+
+**CRON 4 — Rapport qualité mensuel**
+```
+Schedule : 0 9 1 * *   (1er du mois, 9h00 UTC)
+Action : SELECT check_code, pillar, SUM(fail_count) AS total_fails
+         FROM validation_patterns
+         WHERE last_fail_at > NOW() - INTERVAL '30 days'
+         GROUP BY check_code, pillar
+         ORDER BY total_fails DESC
+         LIMIT 10
+→ Email fondateur avec tableau des 10 checks les plus défaillants
+→ Recommandation automatique : si V1 ou V3 en tête → réviser le prompt système
+                                si V7 (longueur) en tête → réviser les word_count_target des briefs
+                                si V16 (données sourcées) en tête → exiger plus de données terrain en amont
+```
+
+### Évolution du prompt : circuit court
+
+Quand un pattern récurrent est identifié, le fondateur peut modifier le prompt système directement dans la table `system_prompts` (versionnée) sans redéploiement. Le pipeline lit toujours la version `active = true`. Cela permet d'itérer sur la qualité rédactionnelle sans toucher au code.
+
+```sql
+CREATE TABLE system_prompts (
+  id         SERIAL PRIMARY KEY,
+  version    VARCHAR(10) NOT NULL,          -- "v1.0", "v1.1", etc.
+  content    TEXT NOT NULL,
+  active     BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  notes      TEXT                           -- "Correction : tutoiement P3 Kévin"
+);
+-- Un seul enregistrement avec active = true à la fois (contrainte applicative)
+```
 
 ## 5. Mécanisme de validation automatique
 
@@ -668,8 +830,10 @@ ALTER TABLE articles
   ADD COLUMN pillar VARCHAR(50),             -- P1/P2/P3/P4
   ADD COLUMN persona VARCHAR(20),            -- Kevin/Sophie/Pierre
   ADD COLUMN funnel_stage VARCHAR(10),       -- TOFU/MOFU/BOFU
-  ADD COLUMN brief_json JSONB,               -- brief hydraté (section 2.4)
-  ADD COLUMN author VARCHAR(100) DEFAULT 'Thomas Issa';
+  ADD COLUMN brief_json JSONB,               -- brief hydraté (section 2.5)
+  ADD COLUMN author VARCHAR(100) DEFAULT 'Thomas Issa',
+  ADD COLUMN angles_covered JSONB,           -- ["angle 1", "angle 2", "angle 3"] — extrait post-publication par mini-appel Sonnet
+  ADD COLUMN proprietary_data_ref TEXT;      -- référence operations.id si article P2 avec données terrain
 ```
 
 **Table `planned_articles` (nouvelle)**
@@ -1085,14 +1249,15 @@ Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) av
 
 ---
 
-## 7. Audit SEO @seo — Scores par dimension
+## 7. Audits — Scores par dimension
 
-> Audit produit par @seo | Date : 2026-04-13
-> Fichier audité : ce document (version post-corrections)
+> Audit SEO produit par @seo | Date : 2026-04-13
+> Audit créatif produit par @creative-strategy | Date : 2026-04-13
+> Fichier audité : ce document (version finale post-corrections)
 
-### 7.1 Scores par dimension
+### 7.1 Scores SEO — avant/après @seo
 
-| Dimension | Score avant corrections | Score après corrections | Écarts comblés |
+| Dimension | Score avant @seo | Score après @seo | Écarts comblés |
 |---|---|---|---|
 | Cohérence avec le framework éditorial | 7/10 | 9/10 | Checklist auto-applicable dans le prompt étendue aux contraintes meta title/canonical/schema ; critère 32 (mobile) ajouté aux checks humains |
 | Anti-cannibalisation | 7/10 | 9/10 | Seuil cosinus abaissé de 0.85 à 0.78 (adapté à la niche immobilier local) ; anti-cannibalisation pages transactionnelles déjà solide |
@@ -1102,7 +1267,16 @@ Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) av
 | Meta SEO | 5/10 | 9/10 | Checks V17 (meta title ≤ 60 chars), V18 (meta desc ≤ 155 chars), V19 (canonical), V20 (image_alt), V22 (schema.org) ajoutés ; example brief corrigé (meta title A2 : 68 → 46 chars) |
 | Topical authority | 7/10 | 9/10 | Section 4.5 (équilibre piliers) + règle de rejet SERP (portails nationaux) déjà solide |
 
-### 7.2 Critères de la checklist 32 points non couverts avant audit (et statut après)
+### 7.2 Scores créatifs — avant/après @creative-strategy
+
+| Dimension | Score avant @creative-strategy | Score après @creative-strategy | Corrections appliquées |
+|---|---|---|---|
+| Brand voice calibration | 8/10 | 10/10 | Voix authorship par fondateur (Thomas/Maxime/Carl) ajoutée dans P2 ; règle anti-relâchement de ton (dérives milieu/fin d'article) ; exemples d'ouverture calibrés par pilier |
+| Qualité éditoriale attendue | 7/10 | 10/10 | Critères de rejet éditorial ajoutés dans la checklist auto-applicable (test auteur, fin non-paresseuse, zéro promesse sans preuve) ; exemples d'ouverture par pilier comme calibrateur sonore |
+| Feedback loop | 6/10 | 10/10 | Section 4bis créée : table `validation_patterns`, détection des checks récurrents, alertes seuils, rapport mensuel, table `system_prompts` versionnée pour évolution sans redéploiement |
+| Cohérence narrative long terme | 7/10 | 10/10 | Section 2.4 créée : mémoire éditoriale complète — table SQL, champ `editorial_memory` dans le brief JSON, instruction `{{EDITORIAL_MEMORY}}` dans le prompt, extraction automatique des angles couverts post-publication |
+
+### 7.3 Critères de la checklist 32 points non couverts avant audit @seo (et statut après)
 
 | # | Critère | Couvert avant | Check ajouté |
 |---|---|---|---|
@@ -1120,7 +1294,7 @@ Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) av
 
 **Critères intégralement couverts par V1-V15 avant audit :** 1, 2, 5, 6, 11, 13, 14, 15, 16, 17, 18, 19, 20, 26, 27, 28, 29, 30, 31.
 
-### 7.3 Points de vigilance résiduels
+### 7.4 Points de vigilance résiduels
 
 1. **Critère 10 (noindex)** : le check V12 vérifie la complétude du frontmatter YAML mais ne vérifie pas explicitement l'absence de `noindex: true`. Si le framework Next.js ou le CMS injecte une balise robots meta automatiquement (ex : mode draft = noindex), ce signal peut bloquer l'indexation silencieusement. @fullstack doit s'assurer que le passage de `status = 'published'` supprime tout noindex côté rendu.
 
@@ -1155,7 +1329,13 @@ Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) av
   4. Déploiement IndexNow : suivre la checklist section 6.7 (fichier clé, .env, test Bing Webmaster Tools)
   5. Vérifier que `status = 'published'` supprime tout `noindex` côté rendu (critère 10 de la checklist)
   6. Vérifier `robots.txt` : `Bingbot` doit pouvoir crawler `/blog/*` sans `Disallow`
-- Priorité : V17-V22 sont bloquants pour la conformité SEO Google + Bing — à implémenter avant le premier article publié
+  7. Créer la table `validation_patterns` (section 4bis) et le CRON 4 (rapport qualité mensuel)
+  8. Créer la table `system_prompts` versionnée (section 4bis) — le pipeline doit lire le prompt depuis cette table, pas depuis une constante hardcodée
+  9. Ajouter les champs `angles_covered` et `proprietary_data_ref` à la table `articles` (section 6.1 mis à jour)
+  10. Implémenter l'injection de `editorial_memory` dans le brief (section 2.4) — requête SQL fournie + mini-appel Sonnet post-publication pour extraire `angles_covered`
+  11. Numérotation section brief JSON : la section est désormais 2.5 (ex 2.4) — mettre à jour les commentaires du code si référencés
+- Priorité absolue (bloquant avant premier article) : items 1-6
+- Priorité V2 (qualité long terme) : items 7-11
 ---
 
 ---
