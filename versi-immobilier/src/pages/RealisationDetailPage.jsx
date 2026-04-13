@@ -56,7 +56,7 @@ export default function RealisationDetailPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 border: '1px solid var(--color-border)',
-                padding: '12px 32px',
+                padding: 'var(--spacing-sm) var(--spacing-xl)',
                 borderRadius: 'var(--radius-sm)',
                 color: 'var(--color-text-primary)',
                 textDecoration: 'none',
@@ -75,11 +75,16 @@ export default function RealisationDetailPage() {
   const keyFigures = [
     { label: 'Prix de vente', value: project.sellPrice || 'Confidentiel' },
     { label: 'Délai offre', value: project.offerDelay ? `J+${project.offerDelay}` : null },
+    { label: 'Acte authentique', value: project.signatureDelay ? `J+${project.signatureDelay}` : null },
   ].filter((fig) => fig.value);
 
   const otherProjects = allProjectsRaw.filter(
     (p) => p.id !== id
   ).slice(0, 2);
+
+  const avantPhotos = photos.filter((p) => p.category === 'avant');
+  const apresPhotos = photos.filter((p) => p.category === 'apres');
+  const currentPhoto = (galleryView === 'avant' ? avantPhotos : apresPhotos)[0];
 
   return (
     <>
@@ -89,32 +94,15 @@ export default function RealisationDetailPage() {
       <Nav />
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
         {/* Hero photo */}
-        <div style={{
-          width: '100%',
-          height: '500px',
-          background: 'linear-gradient(135deg, var(--color-charcoal-950), var(--color-mineral-900))',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'flex-start',
-          padding: 'var(--spacing-2xl)',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '40%',
-            background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 'var(--content-max-width)', width: '100%', margin: '0 auto' }}>
+        <div className="realisation-detail__hero">
+          <div className="realisation-detail__hero-overlay" aria-hidden="true" />
+          <div className="realisation-detail__hero-content">
             <h1 className="text-heading-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
               {project.title}
             </h1>
-            {project.offerDelay && (
-              <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 0.8 }}>
-                Offre émise J+{project.offerDelay}.{project.signatureDelay && ` Signature acte authentique J+${project.signatureDelay}.`}
+            {project.location && (
+              <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)' }}>
+                {project.location}
               </p>
             )}
           </div>
@@ -122,23 +110,16 @@ export default function RealisationDetailPage() {
 
         {/* Key figures band */}
         {keyFigures.length > 0 && (
-          <section style={{
-            background: 'var(--color-bg-dark)',
-          }}>
-            <div className="container" style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${keyFigures.length}, 1fr)`,
-              gap: 'var(--spacing-xl)',
-              padding: 'var(--spacing-2xl) var(--spacing-2xl)',
-              textAlign: 'center',
-            }}>
+          <section aria-label="Chiffres clés" style={{ background: 'var(--color-bg-dark)' }}>
+            <div
+              className="container realisation-detail__key-figures"
+              style={{ gridTemplateColumns: `repeat(${keyFigures.length}, 1fr)` }}
+            >
               {keyFigures.map((fig) => (
                 <div key={fig.label}>
-                  <span className="text-label" style={{ display: 'block', color: 'var(--color-text-inverse)', opacity: 0.5, marginBottom: 'var(--spacing-sm)' }}>
+                  <span className="realisation-detail__figure-value">{fig.value}</span>
+                  <span className="text-label" style={{ display: 'block', color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)' }}>
                     {fig.label}
-                  </span>
-                  <span style={{ fontSize: '1.75rem', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-inverse)' }}>
-                    {fig.value}
                   </span>
                 </div>
               ))}
@@ -151,108 +132,74 @@ export default function RealisationDetailPage() {
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <Link
               to="/realisations"
-              className="text-label"
-              style={{
-                display: 'inline-block',
-                color: 'var(--color-text-muted)',
-                marginBottom: 'var(--spacing-xl)',
-                textDecoration: 'none',
-              }}
+              className="text-label realisation-detail__back-link"
             >
               ← Toutes nos réalisations
             </Link>
 
             {/* Gallery avant/après */}
             <div style={{ marginBottom: 'var(--spacing-2xl)' }}>
-              <div style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+              <div
+                className="realisation-detail__gallery-toggle"
+                role="tablist"
+                aria-label="Afficher les photos avant ou après rénovation"
+              >
                 <button
+                  role="tab"
+                  aria-selected={galleryView === 'avant'}
+                  aria-controls="gallery-panel"
                   onClick={() => setGalleryView('avant')}
-                  className="text-label"
-                  style={{
-                    padding: '8px 20px',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    background: galleryView === 'avant' ? 'var(--color-charcoal-950)' : 'transparent',
-                    color: galleryView === 'avant' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
-                    cursor: 'pointer',
-                    minHeight: '44px',
-                  }}
+                  className={`text-label realisation-detail__toggle-btn${galleryView === 'avant' ? ' realisation-detail__toggle-btn--active' : ''}`}
                 >
                   Avant
                 </button>
                 <button
+                  role="tab"
+                  aria-selected={galleryView === 'apres'}
+                  aria-controls="gallery-panel"
                   onClick={() => setGalleryView('apres')}
-                  className="text-label"
-                  style={{
-                    padding: '8px 20px',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
-                    background: galleryView === 'apres' ? 'var(--color-charcoal-950)' : 'transparent',
-                    color: galleryView === 'apres' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
-                    cursor: 'pointer',
-                    minHeight: '44px',
-                  }}
+                  className={`text-label realisation-detail__toggle-btn${galleryView === 'apres' ? ' realisation-detail__toggle-btn--active' : ''}`}
                 >
                   Après
                 </button>
               </div>
-              {(() => {
-                const avantPhotos = photos.filter((p) => p.category === 'avant');
-                const apresPhotos = photos.filter((p) => p.category === 'apres');
-                const currentPhotos = galleryView === 'avant' ? avantPhotos : apresPhotos;
-                const currentPhoto = currentPhotos[0];
-                if (currentPhoto) {
-                  return (
-                    <img
-                      src={currentPhoto.url}
-                      alt={currentPhoto.alt || `${project.title} — ${galleryView}`}
-                      style={{
-                        width: '100%',
-                        height: '500px',
-                        borderRadius: 'var(--card-radius)',
-                        maxWidth: '1080px',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  );
-                }
-                return (
-                  <div className="image-placeholder" style={{
-                    width: '100%',
-                    height: '500px',
-                    borderRadius: 'var(--card-radius)',
-                    maxWidth: '1080px',
-                  }}>
-                    {galleryView === 'avant' ? 'Photo avant' : 'Photo après'}
+
+              <div id="gallery-panel" role="tabpanel" aria-live="polite" aria-label={`Photo ${galleryView} rénovation`}>
+                {currentPhoto ? (
+                  <img
+                    src={currentPhoto.url}
+                    alt={currentPhoto.alt || `${project.title} — ${galleryView === 'avant' ? 'avant rénovation' : 'après rénovation'}`}
+                    className="realisation-detail__gallery-image"
+                  />
+                ) : (
+                  <div className="image-placeholder realisation-detail__gallery-placeholder">
+                    <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+                      {galleryView === 'avant' ? 'Photos avant rénovation' : 'Photos après rénovation'}
+                    </span>
                   </div>
-                );
-              })()}
+                )}
+              </div>
             </div>
 
             {/* Details */}
-            <div style={{
-              display: 'flex',
-              gap: 'var(--spacing-xl)',
-              marginBottom: 'var(--spacing-2xl)',
-              flexWrap: 'wrap',
-            }}>
-              <div>
-                <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Type</span>
+            <div className="realisation-detail__details" style={{ marginBottom: 'var(--spacing-2xl)' }}>
+              <div className="realisation-detail__detail-item">
+                <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>Type</span>
                 <span className="text-body-md">{project.type}</span>
               </div>
-              <div>
-                <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Surface</span>
+              <div className="realisation-detail__detail-item">
+                <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>Surface</span>
                 <span className="text-body-md">{project.surface}</span>
               </div>
               {project.units && (
-                <div>
-                  <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Lots</span>
+                <div className="realisation-detail__detail-item">
+                  <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>Lots</span>
                   <span className="text-body-md">{project.units}</span>
                 </div>
               )}
               {project.duration && (
-                <div>
-                  <span className="text-label" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Durée</span>
+                <div className="realisation-detail__detail-item">
+                  <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>Durée chantier</span>
                   <span className="text-body-md">{project.duration}</span>
                 </div>
               )}
@@ -261,12 +208,16 @@ export default function RealisationDetailPage() {
             <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
               L'opération.
             </h2>
-            <p className="text-body-md" style={{ color: 'var(--color-text-muted)', lineHeight: 1.65, maxWidth: 'var(--text-max-width-lg)', marginBottom: 'var(--spacing-3xl)' }}>
-              {project.description}
-            </p>
+            <div className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)', marginBottom: 'var(--spacing-3xl)' }}>
+              {project.description.split('\n\n').map((paragraph, i) => (
+                <p key={i} style={{ marginBottom: i < project.description.split('\n\n').length - 1 ? 'var(--spacing-md)' : 0 }}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
 
             {/* CTAs */}
-            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+            <div className="realisation-detail__ctas">
               <Link
                 to="/vendre"
                 className="text-cta"
@@ -275,7 +226,7 @@ export default function RealisationDetailPage() {
                   alignItems: 'center',
                   background: 'var(--color-charcoal-950)',
                   color: 'var(--color-calcaire-50)',
-                  padding: '16px 40px',
+                  padding: 'var(--spacing-md) var(--spacing-2xl)',
                   borderRadius: 'var(--radius-sm)',
                   textDecoration: 'none',
                   minHeight: '52px',
@@ -284,20 +235,20 @@ export default function RealisationDetailPage() {
                 Soumettre mon bien
               </Link>
               <Link
-                to="/realisations"
+                to="/contact"
                 className="text-cta"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   border: '1px solid var(--color-border)',
-                  padding: '16px 40px',
+                  padding: 'var(--spacing-md) var(--spacing-2xl)',
                   borderRadius: 'var(--radius-sm)',
                   color: 'var(--color-text-primary)',
                   textDecoration: 'none',
                   minHeight: '52px',
                 }}
               >
-                Voir les réalisations
+                Nous contacter
               </Link>
             </div>
           </div>
@@ -305,23 +256,23 @@ export default function RealisationDetailPage() {
 
         {/* Other realisations */}
         {otherProjects.length > 0 && (
-          <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
+          <section className="section-padding" style={{ background: 'var(--color-bg-subtle)' }}>
             <div className="container">
               <h2 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-2xl)' }}>
                 D'autres réalisations.
               </h2>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 'var(--spacing-lg)',
-              }}>
+              <div className="realisation-detail__other-grid">
                 {otherProjects.map((p) => (
                   <ProjectCard key={p.id} project={p} />
                 ))}
               </div>
               <div style={{ marginTop: 'var(--spacing-xl)' }}>
-                <Link to="/realisations" className="text-cta" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
-                  Voir toutes nos réalisations
+                <Link
+                  to="/realisations"
+                  className="text-label realisation-detail__back-link"
+                  style={{ marginBottom: 0 }}
+                >
+                  Voir toutes nos réalisations →
                 </Link>
               </div>
             </div>
@@ -329,20 +280,6 @@ export default function RealisationDetailPage() {
         )}
       </main>
       <Footer />
-
-      <style>{`
-        @media (max-width: 767px) {
-          div[style*="height: 500px"][style*="background: linear-gradient"] {
-            height: 300px !important;
-          }
-          .image-placeholder[style*="height: 500px"] {
-            height: 250px !important;
-          }
-          div[style*="grid-template-columns: repeat(2, 1fr)"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

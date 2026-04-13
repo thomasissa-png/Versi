@@ -432,6 +432,184 @@ ul, ol {
   }
 }
 
+/* === Realisation detail page === */
+
+.realisation-detail__hero {
+  width: 100%;
+  height: 500px;
+  background: linear-gradient(135deg, var(--color-charcoal-950), var(--color-mineral-900));
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: var(--spacing-2xl);
+  position: relative;
+}
+
+.realisation-detail__hero-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  pointer-events: none;
+}
+
+.realisation-detail__hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: var(--content-max-width);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.realisation-detail__key-figures {
+  display: grid;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.realisation-detail__figure-value {
+  font-size: var(--font-size-display-num);
+  font-weight: var(--font-weight-thin);
+  color: var(--color-text-inverse);
+  display: block;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin-bottom: var(--spacing-sm);
+}
+
+.realisation-detail__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-xl);
+  text-decoration: none;
+  padding: var(--spacing-sm) 0;
+  transition: color var(--duration-fast) ease;
+  min-height: 44px;
+}
+
+.realisation-detail__back-link:hover {
+  color: var(--color-text-primary);
+}
+
+.realisation-detail__gallery-toggle {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.realisation-detail__toggle-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  min-height: 44px;
+  transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.realisation-detail__toggle-btn:hover {
+  border-color: var(--color-text-primary);
+}
+
+.realisation-detail__toggle-btn--active {
+  background: var(--color-charcoal-950);
+  color: var(--color-text-inverse);
+  border-color: var(--color-charcoal-950);
+}
+
+.realisation-detail__gallery-image {
+  width: 100%;
+  height: 500px;
+  border-radius: var(--card-radius);
+  max-width: 1080px;
+  object-fit: cover;
+  display: block;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.realisation-detail__gallery-placeholder {
+  width: 100%;
+  height: 500px;
+  border-radius: var(--card-radius);
+  max-width: 1080px;
+}
+
+.realisation-detail__details {
+  display: flex;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+  padding: var(--spacing-lg) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.realisation-detail__detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.realisation-detail__other-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.realisation-detail__ctas {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1023px) {
+  .realisation-detail__figure-value {
+    font-size: var(--font-size-display-num-mobile);
+  }
+}
+
+@media (max-width: 767px) {
+  .realisation-detail__hero {
+    height: 300px;
+    padding: var(--spacing-lg);
+  }
+
+  .realisation-detail__gallery-image,
+  .realisation-detail__gallery-placeholder {
+    height: 260px;
+  }
+
+  .realisation-detail__other-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .realisation-detail__key-figures {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .realisation-detail__ctas {
+    flex-direction: column;
+  }
+
+  .realisation-detail__ctas a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realisation-detail__gallery-image {
+    transition: none;
+  }
+}
+
 /* === Blog card (legacy light) === */
 
 .blog-card {

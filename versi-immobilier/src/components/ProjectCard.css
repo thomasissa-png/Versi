@@ -4,12 +4,13 @@
   border-radius: var(--card-radius);
   overflow: hidden;
   box-shadow: var(--card-shadow);
-  transition: box-shadow var(--duration-normal) ease, border-color var(--duration-normal) ease;
+  transition: box-shadow var(--duration-normal) ease, border-color var(--duration-normal) ease, transform var(--duration-normal) ease;
 }
 
 .project-card:hover {
   box-shadow: var(--card-shadow-hover);
   border-color: var(--color-accent);
+  transform: translateY(-2px);
 }
 
 .project-card__image-wrapper {
@@ -32,7 +33,7 @@
   bottom: var(--spacing-sm);
   left: var(--spacing-sm);
   display: flex;
-  gap: 2px;
+  gap: 1px;
   background: rgba(0, 0, 0, 0.6);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -61,14 +62,14 @@
 }
 
 .project-card__body {
-  padding: 20px;
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
 .project-card__title {
-  font-size: 20px;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-regular);
   color: var(--color-text-primary);
   line-height: 1.3;
