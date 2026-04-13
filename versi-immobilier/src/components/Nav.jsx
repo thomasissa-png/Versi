@@ -6,7 +6,6 @@ const NAV_ITEMS = [
   { label: 'BIENS DISPONIBLES', href: '/nos-biens' },
   { label: 'RÉALISATIONS', href: '/realisations' },
   { label: 'NOTRE APPROCHE', href: '/notre-approche' },
-  { label: 'NOTRE REGARD', href: '/blog' },
   { label: 'CONTACT', href: '/contact' },
 ];
 
