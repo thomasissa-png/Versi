@@ -315,7 +315,15 @@ pillar: "{{PILLAR}}"
 persona: "{{PERSONA}}"
 published_at: null
 status: "draft"
+image_url: ""
+image_alt: "{{SEO.MAIN_QUERY}} — Versi Immobilier"
+schema_date_published: ""
+schema_date_modified: ""
+schema_article_section: "{{TECHNICAL.SCHEMA_SECTION}}"
+canonical: "https://versi-immobilier.fr{{TECHNICAL.SLUG}}"
 ---
+
+[NOTE PIPELINE : les champs `image_url`, `schema_date_published` et `schema_date_modified` sont remplis automatiquement par le pipeline à l'étape 6 (mise en file de publication) — ne pas laisser vides en base avant publication. `image_url` est générée ou sélectionnée depuis la médiathèque Versi selon `TECHNICAL.IMAGE_SUBJECT`.]
 
 **H1**
 Reprend exactement {{SEO.H1}}.
@@ -405,7 +413,15 @@ Déclencheur : dates fixes dans une table `seasonal_calendar`.
 **Source C — Tendances SERP**
 Déclencheur : mensuel, via appel API Google Search Console ou outil SERP tiers.
 Logique : identifier les requêtes sur lesquelles versi-immobilier.fr apparaît en position 8-20 (quick wins potentiels) et les requêtes nouvelles dans le cluster thématique (Lille immobilier, marchand de biens HdF).
-Critère de validation : volume ≥ 100 recherches/mois, intent informationnel ou commercial investigation, pas de page Versi existante sur ce sujet.
+
+Critères de validation (tous obligatoires) :
+- Volume ≥ 100 recherches/mois
+- Intent informationnel ou commercial investigation (pas transactionnel — les pages du site gèrent l'intent transactionnel)
+- Aucune page Versi existante sur ce sujet (blog ou site)
+- Le sujet appartient à l'un des 4 piliers P1/P2/P3/P4 — rejet automatique si hors périmètre thématique (risque de dilution topical authority)
+- Concurrence SERP : au moins 2 résultats en Top 10 sont des articles de blog (pas uniquement des portails type SeLoger/PAP ou Wikipedia) — signal que le contenu éditorial peut ranker sur cette requête
+
+Si la requête passe tous les critères mais que la concurrence SERP est dominée par des portails nationaux (SeLoger, PAP, Meilleurs Agents, Logic-Immo) : rejeter et passer à la requête suivante. Versi ne peut pas outranker ces portails sur des requêtes génériques — l'avantage concurrentiel est sur les requêtes locales et expertes.
 
 ### 4.3 Anti-cannibalisation
 
@@ -413,8 +429,17 @@ Avant de générer un nouveau brief, le pipeline vérifie dans la table `article
 1. Qu'aucun article existant ne cible la même requête principale.
 2. Qu'aucun article existant ne couvre le même angle éditorial (même H1 approximatif).
 3. Que le slug proposé n'existe pas.
+4. Que la requête candidate ne cannibalise pas une page transactionnelle du site (`/nos-biens`, `/vendre`, `/realisations`, `/contact`). Ces pages ont des intentions transactionnelles — un article blog ne doit pas cibler la même intention sous une requête différente.
 
-Méthode : similarité cosinus entre la requête du nouveau brief et les requêtes de tous les articles publiés ou planifiés. Seuil de blocage : similarité > 0.85. Si bloqué, le pipeline sélectionne la prochaine requête dans la liste ou passe à la source suivante.
+**Méthode — 3 niveaux de vérification :**
+
+**Niveau 1 — Requête exacte (bloquant)** : vérifier que `main_query` n'existe pas dans `keyword_clusters.main_query`. Seuil : correspondance exacte ou normalisation (minuscules, accents, pluriels). Si match → BLOCK.
+
+**Niveau 2 — Similarité sémantique (bloquant)** : similarité cosinus entre la requête du nouveau brief et les requêtes de tous les articles publiés ou planifiés. Seuil de blocage : similarité > 0.85. Si bloqué, le pipeline sélectionne la prochaine requête dans la liste ou passe à la source suivante.
+
+**Niveau 3 — Intention de recherche (avertissement)** : si le nouveau brief a la même `intent` (informationnel/commercial investigation/transactionnel) et le même `pillar` qu'un article existant, générer un avertissement (pas un blocage) et notifier le fondateur. Un deuxième article sur le même pilier avec la même intention est potentiellement redondant — le fondateur décide de merger ou d'un angle différenciant.
+
+**Anti-cannibalisation pages transactionnelles :** la table `site_pages` liste les pages existantes du site avec leur intent et leur requête principale. Avant de valider un brief, vérifier que `main_query` et `intent` ne chevauchent pas une page du site (similarité > 0.70 avec une page transactionnelle = avertissement fondateur).
 
 ### 4.4 Règle de priorité entre les sources
 
@@ -489,4 +514,391 @@ Délai : 48h. Sans réponse, l'article reste en pending_approval.
 
 ## 6. Recommandations pour @fullstack
 
-[Section complète ci-dessous]
+### 6.1 Schéma de base de données — évolutions requises
+
+La base PostgreSQL existante contient déjà une table `articles`. Les évolutions suivantes sont nécessaires :
+
+**Table `articles` — champs à ajouter**
+
+```sql
+-- Statut du cycle de vie
+ALTER TABLE articles
+  ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('draft','briefed','generating','validation_pass',
+                      'validation_fail','correcting','pending_approval',
+                      'scheduled','published','blocked')),
+  ADD COLUMN scheduled_at TIMESTAMPTZ,
+  ADD COLUMN published_at TIMESTAMPTZ,
+  ADD COLUMN generation_passes INTEGER DEFAULT 0,
+  ADD COLUMN validation_score INTEGER,       -- score V1-V15 (0-15)
+  ADD COLUMN validation_report JSONB,        -- détail check par check
+  ADD COLUMN requires_proprietary_data BOOLEAN DEFAULT false,
+  ADD COLUMN pillar VARCHAR(50),             -- P1/P2/P3/P4
+  ADD COLUMN persona VARCHAR(20),            -- Kevin/Sophie/Pierre
+  ADD COLUMN funnel_stage VARCHAR(10),       -- TOFU/MOFU/BOFU
+  ADD COLUMN brief_json JSONB,               -- brief hydraté (section 2.4)
+  ADD COLUMN author VARCHAR(100) DEFAULT 'Thomas Issa';
+```
+
+**Table `planned_articles` (nouvelle)**
+
+```sql
+CREATE TABLE planned_articles (
+  id           SERIAL PRIMARY KEY,
+  code         VARCHAR(10) NOT NULL UNIQUE,  -- A1, A2, ... A12
+  h1           TEXT NOT NULL,
+  meta_title   TEXT,
+  slug         TEXT NOT NULL UNIQUE,
+  pillar       VARCHAR(50),
+  persona      VARCHAR(20),
+  funnel_stage VARCHAR(10),
+  intent       VARCHAR(40),
+  word_count_target INTEGER DEFAULT 1000,
+  editorial_angle TEXT,
+  h2_structure JSONB,                        -- tableau de strings
+  exclusions   JSONB,                        -- tableau de strings
+  cta_text     VARCHAR(100),
+  cta_url      VARCHAR(200),
+  site_links   JSONB,
+  requires_proprietary_data BOOLEAN DEFAULT false,
+  priority     INTEGER DEFAULT 0,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Table `keyword_clusters` (nouvelle)**
+
+```sql
+CREATE TABLE keyword_clusters (
+  id                SERIAL PRIMARY KEY,
+  article_code      VARCHAR(10) REFERENCES planned_articles(code),
+  main_query        TEXT NOT NULL,
+  secondary_queries JSONB,
+  long_tail         JSONB,
+  paa_questions     JSONB
+);
+```
+
+**Table `operations` (nouvelle — données terrain)**
+
+```sql
+CREATE TABLE operations (
+  id              SERIAL PRIMARY KEY,
+  address         TEXT NOT NULL,
+  city            VARCHAR(100),
+  asset_type      VARCHAR(50),               -- appartement, immeuble, maison
+  purchase_price  INTEGER,                   -- en euros
+  renovation_budget INTEGER,
+  sale_price      INTEGER,
+  renovation_duration_weeks INTEGER,
+  publishable     BOOLEAN DEFAULT false,
+  notes           TEXT,
+  completed_at    DATE,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Table `internal_links` (nouvelle)**
+
+```sql
+CREATE TABLE internal_links (
+  id             SERIAL PRIMARY KEY,
+  from_article   VARCHAR(10),
+  to_article     VARCHAR(10),
+  anchor_text    TEXT,
+  h2_position    TEXT
+);
+```
+
+**Table `seasonal_calendar` (nouvelle)**
+
+```sql
+CREATE TABLE seasonal_calendar (
+  id           SERIAL PRIMARY KEY,
+  month_start  INTEGER CHECK (month_start BETWEEN 1 AND 12),
+  month_end    INTEGER CHECK (month_end BETWEEN 1 AND 12),
+  topic        TEXT,
+  pillar       VARCHAR(50),
+  active       BOOLEAN DEFAULT true
+);
+```
+
+### 6.2 Endpoints API requis
+
+Tous les endpoints sont internes (pas exposés publiquement). Authentification : token API admin.
+
+```
+POST /api/admin/blog/trigger-generation
+  Body : { article_code: "A2" } | { auto: true }
+  Action : déclenche l'étape 1 (sélection) → 2 (hydratation) → 3 (génération)
+  Response : { job_id, status, article_code }
+
+GET  /api/admin/blog/jobs/:job_id
+  Action : polling du statut d'un job de génération
+  Response : { status, validation_score, validation_report, article_id }
+
+POST /api/admin/blog/articles/:id/approve
+  Body : { action: "approve" | "block", reviewer_note?: string }
+  Action : passe statut de pending_approval → scheduled | blocked
+
+POST /api/admin/blog/articles/:id/schedule
+  Body : { scheduled_at: "2026-05-06T08:00:00Z" }
+  Action : setter scheduled_at, passer statut → scheduled
+
+GET  /api/blog/articles
+  Public. Retourne les articles publiés (status = "published")
+  Query params : ?pillar=P1&persona=Kevin&limit=10&offset=0
+
+GET  /api/blog/articles/:slug
+  Public. Retourne un article par slug (status = "published" seulement)
+
+POST /api/admin/blog/sitemap/refresh
+  Action : régénère sitemap.xml à partir des articles publiés
+  Déclenchée automatiquement post-publication
+```
+
+### 6.3 Crons à implémenter
+
+```
+CRON 1 — Déclencheur de génération
+  Schedule : 0 8 * * 2   (mardi 8h00 UTC)
+  Action : si aucun article en statut scheduled dans les 10 prochains jours
+           → déclencher POST /api/admin/blog/trigger-generation avec { auto: true }
+  Condition : ne pas déclencher si un job de génération est déjà en cours
+
+CRON 2 — Publication automatique
+  Schedule : 0 * * * *   (toutes les heures, minute 0)
+  Action : SELECT articles WHERE status = 'scheduled' AND scheduled_at <= NOW()
+           → pour chaque article : UPDATE status = 'published', published_at = NOW()
+           → déclencher IndexNow (Bing) avec l'URL de l'article
+           → déclencher POST /api/admin/blog/sitemap/refresh
+
+CRON 3 — Nettoyage des jobs fantômes
+  Schedule : 0 6 * * *   (tous les jours 6h00 UTC)
+  Action : articles en statut 'generating' depuis > 10 minutes → passer en 'validation_fail'
+           → notifier fondateur (anomalie pipeline)
+```
+
+### 6.4 Appel API Claude — format d'intégration
+
+```typescript
+// Étape 3 — Génération IA
+const generateArticle = async (briefJson: BriefJSON): Promise<string> => {
+  const systemPrompt = buildSystemPrompt(briefJson); // injecter les variables {{...}}
+
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-4-5',          // ou claude-sonnet-4-6 pour réduire coût
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [
+      {
+        role: 'user',
+        content: 'Rédige l\'article complet en Markdown selon les instructions.'
+      }
+    ]
+  });
+
+  return response.content[0].type === 'text' ? response.content[0].text : '';
+};
+
+// Étape 4b — Correction ciblée
+const correctArticle = async (
+  article: string,
+  failedChecks: ValidationCheck[]
+): Promise<string> => {
+  const correctionPrompt = buildCorrectionPrompt(article, failedChecks);
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',        // correction = moins critique → Sonnet
+    max_tokens: 4096,
+    system: correctionPrompt,
+    messages: [
+      {
+        role: 'user',
+        content: 'Corrige uniquement les sections identifiées. Ne réécris pas l\'article entier.'
+      }
+    ]
+  });
+
+  return response.content[0].type === 'text' ? response.content[0].text : '';
+};
+```
+
+### 6.5 Fonction de validation automatique (V1-V15)
+
+```typescript
+interface ValidationCheck {
+  code: string;
+  label: string;
+  pass: boolean;
+  detail?: string;
+}
+
+const validateArticle = (article: string, brief: BriefJSON): ValidationCheck[] => {
+  const checks: ValidationCheck[] = [];
+  const FORBIDDEN_WORDS = [
+    'expertise', 'expert', 'experts', 'clé en main', 'solutions',
+    'découvrez', 'découvrir', "n'hésitez pas", 'bienvenue',
+    'qualifié', 'accompagnement sur mesure', 'à votre écoute',
+    'de qualité', 'passionné'
+  ];
+  const SOFT_INTRO = [
+    'dans cet article', 'vous vous demandez', 'avez-vous déjà',
+    'dans le monde de', 'bienvenue'
+  ];
+
+  const lower = article.toLowerCase();
+  const paragraphs = article.split(/\n\n+/);
+  const h2s = article.match(/^## .+$/gm) || [];
+  const firstParagraph = paragraphs.find(p => p.trim() && !p.startsWith('#')) || '';
+
+  // V1 — Mots interdits
+  const found = FORBIDDEN_WORDS.filter(w => lower.includes(w));
+  checks.push({ code: 'V1', label: 'Mots interdits absents', pass: found.length === 0,
+    detail: found.length ? `Trouvés : ${found.join(', ')}` : undefined });
+
+  // V2 — Zéro point d'exclamation
+  checks.push({ code: 'V2', label: 'Zéro point d\'exclamation', pass: !article.includes('!') });
+
+  // V3 — Vouvoiement systématique
+  const tutoiement = article.match(/\b(tu|ton|ta|tes)\b/gi) || [];
+  checks.push({ code: 'V3', label: 'Vouvoiement systématique',
+    pass: tutoiement.length === 0,
+    detail: tutoiement.length ? `${tutoiement.length} occurrence(s)` : undefined });
+
+  // V4 — Requête cible dans H1
+  const h1Match = article.match(/^# (.+)$/m);
+  const h1 = h1Match ? h1Match[1].toLowerCase() : '';
+  checks.push({ code: 'V4', label: 'Requête cible dans H1',
+    pass: h1.includes(brief.seo.main_query.toLowerCase()) });
+
+  // V5 — Requête cible dans chapeau
+  checks.push({ code: 'V5', label: 'Requête cible dans chapeau',
+    pass: firstParagraph.toLowerCase().includes(brief.seo.main_query.toLowerCase()) });
+
+  // V6 — Requête cible dans ≥ 2 H2
+  const queryInH2 = h2s.filter(h => h.toLowerCase().includes(brief.seo.main_query.toLowerCase()));
+  checks.push({ code: 'V6', label: 'Requête cible dans ≥ 2 H2', pass: queryInH2.length >= 2,
+    detail: `${queryInH2.length}/2 requis` });
+
+  // V7 — Longueur dans fourchette ±10%
+  const wordCount = article.split(/\s+/).length;
+  const target = brief.editorial.word_count_target;
+  checks.push({ code: 'V7', label: 'Longueur dans fourchette ±10%',
+    pass: wordCount >= target * 0.9 && wordCount <= target * 1.1,
+    detail: `${wordCount} mots (cible : ${target})` });
+
+  // V8 — Nombre de H2 conforme (3-5)
+  checks.push({ code: 'V8', label: 'Nombre de H2 conforme (3-5)',
+    pass: h2s.length >= 3 && h2s.length <= 5, detail: `${h2s.length} H2` });
+
+  // V9 — CTA présent avec bonne URL
+  checks.push({ code: 'V9', label: 'CTA présent avec bonne URL',
+    pass: article.includes(brief.conversion.cta_url) });
+
+  // V10 — Liens internes présents
+  const missingLinks = brief.internal_links.filter(
+    link => !article.includes(link.anchor)
+  );
+  checks.push({ code: 'V10', label: 'Liens internes présents',
+    pass: missingLinks.length === 0,
+    detail: missingLinks.length ? `Manquants : ${missingLinks.map(l => l.anchor).join(', ')}` : undefined });
+
+  // V11 — Slug conforme
+  const slugOk = /^\/blog\/[a-z0-9-]+$/.test(brief.technical.slug);
+  checks.push({ code: 'V11', label: 'Slug conforme au format', pass: slugOk });
+
+  // V12 — Frontmatter YAML complet
+  const hasFrontmatter = article.startsWith('---') && article.includes('status:');
+  checks.push({ code: 'V12', label: 'Frontmatter YAML complet', pass: hasFrontmatter });
+
+  // V13 — Zéro placeholder résiduel
+  const placeholders = article.match(/\{\{[A-Z_]+\}\}/g) || [];
+  checks.push({ code: 'V13', label: 'Zéro placeholder résiduel', pass: placeholders.length === 0,
+    detail: placeholders.length ? placeholders.join(', ') : undefined });
+
+  // V14 — Paragraphes ≤ 5 lignes
+  const longParagraphs = paragraphs.filter(p => p.split('\n').length > 5);
+  checks.push({ code: 'V14', label: 'Paragraphes ≤ 5 lignes', pass: longParagraphs.length === 0,
+    detail: longParagraphs.length ? `${longParagraphs.length} paragraphe(s) trop longs` : undefined });
+
+  // V15 — Premier paragraphe sans intro molle
+  const softFound = SOFT_INTRO.filter(s => firstParagraph.toLowerCase().includes(s));
+  checks.push({ code: 'V15', label: 'Premier paragraphe sans intro molle',
+    pass: softFound.length === 0,
+    detail: softFound.length ? `Formules détectées : ${softFound.join(', ')}` : undefined });
+
+  return checks;
+};
+```
+
+### 6.6 Stockage des briefs — format et convention
+
+Les briefs JSON (section 2.4) sont stockés en base dans `articles.brief_json` (colonne JSONB). Ils sont également sérialisés en fichier JSON dans `/briefs/{{article_code}}.json` pour archivage et débogage. Ce répertoire n'est pas exposé publiquement.
+
+### 6.7 Intégration IndexNow (post-publication)
+
+```typescript
+const pingIndexNow = async (articleUrl: string): Promise<void> => {
+  const key = process.env.INDEXNOW_KEY; // clé générée une fois, stocker en .env
+  await fetch('https://api.indexnow.org/indexnow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      host: 'versi-immobilier.fr',
+      key,
+      urlList: [articleUrl]
+    })
+  });
+  // Le fichier clé doit être accessible à : https://versi-immobilier.fr/{key}.txt
+};
+```
+
+### 6.8 Repurposing LinkedIn (V2 — optionnel)
+
+Post-publication, déclencher une génération de posts LinkedIn pour les trois fondateurs. Ceci est optionnel en V1 — à activer en V2 si les fondateurs valident le principe.
+
+```typescript
+// Format du prompt LinkedIn (V2)
+const linkedinPrompt = (article: string, founder: string) => `
+Tu es ${founder}, co-fondateur de Versi Immobilier.
+Rédige un post LinkedIn de 150-200 mots à partir de cet article.
+Angle : "leçon de terrain" — ce que tu as appris en faisant ce travail, pas ce que l'article dit.
+Ton : direct, première personne, pas de point d'exclamation, pas de hashtag en excès (max 3).
+Terminer par une question ouverte au réseau.
+Article source : ${article.substring(0, 2000)}
+`;
+```
+
+Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) avec statut `draft`. Les fondateurs les retrouvent dans l'admin UI et les publient manuellement.
+
+---
+
+## Hypothèses à valider
+
+| # | Hypothèse | Impact si fausse | Action requise |
+|---|---|---|---|
+| H1 | La table `articles` PostgreSQL existante supporte les ALTER TABLE sans migration complexe | Refactoring schéma | Confirmer avec @fullstack avant migration |
+| H2 | Le budget API Claude (Opus pour génération, Sonnet pour correction) est approuvé | Basculer tout sur Sonnet | Valider coût estimé : ~0,50-2€ par article |
+| H3 | IndexNow est disponible pour versi-immobilier.fr (domaine vérifié) | Supprimer étape IndexNow V1 | Vérifier ownership domaine Bing Webmaster Tools |
+| H4 | Les fondateurs acceptent 48h de délai de réponse pour validation humaine | Réduire à 24h ou ajouter rappel | Confirmer avec Thomas |
+
+---
+
+**Handoff → @seo**
+- Fichiers produits : `/home/user/Versi/docs/strategy/vi-blog-autonomous-pipeline.md`
+- Décisions prises : architecture 8 étapes, prompt système complet avec blacklist étendue, logique anti-cannibalisation (cosinus > 0.85), seuil PASS 15/15, IndexNow post-publication, repurposing LinkedIn en V2
+- Points d'attention pour la suite :
+  - Valider que les checks V4-V6 (présence requête dans H1/chapeau/H2) correspondent aux règles SEO réelles du framework éditorial
+  - Valider la pertinence de la saisonnalité lilloise (table `seasonal_calendar`) vs le calendrier réel des sujets SEO prioritaires
+  - Confirmer que la logique anti-cannibalisation (similarité cosinus 0.85) est cohérente avec la stratégie de clustering de mots-clés existante
+
+**Handoff → @fullstack**
+- Fichiers produits : `/home/user/Versi/docs/strategy/vi-blog-autonomous-pipeline.md`
+- Décisions prises : 5 nouvelles tables PostgreSQL, 7 endpoints API admin + 2 publics, 3 crons, appel Claude API avec modèle Opus (génération) et Sonnet (correction), 15 checks de validation implémentés en TypeScript, IndexNow post-publication
+- Points d'attention pour la suite :
+  - La fonction `validateArticle` est prête à l'emploi — intégrer dans le job de génération
+  - Le champ `status` avec CHECK constraint garantit la cohérence du cycle de vie — ne pas contourner par UPDATE direct
+  - Implémenter CRON 2 (publication) avant CRON 1 (génération) — dépendance logique
+  - Le stockage des briefs en JSONB permet des requêtes Postgres sur les champs du brief (ex : `WHERE brief_json->>'persona' = 'Kevin'`)
+  - Vérifier que le domaine versi-immobilier.fr est vérifié dans Bing Webmaster Tools avant d'activer IndexNow
