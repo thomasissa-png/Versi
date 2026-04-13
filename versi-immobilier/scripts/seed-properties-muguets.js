@@ -188,4 +188,8 @@ async function seed() {
   }
 }
 
-seed();
+// Ne s'exécute que si lancé directement (pas à l'import)
+import { fileURLToPath } from 'url';
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  seed();
+}

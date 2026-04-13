@@ -14,7 +14,7 @@ const PROJECT = {
   city: 'Nanterre',
   type: 'Bâtiment administratif désaffecté — réhabilitation en loft 7 pièces',
   surface: '200 m²',
-  units: '1 lot',
+  units: 1,
   status: 'completed',
   buy_price: null,
   works_amount: null,
@@ -157,6 +157,9 @@ async function seed() {
   await pool.end();
 }
 
-seed()
-  .then(() => console.log('[seed] Nanterre Barbusse seed complete.'))
-  .catch((err) => { console.error('[seed] Error:', err); process.exit(1); });
+// Ne s'exécute que si lancé directement (pas à l'import)
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  seed()
+    .then(() => console.log('[seed] Nanterre Barbusse seed complete.'))
+    .catch((err) => { console.error('[seed] Error:', err); process.exit(1); });
+}

@@ -240,4 +240,8 @@ async function seedBlogArticles() {
   await pool.end();
 }
 
-seedBlogArticles();
+// Ne s'exécute que si lancé directement (pas à l'import)
+import { fileURLToPath } from 'url';
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  seedBlogArticles();
+}
