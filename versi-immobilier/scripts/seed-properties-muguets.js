@@ -7,7 +7,7 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const PROPERTIES = [
   {
     id: 'muguets-lot-1-rdc',
-    title: 'Rez-de-chaussée avec extérieur privatif — 47 m², Lille-Sud',
+    title: 'Jardin privatif de plain-pied — T2 47 m², Lille-Sud',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -27,25 +27,25 @@ const PROPERTIES = [
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Ce T2 de 47 m² est le seul appartement de l'immeuble à bénéficier d'un accès direct à l'extérieur : 10 m² de jardin privatif au sol, sans vis-à-vis immédiat. Dans le collectif lillois, ce profil est rare — et délibérément préservé dans la nouvelle distribution.
+    description: `Ce T2 de 47 m² est le seul appartement de l'immeuble avec un accès direct à l'extérieur : 10 m² de jardin privatif au sol, sans vis-à-vis. Dans le collectif lillois, les rez-de-chaussée avec extérieur privatif sont quasi absents du neuf — la plupart des programmes sacrifient ces surfaces pour des locaux communs ou du stationnement. Ici, la configuration de l'immeuble le permettait. Elle a été conservée.
 
-Le séjour-cuisine de 26 m² est conçu en plain-pied, sans rupture de niveau entre l'intérieur et l'extérieur. La chambre de 10,2 m² donne sur la cour. Chauffage collectif — pas de charge d'ascenseur. La place de parking couverte est comprise dans le prix.
+Le séjour-cuisine de 26 m² est de plain-pied avec le jardin, sans rupture de niveau. La chambre de 10,2 m² donne sur la cour intérieure, côté calme. Chauffage collectif — pas de charge d'ascenseur. Parking couvert compris dans le prix.
 
-Le bien est en pré-commercialisation : les travaux n'ont pas encore démarré. Versi Immobilier pilote l'intégralité de l'opération — de l'acquisition à la livraison. Deux options d'acquisition : avant travaux à 95 000 €, ou prêt à habiter à 130 000 €. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Deux options d'acquisition : avant travaux à 95 000 €, ou prêt à habiter à 130 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Jardin privatif 10 m², accès plain-pied',
-      'Séjour-cuisine ouvert 26 m²',
+      'Jardin privatif 10 m² — de plain-pied, sans vis-à-vis',
+      'Séjour-cuisine 26 m²',
       'Chambre 10,2 m²',
+      'Parquet chêne, menuiseries double vitrage',
       'Parking couvert inclus',
       'Pas de charges d\'ascenseur',
-      'Livraison fin 2026 — garantie décennale',
     ]),
     sort_order: 0,
   },
   {
     id: 'muguets-lot-2-t3',
-    title: 'T3 avec séjour de 40 m² — 82 m², 1er étage, Lille-Sud',
+    title: 'T3 avec séjour de 40,5 m² — 82 m², 1er étage, Lille-Sud',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -65,25 +65,25 @@ Le bien est en pré-commercialisation : les travaux n'ont pas encore démarré. 
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Un séjour-cuisine de 40,5 m² dans un T3 collectif, ce n'est pas un standard de la promotion neuve lilloise — c'est le double de ce que les programmes récents proposent sur des surfaces comparables. Cette générosité vient de l'histoire du bâtiment : l'immeuble était à usage de bureaux. Les plateaux ouverts, sans la distribution contrainte du résidentiel standard, ont rendu possible cette configuration.
+    description: `Un séjour-cuisine de 40,5 m² dans un T3 collectif — les programmes neufs lillois distribuent 18 à 22 m² de séjour sur une surface équivalente. Ce bien est à plus du double. Cette générosité vient de l'histoire du bâtiment : l'immeuble était à usage de bureaux. Les plateaux ouverts, sans la distribution contrainte du résidentiel standard, ont rendu possible cette configuration.
 
-Deux chambres de 14 m² et 9 m² complètent l'appartement. Chauffage collectif. Place de parking couverte incluse dans le prix.
+Deux chambres de 14 m² et 9 m² complètent l'appartement. Chauffage collectif — charges maîtrisées, pas de surprise. Parking couvert compris.
 
-Le bien est en pré-commercialisation : les travaux n'ont pas encore démarré. Versi Immobilier conduit l'opération sans intermédiaire, de l'acquisition à la livraison. Acquisition avant travaux à 165 000 €, ou prêt à habiter à 230 000 €. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Acquisition avant travaux à 165 000 €, ou prêt à habiter à 230 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 40,5 m² — double du standard neuf',
       'Chambre principale 14 m²',
       'Chambre 9 m²',
-      'Distribution issue d\'un ancien plateau bureau',
+      'Volumes ouverts — pas de mur porteur central',
+      'Parquet chêne, menuiseries double vitrage',
       'Parking couvert inclus',
-      'Livraison fin 2026 — garantie décennale',
     ]),
     sort_order: 1,
   },
   {
     id: 'muguets-lot-3-duplex',
-    title: 'Duplex 126 m², terrasse avec vue, plafond cathédrale — Lille-Sud',
+    title: 'Duplex 126 m², terrasse vue sur l\'église, plafond cathédrale — Lille-Sud',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -103,20 +103,20 @@ Le bien est en pré-commercialisation : les travaux n'ont pas encore démarré. 
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Ce duplex occupe les deux derniers niveaux de l'immeuble — 126 m² sur deux étages, avec une terrasse de 12 m² orientée vers l'église du quartier. La partie haute bénéficie d'un plafond cathédrale : une hauteur que la construction neuve ne propose plus dans ce segment de prix.
+    description: `Ce duplex occupe les 2e et 3e niveaux de l'immeuble — 126 m² sur deux étages, avec une terrasse de 12 m² donnant sur l'église du quartier. La partie haute offre un plafond cathédrale : une hauteur que les programmes neufs abandonnent systématiquement dans ce segment de prix.
 
-Trois chambres de 15 m² chacune — une symétrie de distribution que la contrainte des dalles standard rend quasi impossible dans un programme neuf. Le séjour-cuisine de 47 m² bénéficie d'une vue dégagée. Chauffage collectif. Place de parking couverte incluse.
+Trois chambres de 15 m² chacune — une symétrie de distribution que la contrainte des dalles standard rend quasi impossible dans un programme neuf. Le séjour-cuisine de 47 m² profite d'une vue dégagée. Chauffage collectif. Parking couvert inclus — pas de frais cachés sur le prix affiché.
 
-Le bien est en pré-commercialisation : les travaux n'ont pas encore démarré. Versi Immobilier maîtrise l'intégralité du process, de la restructuration structurelle aux finitions. Acquisition avant travaux à 250 000 €, ou prêt à habiter à 355 000 €. Livraison estimée fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Acquisition avant travaux à 250 000 €, ou prêt à habiter à 355 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Duplex sur deux niveaux — 126 m²',
-      'Terrasse 12 m² avec vue sur l\'église',
+      'Terrasse 12 m² vue sur l\'église',
       'Plafond cathédrale en partie haute',
       'Séjour-cuisine 47 m² vue dégagée',
       '3 chambres de 15 m² — distribution symétrique',
+      'Parquet chêne, menuiseries double vitrage',
       'Parking couvert inclus',
-      'Livraison fin 2026 — garantie décennale',
     ]),
     sort_order: 2,
   },
