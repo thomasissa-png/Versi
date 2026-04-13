@@ -1,7 +1,23 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import './Footer.css';
+
+/** Lien footer qui scroll en haut même si on est déjà sur la page cible */
+function FooterLink({ to, className, children }) {
+  const navigate = useNavigate();
+  const handleClick = useCallback((e) => {
+    e.preventDefault();
+    window.scrollTo(0, 0);
+    navigate(to);
+  }, [navigate, to]);
+
+  return (
+    <Link to={to} className={className} onClick={handleClick}>
+      {children}
+    </Link>
+  );
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -121,13 +137,13 @@ export default function Footer() {
         <div className="footer__col">
           <span className="footer__col-title">Acquéreurs</span>
           <nav className="footer__nav" aria-label="Liens acquéreurs">
-            <Link to="/nos-biens" className="footer__nav-link">Nos biens disponibles</Link>
-            <Link to="/realisations" className="footer__nav-link">Nos réalisations</Link>
-            <Link to="/notre-approche" className="footer__nav-link">Notre approche</Link>
-            <Link to="/blog" className="footer__nav-link">Blog</Link>
-            <Link to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
+            <FooterLink to="/nos-biens" className="footer__nav-link">Nos biens disponibles</FooterLink>
+            <FooterLink to="/realisations" className="footer__nav-link">Nos réalisations</FooterLink>
+            <FooterLink to="/notre-approche" className="footer__nav-link">Notre approche</FooterLink>
+            <FooterLink to="/blog" className="footer__nav-link">Blog</FooterLink>
+            <FooterLink to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
               Être notifié en avant-première
-            </Link>
+            </FooterLink>
           </nav>
         </div>
 
@@ -135,22 +151,22 @@ export default function Footer() {
         <div className="footer__col">
           <span className="footer__col-title">Vendeurs</span>
           <nav className="footer__nav" aria-label="Liens vendeurs">
-            <Link to="/vendre" className="footer__nav-link">Céder un bien</Link>
-            <Link to="/vendre#process" className="footer__nav-link">Notre process</Link>
-            <Link to="/contact" className="footer__nav-link">Contact</Link>
+            <FooterLink to="/vendre" className="footer__nav-link">Céder un bien</FooterLink>
+            <FooterLink to="/vendre#process" className="footer__nav-link">Notre process</FooterLink>
+            <FooterLink to="/contact" className="footer__nav-link">Contact</FooterLink>
           </nav>
         </div>
 
         {/* Colonne 4 — Légal */}
         <div className="footer__legal-col">
           <div className="footer__legal">
-            <Link to="/mentions-legales" className="footer__legal-link">
+            <FooterLink to="/mentions-legales" className="footer__legal-link">
               Mentions légales
-            </Link>
+            </FooterLink>
             <span className="footer__legal-sep"> · </span>
-            <Link to="/mentions-legales#politique-de-confidentialite" className="footer__legal-link">
+            <FooterLink to="/mentions-legales#politique-de-confidentialite" className="footer__legal-link">
               Politique de confidentialité
-            </Link>
+            </FooterLink>
           </div>
           <span className="footer__copyright">
             © {currentYear} Versi Immobilier

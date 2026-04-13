@@ -171,6 +171,21 @@ async function initDB() {
     client = await pool.connect();
     await client.query(SQL);
     console.log('[init-db] Tables, index et triggers créés avec succès.');
+
+    // Auto-seed blog articles si la table est vide
+    const { rows } = await client.query('SELECT COUNT(*) AS count FROM blog_articles');
+    if (parseInt(rows[0].count, 10) === 0) {
+      console.log('[init-db] Table blog_articles vide — lancement auto-seed...');
+      client.release();
+      client = null;
+      await pool.end();
+      // Exécuter les seeds via import dynamique
+      const { execSync } = await import('child_process');
+      execSync('node scripts/seed-blog-articles.js', { stdio: 'inherit' });
+      execSync('node scripts/seed-blog-articles-A2-A8.js', { stdio: 'inherit' });
+      console.log('[init-db] Auto-seed terminé.');
+      return;
+    }
   } catch (err) {
     console.error('[init-db] Erreur :', err.message);
     process.exit(1);
