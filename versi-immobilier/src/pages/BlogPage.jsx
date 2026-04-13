@@ -1,8 +1,18 @@
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import { useBlogArticles } from '../hooks/useBlogArticles.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
+
+const FILTERS = [
+  { key: 'all', label: 'Tous' },
+  { key: 'acheter', label: 'Acheter rénové', match: ['acquéreur', 'garanties', 'rénovation'] },
+  { key: 'financement', label: 'Financement', match: ['achat immobilier', 'financement', 'primo', 'PTZ', 'DPE', 'énergie'] },
+  { key: 'mdb', label: 'Marchand de biens', match: ['marchand de biens', 'précommercialisation', 'questions', 'guide'] },
+  { key: 'investir', label: 'Investir à Lille', match: ['Lille', 'investissement', 'rendement', 'patrimoine', 'Hauts-de-France'] },
+  { key: 'vendre', label: 'Vendre son bien', match: ['vendeur', 'vente', 'succession', 'estimation', 'cession'] },
+];
 
 function formatDate(dateString) {
   if (!dateString) return '';
@@ -15,8 +25,21 @@ function formatDate(dateString) {
 
 export default function BlogPage() {
   const { articles, loading, error } = useBlogArticles();
+  const [activeFilter, setActiveFilter] = useState('all');
   const { ref, isVisible } = useFadeIn();
   const { ref: gridRef, isVisible: gridVisible } = useFadeIn();
+
+  const filteredArticles = useMemo(() => {
+    if (activeFilter === 'all') return articles;
+    const filter = FILTERS.find((f) => f.key === activeFilter);
+    if (!filter || !filter.match) return articles;
+    return articles.filter((article) => {
+      const tags = Array.isArray(article.tags) ? article.tags : [];
+      return tags.some((tag) =>
+        filter.match.some((m) => tag.toLowerCase().includes(m.toLowerCase()))
+      );
+    });
+  }, [articles, activeFilter]);
 
   return (
     <>
@@ -37,31 +60,39 @@ export default function BlogPage() {
           </div>
         </section>
 
-        {/* Articles grid */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-subtle)', paddingTop: 'var(--spacing-xl)' }} ref={gridRef}>
+        {/* Filters + Articles grid */}
+        <section className="section-padding" style={{ background: 'var(--color-bg-primary)', paddingTop: 'var(--spacing-xl)' }} ref={gridRef}>
           <div className={`container ${gridVisible ? 'fade-in' : 'fade-hidden'}`}>
+            {/* Filter pills */}
+            {!loading && !error && articles.length > 0 && (
+              <div className="blog-filters" role="tablist" aria-label="Filtrer les articles">
+                {FILTERS.map((filter) => (
+                  <button
+                    key={filter.key}
+                    role="tab"
+                    aria-selected={activeFilter === filter.key}
+                    className={`blog-filter-pill text-label${activeFilter === filter.key ? ' blog-filter-pill--active' : ''}`}
+                    onClick={() => setActiveFilter(filter.key)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {loading ? (
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 420px), 1fr))',
-                gap: 'var(--spacing-xl)',
+                gap: 'var(--spacing-lg)',
               }}>
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="blog-card" style={{
-                    background: 'var(--color-bg-primary)',
-                    borderRadius: 'var(--card-radius)',
-                    overflow: 'hidden',
-                    border: '1px solid var(--color-border)',
-                  }}>
-                    <div className="skeleton-bar" style={{
-                      width: '100%',
-                      aspectRatio: '16 / 9',
-                    }} />
-                    <div style={{ padding: 'var(--spacing-lg)' }}>
-                      <div className="skeleton-bar" style={{ height: '12px', width: '60px', borderRadius: 'var(--radius-pill)', marginBottom: 'var(--spacing-sm)' }} />
-                      <div className="skeleton-bar" style={{ height: '20px', width: '80%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-sm)' }} />
-                      <div className="skeleton-bar" style={{ height: '14px', width: '100%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-xs)' }} />
-                      <div className="skeleton-bar" style={{ height: '14px', width: '70%', borderRadius: 'var(--radius-sm)' }} />
+                  <div key={i} className="blog-card-dark" style={{ borderRadius: 'var(--card-radius)' }}>
+                    <div style={{ padding: 'var(--spacing-xl)' }}>
+                      <div className="skeleton-bar-dark" style={{ height: '12px', width: '80px', borderRadius: 'var(--radius-pill)', marginBottom: 'var(--spacing-md)' }} />
+                      <div className="skeleton-bar-dark" style={{ height: '20px', width: '85%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-sm)' }} />
+                      <div className="skeleton-bar-dark" style={{ height: '14px', width: '100%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-xs)' }} />
+                      <div className="skeleton-bar-dark" style={{ height: '14px', width: '60%', borderRadius: 'var(--radius-sm)' }} />
                     </div>
                   </div>
                 ))}
@@ -90,15 +121,40 @@ export default function BlogPage() {
                   Réessayer
                 </button>
               </div>
-            ) : articles.length > 0 ? (
+            ) : filteredArticles.length > 0 ? (
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 420px), 1fr))',
-                gap: 'var(--spacing-xl)',
+                gap: 'var(--spacing-lg)',
               }}>
-                {articles.map((article) => (
+                {filteredArticles.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))}
+              </div>
+            ) : activeFilter !== 'all' ? (
+              <div style={{
+                textAlign: 'center',
+                padding: 'var(--spacing-3xl) var(--spacing-lg)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
+                  Aucun article dans cette catégorie pour le moment.
+                </p>
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className="text-cta"
+                  style={{
+                    background: 'var(--color-charcoal-950)',
+                    color: 'var(--color-calcaire-50)',
+                    padding: 'var(--spacing-sm) var(--spacing-xl)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    minHeight: '44px',
+                  }}
+                >
+                  Voir tous les articles
+                </button>
               </div>
             ) : (
               <div style={{
@@ -117,7 +173,7 @@ export default function BlogPage() {
                   alignItems: 'center',
                   background: 'var(--color-charcoal-950)',
                   color: 'var(--color-calcaire-50)',
-                  padding: '12px 32px',
+                  padding: 'var(--spacing-sm) var(--spacing-xl)',
                   borderRadius: 'var(--radius-sm)',
                   textDecoration: 'none',
                   minHeight: '44px',
@@ -162,69 +218,32 @@ function ArticleCard({ article }) {
   const tags = Array.isArray(article.tags) ? article.tags : [];
 
   return (
-    <article className="blog-card" style={{
-      background: 'var(--color-bg-primary)',
-      borderRadius: 'var(--card-radius)',
-      overflow: 'hidden',
-      border: '1px solid var(--color-border)',
-    }}>
-      <Link to={`/blog/${article.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-        {article.cover_image ? (
-          <div style={{
-            width: '100%',
-            aspectRatio: '16 / 9',
-            overflow: 'hidden',
-          }}>
-            <img
-              src={article.cover_image}
-              alt={article.title}
-              loading="lazy"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          </div>
-        ) : (
-          <div style={{
-            width: '100%',
-            aspectRatio: '16 / 9',
-            background: 'linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-alt) 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <span style={{
-              color: 'var(--color-accent)',
-              opacity: 0.15,
-              fontSize: '4rem',
-              fontWeight: '700',
-              letterSpacing: '-0.02em',
-              fontFamily: 'var(--font-family)',
-            }}>
-              VERSI
-            </span>
+    <article className="blog-card-dark">
+      <Link to={`/blog/${article.slug}`} className="blog-card-dark__link">
+        {tags.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
+            {tags.map((tag, i) => (
+              <span key={i} className="blog-tag-dark">
+                {tag}
+              </span>
+            ))}
           </div>
         )}
-        <div style={{ padding: 'var(--spacing-lg)' }}>
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
-              {tags.map((tag, i) => (
-                <span key={i} className="blog-tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-          <h2 className="text-heading-sm" style={{ marginBottom: 'var(--spacing-sm)' }}>
-            {article.title}
-          </h2>
-          <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
-            {article.excerpt}
-          </p>
-          <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+        <h2 className="text-heading-sm blog-card-dark__title">
+          {article.title}
+        </h2>
+        <p className="text-body-md blog-card-dark__excerpt">
+          {article.excerpt}
+        </p>
+        <div className="blog-card-dark__footer">
+          <span className="text-label blog-card-dark__date">
             {formatDate(article.published_at)}
+          </span>
+          <span className="text-cta blog-card-dark__read">
+            Lire
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ marginLeft: '4px' }}>
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
         </div>
       </Link>
