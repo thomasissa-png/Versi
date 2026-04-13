@@ -22,11 +22,11 @@ const PROJECT = {
   offer_delay: null,
   signature_delay: null,
   duration: '6 mois',
-  description: `Bâtiment administratif désaffecté de 136 m², acquis en bloc à Nanterre. L'opération reposait sur un parti pris unique : réhabiliter le volume brut sans le subdiviser, pour créer un loft de 7 pièces avec patio intérieur privatif.
+  description: `136 m² de bureaux désaffectés, un seul volume sans cloison. Le choix : ne pas subdiviser, transformer le plateau brut en un loft de 7 pièces avec patio intérieur privatif.
 
-La transformation a porté sur l'enveloppe et les distributions. Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio — l'ensemble du projet est structuré autour de la lumière naturelle traversante. Escalier sur mesure en chêne massif, garde-corps verre trempé, parquet contrecollé chêne. Cuisine intégrée sous escalier. Rangements muraux bois et laqué blanc.
+Le projet est structuré autour de la lumière naturelle traversante. Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio. On passe du séjour au patio sans transition, dedans et dehors communiquent. Escalier sur mesure en chêne massif, garde-corps verre trempé, parquet contrecollé chêne. Cuisine intégrée sous escalier, rangements muraux bois et laqué blanc.
 
-Cession à 750 000 €.`,
+Opération bouclée en 6 mois. Cession à 750 000 €.`,
   featured: true,
   sort_order: 0,
 };
