@@ -26,6 +26,18 @@ export default function PropertiesPage() {
   const available = useMemo(() => allProperties.filter((p) => p.status !== 'vendu'), [allProperties]);
   const sold = useMemo(() => allProperties.filter((p) => p.status === 'vendu'), [allProperties]);
 
+  // Dynamic price range from available properties (fallback: 95k–350k)
+  const priceRange = useMemo(() => {
+    const prices = available.filter((p) => p.priceNum > 0).map((p) => p.priceNum);
+    if (prices.length === 0) return { min: '95 000', max: '350 000' };
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return {
+      min: min.toLocaleString('fr-FR'),
+      max: max.toLocaleString('fr-FR'),
+    };
+  }, [available]);
+
   const filtered = useMemo(() => {
     return available.filter((p) => {
       if (typeFilter !== 'Tous' && p.type !== typeFilter) return false;
@@ -70,8 +82,8 @@ export default function PropertiesPage() {
             </h1>
             <p className="text-body-lg properties-page__header-subtitle">
               Appartements et biens mixtes en Hauts-de-France et Île-de-France.
-              Dossier complet — diagnostics, historique, garanties — disponible avant la visite.
-              Prix de vente : généralement entre 95 000 € et 350 000 €.
+              Dossier complet (diagnostics, historique, garanties) disponible avant la visite.
+              Prix de vente : généralement entre {priceRange.min} € et {priceRange.max} €.
             </p>
 
             {/* Filtres */}

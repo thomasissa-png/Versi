@@ -447,18 +447,44 @@ app.get('/api/public/projects', async (req, res) => {
   }
 
   try {
+    // Subquery: pick first "apres" photo per project (fallback: first photo by sort_order)
+    const coverSubquery = `
+      LEFT JOIN LATERAL (
+        SELECT pp.data, pp.mime_type
+        FROM project_photos pp
+        WHERE pp.project_id = p.id
+        ORDER BY CASE WHEN pp.category = 'apres' THEN 0 ELSE 1 END, pp.sort_order ASC
+        LIMIT 1
+      ) cover ON true
+    `;
+    const columns = 'p.id, p.title, p.city, p.type, p.surface, p.units, p.status, p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay, p.duration, p.description, p.featured, p.sort_order, p.created_at, p.updated_at, cover.data AS cover_data, cover.mime_type AS cover_mime';
+
     let result;
     if (status === 'all') {
       result = await pool.query(
-        'SELECT id, title, city, type, surface, units, status, buy_price, works_amount, sell_price, offer_delay, signature_delay, duration, description, featured, sort_order, created_at, updated_at FROM projects ORDER BY sort_order ASC, created_at DESC'
+        `SELECT ${columns} FROM projects p ${coverSubquery} ORDER BY p.sort_order ASC, p.created_at DESC`
       );
     } else {
       result = await pool.query(
-        'SELECT id, title, city, type, surface, units, status, buy_price, works_amount, sell_price, offer_delay, signature_delay, duration, description, featured, sort_order, created_at, updated_at FROM projects WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
+        `SELECT ${columns} FROM projects p ${coverSubquery} WHERE p.status = $1 ORDER BY p.sort_order ASC, p.created_at DESC`,
         [status]
       );
     }
-    return res.json({ projects: result.rows });
+
+    // Build cover_url from base64 data
+    const projects = result.rows.map((row) => {
+      const { cover_data, cover_mime, ...project } = row;
+      if (cover_data) {
+        project.cover_url = cover_data.startsWith('data:')
+          ? cover_data
+          : `data:${cover_mime};base64,${cover_data}`;
+      } else {
+        project.cover_url = null;
+      }
+      return project;
+    });
+
+    return res.json({ projects });
   } catch (err) {
     console.error('[API] Erreur GET /api/public/projects :', err.message);
     return res.status(500).json({ ok: false, error: 'Erreur interne' });

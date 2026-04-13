@@ -8,11 +8,19 @@ export default function ProjectCard({ project }) {
   return (
     <article className="project-card">
       <div className="project-card__image-wrapper">
-        <div className="project-card__image image-placeholder">
-          <span className="project-card__image-label">
-            {view === 'avant' ? 'Photo avant' : 'Photo après'}
-          </span>
-        </div>
+        {project.cover_url ? (
+          <img
+            src={project.cover_url}
+            alt={project.title}
+            className="project-card__image project-card__image--photo"
+          />
+        ) : (
+          <div className="project-card__image image-placeholder">
+            <span className="project-card__image-label">
+              {view === 'avant' ? 'Photo avant' : 'Photo après'}
+            </span>
+          </div>
+        )}
         <div className="project-card__toggle" role="tablist" aria-label="Basculer avant/après">
           <button
             role="tab"

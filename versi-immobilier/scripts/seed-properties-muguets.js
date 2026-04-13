@@ -7,7 +7,7 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const PROPERTIES = [
   {
     id: 'muguets-lot-1-rdc',
-    title: 'Jardin privatif de plain-pied — T2 47 m², Lille-Sud',
+    title: 'T2 de 47 m² avec jardin privatif, rez-de-chaussée',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -27,25 +27,25 @@ const PROPERTIES = [
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Ce T2 de 47 m² est le seul appartement de l'immeuble avec un accès direct à l'extérieur : 10 m² de jardin privatif au sol, sans vis-à-vis. Dans le collectif lillois, les rez-de-chaussée avec extérieur privatif sont quasi absents du neuf — la plupart des programmes sacrifient ces surfaces pour des locaux communs ou du stationnement. Ici, la configuration de l'immeuble le permettait. Elle a été conservée.
+    description: `On pousse la porte d'entrée et on est dehors. C'est l'appartement du rez-de-chaussée, le seul de l'immeuble à avoir son propre bout de terrain : 10 m² de jardin privatif, de plain-pied avec le séjour, sans vis-à-vis.
 
-Le séjour-cuisine de 26 m² est de plain-pied avec le jardin, sans rupture de niveau. La chambre de 10,2 m² donne sur la cour intérieure, côté calme. Chauffage collectif — pas de charge d'ascenseur. Parking couvert compris dans le prix.
+L'intérieur est simple et bien distribué. Un séjour-cuisine de 26 m² qui ouvre directement sur le jardin, sans marche, sans seuil. Une chambre de 10,2 m² côté cour, au calme. Chauffage collectif, pas de charge d'ascenseur. Place de parking comprise dans le prix.
 
-Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Deux options d'acquisition : avant travaux à 95 000 €, ou prêt à habiter à 130 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+L'immeuble est un ancien bâtiment de bureaux que Versi transforme intégralement en logements. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 95 000 € vous achetez avant travaux et vous choisissez vos finitions, à 130 000 € on vous livre prêt à habiter. Permis déposé, chantier prévu été 2026, livraison fin 2026. Dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Jardin privatif 10 m² — de plain-pied, sans vis-à-vis',
-      'Séjour-cuisine 26 m²',
-      'Chambre 10,2 m²',
+      'Jardin privatif 10 m², de plain-pied',
+      'Séjour-cuisine 26 m² ouvert sur le jardin',
+      'Chambre 10,2 m² côté cour',
       'Parquet chêne, menuiseries double vitrage',
-      'Parking couvert inclus',
+      'Parking inclus',
       'Pas de charges d\'ascenseur',
     ]),
     sort_order: 0,
   },
   {
     id: 'muguets-lot-2-t3',
-    title: 'T3 avec séjour de 40,5 m² — 82 m², 1er étage, Lille-Sud',
+    title: 'T3 de 82 m² avec séjour traversant de 40 m², 1er étage',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -65,25 +65,25 @@ Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, sa
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Un séjour-cuisine de 40,5 m² dans un T3 collectif — les programmes neufs lillois distribuent 18 à 22 m² de séjour sur une surface équivalente. Ce bien est à plus du double. Cette générosité vient de l'histoire du bâtiment : l'immeuble était à usage de bureaux. Les plateaux ouverts, sans la distribution contrainte du résidentiel standard, ont rendu possible cette configuration.
+    description: `Le premier étage, c'est celui qui a le plus grand volume habitable. 82 m² répartis simplement : un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. L'appartement est issu d'un ancien plateau de bureaux. C'est ce qui explique les volumes : pas de mur porteur au milieu, pas de couloir qui mange la surface. Tout l'espace est utile.
 
-Deux chambres de 14 m² et 9 m² complètent l'appartement. Chauffage collectif — charges maîtrisées, pas de surprise. Parking couvert compris.
+Le séjour donne une vraie liberté d'aménagement. Table de 8, canapé d'angle, coin bureau, tout rentre sans compromis. Les deux chambres sont séparées du séjour, chacune avec sa fenêtre. Chauffage collectif. Place de parking comprise.
 
-Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Acquisition avant travaux à 165 000 €, ou prêt à habiter à 230 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+L'immeuble est entièrement repris par Versi. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 165 000 € avant travaux ou 230 000 € livré prêt à habiter. Permis déposé, chantier prévu été 2026, livraison fin 2026. Dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Séjour-cuisine 40,5 m² — double du standard neuf',
+      'Séjour-cuisine de 40,5 m² sans cloisonnement',
       'Chambre principale 14 m²',
       'Chambre 9 m²',
-      'Volumes ouverts — pas de mur porteur central',
+      'Aucun mur porteur central',
       'Parquet chêne, menuiseries double vitrage',
-      'Parking couvert inclus',
+      'Parking inclus',
     ]),
     sort_order: 1,
   },
   {
     id: 'muguets-lot-3-duplex',
-    title: 'Duplex 126 m², terrasse vue sur l\'église, plafond cathédrale — Lille-Sud',
+    title: 'Duplex 126 m² sur deux niveaux, terrasse et plafond cathédrale',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -103,20 +103,20 @@ Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, sa
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Ce duplex occupe les 2e et 3e niveaux de l'immeuble — 126 m² sur deux étages, avec une terrasse de 12 m² donnant sur l'église du quartier. La partie haute offre un plafond cathédrale : une hauteur que les programmes neufs abandonnent systématiquement dans ce segment de prix.
+    description: `Les deux derniers étages de l'immeuble, pour un seul appartement. 126 m² répartis sur deux niveaux, avec une terrasse de 12 m² donnant sur l'église du quartier. En haut, le plafond cathédrale donne au séjour une hauteur qu'on ne trouve pas dans du logement standard.
 
-Trois chambres de 15 m² chacune — une symétrie de distribution que la contrainte des dalles standard rend quasi impossible dans un programme neuf. Le séjour-cuisine de 47 m² profite d'une vue dégagée. Chauffage collectif. Parking couvert inclus — pas de frais cachés sur le prix affiché.
+En bas : trois chambres de 15 m² chacune et une salle d'eau. En haut : un séjour-cuisine de 47 m² sous les toits, lumineux, avec accès direct à la terrasse. C'est un vrai appartement familial, avec de la place pour chacun et un espace commun où l'on respire. Chauffage collectif. Place de parking comprise.
 
-Finitions prévues : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelage grand format, cuisine pré-équipée. Acquisition avant travaux à 250 000 €, ou prêt à habiter à 355 000 €. Permis déposé, démarrage chantier prévu été 2026, livraison fin 2026. Assurance dommages-ouvrage et garantie décennale incluses.`,
+L'immeuble entier est transformé par Versi. Parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 250 000 € avant travaux ou 355 000 € livré prêt à habiter. Permis déposé, chantier prévu été 2026, livraison fin 2026. Dommages-ouvrage et garantie décennale incluses.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Duplex sur deux niveaux — 126 m²',
-      'Terrasse 12 m² vue sur l\'église',
-      'Plafond cathédrale en partie haute',
-      'Séjour-cuisine 47 m² vue dégagée',
-      '3 chambres de 15 m² — distribution symétrique',
+      'Duplex 126 m² sur deux niveaux',
+      'Terrasse 12 m² donnant sur l\'église',
+      'Plafond cathédrale au dernier étage',
+      'Séjour-cuisine 47 m² sous les toits',
+      '3 chambres de 15 m² chacune',
       'Parquet chêne, menuiseries double vitrage',
-      'Parking couvert inclus',
+      'Parking inclus',
     ]),
     sort_order: 2,
   },

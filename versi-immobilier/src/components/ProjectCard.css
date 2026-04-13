@@ -23,6 +23,11 @@
   background: linear-gradient(135deg, var(--color-calcaire-50), var(--color-stone-200));
 }
 
+.project-card__image--photo {
+  object-fit: cover;
+  display: block;
+}
+
 .project-card__image-label {
   font-size: var(--font-size-body-sm);
   color: var(--color-text-muted);

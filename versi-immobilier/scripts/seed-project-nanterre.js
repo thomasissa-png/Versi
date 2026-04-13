@@ -10,23 +10,23 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const PROJECT = {
   id: 'nanterre-barbusse',
-  title: 'Nanterre Barbusse — Loft 7 pièces, 200 m²',
+  title: 'Nanterre Barbusse — Loft 7 pièces, 136 m²',
   city: 'Nanterre',
   type: 'Réhabilitation complète en loft 7 pièces avec patio privatif',
-  surface: '200 m²',
+  surface: '136 m²',
   units: 1,
   status: 'completed',
   buy_price: null,
   works_amount: null,
   sell_price: '750 000 €',
-  offer_delay: 5,
-  signature_delay: 90,
-  duration: '12 mois',
-  description: `Bâtiment administratif désaffecté de 200 m², acquis en bloc à Nanterre. L'opération reposait sur un parti pris unique : réhabiliter le volume brut sans le subdiviser, pour créer un loft de 7 pièces avec patio intérieur privatif.
+  offer_delay: null,
+  signature_delay: null,
+  duration: '6 mois',
+  description: `Bâtiment administratif désaffecté de 136 m², acquis en bloc à Nanterre. L'opération reposait sur un parti pris unique : réhabiliter le volume brut sans le subdiviser, pour créer un loft de 7 pièces avec patio intérieur privatif.
 
 La transformation a porté sur l'enveloppe et les distributions. Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio — l'ensemble du projet est structuré autour de la lumière naturelle traversante. Escalier sur mesure en chêne massif, garde-corps verre trempé, parquet contrecollé chêne. Cuisine intégrée sous escalier. Rangements muraux bois et laqué blanc.
 
-Offre émise à J+5 après visite. Cession à 750 000 €, acte signé à J+90.`,
+Cession à 750 000 €.`,
   featured: true,
   sort_order: 0,
 };
