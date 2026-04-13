@@ -10,9 +10,9 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const PROJECT = {
   id: 'nanterre-barbusse',
-  title: 'Nanterre, Barbusse — Loft 7 pièces',
+  title: 'Nanterre Barbusse — Bâtiment administratif, 200 m²',
   city: 'Nanterre',
-  type: 'Ancien bâtiment administratif → Loft 7 pièces + patio',
+  type: 'Bâtiment administratif désaffecté — réhabilitation en loft 7 pièces',
   surface: '200 m²',
   units: '1 lot',
   status: 'completed',
@@ -22,11 +22,11 @@ const PROJECT = {
   offer_delay: 5,
   signature_delay: 90,
   duration: '12 mois',
-  description: `Ancien bâtiment administratif désaffecté de 200 m² à Nanterre, acquis en bloc. Réhabilitation complète en loft contemporain de 7 pièces avec patio intérieur privatif.
+  description: `Bâtiment administratif désaffecté de 200 m², acquis en bloc à Nanterre. L'opération reposait sur un parti pris unique : réhabiliter le volume brut sans le subdiviser, pour créer un loft de 7 pièces avec patio intérieur privatif.
 
-Travaux réalisés : restructuration totale de l'enveloppe, création d'une double hauteur avec mezzanine, escalier sur mesure en chêne massif avec garde-corps en verre trempé, cuisine intégrée sous escalier, verrière d'atelier, parquet contrecollé chêne sur l'ensemble, suspensions en fibre naturelle, rangements muraux sur mesure bois et laqué blanc.
+La transformation a porté sur l'enveloppe et les distributions. Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio — l'ensemble du projet est structuré autour de la lumière naturelle traversante. Escalier sur mesure en chêne massif, garde-corps verre trempé, parquet contrecollé chêne. Cuisine intégrée sous escalier. Rangements muraux bois et laqué blanc.
 
-Le patio central crée un puits de lumière naturelle qui irrigue l'ensemble du volume via les baies vitrées toute hauteur. Un espace atypique, introuvable sur le marché classique.`,
+Offre émise à J+5 après visite. Cession à 750 000 €, acte signé à J+90.`,
   featured: true,
   sort_order: 0,
 };
