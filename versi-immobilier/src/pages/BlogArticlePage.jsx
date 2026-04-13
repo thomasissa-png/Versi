@@ -198,7 +198,11 @@ export default function BlogArticlePage() {
   }, [article]);
 
   const tags = article && Array.isArray(article.tags) ? article.tags : [];
-  const htmlContent = article ? parseMarkdown(article.content) : '';
+  // Strip leading h1 from content — title is already displayed by the component
+  const contentWithoutH1 = article
+    ? article.content.replace(/^#\s+.+\n*/, '')
+    : '';
+  const htmlContent = parseMarkdown(contentWithoutH1);
 
   return (
     <>

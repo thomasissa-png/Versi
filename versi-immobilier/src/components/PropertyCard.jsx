@@ -14,6 +14,7 @@ export default function PropertyCard({ property }) {
     <article className="property-card">
       <Link to={`/nos-biens/${property.id}`} className="property-card__image-link">
         <div className="property-card__image image-placeholder">
+          <span className="property-card__image-text text-label">Visuel bientôt disponible</span>
           <span className={`property-card__badge ${statusInfo.className}`}>
             {statusInfo.label}
           </span>

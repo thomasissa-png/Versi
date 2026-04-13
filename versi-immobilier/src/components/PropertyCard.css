@@ -29,6 +29,15 @@
   background: linear-gradient(135deg, var(--color-calcaire-50), var(--color-stone-200));
 }
 
+.property-card__image-text {
+  position: absolute;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  font-size: var(--font-size-small);
+}
+
 .property-card__badge {
   position: absolute;
   top: var(--spacing-md);

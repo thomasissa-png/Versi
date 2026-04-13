@@ -138,19 +138,19 @@ export default function PropertyDetailPage() {
                   </div>
                 </>
               ) : (
-                <>
-                  <div className="image-placeholder" style={{ height: '400px', borderRadius: 'var(--card-radius)', aspectRatio: '4/3' }}>
-                    Photo principale
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                    <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
-                      Photo 2
-                    </div>
-                    <div className="image-placeholder" style={{ flex: 1, borderRadius: 'var(--card-radius)' }}>
-                      Photo 3
-                    </div>
-                  </div>
-                </>
+                <div className="image-placeholder" style={{
+                  height: '400px',
+                  borderRadius: 'var(--card-radius)',
+                  aspectRatio: '4/3',
+                  gridColumn: '1 / -1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span className="text-label" style={{ color: 'var(--color-text-muted)', opacity: 0.6 }}>
+                    Visuel bientôt disponible
+                  </span>
+                </div>
               )}
             </div>
 
@@ -188,9 +188,13 @@ export default function PropertyDetailPage() {
                 <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>
                   Le bien.
                 </h2>
-                <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', lineHeight: 1.65 }}>
-                  {property.description}
-                </p>
+                <div className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', lineHeight: 1.65 }}>
+                  {property.description.split('\n\n').map((paragraph, i, arr) => (
+                    <p key={i} style={{ marginBottom: i < arr.length - 1 ? 'var(--spacing-md)' : 0 }}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
 
                 {/* Features */}
                 {property.features && property.features.length > 0 && (
