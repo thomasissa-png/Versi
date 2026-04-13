@@ -20,8 +20,22 @@ export default function ContactPage() {
         {/* Header */}
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
           <div className="container">
+            {bien && (
+              <Link
+                to="/nos-biens"
+                className="text-label"
+                style={{
+                  display: 'inline-block',
+                  color: 'var(--color-text-muted)',
+                  textDecoration: 'none',
+                  marginBottom: 'var(--spacing-lg)',
+                }}
+              >
+                ← Nos biens
+              </Link>
+            )}
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Écrivez-nous.
+              {bien ? 'Demander une présentation.' : 'Écrivez-nous.'}
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
               Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h — sans standard, sans assistant.
