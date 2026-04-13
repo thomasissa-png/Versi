@@ -121,6 +121,9 @@ Lot proposé en pré-commercialisation avant démarrage des travaux. Versi Immob
   },
 ];
 
+// Export des données pour autoSeed dans server.js
+export { PROPERTIES as MUGUETS_PROPERTIES };
+
 async function seed() {
   if (!process.env.DATABASE_URL) {
     console.error('[seed-muguets] DATABASE_URL non définie.');

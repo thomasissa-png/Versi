@@ -172,6 +172,9 @@ Chez Versi Immobilier, les biens en précommercialisation sont signalés sur not
   },
 ];
 
+// Export des données pour autoSeed dans server.js
+export { articles as BLOG_ARTICLES_A1_A6 };
+
 async function seedBlogArticles() {
   console.log('[SEED] Insertion des articles A1 et A6...');
 

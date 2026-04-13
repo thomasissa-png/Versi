@@ -197,6 +197,9 @@ Chez Versi Immobilier, nous répondons à ces questions pour chaque bien que nou
   },
 ];
 
+// Export des données pour autoSeed dans server.js
+export { articles as BLOG_ARTICLES_A2_A8 };
+
 async function seedBlogArticles() {
   console.log('[SEED] Insertion des articles A2 et A8...');
 

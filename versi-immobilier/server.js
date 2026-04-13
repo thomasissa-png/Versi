@@ -6,6 +6,11 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import pool from './db.js';
 import { runGates } from './gate-runner.js';
+import {
+  MUGUETS_PROPERTIES,
+  NANTERRE_PROJECT, NANTERRE_PHOTOS,
+  BLOG_ARTICLES_A1_A6, BLOG_ARTICLES_A2_A8,
+} from './seed-data.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1677,10 +1682,173 @@ app.get('/{*splat}', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// autoSeed() — seed et cleanup au démarrage du serveur
+// ---------------------------------------------------------------------------
+const MUGUETS_IDS = MUGUETS_PROPERTIES.map(p => p.id);
+
+async function autoSeed() {
+  const client = await pool.connect();
+  try {
+    // 1. Seed properties si la table est vide
+    const { rows: propCount } = await client.query('SELECT COUNT(*) AS c FROM properties');
+    if (parseInt(propCount[0].c, 10) === 0) {
+      console.log('[autoSeed] Table properties vide — insertion des biens Muguets...');
+      for (const prop of MUGUETS_PROPERTIES) {
+        await upsertProperty(client, prop);
+      }
+    }
+
+    // 2. Seed projects si la table est vide
+    const { rows: projCount } = await client.query('SELECT COUNT(*) AS c FROM projects');
+    if (parseInt(projCount[0].c, 10) === 0) {
+      console.log('[autoSeed] Table projects vide — insertion de Nanterre Barbusse...');
+      await upsertNanterreProject(client);
+    }
+
+    // 3. Seed blog_articles si la table est vide
+    const { rows: blogCount } = await client.query('SELECT COUNT(*) AS c FROM blog_articles');
+    if (parseInt(blogCount[0].c, 10) === 0) {
+      console.log('[autoSeed] Table blog_articles vide — insertion des articles...');
+      const allArticles = [...BLOG_ARTICLES_A1_A6, ...BLOG_ARTICLES_A2_A8];
+      for (const article of allArticles) {
+        await upsertBlogArticle(client, article);
+      }
+    }
+
+    // 4. Correction auteurs blog : "Thomas Issa" → "Équipe Versi — Maxime, Thomas & Carl"
+    const authorFix = await client.query(
+      `UPDATE blog_articles SET author = 'Équipe Versi — Maxime, Thomas & Carl' WHERE author = 'Thomas Issa' RETURNING id`
+    );
+    if (authorFix.rowCount > 0) {
+      console.log(`[autoSeed] ${authorFix.rowCount} article(s) : auteur corrigé → Équipe Versi`);
+    }
+
+    // 5. Upsert biens Muguets (même si table non vide — garantit données à jour)
+    for (const prop of MUGUETS_PROPERTIES) {
+      await upsertProperty(client, prop);
+    }
+
+    // 6. Supprimer les biens non-Muguets (cleanup)
+    const deletedProps = await client.query(
+      `DELETE FROM properties WHERE NOT (id = ANY($1)) RETURNING id`,
+      [MUGUETS_IDS]
+    );
+    if (deletedProps.rowCount > 0) {
+      console.log(`[autoSeed] ${deletedProps.rowCount} bien(s) non-Muguets supprimé(s)`);
+    }
+
+    // 7. Upsert projet Nanterre + photos
+    await upsertNanterreProject(client);
+
+    // 8. Supprimer les projets non-Nanterre (cleanup)
+    const deletedProj = await client.query(
+      `DELETE FROM projects WHERE id != $1 RETURNING id`,
+      [NANTERRE_PROJECT.id]
+    );
+    if (deletedProj.rowCount > 0) {
+      console.log(`[autoSeed] ${deletedProj.rowCount} projet(s) non-Nanterre supprimé(s)`);
+    }
+
+    console.log('[autoSeed] Terminé.');
+  } catch (err) {
+    console.error('[autoSeed] Erreur :', err.message);
+  } finally {
+    client.release();
+  }
+}
+
+async function upsertProperty(client, prop) {
+  await client.query(
+    `INSERT INTO properties (
+      id, title, city, location, neighborhood, address,
+      nearby_transport, nearby_amenities, type, surface, rooms,
+      price, price_num, price_note, status, dpe, dpe_note,
+      floor, tenancy, renovation_year, charges, description,
+      works, features, sort_order
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title, city = EXCLUDED.city, location = EXCLUDED.location,
+      neighborhood = EXCLUDED.neighborhood, address = EXCLUDED.address,
+      nearby_transport = EXCLUDED.nearby_transport, nearby_amenities = EXCLUDED.nearby_amenities,
+      type = EXCLUDED.type, surface = EXCLUDED.surface, rooms = EXCLUDED.rooms,
+      price = EXCLUDED.price, price_num = EXCLUDED.price_num, price_note = EXCLUDED.price_note,
+      status = EXCLUDED.status, dpe = EXCLUDED.dpe, dpe_note = EXCLUDED.dpe_note,
+      floor = EXCLUDED.floor, tenancy = EXCLUDED.tenancy, renovation_year = EXCLUDED.renovation_year,
+      charges = EXCLUDED.charges, description = EXCLUDED.description,
+      works = EXCLUDED.works, features = EXCLUDED.features, sort_order = EXCLUDED.sort_order`,
+    [
+      prop.id, prop.title, prop.city, prop.location, prop.neighborhood, prop.address,
+      prop.nearby_transport, prop.nearby_amenities, prop.type, prop.surface, prop.rooms,
+      prop.price, prop.price_num, prop.price_note, prop.status, prop.dpe, prop.dpe_note,
+      prop.floor, prop.tenancy, prop.renovation_year, prop.charges, prop.description,
+      prop.works, prop.features, prop.sort_order,
+    ]
+  );
+}
+
+async function upsertNanterreProject(client) {
+  const p = NANTERRE_PROJECT;
+  await client.query(
+    `INSERT INTO projects (
+      id, title, city, type, surface, units, status,
+      buy_price, works_amount, sell_price, offer_delay, signature_delay,
+      duration, description, featured, sort_order
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title, city = EXCLUDED.city, type = EXCLUDED.type,
+      surface = EXCLUDED.surface, units = EXCLUDED.units, status = EXCLUDED.status,
+      buy_price = EXCLUDED.buy_price, works_amount = EXCLUDED.works_amount,
+      sell_price = EXCLUDED.sell_price, offer_delay = EXCLUDED.offer_delay,
+      signature_delay = EXCLUDED.signature_delay, duration = EXCLUDED.duration,
+      description = EXCLUDED.description, featured = EXCLUDED.featured,
+      sort_order = EXCLUDED.sort_order, updated_at = NOW()`,
+    [
+      p.id, p.title, p.city, p.type, p.surface, p.units, p.status,
+      p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay,
+      p.duration, p.description, p.featured, p.sort_order,
+    ]
+  );
+
+  // Delete existing photos then re-insert
+  await client.query('DELETE FROM project_photos WHERE project_id = $1', [p.id]);
+  for (const photo of NANTERRE_PHOTOS) {
+    await client.query(
+      `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
+    );
+  }
+  console.log(`[autoSeed] Projet "${p.id}" + ${NANTERRE_PHOTOS.length} photos upserted.`);
+}
+
+async function upsertBlogArticle(client, article) {
+  await client.query(
+    `INSERT INTO blog_articles (id, title, slug, excerpt, content, cover_image, author, tags, status, published_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+     ON CONFLICT (slug) DO UPDATE SET
+       title = EXCLUDED.title, excerpt = EXCLUDED.excerpt,
+       content = EXCLUDED.content, cover_image = EXCLUDED.cover_image,
+       author = EXCLUDED.author, tags = EXCLUDED.tags,
+       status = EXCLUDED.status,
+       published_at = COALESCE(blog_articles.published_at, NOW()),
+       updated_at = NOW()`,
+    [
+      article.id, article.title, article.slug, article.excerpt,
+      article.content, article.cover_image, article.author,
+      article.tags, article.status,
+    ]
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[versi] Serveur multi-site démarré sur le port ${PORT}`);
   console.log(`  - versi-immobilier : ${VERSI_IMMO_DIST}`);
   console.log(`  - versi.fr         : ${VERSI_FR_DIST}`);
+  // AutoSeed au démarrage
+  await autoSeed();
 });

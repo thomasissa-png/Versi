@@ -98,6 +98,9 @@ const PHOTOS = [
   },
 ];
 
+// Export des données pour autoSeed dans server.js
+export { PROJECT as NANTERRE_PROJECT, PHOTOS as NANTERRE_PHOTOS };
+
 async function seed() {
   const client = await pool.connect();
   try {
