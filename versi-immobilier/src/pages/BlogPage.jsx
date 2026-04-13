@@ -29,7 +29,7 @@ export default function BlogPage() {
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Blog.
+              Notre regard.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
               Rénovation, investissement, marché immobilier dans les Hauts-de-France. Notre regard sur le terrain.

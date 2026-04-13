@@ -140,7 +140,7 @@ export default function Footer() {
             <FooterLink to="/nos-biens" className="footer__nav-link">Nos biens disponibles</FooterLink>
             <FooterLink to="/realisations" className="footer__nav-link">Nos réalisations</FooterLink>
             <FooterLink to="/notre-approche" className="footer__nav-link">Notre approche</FooterLink>
-            <FooterLink to="/blog" className="footer__nav-link">Blog</FooterLink>
+            <FooterLink to="/blog" className="footer__nav-link">Notre regard</FooterLink>
             <FooterLink to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
               Être notifié en avant-première
             </FooterLink>
