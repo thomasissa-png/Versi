@@ -30,9 +30,6 @@ export default function Mission() {
               <span className="text-label mission__stat-label">{stat.label}</span>
             </div>
           ))}
-          <p className="text-body-sm mission__stats-context" style={{ gridColumn: '1 / -1', opacity: 0.6, marginTop: '8px' }}>
-            Versi gère directement plus de 35 actifs immobiliers en France, détient 5 immeubles en portefeuille et opère à travers 4 métiers intégrés.
-          </p>
         </div>
       </div>
     </section>
