@@ -2,7 +2,7 @@
 
 > Source de vérité pour l'agent @moi.
 > Mis à jour automatiquement depuis `docs/lessons-learned.md` (catégorie "préférence fondateur").
-> Dernière mise à jour : 2026-04-11
+> Dernière mise à jour : 2026-04-13
 
 ## Préférences validées
 
@@ -42,6 +42,12 @@
 - **Respect des fournisseurs, partenaires et acquéreurs.** Le ton n'est jamais condescendant, jamais commercial agressif. On parle aux gens comme à des adultes intelligents. On respecte l'écosystème (artisans, notaires, courtiers, acquéreurs).
 - **"Pas des clowns."** Zéro humour forcé, zéro ton startup/cool, zéro emoji, zéro exclamation. Sérieux sans être ennuyeux. Confiant sans être arrogant. Le contenu doit donner envie de travailler avec Versi, pas de liker un post.
 - **Objectif éditorial = top-of-mind dans la zone de chalandise.** L'objectif ultime du contenu : que les gens pensent toujours à Versi en premier dans la zone (Hauts-de-France + IDF). Deux axes : (1) capter les acquéreurs qui veulent acheter des biens, (2) capter les vendeurs/apporteurs qui veulent proposer des biens à Versi. Le blog et le contenu doivent servir ces deux flux simultanément.
+
+### Transparence financière
+- **Références : prix de vente uniquement, JAMAIS les marges.** Thomas refuse catégoriquement d'exposer la structure financière des opérations (prix d'achat, montant travaux, marge brute/nette, rendement, ROI). Citation : "pour les références on affiche que les prix de vente. Je ne veux pas qu'on montre nos marges." Gate GR-5 BLOQUANT non négociable. Les champs `buy_price` et `works_amount` restent null dans les seeds.
+
+### Données factuelles
+- **Zéro donnée inventée dans les emplacements.** Thomas a demandé explicitement : "Assure toi surtout pour emplacement de bien vérifier les données de distance et de surtout rien inventer." Chaque lieu, distance, établissement dans nearby_transport et nearby_amenities doit être vérifié WebSearch avant commit.
 
 ### Process
 - Ne pas changer de branche sans vérification. Le fondateur attend que le travail validé soit préservé.

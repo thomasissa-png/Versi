@@ -302,6 +302,7 @@
 | creative-strategy | 2026-04-13 | docs/strategy/vi-blog-autonomous-pipeline.md (itération finale 10/10) | Itération créative finale sur le pipeline blog autonome. 4 dimensions portées à 10/10 : (1) Brand voice calibration : voix authorship par fondateur pour P2 (Thomas = acquisition/chiffres, Maxime = thèse investissement, Carl = opérationnel terrain), règle anti-relâchement de ton (dérives milieu/fin d'article documentées avec interdits précis), 4 exemples d'ouverture par pilier comme calibrateurs sonores. (2) Qualité éditoriale : critères de rejet éditorial ajoutés dans la checklist auto-applicable (test auteur, fin non-paresseuse, zéro promesse sans preuve). (3) Feedback loop : section 4bis créée — table `validation_patterns`, détection des checks récurrents par pilier/persona, alertes seuils, rapport qualité mensuel CRON 4, table `system_prompts` versionnée (évolution du prompt sans redéploiement). (4) Mémoire éditoriale : section 2.4 créée — requête SQL de résumé éditorial, champ `editorial_memory` injecté dans le brief JSON, instruction {{EDITORIAL_MEMORY}} dans le prompt, extraction automatique `angles_covered` post-publication. | Voix authorship P2 ajoutée car un article "Réalisation terrain" doit sonner différemment selon que c'est Thomas (angle financial/acquisition), Maxime (angle stratégique) ou Carl (angle opérationnel) — sans cette distinction, tous les articles P2 sonnent pareil. Règle anti-relâchement nécessaire car les LLMs tendent à dériver vers des formulations laudatives après 400 mots — instruction défensive préférable à la correction ex-post. Mémoire éditoriale = pièce la plus critique pour la cohérence long terme : après 15 articles sans mémoire, le pipeline peut légitimement réutiliser les mêmes exemples, les mêmes opérations Versi, les mêmes formulations d'ouverture. Feedback loop ajoutée car le système actuel corrigeait les erreurs article par article sans jamais apprendre de leur récurrence — table `validation_patterns` ferme cette boucle. |
 | copywriter | 2026-04-13 | docs/qa/blog-gates-editorial.md | 10 gates éditoriales définies (GE-1 à GE-10) en complément des 22 checks techniques V1-V22. 3 gates BLOQUANT (GE-1 accroche directe, GE-2 brand voice Versi, GE-3 spécificité Versi, GE-5 données sourcées — GE-5 reclassée BLOQUANT), 7 gates REQUIS. Prompt de review IA complet (section 3.3) prêt à l'injection dans le pipeline. Champs SQL à ajouter (editorial_review_score, editorial_review_report, editorial_review_passes). Matrice de complémentarité V vs GE documentée (section 4.3). | GE-3 (spécificité Versi) et GE-5 (données sourcées) classées BLOQUANT et non REQUIS : un article générique sans ancrage Versi contredit le pilier #1 de la différenciation éditoriale ; un article avec des chiffres sans source contredit le pilier #1 de la crédibilité. Ces deux failles sont suffisamment graves pour bloquer la publication même si les 22 checks techniques sont PASS. Prompt de review en un seul appel IA (vs 10 appels) : réduction du coût token et du délai d'évaluation. La gate GE-3 est la plus subjective — alerté @qa de surveiller les faux positifs IA sur les premières publications. |
 | orchestrator | 2026-04-13 | docs/qa/property-listing-gates.md (v3), seed-properties-muguets.js (emplacement), seed-project-nanterre.js (description) | (1) Gates annonces v3 : 22 gates (10 BLOQUANT + 12 REQUIS), auditées par 4 agents (@creative-strategy, @copywriter, @sophie, @qa). (2) Emplacement Muguets corrigé : Parc des Dondaines supprimé (Fives, pas Lille-Sud), Groupe scolaire Condorcet supprimé (introuvable), données vérifiées via WebSearch (Parc du Grand Sud, Lillenium, Turgot, Florian, Louise Michel, CHU Salengro, crèches). (3) Nanterre reécrit avec accroche factuelle + projection d'usage. (4) **Décision fondateur : les références n'affichent que le prix de vente, jamais les marges (buy_price, works_amount restent null).** | Parc des Dondaines était une donnée inventée (quartier Fives à 3+ km, pas Lille-Sud) — exactement le type d'erreur qui rend Thomas furieux. Groupe scolaire Condorcet introuvable dans toutes les sources Lille-Sud. Distances vérifiées via Moovit (Cormontaigne 8 min à pied = source fiable). Décision marges : le fondateur refuse explicitement d'afficher prix d'achat et montant travaux sur les références — positionnement stratégique (ne pas exposer les marges de Versi). Laurent voudrait ces données mais la décision fondateur prime. |
+| orchestrator | 2026-04-13 | docs/qa/location-gates.md (v3), docs/qa/reference-gates.md (v3), docs/copy/brand-voice.md (section 7), docs/strategy/vi-brand-voice-adaptation.md (handoff enrichi) | (1) Gates emplacement v3 : 12 gates (4 BLOQUANT + 8 REQUIS), auditées par 4 agents. GL-3 seuil 15 min à pied, GL-5 gare <= 20 min TC, GL-8 élargi pédiatre/généraliste pour familles, GL-10 types de crèche, GL-12 seuils calibrés sur textes vérifiés. (2) Gates références v3 : 15 gates (7 BLOQUANT + 8 REQUIS), GR-7 RGPD acheteur non nommé ajouté, GR-9 4 catégories tangibilité, GR-8 prompt IA + exemples, GR-1 regex proxy. (3) Brand-voice.md section 7 ajoutée : référence les 3 fichiers de gates comme source de vérité validation contenu. (4) vi-brand-voice-adaptation.md handoff enrichi avec références gates. | Gates calibrées sur les textes vérifiés existants (Muguets nearby_transport = 28 mots → seuil GL-12 abaissé à 25 min pour ne pas forcer du padding artificiel). GR-7 (RGPD acheteur) ajouté car risque légal réel si nom d'acquéreur dans une description publique. GR-9 précisé en 4 catégories vérifiables car "tangibilité spatiale" trop subjectif sans critères concrets. Brand-voice.md mis à jour car Thomas veut que les standards soient "bien gardés en mémoire" — la section 7 pointe vers les gates comme source de vérité, évitant la dérive entre brand-voice générique et validation concrète. |
 
 ---
 
@@ -336,41 +337,32 @@
 
 ### Mémo de reprise
 
-**Branche** : `claude/resume-backoffice-session-qRZZn`
-**Date de clôture** : 2026-04-11
+**Branche** : `claude/session-resume-context-AiyAZ`
+**Date de clôture** : 2026-04-13
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s5)** : Session majeure axée back office + SEO/GEO + blog. (1) Back office admin complet : specs @product-manager, implémentation @fullstack (PostgreSQL 6+1 tables, API Express 30+ endpoints, 12 fichiers admin React, migration frontend public vers hooks API). 3 itérations d'audits qualité (design 6.3→9.5, QA 5.5→9.2 GO, reviewer 7.4→8.8). 27 corrections appliquées (sécurité : cookie httpOnly, timing-safe compare, CSP headers ; accessibilité : focus-visible, aria-labels, WCAG contraste ; UX : toast succès, ConfirmModal, breadcrumbs, upload parallèle). (2) Corrections design : Hero padding-top 2 sites, responsive tablette, grilles CSS. (3) SEO/GEO pré-lancement : Umami Analytics, favicons complets, og:image, robots.txt/sitemap cohérents, Schema.org enrichi (RealEstateAgent, founders, sameAs), llms.txt, FAQ visible versi.fr, lien cross-entités. (4) Blog versi-immobilier : table blog_articles, API, admin (liste + formulaire Markdown), pages publiques /blog + /blog/:slug avec parseur Markdown + Schema.org BlogPosting. Stratégie blog documentée (4 piliers, 10 articles, pipeline IA).
+**Résumé session (versi-s7)** : Session de qualité contenu axée sur les gates de validation et les textes d'annonces/emplacement/références. (1) Gates annonces v3 : 22 gates (10 BLOQUANT + 12 REQUIS), auditées à convergence par 4 agents. (2) Correction données emplacement Muguets : Parc des Dondaines (Fives, inventé) et Groupe scolaire Condorcet (introuvable) remplacés par données vérifiées WebSearch — Parc du Grand Sud, Lillenium, Turgot, Florian, Louise Michel, CHU Salengro, crèches Marie Curie et Les P'tits Minouches. (3) Réécriture Nanterre : accroche factuelle + projection d'usage + prix de cession uniquement. (4) Gates emplacement v3 : 12 gates (4 BLOQUANT + 8 REQUIS) avec seuils calibrés. (5) Gates références v3 : 15 gates (7 BLOQUANT + 8 REQUIS), GR-7 RGPD ajouté, GR-9 4 catégories tangibilité. (6) Brand-voice.md et vi-brand-voice-adaptation.md mis à jour avec références aux gates.
 
-**État des 2 sites** :
-- **versi.fr** : FAQ visible ajoutée (3 questions accordion). Hero enrichi (passage LLM-extractible). Mission stats contextualisées. Footer lien versi-immobilier.fr cliquable. Favicons complets. og:image. Umami Analytics. _headers sécurité. sameAs LinkedIn. Plausible supprimé → Umami. Build OK.
-- **versi-immobilier.fr** : Back office admin complet (/admin — biens, réalisations, inscrits, articles). Blog complet (/blog + /blog/:slug). Nav + Footer du site public sur les pages admin. Cookie httpOnly auth. Photos base64 PostgreSQL. Notifications email Resend. Schema.org enrichi (RealEstateAgent, founders, FAQPage). Favicons complets. og:image. Umami Analytics. Build OK.
+**Décision fondateur cette session** : Les références n'affichent QUE le prix de vente. Jamais les marges (buy_price, works_amount restent null à jamais). GR-5 BLOQUANT.
 
 **Travail restant — PROCHAINE SESSION** :
 
 1. **Tests E2E back office + blog (priorité)** — @qa doit produire les tests Playwright pour les nouvelles pages admin et blog. Les 216 tests existants couvrent le site public pré-back office.
 
-2. **3 premiers articles blog** — Condition de lancement blog. @seo a produit les plans détaillés des 3 premiers articles dans docs/seo/vi-blog-strategy.md. À rédiger via pipeline IA puis publier via le back office admin.
+2. **Seed Muguets en BDD** — Les 3 biens Muguets ont des textes d'emplacement vérifiés (WebSearch) et des descriptions auditées. Exécuter `seed-properties-muguets.js` pour peupler la BDD.
 
 3. **Déploiement Replit** — @infrastructure : DNS versi-immobilier.fr, configuration .replit, problème `src/dist` non résolu depuis s4.
 
 4. **InvestirPage** — page faible (6.5/10). Nécessite validation fondateur sur les chiffres co-investissement.
 
-5. **Données réelles** — Remplacer les placeholders dans la BDD par les vraies données des biens (adresses, photos, descriptions). Utiliser le back office admin pour ajouter les biens réels.
+5. **Photos biens** — Les annonces Muguets n'ont pas de photos (photos: []). Ajouter via back office admin.
 
-4. **Données réelles** — remplacer les placeholders dans properties.js par les vraies données des biens (adresses, photos, descriptions)
+6. **Nouveaux projets/références** — Quand Thomas ajoute de nouvelles réalisations, appliquer les gates GR-1 à GR-15 AVANT publication.
 
-5. **Design audit en cours** — @design a produit des corrections CSS (spacing, breakpoints) qui sont commitées. Vérifier le rendu visuel desktop + mobile.
-
-6. **Tests E2E** — relancer après toutes les modifications de cette session
-
-**Décisions fondateur cette session** :
-**Décisions fondateur cette session (s5)** :
-- Analytics = Umami uniquement, jamais Plausible
-- Back office : Nav + Footer du site public permanents sur toutes les pages admin
-- Blog validé : SEO organique + E-E-A-T + automatisation IA + histoires de rénovation
-- Itérer les audits jusqu'à 10/10 (exigence de qualité maximale)
-- "Fixer même les petits points" (ne pas laisser de dette technique cosmétique)
+**Commande de reprise suggérée** :
+```
+@orchestrator Reprise session versi-s7. Branche : claude/session-resume-context-AiyAZ. Session précédente : gates emplacement v3 + références v3 finalisées, emplacement vérifié, brand-voice mis à jour. Prochaines actions : (1) seed Muguets en BDD, (2) tests E2E back office, (3) déploiement Replit.
+```
 
 **Décisions fondateur session s4 (conservées)** :
 - Pivot : acquéreur = persona principal, vendeur = secondaire
