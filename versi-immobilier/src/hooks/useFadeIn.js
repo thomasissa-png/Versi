@@ -1,32 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export function useFadeIn(threshold = 0.15) {
-  const ref = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+  // Callback ref — fires every time the DOM node is attached/detached,
+  // which solves the stale-ref problem when the element mounts after
+  // an async loading state.
+  const ref = useCallback(
+    (node) => {
+      if (!node) return;
 
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-      setIsVisible(true);
-      return;
-    }
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        setIsVisible(true);
+        return;
+      }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold }
-    );
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(node);
+          }
+        },
+        { threshold }
+      );
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
+      observer.observe(node);
+    },
+    [threshold]
+  );
 
   return { ref, isVisible };
 }

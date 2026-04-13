@@ -16,16 +16,9 @@ export default function RealisationsPage() {
     [allProjects]
   );
 
-  const avgDelay = useMemo(() => {
-    const delays = completed.map((p) => p.offerDelay).filter(Boolean);
-    if (delays.length === 0) return null;
-    return Math.round(delays.reduce((a, b) => a + b, 0) / delays.length);
-  }, [completed]);
-
   const stats = [
-    { value: `${completed.length}`, label: 'rénovations terminées' },
+    { value: '5', label: 'rénovations terminées' },
     { value: '3,2M€', label: 'de volume traité' },
-    { value: avgDelay ? `${avgDelay} jours` : '—', label: 'délai moyen' },
   ];
 
   return (
