@@ -1,6 +1,6 @@
 # Gates emplacement — Versi Immobilier
 
-> Produit par @orchestrator | Date : 2026-04-13, v1
+> Produit par @orchestrator | Date : 2026-04-13, v2
 > Références : `docs/qa/property-listing-gates.md` (gates annonces), `project-context.md` (données source biens)
 > Usage : ces gates s'appliquent aux champs `nearby_transport` et `nearby_amenities` de TOUTE annonce de bien immobilier avant publication. Une gate BLOQUANT en FAIL interdit la publication.
 
@@ -21,22 +21,22 @@
 
 | # | Nom | Méthode | PASS | FAIL |
 |---|---|---|---|---|
-| GL-5 | Transport complet — métro + accès gare | Grep | Au minimum : 1 station de métro nommée avec ligne(s) + mention de l'accès aux gares principales de la ville | Aucune station de métro ou aucune mention de gare |
+| GL-5 | Transport complet — transport principal + accès gare | Grep | Au minimum : 1 station du transport principal de la ville (métro, tramway, RER, bus structurant selon la ville) nommée avec ligne(s) + mention de l'accès aux gares principales. N/A pour la gare si aucune dans un rayon de 5 km — mentionner la liaison directe la plus proche | Aucune station de transport en commun nommée |
 | GL-6 | Écoles — au moins maternelle + élémentaire | Grep | Au moins 1 école maternelle ET 1 école élémentaire nommées. Si collège ou lycée dans le quartier, le mentionner | Zéro école nommée |
 | GL-7 | Commerces — accès quotidien documenté | Grep | Au moins 1 zone commerciale ou axe commerçant nommé | Aucune mention de commerces de proximité |
 | GL-8 | Santé — établissement de santé identifié | Grep | Au moins 1 établissement de santé nommé (hôpital, clinique, CHU) avec sa spécificité si pertinent (urgences, pédiatrie) | Aucune mention de santé |
 | GL-9 | Espaces verts — parc ou jardin identifié | Grep | Au moins 1 parc ou espace vert nommé, avec superficie si connue | Aucune mention d'espace vert |
 | GL-10 | Crèches mentionnées si famille cible | Grep (conditionnel) | Si le bien a 3+ pièces (famille cible), au moins 1 crèche nommée. N/A pour T1/studios | Bien 3+ pièces sans mention de crèche |
 | GL-11 | Pas de copier-coller brut entre biens de programmes différents | Diff | Le texte d'emplacement est adapté au quartier réel du bien. Deux biens dans des villes différentes ne peuvent pas avoir le même texte d'emplacement | Même texte d'emplacement copié entre deux biens dans des quartiers ou villes différents |
-| GL-12 | Source vérifiable documentée | Documentation interne | Pour chaque fait mentionné, l'agent qui rédige DOIT documenter sa source dans un commentaire de commit ou dans un fichier de travail. Les sources acceptées : site officiel de la ville, Moovit, Google Maps, Pages Jaunes, site de l'établissement | Aucune source documentée pour les faits mentionnés |
+| GL-12 | Longueur maîtrisée | Compteur | `nearby_transport` : 30 à 80 mots. `nearby_amenities` : 60 à 120 mots. Un texte trop long déséquilibre la fiche bien | `nearby_transport` < 30 ou > 80 mots, OU `nearby_amenities` < 60 ou > 120 mots |
 
 ---
 
 ## 2. Catégories obligatoires par champ
 
 ### `nearby_transport` — doit couvrir :
-1. Station(s) de métro la/les plus proche(s) avec ligne(s) et temps de marche vérifié
-2. Accès aux gares principales (direct ou correspondance)
+1. Station(s) du transport principal (métro, tramway, RER, bus structurant) la/les plus proche(s) avec ligne(s) et temps de marche vérifié
+2. Accès aux gares principales (direct ou correspondance). N/A si aucune gare dans un rayon de 5 km
 3. Bus si arrêt vérifié à proximité (facultatif)
 
 ### `nearby_amenities` — doit couvrir :
@@ -64,7 +64,13 @@ Formulations autorisées : "dans le quartier", "à proximité" (si distance non 
 
 ---
 
-## 4. Verdict
+## 4. Règle de process — Sources obligatoires
+
+Cette règle n'est pas une gate (non vérifiable par grep) mais est **obligatoire** pour tout agent rédigeant un texte d'emplacement : documenter les sources de chaque fait (école, parc, station, distance) dans le message de commit. Sources acceptées : site officiel de la ville, Moovit, Google Maps, Pages Jaunes, site de l'établissement.
+
+---
+
+## 5. Verdict
 
 - **PUBLIER** : 0 gate BLOQUANT FAIL + 0 gate REQUIS FAIL
 - **CORRIGER** : 0 gate BLOQUANT FAIL + 1+ gate REQUIS FAIL → corriger avant publication

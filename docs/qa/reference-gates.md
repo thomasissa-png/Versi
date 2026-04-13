@@ -1,12 +1,12 @@
 # Gates références / réalisations — Versi Immobilier
 
-> Produit par @orchestrator | Date : 2026-04-13, v1
+> Produit par @orchestrator | Date : 2026-04-13, v2
 > Références : `docs/qa/property-listing-gates.md` (gates annonces), `project-context.md` (données source)
 > Usage : ces gates s'appliquent au champ `description` de TOUT projet/réalisation avant publication sur la page /realisations. Une gate BLOQUANT en FAIL interdit la publication.
 
 ---
 
-## 1. Tableau des gates références (GR-1 à GR-14)
+## 1. Tableau des gates références (GR-1 à GR-15)
 
 ### Gates BLOQUANT (publication interdite si FAIL)
 
@@ -18,19 +18,20 @@
 | GR-4 | Ton Versi — faits et réalisations, pas de posture | Grep + IA review | Zéro superlatif de la blacklist. Le texte décrit ce qui a été fait, pas ce que Versi "est". Pas de formulation auto-congratulatoire ("notre savoir-faire", "notre expertise", "nous avons su") | Au moins 1 formulation auto-congratulatoire ou superlatif creux |
 | GR-5 | Prix de vente uniquement — zéro marge exposée | Grep | Le texte mentionne uniquement le prix de cession/vente. Aucune mention du prix d'achat, du montant des travaux, de la marge brute ou nette, du rendement de l'opération | Au moins 1 mention de prix d'achat, montant travaux, marge, ou rendement |
 | GR-6 | Zéro conditionnel trompeur | Grep blacklist GA-19 | Aucun conditionnel de la blacklist annonces | Au moins 1 occurrence |
+| GR-7 | Acheteur final non nommé — RGPD + discrétion | Grep noms propres | Aucun nom propre d'acquéreur dans le texte. Aucune information permettant d'identifier l'acheteur (profession, entreprise, situation familiale) | Au moins 1 nom propre ou information identifiante d'un acquéreur |
 
 ### Gates REQUIS (corriger avant publication)
 
 | # | Nom | Méthode | PASS | FAIL |
 |---|---|---|---|---|
-| GR-7 | Transformation décrite — avant/après lisible | IA review | Le lecteur comprend (a) ce qu'était le bâtiment avant, (b) ce qu'il est devenu après. La transformation est le coeur du texte | La transformation n'est pas claire — on ne comprend pas ce que Versi a fait |
-| GR-8 | Projection d'usage ou tangibilité spatiale | IA review | Au moins 1 phrase avec un élément tangible qui fait "voir" le résultat : matériaux, volumes, lumière, circulation. Ou une projection d'usage (sujet + verbe + espace) | Description purement technique sans aucun élément visuel ou tangible |
-| GR-9 | Durée de l'opération mentionnée | Grep | Le temps de l'opération est mentionné (ex : "6 mois", "bouclée en X mois") | Aucune mention de la durée |
-| GR-10 | Prix de cession mentionné | Grep pattern €  | Le prix de vente est mentionné en euros | Aucun prix dans le texte |
-| GR-11 | Ville mentionnée | Grep | La ville de l'opération est citée dans le texte | Aucune mention géographique |
-| GR-12 | Paragraphes courts | Compteur | Chaque paragraphe fait max 5 lignes | Un paragraphe dépasse 5 lignes |
-| GR-13 | Longueur — 60 à 150 mots | Compteur | Description entre 60 et 150 mots. La référence doit être concise — c'est une fiche, pas un article | < 60 mots (trop sec) ou > 150 mots (trop long pour une fiche référence) |
-| GR-14 | Zéro point d'exclamation | Grep `!` | 0 occurrence | Au moins 1 |
+| GR-8 | Transformation décrite — avant/après lisible | IA review | Le lecteur comprend (a) ce qu'était le bâtiment avant, (b) ce qu'il est devenu après. La transformation est le coeur du texte | La transformation n'est pas claire — on ne comprend pas ce que Versi a fait |
+| GR-9 | Projection d'usage ou tangibilité spatiale — 4 catégories | IA review | Au moins 1 élément parmi ces 4 catégories : (a) matériau nommé (ex : chêne, verre trempé, zinc), (b) volume ou cote chiffrée (ex : double hauteur, 47 m²), (c) source de lumière identifiée (ex : verrière, baies toute hauteur, lumière traversante), (d) scène d'usage avec sujet + verbe + espace (ex : "on prend le café sur la terrasse") | Texte purement technique/abstrait sans aucun des 4 éléments |
+| GR-10 | Durée de l'opération mentionnée | Grep | Le temps de l'opération est mentionné (ex : "6 mois", "bouclée en X mois") | Aucune mention de la durée |
+| GR-11 | Prix de cession mentionné | Grep pattern € | Le prix de vente est mentionné en euros | Aucun prix dans le texte |
+| GR-12 | Ville mentionnée | Grep | La ville de l'opération est citée dans le texte | Aucune mention géographique |
+| GR-13 | Paragraphes courts | Compteur | Chaque paragraphe fait max 5 lignes | Un paragraphe dépasse 5 lignes |
+| GR-14 | Longueur — 60 à 150 mots | Compteur | Description entre 60 et 150 mots. La référence doit être concise — c'est une fiche, pas un article | < 60 mots (trop sec) ou > 150 mots (trop long pour une fiche référence) |
+| GR-15 | Zéro point d'exclamation | Grep `!` | 0 occurrence | Au moins 1 |
 
 ---
 
@@ -87,17 +88,22 @@ Prompt IA : "Lis la première phrase. PASS si elle décrit le bien d'origine (ty
 
 ---
 
-### GR-8 — Projection d'usage ou tangibilité
+### GR-9 — Projection d'usage ou tangibilité spatiale (4 catégories)
 
 **Critère PASS/FAIL**
-Au moins 1 phrase qui fait "voir" le résultat. Matériaux nommés, volumes décrits, lumière évoquée, ou une scène d'usage.
+Au moins 1 élément parmi ces 4 catégories vérifiables :
+- **(a) Matériau nommé** : chêne, verre trempé, zinc, béton ciré, carrelage grand format…
+- **(b) Volume ou cote chiffrée** : double hauteur, 47 m², 3 mètres sous plafond…
+- **(c) Source de lumière identifiée** : verrière, baies toute hauteur, lumière traversante, puits de lumière…
+- **(d) Scène d'usage** (sujet + verbe + espace) : "on prend le café sur la terrasse", "on pose la table dehors"…
 
 **Exemples PASS**
-> "On passe du séjour au patio sans transition, dedans et dehors communiquent."
-> "Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio."
+> "On passe du séjour au patio sans transition, dedans et dehors communiquent." → catégorie (d) scène d'usage
+> "Double hauteur sous mezzanine, verrière d'atelier, baies vitrées toute hauteur côté patio." → catégories (b) + (c)
+> "Escalier sur mesure en chêne massif, garde-corps verre trempé." → catégorie (a)
 
 **Exemples FAIL**
-> "Réhabilitation complète avec finitions haut de gamme." (abstrait)
+> "Réhabilitation complète avec finitions haut de gamme." (abstrait — aucune des 4 catégories)
 
 ---
 
