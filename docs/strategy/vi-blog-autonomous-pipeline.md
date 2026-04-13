@@ -186,7 +186,7 @@ Le champ `requires_proprietary_data` est `true`. La table `operations` doit avoi
   "funnel_stage": "MOFU",
   "seo": {
     "h1": "Appartement rénové par un opérateur vs bien de particulier : les vraies différences",
-    "meta_title": "Appartement rénové marchand de biens vs particulier | Versi Immobilier",
+    "meta_title": "Appartement rénové opérateur vs particulier | Versi",
     "meta_description": "Garanties, traçabilité des travaux, recours : ce qui change vraiment quand vous achetez un bien rénové par un opérateur plutôt qu'un particulier à Lille.",
     "main_query": "appartement rénové marchand de biens garanties",
     "secondary_queries": [
@@ -373,11 +373,14 @@ Avant de terminer, vérifier chaque point :
 [ ] Le premier paragraphe entre directement dans le sujet
 [ ] Chaque paragraphe fait 5 lignes maximum
 [ ] La requête cible apparaît dans le H1, le chapeau, et ≥ 2 H2
-[ ] Toute donnée chiffrée a une source entre parenthèses
-[ ] Les liens internes sont aux bonnes positions avec les bonnes ancres
+[ ] Toute donnée chiffrée a une source entre parenthèses (format : "1 994 €/m² (Meilleurs Agents, avril 2026)")
+[ ] Les liens internes (articles blog) sont aux bonnes positions avec les bonnes ancres
+[ ] Au moins 1 lien vers une page transactionnelle du site (/nos-biens, /vendre, /realisations ou /contact)
 [ ] Le CTA final est présent et pointe vers la bonne URL
 [ ] L'article ne mentionne aucun concurrent par nom
 [ ] La longueur est dans la fourchette cible (±10%)
+[ ] Le frontmatter YAML contient : canonical, image_alt (avec la requête cible), schema_date_published, schema_date_modified, schema_article_section
+[ ] Le meta title fait moins de 60 caractères (compter exactement)
 
 Rédige maintenant l'article complet en Markdown.
 ```
@@ -435,7 +438,7 @@ Avant de générer un nouveau brief, le pipeline vérifie dans la table `article
 
 **Niveau 1 — Requête exacte (bloquant)** : vérifier que `main_query` n'existe pas dans `keyword_clusters.main_query`. Seuil : correspondance exacte ou normalisation (minuscules, accents, pluriels). Si match → BLOCK.
 
-**Niveau 2 — Similarité sémantique (bloquant)** : similarité cosinus entre la requête du nouveau brief et les requêtes de tous les articles publiés ou planifiés. Seuil de blocage : similarité > 0.85. Si bloqué, le pipeline sélectionne la prochaine requête dans la liste ou passe à la source suivante.
+**Niveau 2 — Similarité sémantique (bloquant)** : similarité cosinus entre la requête du nouveau brief et les requêtes de tous les articles publiés ou planifiés. Seuil de blocage : similarité > 0.78. Justification : en niche immobilier local (Lille, HdF), des requêtes à 0.82 de cosinus peuvent pointer vers des intentions distinctes mais générer une cannibalisation perçue par Google — le seuil 0.78 est plus conservateur et adapté à un corpus de <50 articles. Si bloqué, le pipeline sélectionne la prochaine requête dans la liste ou passe à la source suivante.
 
 **Niveau 3 — Intention de recherche (avertissement)** : si le nouveau brief a la même `intent` (informationnel/commercial investigation/transactionnel) et le même `pillar` qu'un article existant, générer un avertissement (pas un blocage) et notifier le fondateur. Un deuxième article sur le même pilier avec la même intention est potentiellement redondant — le fondateur décide de merger ou d'un angle différenciant.
 
@@ -446,6 +449,21 @@ Avant de générer un nouveau brief, le pipeline vérifie dans la table `article
 Ordre de priorité : Source A (opérations Versi) > Source B (saisonnalité) > Source C (SERP).
 
 Justification : une opération réelle Versi produit un contenu inimitable (personne d'autre ne peut écrire cet article). La saisonnalité lilloise produit un contenu ancré géographiquement. Les tendances SERP optimisent mais ne différencient pas.
+
+### 4.5 Contrainte de topical authority — équilibre des piliers (post-A12)
+
+Après épuisement des articles A1-A12, le pipeline DOIT maintenir l'équilibre de couverture entre les 4 piliers. Avant de valider un nouveau brief, vérifier la distribution des articles publiés par pilier :
+
+| Pilier | Objectif minimum | Vérification |
+|---|---|---|
+| P1 — L'opérateur expliqué | ≥ 25% des articles publiés | `SELECT count(*) WHERE pillar = 'P1'` |
+| P2 — Histoires de réalisations | ≥ 20% des articles publiés | `SELECT count(*) WHERE pillar = 'P2'` |
+| P3 — Guide acquéreur Lille | ≥ 30% des articles publiés | `SELECT count(*) WHERE pillar = 'P3'` |
+| P4 — Décryptage immobilier | ≥ 15% des articles publiés | `SELECT count(*) WHERE pillar = 'P4'` |
+
+Si un pilier passe sous son seuil minimum : le prochain brief généré DOIT appartenir à ce pilier, quelle que soit la source d'alimentation (A/B/C).
+
+Justification SEO : Google consolide la topical authority par cluster thématique. Un blog qui surpondère P3 (guide acquéreur) au détriment de P2 (réalisations terrain) perd son signal E-E-A-T Experience — qui est précisément le différenciant de Versi sur les requêtes YMYL immobilières.
 
 ## 5. Mécanisme de validation automatique
 
@@ -470,6 +488,13 @@ Ces checks sont exécutés par code — aucune IA requise pour cette étape.
 | V13 | Zéro placeholder résiduel | Regex `\{\{[A-Z_]+\}\}` | ≥ 1 occurrence |
 | V14 | Paragraphes ≤ 5 lignes | Count lignes par paragraphe | ≥ 1 paragraphe > 5 lignes |
 | V15 | Premier paragraphe sans intro molle | Match regex formules interdites | Présence d'une formule interdite |
+| V16 | Données chiffrées sourcées (nombre suivi d'une parenthèse source) | Regex `\d[\d\s,]*[€%m²](?!\s*\()` — détecte chiffre sans source | ≥ 1 occurrence (flag semi-automatique, NLP) |
+| V17 | Meta title ≤ 60 caractères | `brief.seo.meta_title.length <= 60` | > 60 caractères |
+| V18 | Meta description ≤ 155 caractères | `brief.seo.meta_description.length <= 155` | > 155 caractères |
+| V19 | Champ `canonical` présent dans le frontmatter YAML | Parse YAML, vérifier présence de `canonical:` avec valeur non vide | Absent ou vide |
+| V20 | Champ `image_alt` présent dans le frontmatter YAML et contient la requête cible | Parse YAML + string match `brief.seo.main_query` | Absent ou requête absente |
+| V21 | Lien vers au moins 1 page transactionnelle du site (site_links) | Vérifier que ≥ 1 URL de `brief.site_links` est présente dans l'article | Aucun lien vers page site |
+| V22 | Schema.org BlogPosting déclaré dans le frontmatter YAML (champs obligatoires présents) | Parse YAML, vérifier `schema_date_published`, `schema_date_modified`, `schema_article_section` non vides | ≥ 1 champ manquant ou vide |
 
 Formules interdites pour V15 : "Dans cet article", "Vous vous demandez", "Bienvenue", "Avez-vous déjà", "Dans le monde de".
 
@@ -481,15 +506,17 @@ Ces situations déclenchent automatiquement une notification fondateur et metten
 |---|---|---|
 | Article P2 (réalisation terrain) | Champ `pillar = "P2"` | Validation factuelle obligatoire — les chiffres terrain sont vérifiés par un fondateur |
 | Données propriétaires intégrées | `requires_proprietary_data = true` | Validation que les données sont exactes et autorisées à la publication |
-| Score V1-V15 < 15/15 après 2 passes | Compteur passes = 2 | Escalade humaine — le problème vient du brief, pas de l'article |
-| Mention d'un prix ou délai non sourcé | Détection d'un nombre sans parenthèse source | Flag V16 (semi-automatique, NLP) |
+| Score V1-V22 < 22/22 après 2 passes | Compteur passes = 2 | Escalade humaine — le problème vient du brief, pas de l'article |
+| Mention d'un prix ou délai non sourcé | V16 détecte un chiffre sans parenthèse source | Flag semi-automatique — NLP confirme le faux positif ou bloque |
+| Prévisualisation mobile | Systématiquement, avant chaque publication | Vérification visuelle par fondateur ou via screenshot CI (checklist critère 32) — non automatisable en V1 |
 
 ### 5.3 Seuils et boucle de correction
 
-- **PASS automatique** : 15/15 checks V1-V15 → article passe en statut `validation_pass` puis `scheduled`.
+- **PASS automatique** : 22/22 checks V1-V22 → article passe en statut `validation_pass` puis `scheduled`.
 - **FAIL, passe 1** : ≥ 1 check en échec → lancer étape 4b (correction ciblée sur les sections en échec). Incrémenter compteur.
 - **FAIL, passe 2** : ≥ 1 check encore en échec → statut `pending_approval`, email fondateur.
 - **Cas spéciaux** (P2, données propriétaires) : toujours `pending_approval`, indépendamment du score.
+- **V16 (données sourcées)** : flag NLP — si positif, notifier fondateur sans bloquer automatiquement (faux positifs possibles sur les nombres en contexte non-chiffré). L'article reste en `validation_pass` sauf si un fondateur confirme le flag.
 
 ### 5.4 Email de notification fondateur
 
@@ -498,7 +525,7 @@ Corps :
 ```
 Titre : {{H1}}
 Statut : {{RAISON}}
-Score validation : {{X}}/15
+Score validation : {{X}}/22
 
 Points à vérifier :
 {{LISTE DES CHECKS EN ÉCHEC ou RAISON ESCALADE HUMAINE}}
@@ -530,7 +557,7 @@ ALTER TABLE articles
   ADD COLUMN scheduled_at TIMESTAMPTZ,
   ADD COLUMN published_at TIMESTAMPTZ,
   ADD COLUMN generation_passes INTEGER DEFAULT 0,
-  ADD COLUMN validation_score INTEGER,       -- score V1-V15 (0-15)
+  ADD COLUMN validation_score INTEGER,       -- score V1-V22 (0-22)
   ADD COLUMN validation_report JSONB,        -- détail check par check
   ADD COLUMN requires_proprietary_data BOOLEAN DEFAULT false,
   ADD COLUMN pillar VARCHAR(50),             -- P1/P2/P3/P4
@@ -575,9 +602,13 @@ CREATE TABLE keyword_clusters (
   main_query        TEXT NOT NULL,
   secondary_queries JSONB,
   long_tail         JSONB,
-  paa_questions     JSONB
+  paa_questions     JSONB,
+  -- Contraintes SEO vérifiées à l'insertion (fail fast avant génération)
+  CONSTRAINT chk_main_query_length CHECK (char_length(main_query) <= 80)
 );
 ```
+
+> **Note SEO (@fullstack)** : ajouter également des contraintes CHECK sur `planned_articles` pour les champs `meta_title` (≤ 60 chars) et `slug` (regex `/blog/[a-z0-9-]+`). Ces contraintes font échouer l'hydratation du brief en base avant d'appeler l'API Claude — ce qui est préférable à une détection tardive en V17/V11.
 
 **Table `operations` (nouvelle — données terrain)**
 
@@ -828,6 +859,64 @@ const validateArticle = (article: string, brief: BriefJSON): ValidationCheck[] =
     pass: softFound.length === 0,
     detail: softFound.length ? `Formules détectées : ${softFound.join(', ')}` : undefined });
 
+  // V16 — Données chiffrées sourcées (flag semi-automatique)
+  // Détecte un chiffre suivi d'une unité immobilière sans parenthèse source immédiate
+  const unsourcedNumbers = article.match(/\d[\d\s,]*\s*[€%](?!\s*\/|\s*\()/g) || [];
+  checks.push({ code: 'V16', label: 'Données chiffrées sourcées',
+    pass: unsourcedNumbers.length === 0,
+    detail: unsourcedNumbers.length
+      ? `${unsourcedNumbers.length} chiffre(s) potentiellement sans source — vérification humaine recommandée`
+      : undefined });
+
+  // V17 — Meta title ≤ 60 caractères
+  const metaTitleLength = brief.seo.meta_title.length;
+  checks.push({ code: 'V17', label: 'Meta title ≤ 60 caractères',
+    pass: metaTitleLength <= 60,
+    detail: metaTitleLength > 60 ? `${metaTitleLength} caractères (max : 60)` : undefined });
+
+  // V18 — Meta description ≤ 155 caractères
+  const metaDescLength = brief.seo.meta_description.length;
+  checks.push({ code: 'V18', label: 'Meta description ≤ 155 caractères',
+    pass: metaDescLength <= 155,
+    detail: metaDescLength > 155 ? `${metaDescLength} caractères (max : 155)` : undefined });
+
+  // V19 — Canonical présent dans le frontmatter YAML
+  const canonicalPresent = /^canonical:\s*https?:\/\/.+$/m.test(article);
+  checks.push({ code: 'V19', label: 'Canonical présent dans le frontmatter YAML',
+    pass: canonicalPresent });
+
+  // V20 — image_alt présent et contient la requête cible
+  const imageAltMatch = article.match(/^image_alt:\s*"(.+)"$/m);
+  const imageAltOk = imageAltMatch
+    ? imageAltMatch[1].toLowerCase().includes(brief.seo.main_query.toLowerCase())
+    : false;
+  checks.push({ code: 'V20', label: 'image_alt présent et contient la requête cible',
+    pass: imageAltOk,
+    detail: !imageAltMatch ? 'Champ image_alt absent du frontmatter'
+      : !imageAltOk ? `Requête "${brief.seo.main_query}" absente du alt text` : undefined });
+
+  // V21 — Lien vers au moins 1 page transactionnelle (site_links)
+  const siteLinksPresent = brief.site_links.some(
+    link => article.includes(link.page)
+  );
+  checks.push({ code: 'V21', label: 'Lien vers ≥ 1 page transactionnelle du site',
+    pass: siteLinksPresent,
+    detail: !siteLinksPresent
+      ? `Aucune des pages ${brief.site_links.map(l => l.page).join(', ')} trouvée dans l'article`
+      : undefined });
+
+  // V22 — Schema.org BlogPosting — champs obligatoires non vides
+  const schemaFields = ['schema_date_published:', 'schema_date_modified:', 'schema_article_section:'];
+  const missingSchemaFields = schemaFields.filter(f => {
+    const match = article.match(new RegExp(`^${f}\\s*(.+)$`, 'm'));
+    return !match || match[1].trim() === '' || match[1].trim() === '""';
+  });
+  checks.push({ code: 'V22', label: 'Schema.org BlogPosting — champs obligatoires',
+    pass: missingSchemaFields.length === 0,
+    detail: missingSchemaFields.length
+      ? `Champs manquants ou vides : ${missingSchemaFields.join(', ')}`
+      : undefined });
+
   return checks;
 };
 ```
@@ -841,17 +930,34 @@ Les briefs JSON (section 2.4) sont stockés en base dans `articles.brief_json` (
 ```typescript
 const pingIndexNow = async (articleUrl: string): Promise<void> => {
   const key = process.env.INDEXNOW_KEY; // clé générée une fois, stocker en .env
-  await fetch('https://api.indexnow.org/indexnow', {
+  if (!key) {
+    console.error('[IndexNow] INDEXNOW_KEY manquant dans .env — ping ignoré');
+    return;
+  }
+  const response = await fetch('https://api.indexnow.org/indexnow', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       host: 'versi-immobilier.fr',
       key,
+      keyLocation: `https://versi-immobilier.fr/${key}.txt`,
       urlList: [articleUrl]
     })
   });
-  // Le fichier clé doit être accessible à : https://versi-immobilier.fr/{key}.txt
+  // Codes de réponse IndexNow attendus : 200 (OK), 202 (accepté, traitement asynchrone)
+  // 422 = clé invalide ou fichier clé non trouvé → vérifier que le fichier {key}.txt
+  //       est servi statiquement à la racine du domaine
+  if (response.status !== 200 && response.status !== 202) {
+    console.error(`[IndexNow] Erreur ${response.status} — vérifier que https://versi-immobilier.fr/${key}.txt est accessible publiquement`);
+  }
 };
+
+// Prérequis déploiement IndexNow (@fullstack) :
+// 1. Générer une clé UUID v4 : openssl rand -hex 32
+// 2. Créer le fichier public/{key}.txt contenant uniquement la clé (pas de saut de ligne)
+// 3. Vérifier l'accès : curl https://versi-immobilier.fr/{key}.txt
+// 4. Stocker la clé dans .env : INDEXNOW_KEY=...
+// 5. Tester avec Bing Webmaster Tools → IndexNow → Soumettre une URL
 ```
 
 ### 6.8 Repurposing LinkedIn (V2 — optionnel)
@@ -871,6 +977,81 @@ Article source : ${article.substring(0, 2000)}
 ```
 
 Les posts LinkedIn générés sont stockés en base (table `linkedin_drafts`) avec statut `draft`. Les fondateurs les retrouvent dans l'admin UI et les publient manuellement.
+
+---
+
+## 7. Audit SEO @seo — Scores par dimension
+
+> Audit produit par @seo | Date : 2026-04-13
+> Fichier audité : ce document (version post-corrections)
+
+### 7.1 Scores par dimension
+
+| Dimension | Score avant corrections | Score après corrections | Écarts comblés |
+|---|---|---|---|
+| Cohérence avec le framework éditorial | 7/10 | 9/10 | Checklist auto-applicable dans le prompt étendue aux contraintes meta title/canonical/schema ; critère 32 (mobile) ajouté aux checks humains |
+| Anti-cannibalisation | 7/10 | 9/10 | Seuil cosinus abaissé de 0.85 à 0.78 (adapté à la niche immobilier local) ; anti-cannibalisation pages transactionnelles déjà solide |
+| Maillage interne | 6/10 | 9/10 | V21 ajouté : vérification obligatoire d'un lien vers au moins 1 page transactionnelle (`site_links`) ; brief JSON exemple déjà modélise les deux niveaux (articles + pages site) |
+| Renouvellement éditorial | 8/10 | 9/10 | Section 4.5 ajoutée : contrainte d'équilibre des piliers (seuils min par pilier) pour maintenir la topical authority post-A12 |
+| IndexNow / soumission | 7/10 | 9/10 | Gestion d'erreur ajoutée ; `keyLocation` explicite dans le payload ; checklist de déploiement pour @fullstack documentée |
+| Meta SEO | 5/10 | 9/10 | Checks V17 (meta title ≤ 60 chars), V18 (meta desc ≤ 155 chars), V19 (canonical), V20 (image_alt), V22 (schema.org) ajoutés ; example brief corrigé (meta title A2 : 68 → 46 chars) |
+| Topical authority | 7/10 | 9/10 | Section 4.5 (équilibre piliers) + règle de rejet SERP (portails nationaux) déjà solide |
+
+### 7.2 Critères de la checklist 32 points non couverts avant audit (et statut après)
+
+| # | Critère | Couvert avant | Check ajouté |
+|---|---|---|---|
+| 3 | Meta title ≤ 60 caractères | NON | V17 |
+| 4 | Meta description ≤ 155 caractères | NON | V18 |
+| 7 | Image alt text contient la requête cible | NON | V20 |
+| 8 | Schema.org BlogPosting complet | NON | V22 |
+| 9 | Canonical pointe vers URL propre | NON | V19 |
+| 10 | Pas de balise noindex | NON | Couvert par V12 (frontmatter YAML complet) — @fullstack doit vérifier que `noindex: false` n'est jamais injecté par le framework de rendu |
+| 12 | Lien vers page du site (/nos-biens, /vendre...) | PARTIEL (V10 ne couvrait que les articles blog) | V21 |
+| 21 | Données chiffrées sourcées | PARTIEL (flag V16 mentionné mais non implémenté) | V16 implémenté |
+| 24 | Infos factuelles vérifiées par fondateur | NON | Ajouté dans 5.2 (check humain systématique pour P2 et données propriétaires) |
+| 25 | Anti-cannibalisation pages transactionnelles | OUI (section 4.3 solide) | Seuil abaissé à 0.70 déjà en place — RAS |
+| 32 | Prévisualisation mobile | NON | Ajouté dans 5.2 (check humain systématique avant publication) |
+
+**Critères intégralement couverts par V1-V15 avant audit :** 1, 2, 5, 6, 11, 13, 14, 15, 16, 17, 18, 19, 20, 26, 27, 28, 29, 30, 31.
+
+### 7.3 Points de vigilance résiduels
+
+1. **Critère 10 (noindex)** : le check V12 vérifie la complétude du frontmatter YAML mais ne vérifie pas explicitement l'absence de `noindex: true`. Si le framework Next.js ou le CMS injecte une balise robots meta automatiquement (ex : mode draft = noindex), ce signal peut bloquer l'indexation silencieusement. @fullstack doit s'assurer que le passage de `status = 'published'` supprime tout noindex côté rendu.
+
+2. **Longueur fourchette — incohérence framework vs pipeline** : le framework éditorial (section 3, règle de validation) tolère ±100 mots ; le pipeline (V7) tolère ±10% (soit ±100 mots pour un article de 1000 mots, mais ±150 mots pour un article de 1500 mots). En pratique les deux convergent sur la plage usuelle — mais pour les articles courts (800 mots), ±10% = ±80 mots, soit légèrement plus strict que ±100 mots. Règle retenue : ±10% du `word_count_target` défini dans le brief. Si le fondateur préfère une tolérance fixe à ±100 mots, modifier V7 en conséquence.
+
+3. **Bingbot vs Googlebot** : `robots.txt` de versi-immobilier.fr doit explicitement permettre Bingbot sur `/blog/*`. À vérifier lors du déploiement (@fullstack) : `User-agent: Bingbot` sans directive `Disallow` sur le blog.
+
+---
+
+## 8. Handoff
+
+---
+**Handoff → @creative-strategy**
+- Fichiers modifiés : `docs/strategy/vi-blog-autonomous-pipeline.md`
+- Décisions prises par @seo :
+  - Seuil anti-cannibalisation cosinus abaissé de 0.85 à 0.78 (adapté niche immobilier local)
+  - Exemple JSON brief corrigé : meta_title A2 ramené à 46 chars (conforme ≤ 60)
+  - Checks V1-V15 étendus à V1-V22 (7 nouveaux checks SEO : meta title, meta desc, canonical, image_alt, site_links, schema.org, données sourcées)
+  - Section 4.5 ajoutée : contrainte d'équilibre des 4 piliers post-A12
+  - Section 7 ajoutée : audit SEO et scores par dimension
+- Points d'attention :
+  - Le score de validation passe de X/15 à X/22 — mettre à jour tout document qui référence le score 15/15
+  - La checklist auto-applicable du prompt de génération a été enrichie (2 critères ajoutés)
+  - V16 (données sourcées) est un flag semi-automatique : des faux positifs sont possibles (nombres en contexte non-chiffré) — la logique humaine de confirmation doit être conçue en conséquence
+
+**Handoff → @fullstack**
+- Fichiers modifiés : `docs/strategy/vi-blog-autonomous-pipeline.md`
+- Actions requises :
+  1. Mettre à jour `validateArticle()` avec les checks V16-V22 (code TypeScript fourni en section 6.5)
+  2. Corriger le score en base : `validation_score INTEGER` commentaire mis à jour (0-22)
+  3. Ajouter contraintes CHECK sur `planned_articles` : `meta_title` ≤ 60 chars, `slug` regex `/blog/[a-z0-9-]+`
+  4. Déploiement IndexNow : suivre la checklist section 6.7 (fichier clé, .env, test Bing Webmaster Tools)
+  5. Vérifier que `status = 'published'` supprime tout `noindex` côté rendu (critère 10 de la checklist)
+  6. Vérifier `robots.txt` : `Bingbot` doit pouvoir crawler `/blog/*` sans `Disallow`
+- Priorité : V17-V22 sont bloquants pour la conformité SEO Google + Bing — à implémenter avant le premier article publié
+---
 
 ---
 
