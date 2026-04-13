@@ -17,9 +17,9 @@ const PROPERTIES = [
     type: 'Appartement',
     surface: '47 m²',
     rooms: 2,
-    price: '94 000 €',
-    price_num: 94000,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 131 600 € — travaux et finitions inclus.',
+    price: '95 000 €',
+    price_num: 95000,
+    price_note: 'Hors frais de notaire. Disponible clé en main à 130 000 € — travaux et finitions inclus.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -31,7 +31,7 @@ const PROPERTIES = [
 
 La configuration retenue organise le lot autour d'un séjour-cuisine ouvert de 26 m², donnant directement sur un espace extérieur privatif de 10 m². La chambre, de 10,2 m², complète la distribution. Chauffage collectif. Place de parking extérieur couverte incluse dans le prix.
 
-La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs sous plafond atypiques pour du collectif neuf, avec une finition maîtrisée de A à Z par Versi Immobilier. Deux options de prix : acquisition avant travaux à 94 000 €, ou livraison clé en main à 131 600 €.`,
+La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs sous plafond atypiques pour du collectif neuf, avec une finition maîtrisée de A à Z par Versi Immobilier. Deux options de prix : acquisition avant travaux à 95 000 €, ou livraison clé en main à 130 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine ouvert 26 m²',
@@ -54,9 +54,9 @@ La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs so
     type: 'Appartement',
     surface: '82,2 m²',
     rooms: 3,
-    price: '164 400 €',
-    price_num: 164400,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 230 160 € — travaux et finitions inclus.',
+    price: '165 000 €',
+    price_num: 165000,
+    price_note: 'Hors frais de notaire. Disponible clé en main à 230 000 € — travaux et finitions inclus.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -68,7 +68,7 @@ La reconversion de l'immeuble permet de proposer des surfaces et des hauteurs so
 
 La distribution comprend un séjour-cuisine de 40,5 m² et deux chambres de 14 m² et 9 m². Des volumes généreux, cohérents avec l'architecture d'origine du bâtiment. Chauffage collectif. Place de parking extérieur couverte incluse.
 
-Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâtiment à la livraison des lots — sans intermédiaire. Acquisition avant travaux à 164 400 €, ou livraison clé en main à 230 160 €.`,
+Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâtiment à la livraison des lots — sans intermédiaire. Acquisition avant travaux à 165 000 €, ou livraison clé en main à 230 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 40,5 m²',
@@ -92,9 +92,9 @@ Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâti
     type: 'Duplex',
     surface: '126,3 m²',
     rooms: 5,
-    price: '252 600 €',
-    price_num: 252600,
-    price_note: 'Hors frais de notaire. Disponible clé en main à 353 640 € — travaux et finitions inclus.',
+    price: '250 000 €',
+    price_num: 250000,
+    price_note: 'Hors frais de notaire. Disponible clé en main à 355 000 € — travaux et finitions inclus.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -106,7 +106,7 @@ Versi Immobilier assure l'ensemble de l'opération — de l'acquisition du bâti
 
 La configuration réunit trois chambres de 15 m² chacune, un séjour-cuisine de 47 m² bénéficiant d'une vue dégagée, et une terrasse de 12 m² avec vue sur l'église. Le plafond cathédrale en partie haute confère à l'ensemble un caractère rare dans le collectif lillois. Chauffage collectif. Place de parking extérieur couverte incluse.
 
-La transformation d'un bâtiment de bureaux en logements permet de préserver des hauteurs et des volumes que la construction neuve standard ne propose plus. Versi Immobilier maîtrise l'intégralité du process, de la restructuration au second-œuvre. Acquisition avant travaux à 252 600 €, ou livraison clé en main à 353 640 €.`,
+La transformation d'un bâtiment de bureaux en logements permet de préserver des hauteurs et des volumes que la construction neuve standard ne propose plus. Versi Immobilier maîtrise l'intégralité du process, de la restructuration au second-œuvre. Acquisition avant travaux à 250 000 €, ou livraison clé en main à 355 000 €.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Séjour-cuisine 47 m²',
