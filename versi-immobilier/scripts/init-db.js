@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS blog_articles (
   excerpt       TEXT NOT NULL,
   content       TEXT NOT NULL,
   cover_image   TEXT,
-  author        TEXT NOT NULL DEFAULT 'Versi Immobilier',
+  author        TEXT NOT NULL DEFAULT 'Équipe Versi — Maxime, Thomas & Carl',
   tags          JSONB DEFAULT '[]',
   status        TEXT NOT NULL DEFAULT 'draft',
   published_at  TIMESTAMP WITH TIME ZONE,

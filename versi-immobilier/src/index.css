@@ -18,6 +18,7 @@
   /* --- Couleurs sémantiques — fonds --- */
   --color-bg-primary: #F7F5F2;
   --color-bg-secondary: #FFFFFF;
+  --color-bg-subtle: #EFECE7;
   --color-bg-dark: #0B0B0B;
   --color-bg-dark-alt: #1A1A1A;
   --color-bg-dark-accent: #1E2A23;
@@ -78,6 +79,7 @@
   /* --- Rayons --- */
   --radius-none: 0px;
   --radius-sm: 4px;
+  --radius-pill: 9999px;
 
   /* --- Ombres --- */
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -428,6 +430,51 @@ ul, ol {
   .realisations__grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* === Blog card === */
+
+.blog-card {
+  transition: box-shadow var(--duration-normal) ease, transform var(--duration-normal) ease;
+}
+
+.blog-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* === Blog tag === */
+
+.blog-tag {
+  background: var(--color-bg-dark);
+  color: var(--color-text-inverse);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-block;
+  line-height: 1.5;
+}
+
+/* === Skeleton loading === */
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}
+
+.skeleton-bar {
+  background: var(--color-bg-subtle);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
 /* Blog article content (rendered from Markdown) */

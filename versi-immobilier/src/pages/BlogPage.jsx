@@ -38,23 +38,57 @@ export default function BlogPage() {
         </section>
 
         {/* Articles grid */}
-        <section className="section-padding" style={{ background: 'var(--color-bg-primary)', paddingTop: 0 }} ref={gridRef}>
+        <section className="section-padding" style={{ background: 'var(--color-bg-subtle)', paddingTop: 'var(--spacing-xl)' }} ref={gridRef}>
           <div className={`container ${gridVisible ? 'fade-in' : 'fade-hidden'}`}>
             {loading ? (
               <div style={{
-                textAlign: 'center',
-                padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 420px), 1fr))',
+                gap: 'var(--spacing-xl)',
               }}>
-                <p className="text-body-lg">Chargement des articles...</p>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="blog-card" style={{
+                    background: 'var(--color-bg-primary)',
+                    borderRadius: 'var(--card-radius)',
+                    overflow: 'hidden',
+                    border: '1px solid var(--color-border)',
+                  }}>
+                    <div className="skeleton-bar" style={{
+                      width: '100%',
+                      aspectRatio: '16 / 9',
+                    }} />
+                    <div style={{ padding: 'var(--spacing-lg)' }}>
+                      <div className="skeleton-bar" style={{ height: '12px', width: '60px', borderRadius: 'var(--radius-pill)', marginBottom: 'var(--spacing-sm)' }} />
+                      <div className="skeleton-bar" style={{ height: '20px', width: '80%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-sm)' }} />
+                      <div className="skeleton-bar" style={{ height: '14px', width: '100%', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--spacing-xs)' }} />
+                      <div className="skeleton-bar" style={{ height: '14px', width: '70%', borderRadius: 'var(--radius-sm)' }} />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div style={{
                 textAlign: 'center',
                 padding: 'var(--spacing-4xl) var(--spacing-lg)',
-                color: 'var(--color-text-muted)',
               }}>
-                <p className="text-body-lg">Une erreur est survenue lors du chargement des articles.</p>
+                <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-md)' }}>
+                  Une erreur est survenue lors du chargement des articles.
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-cta"
+                  style={{
+                    background: 'var(--color-charcoal-950)',
+                    color: 'var(--color-calcaire-50)',
+                    padding: 'var(--spacing-sm) var(--spacing-xl)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    minHeight: '44px',
+                  }}
+                >
+                  Réessayer
+                </button>
               </div>
             ) : articles.length > 0 ? (
               <div style={{
@@ -128,18 +162,17 @@ function ArticleCard({ article }) {
   const tags = Array.isArray(article.tags) ? article.tags : [];
 
   return (
-    <article style={{
+    <article className="blog-card" style={{
       background: 'var(--color-bg-primary)',
       borderRadius: 'var(--card-radius)',
       overflow: 'hidden',
-      border: '1px solid var(--color-border, #e5e5e5)',
-      transition: 'box-shadow 0.2s ease',
+      border: '1px solid var(--color-border)',
     }}>
       <Link to={`/blog/${article.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
         {article.cover_image ? (
           <div style={{
             width: '100%',
-            height: '220px',
+            aspectRatio: '16 / 9',
             overflow: 'hidden',
           }}>
             <img
@@ -156,28 +189,29 @@ function ArticleCard({ article }) {
         ) : (
           <div style={{
             width: '100%',
-            height: '220px',
-            background: 'var(--color-bg-dark)',
+            aspectRatio: '16 / 9',
+            background: 'linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-alt) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <span style={{ color: 'var(--color-text-inverse)', opacity: 0.3, fontSize: '2rem' }}>V</span>
+            <span style={{
+              color: 'var(--color-accent)',
+              opacity: 0.15,
+              fontSize: '4rem',
+              fontWeight: '700',
+              letterSpacing: '-0.02em',
+              fontFamily: 'var(--font-family)',
+            }}>
+              VERSI
+            </span>
           </div>
         )}
         <div style={{ padding: 'var(--spacing-lg)' }}>
           {tags.length > 0 && (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
               {tags.map((tag, i) => (
-                <span key={i} className="text-label" style={{
-                  background: 'var(--color-bg-dark)',
-                  color: 'var(--color-text-inverse)',
-                  padding: '2px 10px',
-                  borderRadius: '9999px',
-                  fontSize: '0.7rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}>
+                <span key={i} className="blog-tag">
                   {tag}
                 </span>
               ))}

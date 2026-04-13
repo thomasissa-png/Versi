@@ -94,9 +94,9 @@ Les garanties ne se voient pas dans les photos d'annonce. Elles se lisent dans l
 
 ---
 
-*Thomas Issa — Co-fondateur, Versi Immobilier*`,
+*Par l'équipe Versi — Maxime, Thomas & Carl*`,
     cover_image: null,
-    author: 'Thomas Issa',
+    author: 'Équipe Versi — Maxime, Thomas & Carl',
     tags: JSON.stringify(['garanties', 'acquéreur', 'rénovation', 'marchand de biens']),
     status: 'published',
   },
@@ -189,9 +189,9 @@ Chez Versi Immobilier, nous répondons à ces questions pour chaque bien que nou
 
 ---
 
-*Thomas Issa — Co-fondateur, Versi Immobilier*`,
+*Par l'équipe Versi — Maxime, Thomas & Carl*`,
     cover_image: null,
-    author: 'Thomas Issa',
+    author: 'Équipe Versi — Maxime, Thomas & Carl',
     tags: JSON.stringify(['acquéreur', 'questions', 'marchand de biens', 'guide']),
     status: 'published',
   },

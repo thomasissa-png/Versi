@@ -157,10 +157,12 @@ export default function BlogArticlePage() {
       '@type': 'BlogPosting',
       headline: article.title,
       description: article.excerpt,
-      author: {
-        '@type': 'Organization',
-        name: article.author || 'Versi Immobilier',
-      },
+      author: [
+        { '@type': 'Organization', name: 'Versi Immobilier', url: siteUrl },
+        { '@type': 'Person', name: 'Maxime Lemoine' },
+        { '@type': 'Person', name: 'Thomas Issa' },
+        { '@type': 'Person', name: 'Carl Standertskjold-Nordenstam' },
+      ],
       publisher: {
         '@type': 'Organization',
         name: 'Versi Immobilier',
@@ -255,15 +257,7 @@ export default function BlogArticlePage() {
                   {tags.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
                       {tags.map((tag, i) => (
-                        <span key={i} className="text-label" style={{
-                          background: 'var(--color-bg-dark)',
-                          color: 'var(--color-text-inverse)',
-                          padding: '2px 10px',
-                          borderRadius: '9999px',
-                          fontSize: '0.7rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}>
+                        <span key={i} className="blog-tag">
                           {tag}
                         </span>
                       ))}
@@ -312,7 +306,7 @@ export default function BlogArticlePage() {
 
                 {/* Footer navigation */}
                 <div style={{
-                  borderTop: '1px solid var(--color-border, #e5e5e5)',
+                  borderTop: '1px solid var(--color-border)',
                   marginTop: 'var(--spacing-2xl)',
                   paddingTop: 'var(--spacing-lg)',
                 }}>

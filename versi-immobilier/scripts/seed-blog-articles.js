@@ -87,9 +87,9 @@ Chez Versi Immobilier, nous opérons en direct sur chaque bien que nous vendons.
 
 ---
 
-*Thomas Issa — Co-fondateur, Versi Immobilier*`,
+*Par l'équipe Versi — Maxime, Thomas & Carl*`,
     cover_image: null,
-    author: 'Thomas Issa',
+    author: 'Équipe Versi — Maxime, Thomas & Carl',
     tags: JSON.stringify(['marchand de biens', 'Lille', 'acquéreur', 'garanties']),
     status: 'published',
   },
@@ -164,9 +164,9 @@ Chez Versi Immobilier, les biens en précommercialisation sont signalés sur not
 
 ---
 
-*Thomas Issa — Co-fondateur, Versi Immobilier*`,
+*Par l'équipe Versi — Maxime, Thomas & Carl*`,
     cover_image: null,
-    author: 'Thomas Issa',
+    author: 'Équipe Versi — Maxime, Thomas & Carl',
     tags: JSON.stringify(['précommercialisation', 'Lille', 'achat immobilier', 'marchand de biens']),
     status: 'published',
   },
