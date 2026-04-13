@@ -189,6 +189,43 @@
 
 ---
 
+## Données source — Biens 10 rue des Muguets, Lille
+
+> Données confirmées par le fondateur. Source de vérité pour toutes les annonces.
+
+**Adresse** : 10 rue des Muguets, Lille (Lille-Sud)
+**Origine** : Ancien bâtiment de bureaux en cours de rénovation pour appartements
+**Chauffage** : Collectif (tous les biens)
+**Parking** : Place de parking extérieur protégée par 2 portes (tous les biens)
+**Grille prix** : 2 000 €/m² avant travaux, 2 800 €/m² après travaux (arrondi par bien)
+**Livraison** : Septembre (avant travaux de rénovation), décembre (après travaux)
+**Charges copropriété** : Placeholder (en attente de données)
+**DPE** : Placeholder (en attente de données)
+**Statut juridique** : Vente classique
+
+### Bien 1 — RDC
+- Surface : 47 m², 2 pièces
+- Séjour-cuisine ouvert de 26 m², lumineux, donne sur l'espace extérieur
+- Chambre de 10,2 m²
+- Espace extérieur privatif de 10 m²
+- Prix : 95 000 € avant travaux / 130 000 € prêt à habiter
+
+### Bien 2 — 1er étage
+- Surface : 82,2 m², 3 pièces
+- Séjour-cuisine de 40,5 m²
+- Chambre 1 : 14 m², Chambre 2 : 9 m²
+- Prix : 165 000 € avant travaux / 230 000 € prêt à habiter
+
+### Bien 3 — Duplex 2e + 3e étages
+- Surface : 126,3 m², 5-6 pièces
+- Plafond cathédrale
+- Terrasse ~12 m² vue sur l'église
+- Séjour-cuisine de 47 m² avec très belle vue, donne directement sur la terrasse
+- 3 chambres de 15 m² chacune
+- Prix : 250 000 € avant travaux / 355 000 € prêt à habiter
+
+---
+
 ## Historique des interventions agents
 
 > Ce tableau est le journal de bord du projet. Chaque agent DOIT le compléter après chaque livrable.
