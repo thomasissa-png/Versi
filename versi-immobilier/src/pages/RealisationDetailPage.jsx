@@ -13,6 +13,8 @@ export default function RealisationDetailPage() {
   const { projects: allProjectsRaw } = useProjects('completed');
   const { ref, isVisible } = useFadeIn();
   const [galleryView, setGalleryView] = useState('avant');
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [fadeKey, setFadeKey] = useState(0);
 
   if (loading) {
     return (
@@ -84,7 +86,24 @@ export default function RealisationDetailPage() {
 
   const avantPhotos = photos.filter((p) => p.category === 'avant');
   const apresPhotos = photos.filter((p) => p.category === 'apres');
-  const currentPhoto = (galleryView === 'avant' ? avantPhotos : apresPhotos)[0];
+  const currentPhotos = galleryView === 'avant' ? avantPhotos : apresPhotos;
+  const safeIndex = Math.min(photoIndex, Math.max(0, currentPhotos.length - 1));
+  const currentPhoto = currentPhotos[safeIndex];
+  const heroPhoto = apresPhotos[0];
+
+  const handleViewChange = (view) => {
+    setGalleryView(view);
+    setPhotoIndex(0);
+    setFadeKey((k) => k + 1);
+  };
+
+  const handlePhotoNav = (direction) => {
+    const next = safeIndex + direction;
+    if (next >= 0 && next < currentPhotos.length) {
+      setPhotoIndex(next);
+      setFadeKey((k) => k + 1);
+    }
+  };
 
   return (
     <>
@@ -94,7 +113,10 @@ export default function RealisationDetailPage() {
       <Nav />
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
         {/* Hero photo */}
-        <div className="realisation-detail__hero">
+        <div
+          className="realisation-detail__hero"
+          style={heroPhoto ? { backgroundImage: `url(${heroPhoto.url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        >
           <div className="realisation-detail__hero-overlay" aria-hidden="true" />
           <div className="realisation-detail__hero-content">
             <h1 className="text-heading-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
@@ -148,29 +170,55 @@ export default function RealisationDetailPage() {
                   role="tab"
                   aria-selected={galleryView === 'avant'}
                   aria-controls="gallery-panel"
-                  onClick={() => setGalleryView('avant')}
+                  onClick={() => handleViewChange('avant')}
                   className={`text-label realisation-detail__toggle-btn${galleryView === 'avant' ? ' realisation-detail__toggle-btn--active' : ''}`}
                 >
-                  Avant
+                  Avant{avantPhotos.length > 0 && ` (${avantPhotos.length})`}
                 </button>
                 <button
                   role="tab"
                   aria-selected={galleryView === 'apres'}
                   aria-controls="gallery-panel"
-                  onClick={() => setGalleryView('apres')}
+                  onClick={() => handleViewChange('apres')}
                   className={`text-label realisation-detail__toggle-btn${galleryView === 'apres' ? ' realisation-detail__toggle-btn--active' : ''}`}
                 >
-                  Après
+                  Après{apresPhotos.length > 0 && ` (${apresPhotos.length})`}
                 </button>
               </div>
 
-              <div id="gallery-panel" role="tabpanel" aria-live="polite" aria-label={`Photo ${galleryView} rénovation`}>
+              <div id="gallery-panel" role="tabpanel" aria-live="polite" aria-label={`Photo ${galleryView} rénovation`} className="realisation-detail__gallery-panel">
                 {currentPhoto ? (
-                  <img
-                    src={currentPhoto.url}
-                    alt={currentPhoto.alt || `${project.title} — ${galleryView === 'avant' ? 'avant rénovation' : 'après rénovation'}`}
-                    className="realisation-detail__gallery-image"
-                  />
+                  <>
+                    <img
+                      key={fadeKey}
+                      src={currentPhoto.url}
+                      alt={currentPhoto.alt || `${project.title} — ${galleryView === 'avant' ? 'avant' : 'après'} rénovation (${safeIndex + 1}/${currentPhotos.length})`}
+                      className="realisation-detail__gallery-image realisation-detail__gallery-image--fade-in"
+                    />
+                    {currentPhotos.length > 1 && (
+                      <div className="realisation-detail__gallery-nav">
+                        <button
+                          onClick={() => handlePhotoNav(-1)}
+                          disabled={safeIndex === 0}
+                          className="realisation-detail__gallery-nav-btn"
+                          aria-label="Photo précédente"
+                        >
+                          ←
+                        </button>
+                        <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>
+                          {safeIndex + 1} / {currentPhotos.length}
+                        </span>
+                        <button
+                          onClick={() => handlePhotoNav(1)}
+                          disabled={safeIndex === currentPhotos.length - 1}
+                          className="realisation-detail__gallery-nav-btn"
+                          aria-label="Photo suivante"
+                        >
+                          →
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="image-placeholder realisation-detail__gallery-placeholder">
                     <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>
