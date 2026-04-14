@@ -509,10 +509,100 @@ La page `/investir` est quasi-vide et renvoie vers un autre domaine. Elle doit r
 
 ## 6. Vérification persona — Acquéreur vs Investisseur holding
 
-[SECTION À REMPLIR]
+### 6.1 Rappel du pivot
+
+Le `project-context.md` (Scope V2, mise à jour 2026-04-10) est explicite : **le persona principal de versi-immobilier.fr est l'ACQUÉREUR (Kévin)**, non l'investisseur Laurent. Laurent est le persona de versi.fr (holding). La confusion des deux personas sur versi-immobilier.fr est un risque de positionnement et de conversion.
+
+### 6.2 Audit des occurrences "investisseur" vs "acquéreur"
+
+Recherche dans les pages et composants audités :
+
+**Occurrences orientées INVESTISSEUR (Laurent — persona holding)** :
+
+| Fichier | Contenu | Risque |
+|---|---|---|
+| `InvestirPage.jsx` | "Investir avec un opérateur intégré. Acquisition, transformation, structuration — une équipe qui maîtrise l'ensemble du cycle. Pas un intermédiaire : un co-opérateur." | **Moyen** — "co-opérateur" est le vocabulaire Laurent/versi.fr. Cette page attire Laurent sur le mauvais site. |
+| `index.html` — FAQ | "Versi Immobilier acquiert des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 €" | **Faible** — ticket élevé, cohérent acquisition MDB |
+| `llms.txt` | "Ticket d'acquisition : 250 000 € à 1 000 000 €" | **Faible** — info pour les crawlers, pas les acquéreurs |
+| `Nav.jsx` — NAV_ITEMS | Absent de la navigation principale | OK — `/investir` n'est pas dans le menu |
+
+**Occurrences orientées ACQUÉREUR (Kévin)** :
+
+| Fichier | Contenu | Alignement |
+|---|---|---|
+| `Hero.jsx` | "Des appartements sélectionnés, préparés, disponibles." + CTA "Voir les biens" | Fort |
+| `PropertiesPage.jsx` | Filtres, prix de vente, dossier complet | Fort |
+| `BlogPage.jsx` | Filtres : "Acheter rénové", "Financement", "Investir à Lille" | Fort — "Investir à Lille" cible Kévin investisseur locatif, pas Laurent |
+| `PropertyDetailPage.jsx` | Galerie, specs, DPE, travaux réalisés, "Demander une présentation" | Fort |
+
+### 6.3 Problèmes de persona croisé identifiés
+
+**Problème A — Page `/investir`** :
+Cette page, bien qu'absente de la navigation principale, est référencée dans le sitemap avec priority 0.7. Un acquéreur Kévin qui tape "investir Lille immobilier" peut tomber dessus et être envoyé vers versi-invest.fr sans explication adaptée à son profil.
+
+Recommandation : soit retirer la page du sitemap + la noindexer, soit la réécrire pour Kévin investisseur locatif (différent de Laurent investisseur institutionnel).
+
+**Problème B — Bandeau vendeur sur BlogPage** :
+Le bandeau "Vous avez un bien à céder ?" à la fin de la page blog (Sophie-centric) crée une rupture de persona quand Kévin arrive sur le blog. 90% des visiteurs du blog seront des acquéreurs, pas des vendeurs.
+
+**Problème C — Description Organization schema** :
+`"description": "Marchand de biens spécialisé dans l'acquisition, la transformation et la revente d'actifs résidentiels et mixtes en France."` — cette description parle des activités du MDB du point de vue opérateur. Elle ne mentionne pas la proposition de valeur acquéreur ("des biens rénovés, avec dossier complet, à vendre en direct").
+
+**Problème D — llms.txt process de vente** :
+La section "Process de vente" dans llms.txt décrit exclusivement le process côté vendeur (soumission, visite, offre). Aucun process acquéreur (demande de présentation, visite, achat). Les LLMs qui citent llms.txt répondront aux requêtes acquéreurs avec un contenu vendeur.
+
+### 6.4 Vérification : aucune confusion avec versi.fr (holding)
+
+Vérification des références croisées dans versi-immobilier.fr :
+- `parentOrganization` dans le schema pointe vers versi.fr — correct, architecture de marque endorsée
+- `InvestirPage.jsx` renvoie vers versi-invest.fr — correct, séparation des entités
+- `ApprochePage.jsx` mentionne "Groupe Versi" avec lien vers versi.fr — correct
+
+Aucune confusion directe détectée. Le risque principal est la page `/investir` qui attire potentiellement des profils Laurent sur versi-immobilier.fr.
 
 ---
 
 ## Handoff → @fullstack
 
-[SECTION À REMPLIR]
+**Fichiers produits** :
+- `/home/user/Versi/docs/reviews/seo-audit-s8.md` (ce document)
+
+**Décisions prises** :
+- Persona principal confirmé : Kévin (acquéreur) sur versi-immobilier.fr — tout le SEO doit servir ce persona en priorité
+- Architecture mots-clés : "appartement rénové Lille", "achat immobilier Hauts-de-France", "bien rénové marchand de biens", "précommercialisation Lille"
+- Meta tags templates par page définis en section 5 (R2) — à implémenter tels quels
+- FAQPage schema : 4 questions acquéreur à ajouter (section 3.3) sans supprimer l'existant
+
+**Points d'attention pour @fullstack** :
+
+1. **Sprint 1 obligatoire avant indexation active** :
+   - R1 : `vite-plugin-prerender` sur 7 routes (voir section 5)
+   - R2 : `react-helmet-async` avec meta tags templates par page
+   - R3 : canonical par route via react-helmet-async
+
+2. **Sprint 2 — Optimisations on-page** :
+   - R4 : H1 `/nos-biens` → "Appartements et biens rénovés à vendre — Lille et Hauts-de-France"
+   - R5 : sitemap.xml mis à jour (ajouter `/blog`, réajuster priorités)
+   - R6 : 4 questions acquéreur dans FAQPage schema (index.html)
+   - R7 : `address` Lille dans Organization schema
+   - R8 : CTA blog → `/nos-biens` (modifier BlogPage.jsx + BlogArticlePage.jsx)
+
+3. **Sprint 3 — Signaux Bing** :
+   - R9 : IndexNow webhook au déploiement
+   - R10 : preload police, dimensions images galerie
+   - R12 : noindex `/investir`
+
+4. **Page `/investir`** : décision à prendre — soit noindex + retrait sitemap (recommandé), soit réécriture pour Kévin investisseur locatif. Soumettre à Thomas pour arbitrage.
+
+5. **Blog** : le pipeline de génération automatisée (templates, prompts IA, workflow publication) est à produire lors d'une session @seo dédiée (`docs/seo/blog-pipeline.md`). @fullstack devra implémenter les endpoints `/api/blog/generate` et `/api/blog/publish` une fois les specs disponibles.
+
+---
+
+**Coordination @geo** :
+- llms.txt : ajouter une section "Process acquéreur" (demande de présentation → visite → achat) — actuellement uniquement vendeur
+- FAQPage schema mise à jour : les nouvelles questions acquéreur servent aussi la visibilité GEO
+- Page `/investir` : si réécriture, aligner le contenu avec la stratégie GEO acquéreur
+
+**Coordination @social** :
+- Les articles de blog (Pilier 2 — Réalisations) génèrent du contenu à repostager sur LinkedIn/Instagram pour les signaux sociaux Bing
+- Chaque fiche bien mise en ligne = contenu social potentiel → signaler à @social pour amplification
