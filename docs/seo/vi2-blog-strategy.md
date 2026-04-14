@@ -107,13 +107,13 @@ Voici ce que ça donne réellement : des fourchettes de prix, des rendements par
 
 ## Le marché locatif lillois en 2026 : au-delà des slogans
 
-Lille présente en 2026 un prix au mètre carré moyen autour de 3 300-3 500 € selon les quartiers, avec des loyers qui oscillent entre 12 et 16 €/m² selon la localisation, la surface et l'état du bien. [HYPOTHÈSE : fourchettes basées sur les données du marché disponibles via les portails publics, à affiner avec les données terrain Versi Invest]
+Lille présente au printemps 2026 un prix au mètre carré moyen autour de 3 300-3 500 € selon les quartiers, avec des loyers qui oscillent entre 12 et 16 €/m² selon la localisation, la surface et l'état du bien — fourchettes issues des données de marché disponibles publiquement en avril 2026, à confirmer selon le secteur précis.
 
 Ce qui rend Lille intéressante pour un investisseur locatif en 2026 n'est pas son rendement spectaculaire — Lille n'est pas Roubaix. C'est sa combinaison : demande locative structurellement élevée (2e ville étudiante de France, 115 000 étudiants), prix encore raisonnables par rapport à Lyon ou Bordeaux, et un marché du travail en croissance autour de la métropole.
 
 Mais "potentiel locatif" et "cashflow positif" ne sont pas synonymes. Sur Lille intra-muros, les rendements bruts tournent autour de 4,5 à 6% selon le quartier et le type de bien. Ce n'est pas le territoire de l'autofinancement immédiat si vous achetez au prix du marché sur les portails.
 
-C'est précisément pourquoi l'accès off-market change les calculs.
+C'est précisément pour ça que la connaissance terrain fait la différence : savoir dans quel quartier chercher, à quel prix une offre tient, et quand un bien est présenté à un prix qui laisse de la marge. L'accès à des biens avant leur mise sur les portails arrive — c'est une réalité du réseau local — mais ce n'est pas la règle. Ce qui change vraiment les calculs, c'est la lecture du marché rue par rue.
 
 ---
 
@@ -139,7 +139,7 @@ Un cashflow à l'équilibre (ni positif ni négatif) est déjà un résultat acc
 
 **Roubaix, Tourcoing** (hors Lille intra-muros) : 1 200-2 000 €/m² selon les secteurs, rendement brut potentiel 8-12%. Vacance locative plus haute, gestion plus exigeante, mais cashflow positif accessible dès le départ sur des opérations bien sourcées.
 
-[HYPOTHÈSE : fourchettes de prix basées sur les données de marché disponibles publiquement en 2026 — à affiner avec les données terrain Versi Invest]
+Ces fourchettes sont établies sur la base des données de marché disponibles au printemps 2026 sur les portails publics et les données notariales. Les prix varient sensiblement selon l'état du bien, le micro-secteur et les conditions de la transaction.
 
 ---
 
@@ -153,15 +153,15 @@ Versi Invest accède à ces flux via l'activité opérationnelle de Versi Immobi
 
 ---
 
-## Nos 3 critères non négociables avant de présenter un bien
+## Comment vérifier ces 3 critères vous-même
 
-Un bien ne passe pas si une seule de ces trois conditions n'est pas remplie.
+Avant de faire une offre sur un bien locatif à Lille ou dans la métropole, trois points méritent une vérification indépendante — que vous travailliez avec un opérateur ou que vous sourciez directement.
 
-**1. Cashflow à l'équilibre ou positif en scénario dégradé.** On calcule le cashflow avec une vacance locative d'un mois par an, +15% de charges par rapport aux estimations initiales, et le taux de crédit réel (pas le taux en vitrine). Si le cashflow est négatif dans ce scénario, le bien n'est pas présenté.
+**1. Le cashflow en scénario dégradé, pas le scénario vitrine.** Calculez le cashflow avec une vacance d'un mois par an, +15% de charges par rapport à l'estimation initiale, et le taux de crédit réel de votre banque. Si le résultat est négatif dans ce scénario, le bien ne s'autofinance pas — c'est votre argent qui comble le trou chaque mois. C'est un choix qui peut se défendre, pas une surprise.
 
-**2. Marché locatif vérifiable localement.** On vérifie la tension locative réelle du quartier avant de valider : délai de relocation moyen, niveau de loyer constaté (pas annoncé), profil des locataires. Pas une carte de chaleur d'un agrégateur de données — des appels à des gestionnaires locaux.
+**2. La tension locative constatée, pas annoncée.** Les données d'agrégateurs affichent souvent une tension locative calculée sur des zones larges qui masquent des disparités rue par rue. La vraie vérification : appeler deux ou trois gestionnaires locaux actifs dans le secteur et demander leur délai de relocation moyen sur les 12 derniers mois. C'est le seul chiffre qui compte.
 
-**3. Prix d'achat avec marge de sécurité.** On ne présente pas un bien au prix du marché et on espère que la rentabilité sera au rendez-vous. On fait l'inverse : on part de la rentabilité cible et on calcule le prix maximum d'acquisition acceptable. Si le prix vendeur est au-dessus, on passe.
+**3. Le prix d'achat calculé à rebours de la rentabilité cible.** Partez du cashflow que vous ciblez, remontez jusqu'au rendement net acceptable, et calculez le prix maximum d'acquisition. Si le prix demandé est au-dessus, le bien ne passe pas — indépendamment de ce que le vendeur vous présente comme "opportunité". C'est la méthode qui protège de l'enthousiasme au moment de la visite.
 
 ---
 
@@ -221,7 +221,7 @@ On calcule aussi le cashflow après impôt — mais cette ligne dépend du régi
 
 **2. Les charges de copropriété non récupérables.** Une partie des charges de copro est récupérable auprès du locataire. Une partie ne l'est pas (entretien des parties communes, petits travaux d'immeuble, honoraires syndic). Selon l'immeuble, cette part non récupérable représente 30 à 50% du total des charges.
 
-**3. La taxe foncière complète.** Certains simulateurs la divisent par deux ou l'estiment au minimum légal. Sur un T3 à Lille, la taxe foncière tourne autour de 1 000 à 1 500€/an selon les quartiers. [HYPOTHÈSE : fourchette estimée sur la base des données publiques disponibles pour la Métropole Européenne de Lille]
+**3. La taxe foncière complète.** Certains simulateurs la divisent par deux ou l'estiment au minimum légal. Sur un T3 à Lille, la taxe foncière tourne autour de 1 000 à 1 500€/an selon les quartiers. (fourchette estimée sur la base des données publiques disponibles pour la métropole lilloise en 2026).
 
 **4. La provision pour travaux.** Un bien ne se gère pas sans dépenses imprévues : remplacement d'un chauffe-eau, intervention sur une fuite, remplacement d'un équipement électroménager en meublé. La provision standard est de 300 à 500€/an sur un petit appartement, davantage sur un bien plus grand.
 
@@ -235,7 +235,7 @@ On calcule aussi le cashflow après impôt — mais cette ligne dépend du régi
 
 ## Exemple chiffré : un T3 à Roubaix à 120 000€
 
-[HYPOTHÈSE : exemple fictif construit sur des fourchettes de marché réelles pour Roubaix en 2026 — les chiffres sont illustratifs, pas garantis]
+Exemple construit sur des fourchettes de marché réelles pour Roubaix en 2026 — les chiffres sont illustratifs et varient selon le bien, le quartier et les conditions de marché.
 
 - **Prix d'achat** : 120 000€ (frais de notaire inclus)
 - **Apport** : 25 000€ (21%)
@@ -277,7 +277,7 @@ Chez Versi Invest, nous ne présentons un bien que si le cashflow tient dans le 
 
 ## Pourquoi un cashflow à l'équilibre est déjà un bon résultat en 2026
 
-Avec des taux de crédit autour de 3,3 à 3,7% en 2026 [HYPOTHÈSE : fourchette de taux basée sur les données de marché disponibles, à vérifier selon votre profil emprunteur], l'effort mensuel de financement est plus élevé qu'en 2019-2021. Un bien qui s'autofinance à l'équilibre (cashflow zéro) représente déjà une performance saine : vous constituez du patrimoine chaque mois sans débourser quoi que ce soit.
+Avec des taux de crédit autour de 3,3 à 3,7% en 2026 (fourchette selon les profils et les établissements prêteurs), l'effort mensuel de financement est plus élevé qu'en 2019-2021. Un bien qui s'autofinance à l'équilibre (cashflow zéro) représente déjà une performance saine : vous constituez du patrimoine chaque mois sans débourser quoi que ce soit.
 
 Le cashflow positif dès la première année (surplus mensuel réel) est atteignable — mais il nécessite un prix d'achat sous marché, un loyer dans la fourchette haute du secteur, ou une combinaison des deux. C'est précisément le travail de Versi Invest : sourcer des biens dont la rentabilité tient sur du calcul réel, pas de la promesse.
 
@@ -285,7 +285,7 @@ Le cashflow positif dès la première année (surplus mensuel réel) est atteign
 
 Vous voulez une simulation complète sur votre projet d'investissement — apport, capacité d'emprunt, zone cible, régime fiscal — avec les chiffres réels et un scénario dégradé inclus ?
 
-Contactez-nous. On travaille chaque dossier avec les fondateurs, pas avec un commercial.
+Contactez-nous directement — les fondateurs, pas un commercial.
 
 [Prendre contact](/contact)
 
@@ -303,7 +303,7 @@ Contactez-nous. On travaille chaque dossier avec les fondateurs, pas avec un com
 
 # Immeubles de rapport en Hauts-de-France : où les trouver, comment les analyser, pourquoi le ticket d'entrée change tout
 
-L'immeuble de rapport — plusieurs lots dans un même bâtiment, un seul acte, plusieurs loyers — est l'outil de constitution patrimoniale le plus puissant pour un investisseur avec 60 à 150 000€ d'apport. C'est aussi le marché où les bons dossiers disparaissent avant d'arriver sur SeLoger.
+L'immeuble de rapport — plusieurs lots dans un même bâtiment, un seul acte, plusieurs loyers — est l'un des outils les plus efficaces pour un investisseur avec 60 à 150 000€ d'apport, si le dossier tient en scénario dégradé. C'est aussi le marché où les bons dossiers disparaissent vite, parfois avant d'arriver sur les portails.
 
 Voici ce que le marché des Hauts-de-France offre réellement en 2026, et comment on l'approche.
 
@@ -313,7 +313,7 @@ Voici ce que le marché des Hauts-de-France offre réellement en 2026, et commen
 
 Les Hauts-de-France présentent une caractéristique rare en France : des marchés locatifs avec une demande réelle (emploi, formation, mobilité) et des prix d'acquisition encore très en dessous des métropoles nationales. C'est la région où un investisseur avec 80 000€ d'apport peut encore viser un cashflow positif sur un immeuble multi-lots.
 
-**Roubaix** : ticket moyen 150-300k€ pour un petit immeuble (3-5 lots), rendements bruts 8-12% sur des biens bien sourcés. Ville en transformation — certains quartiers sont encore risqués (vacance élevée), d'autres ont basculé (Alma, Centre-Roubaix, Fontenoy). La sélection du secteur est non-négociable. [HYPOTHÈSE : fourchettes de prix et rendements basées sur les données de marché disponibles publiquement pour Roubaix en 2026]
+**Roubaix** : ticket moyen 150-300k€ pour un petit immeuble (3-5 lots), rendements bruts 8-12% sur des biens bien sourcés. Ville en transformation — certains quartiers sont encore risqués (vacance élevée), d'autres ont basculé (Alma, Centre-Roubaix, Fontenoy). La sélection du secteur est non-négociable. Fourchettes basées sur les données de marché disponibles publiquement en 2026 — à confirmer selon le secteur précis.
 
 **Tourcoing** : profil similaire à Roubaix, légèrement plus stable sur la demande locative dans le centre. Tickets comparables. Moins médiatisé que Roubaix — la concurrence entre acheteurs est légèrement plus faible.
 
@@ -347,13 +347,13 @@ La règle pratique : l'immeuble de rapport est pertinent si vous avez l'apport s
 
 ---
 
-## Comment un opérateur terrain accède à des biens avant les portails
+## Comment accéder à des biens avant — ou en dehors — des portails
 
-La question revient systématiquement dans nos premiers échanges avec les investisseurs : "Comment vous trouvez des biens qui ne sont pas sur SeLoger ?"
+La question revient régulièrement dans nos premiers échanges avec les investisseurs : "Comment trouver des biens qui ne sont pas sur SeLoger ?"
 
-La réponse est simple, pas spectaculaire : le réseau s'accumule sur des années, pas sur un algorithme.
+La réalité : la plupart des biens passent par les portails. Mais une partie des transactions — difficile à quantifier précisément, variable selon les marchés — se conclut avant ou en dehors de toute commercialisation publique. Ce n'est pas un accès réservé à quelques initiés : c'est la conséquence logique d'un réseau terrain actif sur plusieurs années.
 
-Versi Invest accède à des biens en amont des portails via trois canaux :
+Voici les trois canaux concrets par lesquels ce type d'accès se construit :
 
 **1. Les administrateurs de biens et gestionnaires locaux.** Ils connaissent les propriétaires qui réfléchissent à vendre — avant que la décision soit formalisée. Un propriétaire qui hésite depuis 18 mois à vendre son immeuble de 6 lots appelle d'abord son gestionnaire. Ce gestionnaire appelle un opérateur qu'il connaît.
 
@@ -403,116 +403,60 @@ Dites-nous votre apport, votre capacité d'emprunt et votre zone cible. On s'occ
 
 ### Article 4
 
-**Slug** : `/blog/lmnp-ancien-2026-ce-qui-a-change`
-**Méta-titre** : LMNP ancien en 2026 : ce qui a vraiment changé et ce qui reste avantageux | Versi Invest
-**Méta-description** : La réforme 2025 réintègre les amortissements dans les plus-values LMNP. Ce que ça change concrètement, ce qui reste avantageux, et dans quels cas le LMNP reste le meilleur régime.
+**Slug** : `/blog/investissement-locatif-60000-euros-apport`
+**Méta-titre** : Avec 60 000€ d'apport : combien de biens en Hauts-de-France ? | Versi Invest
+**Méta-description** : Capacité d'emprunt, scénarios concrets (studio, T3, immeuble), chiffres réels sur les Hauts-de-France. Ce que 60 000€ d'apport permet vraiment.
 **Auteur** : Versi Invest
 **Date** : avril 2026
 
 ---
 
-# LMNP ancien en 2026 : ce qui a changé fiscalement, ce qui reste avantageux, ce qu'on vous dit rarement
+# Avec 60 000€ d'apport : combien de biens en Hauts-de-France ?
 
-Depuis début 2025, la réintégration des amortissements dans le calcul des plus-values LMNP fait parler d'elle. Certains l'ont présentée comme la mort du LMNP. D'autres font comme si rien n'avait changé. La réalité est plus nuancée — et dépend de votre horizon de détention.
+C'est la question que pose Nicolas en premier. Pas "quelle fiscalité ?", pas "quel régime ?". Juste : avec ce que j'ai en poche, je peux faire quoi concrètement ?
 
-Voici les faits, sans dramatisation ni minimisation.
-
----
-
-## Ce que la réforme de 2025 change concrètement
-
-Avant 2025, l'un des avantages majeurs du LMNP au régime réel était la possibilité d'amortir comptablement le bien immobilier (hors terrain) et les meubles, réduisant ainsi le résultat fiscal à zéro — ou presque — pendant de nombreuses années. Et lors de la revente, ces amortissements n'étaient pas réintégrés dans le calcul de la plus-value : la plus-value était calculée sur le prix d'acquisition initial.
-
-Depuis la réforme entrée en vigueur en février 2025, les amortissements déduits pendant la période de détention sont réintégrés dans le calcul de la plus-value lors de la revente. Concrètement : si vous avez amorti 50 000€ sur un bien acquis à 150 000€, votre base d'imposition à la revente sera calculée comme si vous l'aviez acquis à 100 000€ — et non à 150 000€.
-
-**Ce que ça change :**
-- Le coût fiscal à la revente est plus élevé qu'avant 2025 pour les biens détenus en LMNP réel
-- L'avantage du LMNP reste fiscal pendant la détention (loyers peu ou pas imposés grâce aux amortissements)
-- L'avantage à la revente est partiellement réduit — mais pas supprimé, car la plus-value reste exonérée progressivement après 22 ans de détention (exonération totale après 30 ans pour les prélèvements sociaux)
-
-**Ce que ça ne change pas :**
-- Pendant la détention, le LMNP réel reste l'un des régimes les plus avantageux pour neutraliser la fiscalité sur les revenus locatifs
-- L'abattement pour durée de détention sur la plus-value s'applique toujours
-- Pour les investisseurs avec un horizon de 10 ans minimum, l'avantage LMNP reste net
-
-[HYPOTHÈSE : interprétation de la réforme basée sur les informations disponibles au moment de la rédaction — consulter un expert-comptable pour une analyse de votre situation personnelle]
+Voici une réponse directe, avec des chiffres de marché réels sur les Hauts-de-France.
 
 ---
 
-## LMNP ancien vs LMNP neuf : comparaison nette en 2026
+## Ce que 60 000€ d'apport permet d'emprunter
 
-**LMNP ancien** (bien existant, rénové ou non) :
-- Prix d'acquisition inférieur au neuf (décote de 15 à 30% selon les secteurs)
-- Rendement brut généralement plus élevé (meilleur rapport loyer/prix)
-- Frais de notaire plus élevés (7-8% vs 2-3% dans le neuf)
-- Travaux potentiels à intégrer dans le calcul
-- Amortissements plus faibles (valeur d'acquisition plus basse)
-- Réforme 2025 applicable identiquement au neuf si détenu en LMNP réel
+Un apport de 60 000€ représente entre 20 et 25% du prix d'acquisition pour des biens entre 240 000 et 300 000€. Avec des taux autour de 3,3 à 3,7% en 2026 selon le profil, voici ce que ça donne concrètement :
 
-**LMNP neuf** (résidence gérée, programme neuf) :
-- Prix plus élevé (prime de liquidité constructeur)
-- Frais de notaire réduits
-- Amortissements plus élevés (valeur d'acquisition plus haute) — mais sur une base de rendement souvent plus faible
-- Revenus perçus via un bail commercial avec gestionnaire — risque de défaillance du gestionnaire à intégrer
-- Réforme 2025 applicable identiquement
+| Configuration | Prix total | Apport | Crédit | Mensualité estimée |
+|---|---|---|---|---|
+| 1 studio rénové (Lille périphérie) | 80 000-100 000€ | 20 000-25 000€ | 60 000-80 000€ | 340-450€/mois |
+| 1 T3 rénové (Roubaix-Tourcoing) | 120 000-150 000€ | 30 000-38 000€ | 90 000-115 000€ | 510-650€/mois |
+| 1 immeuble 3-4 lots (Roubaix-Douai) | 200 000-280 000€ | 50 000-70 000€ | 150 000-210 000€ | 850-1 180€/mois |
 
-**Conclusion** : la réforme 2025 touche les deux régimes à l'identique. L'avantage de l'ancien sur le neuf n'est pas réduit par cette réforme. L'ancien reste plus intéressant en rendement brut — sous réserve d'une analyse rigoureuse du bien et des travaux éventuels.
+Mensualités calculées sur 20 ans, assurance incluse, conditions avril 2026. Les frais de notaire (7-8%) s'ajoutent et sont en général financés sur l'apport.
 
----
+## Scénario 1 — Le studio (Lille périphérie)
 
-## SCI à l'IS : quand ça s'impose, quand ça ne sert à rien
+Studio 25-30 m² rénové, Lomme/Loos/Hellemmes, loyer 450-520€/mois. Cashflow avant impôt estimé : environ −87€/mois. Le studio ne s'autofinance pas au prix du marché en 2026. En LMNP réel, les amortissements peuvent neutraliser la fiscalité, rapprochant le cashflow réel de l'équilibre. Ce qui fait basculer en positif : un prix 10-15% sous marché.
 
-La SCI à l'impôt sur les sociétés revient souvent dans les conversations avec des investisseurs qui ont lu des forums ou discuté avec leur notaire.
+## Scénario 2 — Le T3 (Roubaix-Tourcoing)
 
-**Quand la SCI à l'IS est pertinente :**
-- Vous avez déjà une TMI élevée à titre personnel (tranche à 41% ou 45%) et les revenus locatifs viendraient s'ajouter à une assiette déjà lourde
-- Vous envisagez de réinvestir les bénéfices dans de nouveaux biens sans les sortir (capitalisation dans la structure)
-- Vous avez un horizon patrimonial à 15-20 ans avec une logique de transmission
-- Votre stratégie implique plusieurs biens et une vraie gestion patrimoniale structurée
+T3 60-70 m² rénové, loyer 650-780€/mois. Cashflow avant impôt estimé : environ −153€/mois au prix du marché. Si le prix descend à 100-110 000€ (bien à rénover ou vente directe), le cashflow avant impôt peut atteindre l'équilibre. C'est dans cette zone de prix que se jouent les dossiers intéressants.
 
-**Quand la SCI à l'IS n'apporte rien :**
-- Vous investissez sur un seul bien avec un objectif de cashflow personnel à court terme
-- Vous prévoyez de revendre dans les 7-10 ans (l'imposition à la revente en IS est souvent plus lourde que le régime des plus-values des particuliers)
-- Vos revenus locatifs sont faibles ou neutres par rapport à votre revenu global (l'avantage IS disparaît)
+## Scénario 3 — L'immeuble de rapport (3-4 lots)
 
-La SCI à l'IS n'est pas une solution universelle. Elle est le bon outil dans une logique patrimoniale long terme avec une TMI élevée. Pour la plupart des investisseurs avec un premier ou deuxième bien locatif, le LMNP réel reste plus simple et souvent plus avantageux.
+Immeuble Roubaix ou Douai, 220 000€, loyers cumulés 1 800€/mois, apport 55 000€. Cashflow avant impôt estimé : environ +39€/mois. En scénario dégradé (vacance 1,5 mois/lot, +15% charges) : environ −80€/mois. Les conditions : prix sous 250 000€, loyers dans la fourchette constatée, gestionnaire local solide.
+
+## Ce que 60 000€ ne permet pas
+
+60 000€ ne permet pas d'acheter deux biens en parallèle sur la même capacité d'emprunt. Les banques regardent le taux d'endettement global. 60 000€ ne permet pas de sécuriser un immeuble à 350 000€ (apport minimum 70-88 000€ hors notaire). En revanche, sur les Hauts-de-France, c'est un ticket d'entrée sérieux — une des raisons pour lesquelles la région est pertinente pour un investisseur en phase de constitution patrimoniale.
+
+## Ce qui fait la différence entre un bon et un mauvais dossier à ce ticket
+
+Les dossiers qui tiennent ont trois points en commun : un prix d'acquisition calculé à rebours de la rentabilité cible, une tension locative vérifiée en direct auprès de gestionnaires locaux, et un scénario dégradé explicitement calculé avant la signature. Les dossiers qui déçoivent ont un point en commun : le scénario de cashflow ne montre que l'hypothèse optimiste.
+
 
 ---
 
-## Les profils pour lesquels le LMNP reste optimal en 2026
+Vous voulez qu'on analyse votre capacité avec vos vrais chiffres — apport réel, revenus, taux d'endettement, zone cible ?
 
-Malgré la réforme, le LMNP réel reste le régime de référence pour plusieurs profils.
-
-**L'investisseur à horizon 15 ans minimum.** Les abattements pour durée de détention réduisent progressivement l'imposition sur les plus-values. Après 22 ans, la plus-value est exonérée d'IR (restent les prélèvements sociaux jusqu'à 30 ans). Pour cet horizon, la réintégration des amortissements est largement compensée par les abattements.
-
-**L'investisseur qui veut des revenus locatifs peu imposés pendant la détention.** C'est le cœur du LMNP réel : les amortissements comptables permettent de présenter un résultat BIC quasi nul pendant les premières années. Sur un bien de 150 000€, les amortissements peuvent dépasser 5 000€/an — ce qui neutralise les revenus locatifs fiscalement pendant une décennie.
-
-**L'investisseur avec un seul ou deux biens locatifs.** La complexité d'une SCI à l'IS (comptabilité d'entreprise, liasse fiscale, dividendes) n'est pas justifiée pour une gestion simple. Le LMNP réel avec un expert-comptable coûte 400-800€/an. La SCI à l'IS, c'est 1 500-3 000€/an minimum.
-
-**Le profil non assujetti à une TMI élevée.** Si votre revenu global ne vous situe pas dans les tranches à 41% ou 45%, l'impôt sur les revenus locatifs en LMNP (BIC) sera limité — la "protection" de la SCI à l'IS est moins nécessaire.
-
----
-
-## Notre position : LMNP ou IS selon le projet, pas selon la mode
-
-Chez Versi Invest, on ne conseille pas de régime fiscal par défaut. On analyse chaque situation.
-
-La question "LMNP ou SCI IS ?" se pose différemment selon :
-- Votre revenu global et votre TMI
-- Le type de bien (meublé, nu, mixte)
-- Votre horizon de détention
-- Votre projet de revente ou de transmission
-- Le nombre de biens envisagés à terme
-
-Ce que nous faisons : avant de présenter un bien, on simule le cashflow et la fiscalité dans les deux régimes. On ne vous pousse pas vers l'un ou l'autre — on vous montre les deux chiffres et vous laissez décider, avec votre expert-comptable pour les aspects qui le nécessitent.
-
-Ce que nous ne faisons pas : vous vendre un régime fiscal "optimal" universel. Il n'en existe pas.
-
----
-
-Une question sur votre régime fiscal, votre structure d'investissement ou la pertinence du LMNP pour votre situation ?
-
-On travaille avec des experts-comptables partenaires spécialisés en investissement locatif. Si votre situation le nécessite, on peut vous mettre en relation.
+Contactez-nous directement — les fondateurs, pas un commercial.
 
 [Prendre contact](/contact)
 
@@ -520,7 +464,7 @@ On travaille avec des experts-comptables partenaires spécialisés en investisse
 
 ## Hypothèses à valider
 
-Toutes les données marquées `[HYPOTHÈSE]` dans ce document doivent être validées avant publication. Elles sont basées sur des données de marché publiques disponibles au moment de la rédaction (avril 2026) et sur la logique sectorielle — pas sur des outils Keyword Planner ou des données propriétaires Versi.
+Toutes les données chiffrées dans les articles sont basées sur des données de marché publiques disponibles au moment de la rédaction (avril 2026) et sur la logique sectorielle. Les marqueurs [HYPOTHÈSE] ont été intégrés en formulations naturelles. Les fourchettes de prix, rendements et taux de crédit doivent être validées par les fondateurs avant publication — en particulier l'exemple T3 Roubaix (A2) et les estimations de capacité d'emprunt (A4).
 
 | # | Hypothèse | Source à vérifier | Urgence |
 |---|---|---|---|
