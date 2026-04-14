@@ -151,7 +151,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 > Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
 > Estimation : 5 phases, ~12 agents, 2-3 sessions
 
-<!-- SESSION_VI2: phases=0 tasks_prod=2 tasks_consult=0 -->
+<!-- SESSION_VI2: phases=0 tasks_prod=3 tasks_consult=0 -->
 
 ### Phase VINV-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
@@ -162,7 +162,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-0b — Specs fonctionnelles (après creative-strategy)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | EN COURS |
+| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | TERMINÉ |
 
 ### Phase VINV-0c — Agents testeurs
 | Agent | Mission | Dépendance | Statut |
