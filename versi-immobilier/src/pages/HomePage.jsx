@@ -24,11 +24,11 @@ export default function HomePage() {
       <main id="main-content">
         <Hero />
         <Arguments />
-        <BuyerFAQ />
         <AvailableProperties />
         <Stats />
         <TeamTeaser />
         <BlogTeaser />
+        <BuyerFAQ />
         <SellerBanner />
       </main>
       <Footer />
