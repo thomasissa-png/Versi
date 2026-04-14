@@ -14,7 +14,6 @@
   --color-stone-600: #6B6560;
   --color-charcoal-800: #1A1A1A;
   --color-charcoal-950: #0B0B0B;
-  --color-bleu-invest: #1B3A5C;
 
   /* --- Couleurs semantiques — fonds --- */
   --color-bg-primary: #F7F5F2;
@@ -22,7 +21,6 @@
   --color-bg-subtle: #EFECE7;
   --color-bg-dark: #0B0B0B;
   --color-bg-dark-alt: #1A1A1A;
-  --color-bg-accent: #1B3A5C;
 
   /* --- Couleurs semantiques — textes --- */
   --color-text-primary: #0B0B0B;
@@ -31,7 +29,7 @@
 
   /* --- Couleurs semantiques — accents & bordures --- */
   --color-accent: #C8B9A6;
-  --color-accent-blue: #1B3A5C;
+  --color-accent-blue: var(--color-accent); /* alias — bleu supprimé, unifié sur la palette Versi */
   --color-border: #D9D4CE;
   --color-border-input: rgba(255, 255, 255, 0.2);
   --color-border-dark: rgba(255, 255, 255, 0.12);
@@ -275,7 +273,7 @@ ul, ol {
 /* === Section layout utility === */
 
 .section-padding {
-  padding: var(--spacing-3xl) var(--spacing-2xl);
+  padding: var(--spacing-5xl) var(--spacing-2xl);
   scroll-margin-top: var(--nav-height);
 }
 
@@ -372,8 +370,8 @@ ul, ol {
 }
 
 .page-cta__btn--blue {
-  background: var(--color-accent-blue);
-  color: var(--color-text-inverse);
+  background: var(--color-accent);
+  color: var(--color-bg-dark);
 }
 
 .page-cta__btn:focus-visible {
@@ -385,7 +383,7 @@ ul, ol {
 
 @media (max-width: 767px) {
   .section-padding {
-    padding: var(--spacing-2xl) var(--spacing-lg);
+    padding: var(--spacing-4xl) var(--spacing-lg);
   }
 
   .text-display {

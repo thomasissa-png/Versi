@@ -45,7 +45,7 @@ const PROCESS_STEPS = [
 const STATS = [
   { value: '21', label: 'appartements rénovés' },
   { value: '3,2M€', label: 'de volume opéré' },
-  { value: '3', label: 'fondateurs' },
+  { value: '8%', label: 'rendement brut minimum ciblé' },
 ];
 
 const FOUNDERS = [
@@ -77,24 +77,24 @@ const FOUNDERS = [
 
 const FAQ_ITEMS = [
   {
-    q: 'Quel rendement attendre d\'un investissement locatif ?',
-    a: 'Le rendement brut varie entre 3% et 10% selon la localisation et le type de bien. Versi Invest cible un rendement brut minimum de 8% sur les biens off-market sourcés en Hauts-de-France et Île-de-France. Chaque simulation intègre un scénario prudent.',
+    q: 'Comment Versi Invest accède-t-il à des biens off-market ?',
+    a: 'Via notre activité de marchand de biens — Versi Immobilier. Ces biens ne passent pas par SeLoger ou le Bon Coin. Ils remontent de notre réseau terrain avant d\'être mis en vente. Versi Invest en est le premier destinataire.',
   },
   {
-    q: 'Qu\'est-ce qu\'un bien off-market ?',
-    a: 'Un bien proposé à la vente sans publication sur les portails publics. Chez Versi Invest, ces biens proviennent du flux d\'opportunités détectées par l\'activité de marchand de biens de Versi Immobilier.',
+    q: 'Pourquoi 5% d\'honoraires uniquement côté investisseur ?',
+    a: 'Parce que nos intérêts doivent être alignés avec les vôtres. Certains acteurs se rémunèrent des deux côtés — leur recommandation est biaisée structurellement. Chez Versi Invest, zéro rémunération côté vendeur. C\'est dans le mandat.',
   },
   {
-    q: 'Combien coûte Versi Invest ?',
-    a: '5% du prix d\'acquisition, facturés uniquement à l\'investisseur. Aucune rémunération côté vendeur. Ces honoraires couvrent le cycle complet : sourcing, visite, simulation, financement, acquisition — et optionnellement travaux et mise en location.',
+    q: 'Comment est calculé le rendement présenté ?',
+    a: 'Rendement brut, net (après charges courantes), net-net (après fiscalité estimée). Chaque simulation intègre taxe foncière, charges de copropriété, vacance locative provisionnée et un scénario dégradé à +15% de charges. Vous voyez le pire avant le mieux.',
   },
   {
-    q: 'Faut-il un apport pour investir ?',
-    a: 'Un apport de 10% à 20% du prix est généralement demandé par les banques. Le montant dépend de votre profil. Le simulateur Versi Invest permet d\'estimer le cashflow net en fonction de votre apport.',
+    q: 'Combien de dossiers gérez-vous simultanément ?',
+    a: 'Le volume est intentionnellement limité. Quand les fondateurs sont en capacité, la liste d\'attente est ouverte. Quand ce n\'est plus le cas, elle se ferme. C\'est la raison pour laquelle nous opérons par inscription.',
   },
   {
-    q: 'Qu\'est-ce que le cashflow positif ?',
-    a: 'Les loyers couvrent l\'intégralité des charges (crédit, copropriété, taxe foncière, assurance, vacance locative) et dégagent un excédent mensuel. C\'est l\'objectif de chaque opération Versi Invest.',
+    q: 'Avez-vous une carte T ?',
+    a: 'Oui. Versi Invest est titulaire de la carte professionnelle T (transaction immobilière). Les mentions légales complètes sont disponibles en bas de page.',
   },
 ];
 
@@ -128,16 +128,39 @@ export default function HomePage() {
               Investissement locatif off-market — France
             </span>
             <h1 className="hero__title">
-              Des biens qui s'autofinancent.
+              Des biens off-market qui s'autofinancent.
               <br />
-              Fondateurs en direct, de A à Z.
+              Les fondateurs suivent chaque dossier.
             </h1>
+            <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              Biens off-market, simulation ligne par ligne, scénario prudent inclus. Rendement cible 8% brut. 5% d'honoraires côté investisseur, zéro côté vendeur.
+              Simulation ligne par ligne, scénario prudent inclus. Rendement cible 8% brut. 5% d'honoraires côté investisseur, zéro côté vendeur.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
             </Link>
+          </div>
+        </section>
+
+        {/* Trust — preuve immédiate */}
+        <section className="trust" aria-label="Track record Groupe Versi">
+          <div className="trust__inner container">
+            <ul className="trust__stats" role="list">
+              {STATS.map((stat) => (
+                <li key={stat.label} className="trust__stat">
+                  <span className="trust__stat-value text-stat">{stat.value}</span>
+                  <span className="trust__stat-label">{stat.label}</span>
+                </li>
+              ))}
+            </ul>
+            <a
+              href="https://versi.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="trust__link"
+            >
+              Groupe Versi — dossiers disponibles sur demande →
+            </a>
           </div>
         </section>
 
@@ -157,54 +180,11 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="process__cta-wrap">
-              <Link to="/comment-ca-marche" className="process__cta">
-                Voir le détail de chaque étape
+            <p className="process__more">
+              <Link to="/comment-ca-marche" className="process__more-link">
+                Comment ça marche en détail →
               </Link>
-              <Link to="/services" className="process__cta process__cta--secondary">
-                Découvrir nos services
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Simulateur teaser */}
-        <section className="sim-teaser section-padding" aria-label="Simulateur rendement locatif">
-          <div className="container sim-teaser__inner">
-            <h2 className="sim-teaser__title text-heading-lg">
-              Estimez votre cashflow en 30 secondes.
-            </h2>
-            <p className="sim-teaser__desc">
-              Renseignez le prix d'acquisition et votre apport. On calcule le rendement brut et le cashflow estimé — avec un scénario prudent intégré.
             </p>
-            <Link to="/simulateur" className="sim-teaser__cta">
-              Simuler mon investissement
-            </Link>
-          </div>
-        </section>
-
-        {/* Confiance */}
-        <section className="trust" aria-label="Track record Groupe Versi">
-          <div className="trust__inner container">
-            <ul className="trust__stats" role="list">
-              {STATS.map((stat) => (
-                <li key={stat.label} className="trust__stat">
-                  <span className="trust__stat-value text-stat">{stat.value}</span>
-                  <span className="trust__stat-label">{stat.label}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="trust__subtext">
-              Ce n'est pas un argument marketing. C'est le track record de notre activité de marchand de biens — documenté, vérifiable, disponible en cas d'étude sur demande.
-            </p>
-            <a
-              href="https://versi.fr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="trust__link"
-            >
-              Découvrir le Groupe Versi →
-            </a>
           </div>
         </section>
 
@@ -223,8 +203,8 @@ export default function HomePage() {
                       src={f.photo}
                       alt={`${f.name}, ${f.role} de Versi Invest`}
                       className="founders__photo"
-                      width={320}
-                      height={320}
+                      width={400}
+                      height={533}
                       loading="lazy"
                     />
                   </div>
@@ -246,6 +226,21 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Simulateur teaser */}
+        <section className="sim-teaser section-padding" aria-label="Simulateur rendement locatif">
+          <div className="container sim-teaser__inner">
+            <h2 className="sim-teaser__title text-heading-lg">
+              Estimez votre cashflow en 30 secondes.
+            </h2>
+            <p className="sim-teaser__desc">
+              Prix d'acquisition, apport, zone géographique. Le simulateur calcule rendement brut, net et cashflow mensuel — scénario prudent inclus, charges réelles intégrées. Pas un outil marketing. Un outil de décision.
+            </p>
+            <Link to="/simulateur" className="sim-teaser__cta">
+              Simuler mon investissement
+            </Link>
           </div>
         </section>
 
@@ -279,16 +274,11 @@ export default function HomePage() {
         <section className="page-cta section-padding" aria-label="Inscription">
           <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Vous avez un projet d'investissement locatif.
+              On ne présente pas un bien si le cashflow ne tient pas en scénario dégradé. Si vous voulez travailler avec des fondateurs qui raisonnent comme ça — la liste d'attente est ouverte.
             </p>
-            <div className="page-cta__actions">
-              <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
-                Simuler mon investissement
-              </Link>
-              <Link to="/contact" className="page-cta__btn">
-                S'inscrire — réponse sous 48h
-              </Link>
-            </div>
+            <Link to="/contact" className="page-cta__btn">
+              S'inscrire sur la liste d'attente
+            </Link>
           </div>
         </section>
       </main>
