@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import SellForm from '../components/SellForm.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
 import PageHead from '../components/PageHead.jsx';
-import { PROJECTS } from '../config/projects.js';
+import { useProjects } from '../hooks/useProjects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import thomas from '../assets/team/thomas.png';
 import max from '../assets/team/max.png';
@@ -100,8 +100,12 @@ export default function SellPage() {
   const { ref: procRef, isVisible: procVisible } = useFadeIn();
   const { ref: critRef, isVisible: critVisible } = useFadeIn();
   const location = useLocation();
+  const { projects: allProjects } = useProjects('all');
 
-  const featuredProjects = PROJECTS.filter((p) => p.featured).slice(0, 2);
+  const featuredProjects = useMemo(
+    () => allProjects.filter((p) => p.status === 'completed').slice(0, 2),
+    [allProjects]
+  );
 
   // Scroll to #formulaire on load if hash present
   useEffect(() => {

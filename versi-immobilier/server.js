@@ -1814,6 +1814,37 @@ async function upsertProperty(client, prop) {
   );
 }
 
+// Nouvelles photos "après" Nanterre — lues depuis le disque au lieu des base64 embarquées
+const NANTERRE_APRES_FILES = [
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.54917.jpeg', sort: 0 },
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.54918.jpeg', sort: 1 },
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.54915.jpeg', sort: 2 },
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.5495.jpeg',  sort: 3 },
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.591.jpeg',   sort: 4 },
+  { file: 'WhatsApp Image 2026-04-13 at 09.42.54916.jpeg', sort: 5 },
+];
+const NANTERRE_PHOTOS_DIR = join(__dirname, '..', 'Photos', 'references', 'nanterre-barbusse');
+
+function loadNanterreApresPhotos() {
+  const photos = [];
+  for (const entry of NANTERRE_APRES_FILES) {
+    const filePath = join(NANTERRE_PHOTOS_DIR, entry.file);
+    if (fs.existsSync(filePath)) {
+      const buffer = fs.readFileSync(filePath);
+      photos.push({
+        data: `data:image/jpeg;base64,${buffer.toString('base64')}`,
+        filename: entry.file,
+        mime_type: 'image/jpeg',
+        category: 'apres',
+        sort_order: entry.sort,
+      });
+    } else {
+      console.warn(`[autoSeed] Photo introuvable : ${filePath}`);
+    }
+  }
+  return photos;
+}
+
 async function upsertNanterreProject(client) {
   const p = NANTERRE_PROJECT;
   await client.query(
@@ -1839,14 +1870,40 @@ async function upsertNanterreProject(client) {
 
   // Delete existing photos then re-insert
   await client.query('DELETE FROM project_photos WHERE project_id = $1', [p.id]);
-  for (const photo of NANTERRE_PHOTOS) {
+
+  // Photos "avant" : garder celles embarquées dans NANTERRE_PHOTOS
+  const avantPhotos = NANTERRE_PHOTOS.filter((ph) => ph.category === 'avant');
+  for (const photo of avantPhotos) {
     await client.query(
       `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
     );
   }
-  console.log(`[autoSeed] Projet "${p.id}" + ${NANTERRE_PHOTOS.length} photos upserted.`);
+
+  // Photos "après" : lire les 6 nouvelles depuis le disque (sélection fondateur)
+  const apresPhotos = loadNanterreApresPhotos();
+  if (apresPhotos.length > 0) {
+    for (const photo of apresPhotos) {
+      await client.query(
+        `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
+      );
+    }
+    console.log(`[autoSeed] Projet "${p.id}" : ${avantPhotos.length} avant + ${apresPhotos.length} après (nouvelles WhatsApp).`);
+  } else {
+    // Fallback : utiliser les anciennes photos "après" embarquées
+    const oldApres = NANTERRE_PHOTOS.filter((ph) => ph.category === 'apres');
+    for (const photo of oldApres) {
+      await client.query(
+        `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
+      );
+    }
+    console.log(`[autoSeed] Projet "${p.id}" : ${avantPhotos.length} avant + ${oldApres.length} après (fallback embarquées).`);
+  }
 }
 
 async function upsertBlogArticle(client, article) {
