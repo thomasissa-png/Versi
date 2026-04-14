@@ -13,8 +13,8 @@ const PROCESS_STEPS = [
   },
   {
     num: '02',
-    title: 'Visite accompagnée',
-    desc: 'Un fondateur vous accompagne sur site. Pas un commercial. Les fondateurs.',
+    title: 'Visite sur site',
+    desc: 'Un fondateur est présent sur site avec vous. Pas un commercial. Les fondateurs.',
   },
   {
     num: '03',
@@ -24,7 +24,7 @@ const PROCESS_STEPS = [
   {
     num: '04',
     title: 'Structuration et financement',
-    desc: 'On structure le montage avec vous : nom propre, SCI, LMNP. On vous met en relation avec les bons courtiers.',
+    desc: 'On identifie le montage adapté à votre situation et on vous met en relation avec les bons courtiers. Le dossier de simulation est prêt pour la banque.',
   },
   {
     num: '05',
@@ -75,7 +75,7 @@ export default function HomePage() {
               Fondateurs en direct, de A à Z.
             </h1>
             <p className="hero__subtitle">
-              Versi Invest source des biens off-market inaccessibles sur les portails, simule chaque charge honnêtement, et suit votre opération du sourcing à la mise en location. Les fondateurs sont votre seul interlocuteur.
+              Versi Invest source des biens off-market inaccessibles sur les portails, simule chaque charge ligne par ligne — scénario prudent inclus — et suit votre opération du sourcing à la mise en location. Rendement cible : 8% brut minimum. 5% d'honoraires côté investisseur. Zéro côté vendeur.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
@@ -102,24 +102,39 @@ export default function HomePage() {
               <Link to="/comment-ca-marche" className="process__cta">
                 Voir le détail de chaque étape
               </Link>
+              <Link to="/services" className="process__cta process__cta--secondary">
+                Découvrir nos services
+              </Link>
             </div>
+          </div>
+        </section>
+
+        {/* Simulateur teaser */}
+        <section className="sim-teaser section-padding" aria-label="Simulateur rendement locatif">
+          <div className="container sim-teaser__inner">
+            <h2 className="sim-teaser__title text-heading-lg">
+              Estimez votre cashflow en 30 secondes.
+            </h2>
+            <p className="sim-teaser__desc">
+              Renseignez le prix d'acquisition et votre apport. On calcule le rendement brut et le cashflow estimé — avec un scénario prudent intégré.
+            </p>
+            <Link to="/simulateur" className="sim-teaser__cta">
+              Simuler mon investissement
+            </Link>
           </div>
         </section>
 
         {/* Confiance — bandeau bleu */}
         <section className="trust" aria-label="Track record Groupe Versi">
           <div className="trust__inner container">
-            <div className="trust__stats">
+            <ul className="trust__stats" role="list">
               {STATS.map((stat) => (
-                <div key={stat.label} className="trust__stat">
+                <li key={stat.label} className="trust__stat">
                   <span className="trust__stat-value text-stat">{stat.value}</span>
                   <span className="trust__stat-label">{stat.label}</span>
-                </div>
+                </li>
               ))}
-            </div>
-            <p className="trust__text">
-              Groupe Versi — 21 appartements rénovés, 3,2M€ de volume opéré.
-            </p>
+            </ul>
             <p className="trust__subtext">
               Ce n'est pas un argument marketing. C'est le track record de notre activité de marchand de biens — documenté, vérifiable, disponible en cas d'étude sur demande.
             </p>
