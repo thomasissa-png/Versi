@@ -84,24 +84,28 @@ const FOUNDERS = [
 
 const FAQ_ITEMS = [
   {
-    q: 'Les biens sont-ils tous off-market ?',
-    a: 'Pas nécessairement. Certains proviennent de notre réseau avant publication, d\'autres sont sourcés sur le marché. Le critère de sélection n\'est pas le canal — c\'est le rendement et le cashflow en scénario prudent.',
+    q: 'Combien coûte Versi Invest ?',
+    a: 'Nos honoraires sont de 5% du prix d\'acquisition, facturés uniquement à l\'investisseur. Zéro rémunération côté vendeur — c\'est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
   },
   {
-    q: 'Pourquoi 5% d\'honoraires uniquement côté investisseur ?',
-    a: 'Nos intérêts sont alignés avec les vôtres. Zéro rémunération côté vendeur. C\'est inscrit dans le mandat.',
+    q: 'Quel rendement attendre d\'un investissement locatif avec Versi Invest ?',
+    a: 'On cible un rendement brut minimum de 8% sur les biens sourcés en Hauts-de-France et Île-de-France. Chaque simulation inclut rendement brut, net et net-net, avec un scénario prudent à +15% de charges. On ne présente un bien que si les chiffres tiennent en scénario dégradé.',
   },
   {
-    q: 'Comment est calculé le rendement présenté ?',
-    a: 'Rendement brut, net, net-net. Chaque simulation intègre taxe foncière, copropriété, vacance locative provisionnée et un scénario dégradé à +15% de charges.',
+    q: 'Quels sont les risques d\'un investissement locatif ?',
+    a: 'Vacance locative, travaux imprévus, baisse des loyers — les risques existent. C\'est pour ça qu\'on provisionne la vacance locative dans chaque simulation et qu\'on calcule un scénario dégradé à +15% de charges. On ne vous présente que les dossiers qui restent rentables même dans le pire cas raisonnable.',
   },
   {
-    q: 'Combien de dossiers gérez-vous simultanément ?',
-    a: 'Le volume est intentionnellement limité. Quand les fondateurs sont en capacité, la liste d\'attente est ouverte. Quand ce n\'est plus le cas, elle se ferme.',
+    q: 'Faut-il un apport minimum pour investir ?',
+    a: 'En général, les banques demandent 10 à 20% du prix du bien. Le montant exact dépend de votre profil emprunteur. On réalise une simulation financière complète avec différents niveaux d\'apport dès le premier échange — vous savez exactement où vous en êtes avant de vous engager.',
   },
   {
-    q: 'Avez-vous une carte T ?',
-    a: 'Oui. Versi Invest est titulaire de la carte professionnelle T (transaction immobilière).',
+    q: 'Où sont situés les biens proposés ?',
+    a: 'Principalement en Hauts-de-France — Lille, métropole lilloise, villes moyennes à fort rendement. Également en Île-de-France. Notre réseau terrain, alimenté par l\'activité de marchand de biens de Versi Immobilier, nous donne accès à des biens avant ou en dehors des portails publics.',
+  },
+  {
+    q: 'Comment ça se passe après l\'inscription sur la liste d\'attente ?',
+    a: 'Un fondateur vous recontacte sous 48h pour un premier échange. On parle de votre situation, vos objectifs, votre capacité d\'investissement. Si un bien correspond à vos critères, on vous envoie le dossier complet avec simulation financière. Vous décidez — pas de pression, pas de relance.',
   },
 ];
 

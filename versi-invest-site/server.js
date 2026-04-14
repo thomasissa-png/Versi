@@ -1,5 +1,5 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import pg from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -75,21 +75,16 @@ async function initDatabase() {
 // ---------------------------------------------------------------------------
 // Nodemailer
 // ---------------------------------------------------------------------------
-let transporter = null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587', 10),
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-  console.log('[EMAIL] Transporteur configuré.');
+const FROM_EMAIL = process.env.FROM_EMAIL || 'contact@versi.fr';
+
+if (resend) {
+  console.log('[EMAIL] Resend configuré.');
 } else {
-  console.warn('[WARN] EMAIL_USER / EMAIL_PASS non configurés. Les emails de notification ne seront pas envoyés.');
+  console.warn('[WARN] RESEND_API_KEY non configurée. Les emails de notification ne seront pas envoyés.');
 }
 
 // ---------------------------------------------------------------------------
@@ -225,11 +220,12 @@ app.post('/api/waitlist', async (req, res) => {
     );
 
     // Envoi email de notification
-    if (transporter) {
+    if (resend) {
       try {
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+        await resend.emails.send({
+          from: FROM_EMAIL,
           to: CONTACT_EMAIL,
+          replyTo: email.trim().toLowerCase(),
           subject: `[Versi Invest] Nouvelle inscription liste d'attente — ${name.trim()}`,
           html: `
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
