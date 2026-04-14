@@ -78,7 +78,7 @@ export default function ContactPage() {
               </Link>
             )}
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              {bien ? 'Demander une présentation.' : 'Contactez Versi Immobilier — Lille et Hauts-de-France.'}
+              {bien ? 'Demander une présentation.' : 'Écrivez-nous.'}
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
               Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h — sans standard, sans assistant.

@@ -288,7 +288,7 @@ export default function RealisationDetailPage() {
                 Voir les biens disponibles
               </Link>
               <Link
-                to="/vendre"
+                to="/contact"
                 className="text-cta"
                 style={{
                   display: 'inline-flex',
@@ -301,7 +301,7 @@ export default function RealisationDetailPage() {
                   minHeight: '52px',
                 }}
               >
-                Soumettre mon bien
+                Nous contacter
               </Link>
             </div>
           </div>

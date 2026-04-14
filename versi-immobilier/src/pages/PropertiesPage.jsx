@@ -83,12 +83,11 @@ export default function PropertiesPage() {
 
             {/* En-tête */}
             <h1 className="text-heading-lg properties-page__header-title">
-              Appartements et biens rénovés à vendre — Lille et Hauts-de-France.
+              Les biens disponibles.
             </h1>
             <p className="text-body-lg properties-page__header-subtitle">
-              21 appartements rénovés et vendus en direct depuis 2022, sans frais d'agence.
-              Chaque bien est accompagné de diagnostics complets, de l'historique des travaux et d'une garantie décennale.
-              Hauts-de-France et Île-de-France — prix généralement entre {priceRange.min} € et {priceRange.max} €.
+              Appartements et biens mixtes en Hauts-de-France et Île-de-France.
+              Dossier complet (diagnostics, historique, garanties) disponible avant la visite.
             </p>
 
             {/* Filtres */}

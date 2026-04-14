@@ -37,7 +37,7 @@ export default function RealisationsPage() {
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Rénovations immobilières — Lille et Hauts-de-France.
+              Réalisations.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
               Chaque rénovation documentée — adresse, délais, chiffres. Aucun chiffre inventé.
