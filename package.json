@@ -3,15 +3,19 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "postinstall": "cd versi-immobilier && npm install",
-    "build": "cd src && npm install && npm run build && cd ../versi-immobilier && npm install && npm run build",
+    "postinstall": "cd versi-immobilier && npm install && cd ../versi-invest-site && npm install",
+    "build": "cd src && npm install && npm run build && cd ../versi-immobilier && npm install && npm run build && cd ../versi-invest-site && npm install && npm run build",
     "start": "cd versi-immobilier && npm start",
     "dev": "cd versi-immobilier && npm run dev",
     "preview": "cd versi-immobilier && npm run preview",
     "install:app": "cd src && npm install",
     "dev:app": "cd src && npm run dev",
     "build:app": "cd src && npm install && npm run build",
-    "start:app": "cd src && npm start"
+    "start:app": "cd src && npm start",
+    "install:invest": "cd versi-invest-site && npm install",
+    "dev:invest": "cd versi-invest-site && npm run dev",
+    "build:invest": "cd versi-invest-site && npm install && npm run build",
+    "start:invest": "cd versi-invest-site && npm start"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
