@@ -292,16 +292,252 @@ Contactez-nous. On travaille chaque dossier avec les fondateurs, pas avec un com
 
 ### Article 3
 
-> [Contenu complet article 3]
+**Slug** : `/blog/immeubles-rapport-hauts-de-france-rendement`
+**Méta-titre** : Immeubles de rapport en Hauts-de-France : rendement réel, où investir, méthode | Versi Invest
+**Méta-description** : Roubaix, Tourcoing, Valenciennes, Douai : les bassins où les immeubles de rapport dépassent 8% brut, comment les analyser, et pourquoi les meilleurs ne passent pas sur les portails.
+**Auteur** : Versi Invest
+**Date** : avril 2026
+
+---
+
+# Immeubles de rapport en Hauts-de-France : où les trouver, comment les analyser, pourquoi le ticket d'entrée change tout
+
+L'immeuble de rapport — plusieurs lots dans un même bâtiment, un seul acte, plusieurs loyers — est l'outil de constitution patrimoniale le plus puissant pour un investisseur avec 60 à 150 000€ d'apport. C'est aussi le marché où les bons dossiers disparaissent avant d'arriver sur SeLoger.
+
+Voici ce que le marché des Hauts-de-France offre réellement en 2026, et comment on l'approche.
+
+---
+
+## Les villes du Nord où les rendements dépassent 8% brut
+
+Les Hauts-de-France présentent une caractéristique rare en France : des marchés locatifs avec une demande réelle (emploi, formation, mobilité) et des prix d'acquisition encore très en dessous des métropoles nationales. C'est la région où un investisseur avec 80 000€ d'apport peut encore viser un cashflow positif sur un immeuble multi-lots.
+
+**Roubaix** : ticket moyen 150-300k€ pour un petit immeuble (3-5 lots), rendements bruts 8-12% sur des biens bien sourcés. Ville en transformation — certains quartiers sont encore risqués (vacance élevée), d'autres ont basculé (Alma, Centre-Roubaix, Fontenoy). La sélection du secteur est non-négociable. [HYPOTHÈSE : fourchettes de prix et rendements basées sur les données de marché disponibles publiquement pour Roubaix en 2026]
+
+**Tourcoing** : profil similaire à Roubaix, légèrement plus stable sur la demande locative dans le centre. Tickets comparables. Moins médiatisé que Roubaix — la concurrence entre acheteurs est légèrement plus faible.
+
+**Valenciennes** : ville plus petite, marché locatif solide (bassin d'emploi Toyota, formations supérieures), prix autour de 1 400-1 800 €/m². Rendement brut 7-9% sur des immeubles de taille modeste. Moins de tension locative que Roubaix mais moins de risque de vacance.
+
+**Douai** : prix parmi les plus bas de la région (1 000-1 500 €/m²), rendements potentiels élevés (10%+ brut), mais marché locatif plus étroit. À réserver aux profils avec une bonne connaissance terrain ou un gestionnaire local solide.
+
+**Lens-Liévin** : montée en puissance post-Louvre Lens, demande locative en hausse, tickets encore très accessibles. Profil intéressant pour une vision 5-7 ans avec cashflow positif dès le départ.
+
+---
+
+## Immeuble de rapport vs appartement : ce que ça change pour votre cashflow
+
+La logique est simple : un immeuble de 4 lots acheté 300 000€ coûte souvent moins cher au lot qu'un appartement acheté séparément (75 000€ équivalent par lot vs 90-110k€ pour un appartement comparable vendu seul). Le delta — 15 à 35k€ par lot — améliore mécaniquement le rendement.
+
+Mais l'immeuble de rapport a ses propres contraintes :
+
+**Avantages :**
+- Prix au lot inférieur au marché des appartements individuels
+- Pas de syndic à convaincre — vous êtes seul propriétaire, vous décidez des travaux
+- Économies d'échelle sur la gestion (un seul contrat, un seul gestionnaire)
+- Cashflow mutualisé — la vacance sur un lot est compensée par les 3 autres
+
+**Contraintes :**
+- Ticket d'entrée plus élevé (apport plus important ou crédit plus long)
+- Gestion plus complexe que sur un appartement seul (multi-locataires, parties communes)
+- Due diligence plus lourde (état de chaque lot, toiture, charpente, réseau électrique, assainissement)
+- Revente moins liquide qu'un appartement individuel (acheteurs moins nombreux)
+
+La règle pratique : l'immeuble de rapport est pertinent si vous avez l'apport suffisant pour une mise de départ saine (20-25% minimum), un gestionnaire locatif fiable, et une vision de 7 ans minimum. Ce n'est pas un investissement de court terme.
+
+---
+
+## Comment un opérateur terrain accède à des biens avant les portails
+
+La question revient systématiquement dans nos premiers échanges avec les investisseurs : "Comment vous trouvez des biens qui ne sont pas sur SeLoger ?"
+
+La réponse est simple, pas spectaculaire : le réseau s'accumule sur des années, pas sur un algorithme.
+
+Versi Invest accède à des biens en amont des portails via trois canaux :
+
+**1. Les administrateurs de biens et gestionnaires locaux.** Ils connaissent les propriétaires qui réfléchissent à vendre — avant que la décision soit formalisée. Un propriétaire qui hésite depuis 18 mois à vendre son immeuble de 6 lots appelle d'abord son gestionnaire. Ce gestionnaire appelle un opérateur qu'il connaît.
+
+**2. Les notaires et études notariales.** Les successions, les divorces, les liquidations de SCI — ces situations génèrent des ventes qui n'arrivent jamais sur les portails. Le notaire envoie le dossier à deux ou trois opérateurs réactifs avant toute commercialisation.
+
+**3. Le réseau direct issu des opérations Versi Immobilier.** 21 appartements achetés et rénovés dans la région, c'est 21 vendeurs, 21 familles de vendeurs, et une réputation terrain sur laquelle les biens suivants arrivent naturellement. Ce flux ne s'achète pas — il se construit sur la durée.
+
+Ce n'est pas de la magie. C'est de la présence terrain constante sur plusieurs années.
+
+---
+
+## Les 4 signaux d'alerte sur un immeuble de rapport qui semble parfait
+
+Un immeuble avec un rendement affiché à 10% brut mérite une analyse rigoureuse avant toute offre. Voici ce qui cache souvent une mauvaise surprise.
+
+**1. Tous les baux proches de l'expiration en même temps.** Un immeuble où 4 baux sur 5 expirent dans les 6 prochains mois = risque de vacance massive simultanée. Les vendeurs averties "nettoient" parfois leur portefeuille locatif en relouant tous les lots avant de vendre pour justifier un prix élevé — puis les locataires partent rapidement.
+
+**2. Des travaux "récents" non documentés.** Ravalement il y a 3 ans, toiture refaite il y a 5 ans — sans devis, sans factures, sans garantie décennale si applicable. Ces mentions valent zéro sans documentation. On exige systématiquement les justificatifs.
+
+**3. Des loyers dans la fourchette haute du secteur.** Si les loyers actuels sont au-dessus du marché local, le vendeur a peut-être "optimisé" le loyer en vue de la vente. À la prochaine relocation, les loyers descendent au marché — et votre rendement avec eux.
+
+**4. Un secteur en tension locative uniquement sur le papier.** Certains outils de data immobilière affichent une tension locative calculée sur des données agrégées qui ne reflètent pas la réalité rue par rue. On vérifie toujours sur le terrain : délai de relocation constaté, nombre d'annonces vacantes dans le secteur, profil réel des locataires du coin.
+
+---
+
+## Notre méthode d'analyse avant de présenter un dossier
+
+Quand un immeuble de rapport arrive dans notre pipeline, voici les étapes avant qu'il soit présenté à un investisseur Versi Invest.
+
+**Étape 1 — Analyse financière initiale (J+1).** Prix demandé, loyers en place, charges estimées, rendement brut et net simulé dans les deux scénarios (optimiste et dégradé). Si le cashflow ne tient pas en dégradé, on ne va pas plus loin.
+
+**Étape 2 — Visite terrain (J+3 à J+7).** On visite chaque lot, on inspecte les parties communes, on évalue l'état structurel (toiture, façade, chauffage). On rencontre les locataires si possible — c'est le meilleur signal de la qualité du bien.
+
+**Étape 3 — Vérification locative terrain (J+5 à J+10).** On contacte deux ou trois gestionnaires locaux pour confirmer la tension locative réelle du secteur et les niveaux de loyers constatés — pas annoncés.
+
+**Étape 4 — Simulation complète remise à l'investisseur.** Avant toute visite avec l'investisseur, on envoie la simulation complète : prix d'acquisition, financement type, cashflow mensuel ligne par ligne, scénario dégradé, hypothèses documentées. L'investisseur visite avec les chiffres en main — pas après.
+
+---
+
+Vous cherchez un immeuble de rapport en Hauts-de-France avec un cashflow positif dès la première année, sans passer vos dimanches à éplucher les portails ?
+
+Dites-nous votre apport, votre capacité d'emprunt et votre zone cible. On s'occupe du reste.
+
+[Prendre contact](/contact)
 
 ---
 
 ### Article 4
 
-> [Contenu complet article 4]
+**Slug** : `/blog/lmnp-ancien-2026-ce-qui-a-change`
+**Méta-titre** : LMNP ancien en 2026 : ce qui a vraiment changé et ce qui reste avantageux | Versi Invest
+**Méta-description** : La réforme 2025 réintègre les amortissements dans les plus-values LMNP. Ce que ça change concrètement, ce qui reste avantageux, et dans quels cas le LMNP reste le meilleur régime.
+**Auteur** : Versi Invest
+**Date** : avril 2026
+
+---
+
+# LMNP ancien en 2026 : ce qui a changé fiscalement, ce qui reste avantageux, ce qu'on vous dit rarement
+
+Depuis début 2025, la réintégration des amortissements dans le calcul des plus-values LMNP fait parler d'elle. Certains l'ont présentée comme la mort du LMNP. D'autres font comme si rien n'avait changé. La réalité est plus nuancée — et dépend de votre horizon de détention.
+
+Voici les faits, sans dramatisation ni minimisation.
+
+---
+
+## Ce que la réforme de 2025 change concrètement
+
+Avant 2025, l'un des avantages majeurs du LMNP au régime réel était la possibilité d'amortir comptablement le bien immobilier (hors terrain) et les meubles, réduisant ainsi le résultat fiscal à zéro — ou presque — pendant de nombreuses années. Et lors de la revente, ces amortissements n'étaient pas réintégrés dans le calcul de la plus-value : la plus-value était calculée sur le prix d'acquisition initial.
+
+Depuis la réforme entrée en vigueur en février 2025, les amortissements déduits pendant la période de détention sont réintégrés dans le calcul de la plus-value lors de la revente. Concrètement : si vous avez amorti 50 000€ sur un bien acquis à 150 000€, votre base d'imposition à la revente sera calculée comme si vous l'aviez acquis à 100 000€ — et non à 150 000€.
+
+**Ce que ça change :**
+- Le coût fiscal à la revente est plus élevé qu'avant 2025 pour les biens détenus en LMNP réel
+- L'avantage du LMNP reste fiscal pendant la détention (loyers peu ou pas imposés grâce aux amortissements)
+- L'avantage à la revente est partiellement réduit — mais pas supprimé, car la plus-value reste exonérée progressivement après 22 ans de détention (exonération totale après 30 ans pour les prélèvements sociaux)
+
+**Ce que ça ne change pas :**
+- Pendant la détention, le LMNP réel reste l'un des régimes les plus avantageux pour neutraliser la fiscalité sur les revenus locatifs
+- L'abattement pour durée de détention sur la plus-value s'applique toujours
+- Pour les investisseurs avec un horizon de 10 ans minimum, l'avantage LMNP reste net
+
+[HYPOTHÈSE : interprétation de la réforme basée sur les informations disponibles au moment de la rédaction — consulter un expert-comptable pour une analyse de votre situation personnelle]
+
+---
+
+## LMNP ancien vs LMNP neuf : comparaison nette en 2026
+
+**LMNP ancien** (bien existant, rénové ou non) :
+- Prix d'acquisition inférieur au neuf (décote de 15 à 30% selon les secteurs)
+- Rendement brut généralement plus élevé (meilleur rapport loyer/prix)
+- Frais de notaire plus élevés (7-8% vs 2-3% dans le neuf)
+- Travaux potentiels à intégrer dans le calcul
+- Amortissements plus faibles (valeur d'acquisition plus basse)
+- Réforme 2025 applicable identiquement au neuf si détenu en LMNP réel
+
+**LMNP neuf** (résidence gérée, programme neuf) :
+- Prix plus élevé (prime de liquidité constructeur)
+- Frais de notaire réduits
+- Amortissements plus élevés (valeur d'acquisition plus haute) — mais sur une base de rendement souvent plus faible
+- Revenus perçus via un bail commercial avec gestionnaire — risque de défaillance du gestionnaire à intégrer
+- Réforme 2025 applicable identiquement
+
+**Conclusion** : la réforme 2025 touche les deux régimes à l'identique. L'avantage de l'ancien sur le neuf n'est pas réduit par cette réforme. L'ancien reste plus intéressant en rendement brut — sous réserve d'une analyse rigoureuse du bien et des travaux éventuels.
+
+---
+
+## SCI à l'IS : quand ça s'impose, quand ça ne sert à rien
+
+La SCI à l'impôt sur les sociétés revient souvent dans les conversations avec des investisseurs qui ont lu des forums ou discuté avec leur notaire.
+
+**Quand la SCI à l'IS est pertinente :**
+- Vous avez déjà une TMI élevée à titre personnel (tranche à 41% ou 45%) et les revenus locatifs viendraient s'ajouter à une assiette déjà lourde
+- Vous envisagez de réinvestir les bénéfices dans de nouveaux biens sans les sortir (capitalisation dans la structure)
+- Vous avez un horizon patrimonial à 15-20 ans avec une logique de transmission
+- Votre stratégie implique plusieurs biens et une vraie gestion patrimoniale structurée
+
+**Quand la SCI à l'IS n'apporte rien :**
+- Vous investissez sur un seul bien avec un objectif de cashflow personnel à court terme
+- Vous prévoyez de revendre dans les 7-10 ans (l'imposition à la revente en IS est souvent plus lourde que le régime des plus-values des particuliers)
+- Vos revenus locatifs sont faibles ou neutres par rapport à votre revenu global (l'avantage IS disparaît)
+
+La SCI à l'IS n'est pas une solution universelle. Elle est le bon outil dans une logique patrimoniale long terme avec une TMI élevée. Pour la plupart des investisseurs avec un premier ou deuxième bien locatif, le LMNP réel reste plus simple et souvent plus avantageux.
+
+---
+
+## Les profils pour lesquels le LMNP reste optimal en 2026
+
+Malgré la réforme, le LMNP réel reste le régime de référence pour plusieurs profils.
+
+**L'investisseur à horizon 15 ans minimum.** Les abattements pour durée de détention réduisent progressivement l'imposition sur les plus-values. Après 22 ans, la plus-value est exonérée d'IR (restent les prélèvements sociaux jusqu'à 30 ans). Pour cet horizon, la réintégration des amortissements est largement compensée par les abattements.
+
+**L'investisseur qui veut des revenus locatifs peu imposés pendant la détention.** C'est le cœur du LMNP réel : les amortissements comptables permettent de présenter un résultat BIC quasi nul pendant les premières années. Sur un bien de 150 000€, les amortissements peuvent dépasser 5 000€/an — ce qui neutralise les revenus locatifs fiscalement pendant une décennie.
+
+**L'investisseur avec un seul ou deux biens locatifs.** La complexité d'une SCI à l'IS (comptabilité d'entreprise, liasse fiscale, dividendes) n'est pas justifiée pour une gestion simple. Le LMNP réel avec un expert-comptable coûte 400-800€/an. La SCI à l'IS, c'est 1 500-3 000€/an minimum.
+
+**Le profil non assujetti à une TMI élevée.** Si votre revenu global ne vous situe pas dans les tranches à 41% ou 45%, l'impôt sur les revenus locatifs en LMNP (BIC) sera limité — la "protection" de la SCI à l'IS est moins nécessaire.
+
+---
+
+## Notre position : LMNP ou IS selon le projet, pas selon la mode
+
+Chez Versi Invest, on ne conseille pas de régime fiscal par défaut. On analyse chaque situation.
+
+La question "LMNP ou SCI IS ?" se pose différemment selon :
+- Votre revenu global et votre TMI
+- Le type de bien (meublé, nu, mixte)
+- Votre horizon de détention
+- Votre projet de revente ou de transmission
+- Le nombre de biens envisagés à terme
+
+Ce que nous faisons : avant de présenter un bien, on simule le cashflow et la fiscalité dans les deux régimes. On ne vous pousse pas vers l'un ou l'autre — on vous montre les deux chiffres et vous laissez décider, avec votre expert-comptable pour les aspects qui le nécessitent.
+
+Ce que nous ne faisons pas : vous vendre un régime fiscal "optimal" universel. Il n'en existe pas.
+
+---
+
+Une question sur votre régime fiscal, votre structure d'investissement ou la pertinence du LMNP pour votre situation ?
+
+On travaille avec des experts-comptables partenaires spécialisés en investissement locatif. Si votre situation le nécessite, on peut vous mettre en relation.
+
+[Prendre contact](/contact)
 
 ---
 
 ## Hypothèses à valider
 
-> [Liste des hypothèses marquées [HYPOTHÈSE] dans le document]
+Toutes les données marquées `[HYPOTHÈSE]` dans ce document doivent être validées avant publication. Elles sont basées sur des données de marché publiques disponibles au moment de la rédaction (avril 2026) et sur la logique sectorielle — pas sur des outils Keyword Planner ou des données propriétaires Versi.
+
+| # | Hypothèse | Source à vérifier | Urgence |
+|---|---|---|---|
+| H1 | Prix au m² Lille : 3 300-3 500 € selon les quartiers | Données SeLoger, Meilleursagents, notaires.fr | Avant publication A1 |
+| H2 | Loyers Lille : 12 à 16 €/m² | Données portails locatifs, connaissances terrain Versi | Avant publication A1 |
+| H3 | Taxe foncière Lille T3 : 1 000-1 500€/an | Simulateur taxes.gouv.fr ou données internes Versi Immobilier | Avant publication A2 |
+| H4 | Exemple T3 Roubaix : prix 120 000€, loyer 750€, mensualité 565€ | Données terrain Versi Immobilier + banque partenaire | Avant publication A2 |
+| H5 | Prix Roubaix 150-300k€ pour immeuble 3-5 lots, rendement 8-12% brut | Données terrain Versi Immobilier | Avant publication A3 |
+| H6 | Prix Tourcoing/Valenciennes : fourchettes mentionnées | Données terrain Versi Immobilier | Avant publication A3 |
+| H7 | Taux crédit 3,3-3,7% en 2026 | Données courtier partenaire Pierre ou Meilleurtaux.com | Avant publication A2 |
+| H8 | Réforme LMNP 2025 — réintégration amortissements dans plus-values | Source législative officielle (BOFiP) ou expert-comptable Versi | Avant publication A4 |
+| H9 | Volumes de recherche mots-clés (estimations qualitatives) | À affiner avec Google Search Console après mise en ligne ou via un outil SEO | Post-publication |
+
+**Note** : l'article A4 (LMNP 2026) contient des informations fiscales à haute valeur et risque juridique. Faire relire par l'expert-comptable partenaire de Versi Invest avant publication. Ajouter une mention légale standard en fin d'article : "Cet article est fourni à titre informatif. Il ne constitue pas un conseil fiscal ou juridique. Consultez un expert-comptable pour une analyse adaptée à votre situation."
+
+---
+
+**Handoff → @copywriter**
+- Fichiers produits : `docs/seo/vi2-blog-strategy.md`
+- Décisions prises : 4 articles complets rédigés, mots-clés validés, ton Versi Invest appliqué (vouvoiement, zéro adjectifs auto-décernés, chiffres terrain, CTA direct vers /contact)
+- Points d'attention pour la suite : (1) les 9 hypothèses du tableau ci-dessus doivent être validées par les fondateurs avant publication — priorité H4 et H8 ; (2) l'article A4 nécessite une relecture par expert-comptable partenaire ; (3) les slugs d'URL sont définis dans chaque article — à implémenter dans la BDD PostgreSQL du blog versi-invest.fr ; (4) ajouter la mention légale en fin d'article A4 ; (5) schema.org BlogPosting à implémenter sur chaque article (author, datePublished, dateModified, image, articleSection)
