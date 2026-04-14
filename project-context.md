@@ -332,12 +332,12 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/extract-project-context-o57Dq`
+- Branche de développement : `claude/extract-project-context-vhxKU`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-**Branche** : `claude/session-resume-context-AiyAZ`
+**Branche** : `claude/extract-project-context-vhxKU`
 **Date de clôture** : 2026-04-13
 **Dernier commit** : voir `git log --oneline -1`
 
@@ -361,7 +361,7 @@
 
 **Commande de reprise suggérée** :
 ```
-@orchestrator Reprise session versi-s7. Branche : claude/session-resume-context-AiyAZ. Session précédente : gates emplacement v3 + références v3 finalisées, emplacement vérifié, brand-voice mis à jour. Prochaines actions : (1) seed Muguets en BDD, (2) tests E2E back office, (3) déploiement Replit.
+@orchestrator Reprise session versi-s7. Branche : claude/extract-project-context-vhxKU. Session précédente : gates emplacement v3 + références v3 finalisées, emplacement vérifié, brand-voice mis à jour. Prochaines actions : (1) seed Muguets en BDD, (2) tests E2E back office, (3) déploiement Replit.
 ```
 
 **Décisions fondateur session s4 (conservées)** :
