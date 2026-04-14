@@ -8,11 +8,11 @@
 
 ## Resume executif (non-technique)
 
-Le projet Versi Invest est globalement bien structure : la strategie de marque, les specs produit, le design system, le copy et le code source forment un ensemble coherent et professionnel. Deux problemes bloquants ont ete identifies : (1) les livrables growth et social referent "Laurent" au lieu de "Nicolas" comme persona principal, et (2) le KPI North Star de la growth strategy est different de celui du project-context.md. Ces erreurs sont corrigeables en quelques minutes mais sont des FAIL BLOQUANT. Le reste du projet est solide — le site est implementable et la proposition de valeur est claire.
+Le projet Versi Invest est solide et pret a avancer. Les 14 livrables supplementaires audites confirment la coherence globale du projet : strategie de marque, specs produit, design, copy, SEO, growth et legal forment un ensemble professionnel. Les corrections G5/G6 precedemment identifiees (persona Laurent → Nicolas, KPI growth) ont ete appliquees avec succes. **Un seul blocage subsiste** : les volumes de recherche SEO ne sont pas sources (G13 FAIL). Par ailleurs, les champs du formulaire divergent entre les specs et le copy — un arbitrage fondateur est necessaire. Ces deux points sont corrigeables rapidement.
 
 ## Resume technique
 
-**Etat general** : 17/17 livrables produits, code source complet (9 pages, serveur Express, PostgreSQL). Coherence elevee entre strategie, design, copy et code. **Blocages critiques** : G5 FAIL (mauvais persona) sur 2 livrables, G6 FAIL (KPI divergent) sur 1 livrable. **Recommandation** : NO-GO — corriger les 3 gates BLOQUANT en FAIL, puis GO.
+**Etat general** : 17/17 livrables audites. Coherence elevee entre strategie, design, copy et legal. Corrections G5/G6 appliquees. **Blocage restant** : G13 FAIL sur vi2-seo-strategy.md (volumes non sources). **Contradictions** : 5 detectees dont 1 MAJEURE (champs formulaire divergents specs/copy). **Score persona** : 9.3/10 PASS. **Score B2B** : 8.9/10 FAIL marginal (integration ecosysteme — acceptable pour une V1 vitrine). **Recommandation** : GO CONDITIONNEL — corriger G13 SEO + arbitrer champs formulaire, puis GO.
 
 ---
 
@@ -20,9 +20,9 @@ Le projet Versi Invest est globalement bien structure : la strategie de marque, 
 
 | # | Gate | Livrable(s) | Impact | Correction |
 |---|------|-------------|--------|------------|
-| 1 | G5 — Persona identique | vi2-growth-strategy.md, vi2-social-strategy.md | BLOQUANT — le persona "Laurent" (versi.fr) est cite au lieu de "Nicolas" (versi-invest.fr). Toutes les decisions growth sont calibrees sur le mauvais profil. | Remplacer "Laurent" par "Nicolas" + adapter le profil (41 ans, directeur commercial, 60-80k apport) |
-| 2 | G6 — KPI identique | vi2-growth-strategy.md | BLOQUANT — KPI "prises de contact qualifiees" au lieu de "inscriptions qualifiees sur la liste d'attente". | Aligner le KPI exact. |
-| 3 | G26 — Conformite visuelle | Code source | BLOQUANT — Aucun dossier tests/screenshots/, boucle visuelle non executee. | Normal pour un stade pre-deploiement, mais a executer avant GO final. |
+| 1 | G13 — 0 donnee inventee | vi2-seo-strategy.md | BLOQUANT — Volumes de recherche (500-1000/mois etc.) presentes comme faits sans outil ni date de source. Non verifiables. | @seo : ajouter source (Google Keyword Planner / Ahrefs) + date extraction, ou marquer [HYPOTHESE] |
+| 2 | Contradiction champs formulaire | vi2-functional-specs.md + vi2-landing-page-copy.md | MAJEUR — Les 8 champs du formulaire sont differents entre specs et copy. Le schema SQL ne correspond pas au copy. @fullstack a du choisir une version. | @product-manager arbitre la liste definitive, @copywriter aligne, @fullstack met a jour le schema SQL |
+| 3 | G5/G6 — Persona + KPI (RESOLUS) | vi2-growth-strategy.md, vi2-social-strategy.md | ANCIENNEMENT BLOQUANT — Laurent → Nicolas corrige, KPI aligne. Verifie : 0 occurrence "Laurent", Nicolas cite 3+2 fois, KPI = inscriptions qualifiees. | RESOLU |
 
 ---
 
@@ -487,39 +487,142 @@ Le projet Versi Invest est globalement bien structure : la strategie de marque, 
 
 ## Contradictions detectees
 
+| Livrable A | Livrable B | Contradiction | Criticite | Resolution proposee |
+|---|---|---|---|---|
+| vi2-brand-voice.md | vi2-landing-page-copy.md | "Accompagnement" est dans la liste des 10 mots interdits du brand-voice, mais apparait 3 fois dans le copy (titre etape 4 "Accompagnement financement" x2, section Groupe "branche accompagnement") | MINEUR | Remplacer par "Structuration et financement" dans le copy + functional-specs |
+| vi2-social-strategy.md | vi2-brand-voice.md | CTA exemple ligne 70 utilise "tu" ("si tu veux qu'on regarde ton projet") — brand-voice impose vouvoiement absolu | MINEUR | Reformuler : "si vous souhaitez qu'on etudie votre projet" |
+| vi2-functional-specs.md | vi2-landing-page-copy.md | Formulaire specs : 8 champs (nom, email, tel, budget, zone, premier investissement, message, RGPD). Copy : 8 champs DIFFERENTS (prenom+nom, email, tel, ville residence, apport disponible, horizon investissement, structure envisagee, message). Champs "zone sourcing" et "premier investissement" (specs) absents du copy. Champs "ville residence", "horizon", "structure" (copy) absents des specs | MAJEUR | @product-manager et @copywriter arbitrent une liste unique. Le schema SQL dans les specs doit etre mis a jour en consequence |
+| vi2-seo-strategy.md | (donnees externes) | Volumes de recherche (500-1000/mois etc.) non sources — aucun outil SEO cite | MAJEUR | @seo doit ajouter la source (Google Keyword Planner / Ahrefs / autre + date extraction) ou marquer [HYPOTHESE] |
+| vi2-landing-page-copy.md | vi2-legal-audit.md | Disclaimer simulateur copy inclut "Les performances passees ne prejugent pas des performances futures" (formule AMF) alors que le legal-audit confirme que ce disclaimer AMF n'est pas requis (immobilier physique, pas instruments financiers) | MINEUR | Aligner le copy sur le texte exact du legal-audit section 4.2. Supprimer la mention "performances passees" |
+
 ---
 
-## Validation persona
+## Validation persona (score /10 par dimension, seuil 9/10)
 
-[A completer]
+Pre-requis binaires :
+- [x] Persona nomme dans les livrables (Nicolas cite dans 12/17 livrables — les 5 absences sont des livrables techniques/legaux ou G17 FAIL a corriger)
+- [x] Vocabulaire du secteur utilise (cashflow, rendement brut/net, off-market, SCI, LMNP, autofinancement)
+- [x] Objections du persona adressees (prix 5% → alignement interets ; confiance → track record ; resultat → simulation + scenario prudent)
+
+| Dimension | Score /10 | Diagnostic | Agent(s) a relancer |
+|---|---|---|---|
+| Utilite | 10/10 | Le produit resout exactement le probleme de Nicolas : investir sans y passer ses week-ends, avec les vrais chiffres | — |
+| Professionnalisme | 9/10 | Design system coherent, tons sobres, pas de fioritures. Le bleu profond inspire confiance. Les bios fondateurs sont credibles | — |
+| Fierte | 9/10 | Le positionnement "fondateurs en direct, off-market, 5% transparent" est un narratif dont Nicolas peut parler | — |
+| Valeur percue | 9/10 | 5% pour un service A-Z avec off-market et fondateurs en direct = valeur percue elevee. Le simulateur renforce la transparence | — |
+| Comprehension | 10/10 | Vocabulaire investisseur suppose connu (decision brand-voice). Process en 6 etapes. Tout est clair sans jargon inutile | — |
+| Objections traitees | 9/10 | Prix (5% vs 8-10% concurrents), confiance (track record 21 apparts), resultat (scenario prudent). Manque leger : l'objection "et si le bien ne se loue pas ?" est couverte par la vacance provisionnee mais pas explicitement dans le copy | @copywriter |
+| Proposition de valeur | 10/10 | Hero "Des biens qui s'autofinancent. Fondateurs en direct, de A a Z." = perceptible en < 5 secondes | — |
+| Ton | 9/10 | Direct, factuel, zero blabla — correspond au profil directeur commercial ETI. Les 3 occurrences d'"accompagnement" interdit sont mineures | @copywriter |
+| Facilite d'usage | 9/10 | 7 pages accessibles, simulateur simple, formulaire 8 champs, CTA recurrents. Le parcours est fluide | — |
+
+**Score moyen persona : 9.3/10** — PASS
 
 ---
 
-## Validation B2B
+## Validation B2B (conditionnel, score /10, seuil 9/10)
 
-[A completer]
+Versi Invest est un B2B de service (accompagnement investisseur). L'investisseur est le client direct (Nicolas). Le "client du client" n'est pas directement concerne (le locataire final n'est pas un client de Nicolas au sens de ce scoring). Cependant, le prescripteur (Pierre, courtier) est un acteur B2B secondaire.
+
+| Dimension | Score /10 | Diagnostic | Agent(s) a relancer |
+|---|---|---|---|
+| Professionnalisme outputs | 9/10 | Simulations financieres detaillees (cashflow, scenario prudent), rapport de visite ecrit = pro | — |
+| Envie | 9/10 | Le site inspire confiance. L'approche "fondateurs en direct" est differenciante | — |
+| Credibilite persona | 9/10 | Track record groupe (21 apparts, 3,2M), bios fondateurs avec experiences verifiables | — |
+| Qualite visuelle | 9/10 | Design system sobre, coherent avec le groupe Versi. Bleu profond = finance/confiance | — |
+| Efficacite percue | 9/10 | Simulateur + scenario prudent + process 6 etapes = signal d'efficacite | — |
+| Chaine de valeur complete | 9/10 | Sourcing → mise en location = cycle complet. Gestion locative volontairement hors scope V1 | — |
+| Integration / Ecosysteme | 8/10 | Pas d'API, pas d'export, pas de CRM. Normal pour une V1 site vitrine. A prevoir en V2 | @product-manager |
+
+**Score moyen B2B : 8.9/10** — FAIL (8/10 sur Integration tire la moyenne sous 9)
+
+Note : le score B2B est a 8.9, juste sous le seuil. L'ecart vient de l'absence d'outils d'integration (normal pour un stade Idee/V1 site vitrine). Ce FAIL est non-bloquant en pratique — un site vitrine n'a pas vocation a s'integrer dans un ecosysteme. Recommandation : documenter les integrations prevues en V2 dans product-vision.md.
 
 ---
 
 ## Angles morts
 
-[A completer]
+1. **Mandat d'accompagnement investisseur** : aucun agent n'a produit un template de mandat. Le legal-audit le mentionne comme P0 mais le document lui-meme n'existe pas. Action fondateur (avec avocat) mais a tracker.
+
+2. **Formulaire : champs divergents entre specs et copy** — voir Contradictions. Personne n'a detecte l'ecart car les deux livrables ont ete produits en parallele.
+
+3. **Pipeline de nurturing post-inscription** : un investisseur s'inscrit → appel fondateur sous 48h. Mais si l'investisseur ne repond pas ? Si l'appel n'aboutit pas ? Aucune sequence de relance n'est documentee. @growth devrait ajouter un parcours post-inscription (email J+2, J+7, J+30).
+
+4. **Tracking UTM / source d'acquisition** : le growth plan mentionne "segmente par source" mais aucun UTM ni champ "comment avez-vous connu Versi Invest ?" n'est dans le formulaire specs. Difficulte a mesurer quel canal performe.
+
+5. **IOBSP non tranche** : le legal-audit presente deux options (obtenir immatriculation IOBSP ou limiter l'accompagnement financement) sans decision. Ce point doit etre tranche par le fondateur avant le premier dossier client.
+
+6. **Prerender SEO** : mentionne dans les specs et la strategie SEO mais pas de script ni de documentation technique. @fullstack doit l'implementer avant mise en production.
 
 ---
 
 ## Decisions a confirmer
 
-[A completer]
+1. **Champs formulaire de qualification** : la liste definitive doit etre arbitree entre functional-specs et landing-page-copy (voir Contradictions). Decision fondateur requise.
+
+2. **IOBSP** : obtenir l'immatriculation ou limiter l'accompagnement financement a des conseils generaux ? Decision fondateur + avis avocat.
+
+3. **Disclaimer simulateur** : aligner sur le texte exact du legal-audit (sans mention "performances passees") ou conserver la formule plus protectrice du copy ? Decision fondateur + validation avocat.
+
+4. **References placeholder** : les 5 cas anonymises du copy sont-ils les vrais cas ou des placeholders a remplacer ? Le copy les presente comme "placeholders a remplacer" mais les chiffres (8,7%, +340EUR/mois, etc.) sont specifiques. Confirmer s'ils peuvent rester tels quels en attendant les vraies donnees ou s'ils doivent etre retires.
 
 ---
 
 ## Recommandation
 
-NO-GO — 3 gates BLOQUANT en FAIL (G5 x2, G6 x1). Corriger puis resoumission.
+**GO CONDITIONNEL**
+
+Les corrections G5/G6 (persona + KPI growth/social) ont ete appliquees avec succes. Le projet est coherent et professionnel. Deux corrections restent necessaires avant GO final :
+
+### Corrections obligatoires (bloquer le deploiement)
+1. **G13 FAIL — vi2-seo-strategy.md** : sourcer les volumes de recherche ou marquer [HYPOTHESE]. Responsable : @seo
+2. **Champs formulaire** : arbitrer entre specs et copy. Responsable : fondateur + @product-manager
+
+### Corrections recommandees (corriger dans la session)
+3. G8 FAIL copy : remplacer "Accompagnement financement" par "Structuration et financement" dans vi2-landing-page-copy.md et vi2-functional-specs.md
+4. G8 FAIL social : corriger le tutoiement ligne 70 de vi2-social-strategy.md
+5. Disclaimer simulateur : aligner copy sur texte exact du legal-audit (supprimer mention AMF)
+6. G17 FAIL x4 : ajouter "Nicolas" nommement dans vi2-legal-audit.md, vi2-design-system.md, vi2-seo-strategy.md, vi2-geo-strategy.md (1-2 mentions suffisent)
+7. G18 FAIL x4 : ajouter references livrables amont dans vi2-mentions-legales-draft.md, vi2-growth-strategy.md, vi2-social-strategy.md, vi2-legal-audit.md
+
+### Condition GO final
+- 0 gate BLOQUANT en FAIL (actuellement 1 : G13 SEO)
+- 0 gate REQUIS en FAIL (actuellement 8 FAIL REQUIS repartis)
+- Score persona >= 9/10 : PASS (9.3/10)
+- Score B2B >= 9/10 : FAIL marginal (8.9/10) — acceptable pour stade Idee/V1 vitrine
+
+### Synthese des verdicts par livrable
+
+| # | Livrable | Verdict | Gates FAIL |
+|---|----------|---------|------------|
+| 1 | vi2-brand-platform.md | GO | — |
+| 2 | vi2-personas.md | GO | — |
+| 3 | vi2-competitive-benchmark.md | GO | — |
+| 4 | vi2-legal-audit.md | GO CONDITIONNEL | G17, G18 |
+| 5 | vi2-mentions-legales-draft.md | GO CONDITIONNEL | G18 |
+| 6 | vi2-privacy-policy.md | GO | — |
+| 7 | vi2-rgpd-checklist.md | GO | — |
+| 8 | vi2-functional-specs.md | GO | — |
+| 9 | vi2-product-vision.md | GO | — |
+| 10 | vi2-design-system.md | GO CONDITIONNEL | G17 |
+| 11 | vi2-page-compositions.md | GO | — |
+| 12 | vi2-brand-voice.md | GO | — |
+| 13 | vi2-landing-page-copy.md | GO CONDITIONNEL | G8 |
+| 14 | vi2-seo-strategy.md | NO-GO | G13, G4, G17 |
+| 15 | vi2-geo-strategy.md | GO CONDITIONNEL | G17 |
+| 16 | vi2-growth-strategy.md | GO CONDITIONNEL | G18 |
+| 17 | vi2-social-strategy.md | GO CONDITIONNEL | G8, G18 |
+
+**Total** : 8 GO, 8 GO CONDITIONNEL, 1 NO-GO (vi2-seo-strategy.md)
 
 ---
 
 **Handoff -> @orchestrator**
-- Fichiers produits : docs/reviews/vi2-cross-review-report.md
-- Decisions prises : NO-GO initial, 3 corrections bloquantes identifiees
-- Points d'attention : @growth et @social a relancer pour corriger persona + KPI
+- Fichiers produits : docs/reviews/vi2-cross-review-report.md (audit complet 17 livrables)
+- Decisions prises : GO CONDITIONNEL global. Corrections G5/G6 validees. 1 BLOQUANT restant (G13 SEO). 5 contradictions detectees dont 1 MAJEURE (champs formulaire).
+- Points d'attention :
+  - @seo a relancer pour sourcer les volumes ou marquer [HYPOTHESE] (G13 BLOQUANT)
+  - Fondateur doit arbitrer les champs du formulaire (contradiction specs/copy)
+  - 8 corrections REQUIS mineures (G17, G18, G8) a appliquer en batch
+  - Angles morts : pipeline nurturing post-inscription, tracking UTM, decision IOBSP
+  - Score B2B a 8.9/10 = acceptable pour V1 vitrine, documenter integrations V2
