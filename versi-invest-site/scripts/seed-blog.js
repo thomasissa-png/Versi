@@ -62,10 +62,12 @@ async function seed() {
         excerpt TEXT,
         content TEXT NOT NULL,
         author VARCHAR(100) DEFAULT 'Versi Invest',
-        image_url VARCHAR(500),
-        published BOOLEAN DEFAULT false,
+        cover_image VARCHAR(500),
+        tags TEXT DEFAULT '[]',
+        status VARCHAR(20) DEFAULT 'draft',
         published_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -133,25 +135,34 @@ async function seed() {
   }
 }
 
+// Map slug → tags
+const TAGS_MAP = {
+  'investissement-locatif-lille-2026': ['investissement', 'Lille', 'Hauts-de-France', 'rendement'],
+  'calculer-cashflow-investissement-locatif': ['cashflow', 'rendement', 'charges', 'méthode'],
+  'immeubles-rapport-hauts-de-france-rendement': ['immeubles', 'Hauts-de-France', 'Roubaix', 'Tourcoing', 'rendement'],
+  'lmnp-ancien-2026-ce-qui-a-change': ['LMNP', 'fiscalité', 'amortissement', 'investissement'],
+};
+
 async function upsertArticle(article) {
+  const tags = JSON.stringify(TAGS_MAP[article.slug] || []);
+
   const existing = await pool.query(
     'SELECT id FROM blog_articles WHERE slug = $1',
     [article.slug],
   );
 
   if (existing.rows.length > 0) {
-    // Update existing article
     await pool.query(
-      `UPDATE blog_articles SET title = $1, excerpt = $2, content = $3, author = $4, published = true, published_at = COALESCE(published_at, NOW())
-       WHERE slug = $5`,
-      [article.title, article.excerpt, article.content, article.author, article.slug],
+      `UPDATE blog_articles SET title = $1, excerpt = $2, content = $3, author = $4, tags = $5, status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
+       WHERE slug = $6`,
+      [article.title, article.excerpt, article.content, article.author, tags, article.slug],
     );
     console.log(`[SEED] Article mis à jour : "${article.title}"`);
   } else {
     await pool.query(
-      `INSERT INTO blog_articles (title, slug, excerpt, content, author, published, published_at)
-       VALUES ($1, $2, $3, $4, $5, true, NOW())`,
-      [article.title, article.slug, article.excerpt, article.content, article.author],
+      `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())`,
+      [article.title, article.slug, article.excerpt, article.content, article.author, tags],
     );
     console.log(`[SEED] Article inséré : "${article.title}"`);
   }

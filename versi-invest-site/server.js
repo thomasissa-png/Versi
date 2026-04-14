@@ -57,10 +57,12 @@ async function initDatabase() {
         excerpt TEXT,
         content TEXT NOT NULL,
         author VARCHAR(100) DEFAULT 'Versi Invest',
-        image_url VARCHAR(500),
-        published BOOLEAN DEFAULT false,
+        cover_image VARCHAR(500),
+        tags TEXT DEFAULT '[]',
+        status VARCHAR(20) DEFAULT 'draft',
         published_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -269,9 +271,9 @@ app.post('/api/waitlist', async (req, res) => {
 app.get('/api/blog', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, title, slug, excerpt, author, image_url, published_at, created_at
+      `SELECT id, title, slug, excerpt, author, cover_image, tags, published_at, created_at
        FROM blog_articles
-       WHERE published = true
+       WHERE status = 'published'
        ORDER BY published_at DESC NULLS LAST, created_at DESC`
     );
     return res.json({ ok: true, articles: result.rows });
@@ -292,9 +294,9 @@ app.get('/api/blog/:slug', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, title, slug, excerpt, content, author, image_url, published_at, created_at
+      `SELECT id, title, slug, excerpt, content, author, cover_image, tags, published_at, created_at
        FROM blog_articles
-       WHERE slug = $1 AND published = true`,
+       WHERE slug = $1 AND status = 'published'`,
       [slug]
     );
 
