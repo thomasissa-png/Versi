@@ -130,11 +130,11 @@ export default function HomePage() {
             <h1 className="hero__title">
               Off-market.
               <br />
-              Autofinancé.
+              En direct.
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              8% brut ciblé, simulation ligne par ligne. 5% d'honoraires côté investisseur, zéro côté vendeur.
+              Des biens qui s'autofinancent. Cashflow positif. 5% acquéreur, zéro vendeur.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
