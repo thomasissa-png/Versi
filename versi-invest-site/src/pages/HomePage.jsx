@@ -134,7 +134,7 @@ export default function HomePage() {
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              Rendement cible 8% brut. Simulation ligne par ligne, scénario dégradé inclus. 5% côté investisseur — zéro côté vendeur.
+              8% brut ciblé, simulation ligne par ligne. 5% d'honoraires côté investisseur, zéro côté vendeur.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
