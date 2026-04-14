@@ -10,11 +10,6 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-  <url>
-    <loc>https://versi-invest.fr/services</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
 <url>
     <loc>https://versi-invest.fr/references</loc>
     <changefreq>monthly</changefreq>

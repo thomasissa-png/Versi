@@ -1,3 +1,27 @@
+/* === Honoraires bandeau === */
+
+.honoraires {
+  background: var(--color-bg-dark);
+  padding: var(--spacing-2xl);
+}
+
+.honoraires__title {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-inverse);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--spacing-md);
+}
+
+.honoraires__text {
+  font-size: var(--font-size-body-md);
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
+  line-height: 1.65;
+  max-width: var(--text-max-width-md);
+}
+
 /* === Steps === */
 
 .steps {

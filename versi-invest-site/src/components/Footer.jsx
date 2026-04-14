@@ -70,7 +70,6 @@ export default function Footer() {
           <nav className="footer__nav" aria-label="Liens navigation">
             <FooterLink to="/" className="footer__nav-link">Accueil</FooterLink>
             <FooterLink to="/comment-ca-marche" className="footer__nav-link">Comment ça marche</FooterLink>
-            <FooterLink to="/services" className="footer__nav-link">Services</FooterLink>
             <FooterLink to="/references" className="footer__nav-link">Références</FooterLink>
             <FooterLink to="/equipe" className="footer__nav-link">Équipe</FooterLink>
             <FooterLink to="/blog" className="footer__nav-link">Blog</FooterLink>
