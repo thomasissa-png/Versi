@@ -24,7 +24,7 @@
 .hero__surtitre {
   display: block;
   color: var(--color-accent);
-  opacity: 0.6;
+  opacity: 0.85;
   margin-bottom: var(--spacing-lg);
 }
 
@@ -212,7 +212,7 @@
 /* === Founders === */
 
 .founders {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
 }
 
 .founders__label {
@@ -270,7 +270,7 @@
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--color-accent);
+  color: var(--color-text-muted);
   margin-bottom: var(--spacing-sm);
 }
 
@@ -444,6 +444,10 @@
 
   .process__grid {
     grid-template-columns: 1fr;
+  }
+
+  .trust {
+    padding: var(--spacing-2xl) var(--spacing-lg);
   }
 
   .trust__stats {

@@ -45,7 +45,7 @@ const PROCESS_STEPS = [
 const STATS = [
   { value: '21', label: 'appartements rénovés' },
   { value: '3,2M€', label: 'de volume opéré' },
-  { value: '8%', label: 'rendement brut minimum ciblé' },
+  { value: '8%+', label: 'rendement brut ciblé — scénario central' },
 ];
 
 const FOUNDERS = [
@@ -134,7 +134,7 @@ export default function HomePage() {
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              Simulation ligne par ligne, scénario prudent inclus. Rendement cible 8% brut. 5% d'honoraires côté investisseur, zéro côté vendeur.
+              Rendement cible 8% brut. Simulation ligne par ligne, scénario dégradé inclus. 5% côté investisseur — zéro côté vendeur.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
@@ -188,6 +188,21 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Simulateur teaser */}
+        <section className="sim-teaser section-padding" aria-label="Simulateur rendement locatif">
+          <div className="container sim-teaser__inner">
+            <h2 className="sim-teaser__title text-heading-lg">
+              Charges réelles. Scénario dégradé. Cashflow à l'euro près.
+            </h2>
+            <p className="sim-teaser__desc">
+              Prix d'acquisition, apport, zone. Le simulateur calcule rendement brut, net et cashflow mensuel — scénario prudent à +15% de charges. Pas un outil marketing. Un outil de décision.
+            </p>
+            <Link to="/simulateur" className="sim-teaser__cta">
+              Simuler mon investissement
+            </Link>
+          </div>
+        </section>
+
         {/* Fondateurs */}
         <section className="founders section-padding" aria-label="Les fondateurs">
           <div className="container">
@@ -226,21 +241,6 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Simulateur teaser */}
-        <section className="sim-teaser section-padding" aria-label="Simulateur rendement locatif">
-          <div className="container sim-teaser__inner">
-            <h2 className="sim-teaser__title text-heading-lg">
-              Estimez votre cashflow en 30 secondes.
-            </h2>
-            <p className="sim-teaser__desc">
-              Prix d'acquisition, apport, zone géographique. Le simulateur calcule rendement brut, net et cashflow mensuel — scénario prudent inclus, charges réelles intégrées. Pas un outil marketing. Un outil de décision.
-            </p>
-            <Link to="/simulateur" className="sim-teaser__cta">
-              Simuler mon investissement
-            </Link>
           </div>
         </section>
 
