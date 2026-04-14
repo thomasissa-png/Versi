@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PageHead from '../components/PageHead.jsx';
@@ -34,8 +35,8 @@ export default function EquipePage() {
   return (
     <>
       <PageHead
-        title="L'équipe Versi Invest"
-        description="3 co-fondateurs, Groupe Versi. 21 appartements rénovés, 3,2M€ de volume opéré."
+        title="Maxime, Thomas, Carl — Fondateurs Versi Invest"
+        description="3 co-fondateurs, ex-Sony et Algolia. 21 appartements rénovés, 3,2M€ opérés. Investissement locatif off-market en direct."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -104,6 +105,23 @@ export default function EquipePage() {
             >
               Découvrir le Groupe Versi →
             </a>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="page-cta section-padding" aria-label="Prochaines étapes">
+          <div className="container page-cta__inner">
+            <p className="page-cta__text">
+              Vous savez qui nous sommes. Voyez comment nous travaillons.
+            </p>
+            <div className="page-cta__actions">
+              <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
+                Simuler mon investissement
+              </Link>
+              <Link to="/contact" className="page-cta__btn">
+                S'inscrire — réponse sous 48h
+              </Link>
+            </div>
           </div>
         </section>
       </main>
