@@ -34,7 +34,7 @@
 }
 
 .legal__content a {
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: opacity var(--duration-normal) ease;

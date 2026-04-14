@@ -1,8 +1,8 @@
 /* === Honoraires bandeau === */
 
 .honoraires {
-  background: var(--color-accent-blue);
-  padding: var(--spacing-2xl) var(--spacing-2xl);
+  background: var(--color-bg-dark);
+  padding: var(--spacing-2xl);
 }
 
 .honoraires__title {
@@ -47,7 +47,7 @@
 .volet__num {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
   letter-spacing: 0.1em;
   flex-shrink: 0;
 }
@@ -95,7 +95,7 @@
 }
 
 .volet__detail--included .volet__detail-label {
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
 }
 
 .volet__detail--excluded .volet__detail-label {

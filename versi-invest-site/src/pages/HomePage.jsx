@@ -263,7 +263,7 @@ export default function HomePage() {
                   </button>
                   <div
                     className="faq__answer-wrap"
-                    style={{ maxHeight: openFaq === i ? '300px' : '0' }}
+                    style={{ maxHeight: openFaq === i ? '600px' : '0' }}
                   >
                     <p className="faq__answer">{item.a}</p>
                   </div>

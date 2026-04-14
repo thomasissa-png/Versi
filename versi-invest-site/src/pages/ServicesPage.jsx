@@ -129,7 +129,7 @@ export default function ServicesPage() {
         <section className="page-cta section-padding" aria-label="Inscription">
           <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Vous souhaitez accéder aux prochains biens disponibles.
+              Les prochains biens passent ce filtre avant d'arriver chez vous.
             </p>
             <div className="page-cta__actions">
               <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">

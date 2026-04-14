@@ -183,8 +183,9 @@ export default function SimulateurPage() {
         title="Simulateur rendement locatif — Versi Invest"
         description="Calculez cashflow net, rendement brut et net, effort d'épargne. Scénario nominal et prudent. Gratuit."
       />
+      <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
       <Nav />
-      <main>
+      <main id="main-content">
         {/* --- Header --- */}
         <header className="page-header">
           <div className="container">

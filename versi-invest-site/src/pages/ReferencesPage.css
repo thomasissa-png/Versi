@@ -94,7 +94,7 @@
 }
 
 .ref-card__metric-value--highlight {
-  color: var(--color-success);
+  color: #1e7e34;
 }
 
 /* --- Description --- */

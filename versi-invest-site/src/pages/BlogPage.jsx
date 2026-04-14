@@ -59,8 +59,9 @@ export default function BlogPage() {
         title="Blog investissement locatif — Versi Invest"
         description="Rendement, cashflow, zones Hauts-de-France et IDF. Analyses terrain par les fondateurs."
       />
+      <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
       <Nav />
-      <main>
+      <main id="main-content">
         {/* --- Header --- */}
         <header className="page-header">
           <div className="container">

@@ -9,7 +9,7 @@
 
 .footer__disclaimer-text {
   font-size: var(--font-size-small);
-  color: var(--color-text-muted);
+  color: rgba(247, 245, 242, 0.6);
   line-height: 1.6;
   max-width: var(--text-max-width-lg);
 }

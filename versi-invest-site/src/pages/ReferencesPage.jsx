@@ -55,8 +55,9 @@ export default function ReferencesPage() {
         title="Références investissement — Versi Invest"
         description="Immeubles de rapport, maisons divisées : rendement, cashflow, montage. Cas réels anonymisés."
       />
+      <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
       <Nav />
-      <main>
+      <main id="main-content">
         {/* --- Header --- */}
         <header className="page-header">
           <div className="container">
