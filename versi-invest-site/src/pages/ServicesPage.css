@@ -6,7 +6,7 @@
 }
 
 .honoraires__title {
-  font-size: 1.5rem;
+  font-size: var(--font-size-heading-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-inverse);
   text-transform: uppercase;
@@ -53,7 +53,7 @@
 }
 
 .volet__title {
-  font-size: 1.5rem;
+  font-size: var(--font-size-heading-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   text-transform: uppercase;
@@ -116,7 +116,7 @@
   }
 
   .honoraires__title {
-    font-size: 1.25rem;
+    font-size: var(--font-size-body-lg);
   }
 
   .volet__header {
@@ -125,7 +125,7 @@
   }
 
   .volet__title {
-    font-size: 1.25rem;
+    font-size: var(--font-size-body-lg);
   }
 
   .volet__details {

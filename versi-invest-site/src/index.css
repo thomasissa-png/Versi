@@ -371,6 +371,11 @@ ul, ol {
   color: var(--color-text-inverse);
 }
 
+.page-cta__btn--blue {
+  background: var(--color-accent-blue);
+  color: var(--color-text-inverse);
+}
+
 .page-cta__btn:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 4px;

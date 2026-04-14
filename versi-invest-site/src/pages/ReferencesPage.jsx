@@ -102,7 +102,7 @@ export default function ReferencesPage() {
                   Versi Immobilier — est disponible sur demande. Inscrivez-vous sur la liste
                   d'attente pour y accéder lors de notre premier appel.
                 </p>
-                <Link to="/contact" className="page-cta__btn" style={{ background: 'var(--color-accent-blue)', color: 'var(--color-text-inverse)' }}>
+                <Link to="/contact" className="page-cta__btn page-cta__btn--blue">
                   S'inscrire sur la liste d'attente
                 </Link>
               </div>
@@ -113,14 +113,18 @@ export default function ReferencesPage() {
         {/* --- CTA --- */}
         {hasReferences && (
           <section className="page-cta section-padding" aria-label="Inscription">
-            <div className="container" style={{ textAlign: 'center' }}>
+            <div className="container page-cta__inner">
               <p className="page-cta__text">
                 Vous voulez accéder au détail de ces opérations et aux prochaines opportunités ?
-                Inscrivez-vous sur la liste d'attente.
               </p>
-              <Link to="/contact" className="page-cta__btn">
-                S'inscrire sur la liste d'attente
-              </Link>
+              <div className="page-cta__actions">
+                <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
+                  Simuler mon investissement
+                </Link>
+                <Link to="/contact" className="page-cta__btn">
+                  S'inscrire — réponse sous 48h
+                </Link>
+              </div>
             </div>
           </section>
         )}

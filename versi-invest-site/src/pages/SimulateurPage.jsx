@@ -507,7 +507,7 @@ export default function SimulateurPage() {
 
         {/* --- CTA --- */}
         <section className="simulateur-cta page-cta section-padding" aria-label="Inscription">
-          <div className="container" style={{ textAlign: 'center' }}>
+          <div className="container page-cta__inner">
             <h2 className="simulateur-cta__title">
               Ces chiffres correspondent à ce que vous cherchez.
             </h2>

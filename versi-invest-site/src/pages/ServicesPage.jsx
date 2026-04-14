@@ -14,7 +14,7 @@ const VOLETS = [
   },
   {
     num: '02',
-    title: 'Visite accompagnée par un fondateur',
+    title: 'Visite sur site avec un fondateur',
     description: 'Quand vous visitez un bien avec Versi Invest, c\'est un fondateur qui est là — Maxime, Thomas ou Carl. Pas un assistant. L\'objectif de la visite : valider l\'état réel du bien, confronter les hypothèses de la présélection à la réalité terrain, identifier les travaux nécessaires et estimer leur coût. Vous posez toutes vos questions en direct.',
     included: 'Déplacement d\'un fondateur (périmètre Hauts-de-France et Île-de-France). Analyse technique et locative sur site. Rapport de visite écrit sous 48h.',
     notIncluded: 'Expertise technique formelle (Versi Invest n\'est pas bureau d\'études). Pour les biens avec pathologies complexes, nous recommandons un expert indépendant.',
@@ -118,13 +118,18 @@ export default function ServicesPage() {
 
         {/* CTA */}
         <section className="page-cta section-padding" aria-label="Inscription">
-          <div className="container" style={{ textAlign: 'center' }}>
+          <div className="container page-cta__inner">
             <p className="page-cta__text">
               Vous souhaitez accéder aux prochains biens disponibles.
             </p>
-            <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
-            </Link>
+            <div className="page-cta__actions">
+              <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
+                Simuler mon investissement
+              </Link>
+              <Link to="/contact" className="page-cta__btn">
+                S'inscrire — réponse sous 48h
+              </Link>
+            </div>
           </div>
         </section>
       </main>

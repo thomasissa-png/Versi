@@ -105,8 +105,7 @@ export default function BlogPage() {
                 </p>
                 <Link
                   to="/contact"
-                  className="page-cta__btn"
-                  style={{ background: 'var(--color-accent-blue)', color: 'var(--color-text-inverse)' }}
+                  className="page-cta__btn page-cta__btn--blue"
                 >
                   S'inscrire sur la liste d'attente
                 </Link>
