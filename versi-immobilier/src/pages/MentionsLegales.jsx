@@ -9,6 +9,7 @@ export default function MentionsLegales() {
       <PageHead
         title="Mentions légales — Versi Immobilier"
         description="Mentions légales de Versi Immobilier, marchand de biens."
+        noindex
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

@@ -17,9 +17,11 @@ export default function ContactPage() {
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'LocalBusiness',
+      '@id': 'https://versi-immobilier.fr/#localbusiness',
       name: 'Versi Immobilier',
       url: 'https://versi-immobilier.fr',
       email: 'contact@versi.fr',
+      telephone: '+33632683274',
       address: {
         '@type': 'PostalAddress',
         addressLocality: 'Lille',
@@ -76,7 +78,7 @@ export default function ContactPage() {
               </Link>
             )}
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              {bien ? 'Demander une présentation.' : 'Écrivez-nous.'}
+              {bien ? 'Demander une présentation.' : 'Contactez Versi Immobilier — Lille et Hauts-de-France.'}
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
               Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h — sans standard, sans assistant.

@@ -164,7 +164,7 @@ export default function ApprochePage() {
   return (
     <>
       <PageHead
-        title="Comment Versi Immobilier travaille — Méthode et équipe"
+        title="Marchand de biens à Lille — Méthode et équipe | Versi Immobilier"
         description="Sourcer, analyser, acquérir, transformer. Quatre étapes, zéro délégation. Les trois fondateurs gèrent chaque opération en direct."
       />
       <a href="#main-content" className="skip-nav">
@@ -176,7 +176,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)' }}>
           <div className="container">
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Comment Versi travaille.
+              Comment Versi Immobilier travaille.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
               Chaque décision prise en interne. Chaque bien porté par les fondateurs.

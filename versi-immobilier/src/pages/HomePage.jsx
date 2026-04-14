@@ -15,7 +15,7 @@ export default function HomePage() {
     <>
       <PageHead
         title="Versi Immobilier — Appartements rénovés à vendre, Lille et Hauts-de-France"
-        description="Des appartements sélectionnés, rénovés et vendus en direct par un marchand de biens. Dossier complet avant visite. Lille et Hauts-de-France."
+        description="21 appartements rénovés et vendus en direct à Lille depuis 2022. Zéro frais d'agence, diagnostics inclus, garantie décennale. 3,2M€ de volume traité."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

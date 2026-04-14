@@ -160,9 +160,9 @@ export default function BlogArticlePage() {
       description: article.excerpt,
       author: [
         { '@type': 'Organization', name: 'Versi Immobilier', url: siteUrl },
-        { '@type': 'Person', name: 'Maxime Lemoine' },
-        { '@type': 'Person', name: 'Thomas Issa' },
-        { '@type': 'Person', name: 'Carl Standertskjold-Nordenstam' },
+        { '@type': 'Person', name: 'Maxime Lemoine', sameAs: 'https://www.linkedin.com/in/maxime-lemoine-34550354/' },
+        { '@type': 'Person', name: 'Thomas Issa', sameAs: 'https://www.linkedin.com/in/thomasissa/' },
+        { '@type': 'Person', name: 'Carl Standertskjold-Nordenstam', sameAs: 'https://www.linkedin.com/in/carlstandertskjold/' },
       ],
       publisher: {
         '@type': 'Organization',

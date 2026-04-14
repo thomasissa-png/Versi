@@ -109,8 +109,8 @@ export default function RealisationDetailPage() {
   return (
     <>
       <PageHead
-        title={`${project.title} — Réalisation Versi Immobilier`}
-        description={`Rénovation ${project.type || 'immobilière'} à ${project.location || 'Hauts-de-France'}. ${project.surface || ''}. Vendu ${project.sellPrice || ''}.`}
+        title={`${project.title} — Rénovation à ${project.location || 'Hauts-de-France'} | Versi Immobilier`}
+        description={`Rénovation ${project.type || 'immobilière'} à ${project.location || 'Hauts-de-France'}. ${project.surface || ''}. Vendu ${project.sellPrice || ''}. Marchand de biens Lille.`}
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

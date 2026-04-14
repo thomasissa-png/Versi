@@ -26,7 +26,7 @@ export default function RealisationsPage() {
     <>
       <PageHead
         title="Rénovations immobilières à Lille et Hauts-de-France | Versi Immobilier"
-        description="Chaque rénovation documentée : adresse, délais, chiffres. 3,2M€ de volume traité depuis 2022."
+        description="5 rénovations terminées à Lille et Hauts-de-France. Chaque projet documenté : adresse, surface, délais, prix de vente. 3,2M€ de volume traité."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
