@@ -8,7 +8,7 @@ export default function PolitiqueConfidentialite() {
     <>
       <PageHead
         title="Politique de confidentialité — Versi Invest"
-        description="Politique de confidentialité du site Versi Invest. Protection des données personnelles, RGPD, droits des utilisateurs."
+        description="Traitement des données personnelles, droits RGPD, cookies, analytics Umami."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

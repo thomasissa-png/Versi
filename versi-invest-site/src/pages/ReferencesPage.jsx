@@ -53,7 +53,7 @@ export default function ReferencesPage() {
     <>
       <PageHead
         title="Références investissement — Versi Invest"
-        description="Des opérations réelles, des chiffres vérifiables. Rendement, cashflow et structure de financement de nos références investisseurs."
+        description="Immeubles de rapport, maisons divisées : rendement, cashflow, montage. Cas réels anonymisés."
       />
       <Nav />
       <main>

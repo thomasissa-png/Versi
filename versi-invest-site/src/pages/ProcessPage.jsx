@@ -56,8 +56,8 @@ export default function ProcessPage() {
   return (
     <>
       <PageHead
-        title="Comment ça marche — Versi Invest"
-        description="De la recherche à la mise en location. Six étapes, zéro improvisation. Découvrez le processus Versi Invest pour votre investissement locatif."
+        title="Comment investir avec Versi Invest"
+        description="Sourcing off-market, visite accompagnée, simulation financière, financement, travaux, mise en location. 6 étapes."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

@@ -1,0 +1,6 @@
+# robots.txt — versi-invest.fr
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://versi-invest.fr/sitemap.xml

@@ -58,8 +58,8 @@ export default function HomePage() {
   return (
     <>
       <PageHead
-        title="Versi Invest — Investissement locatif clé en main | Hauts-de-France et Île-de-France"
-        description="Des biens qui s'autofinancent. Sourcing off-market, simulation financière, pilotage travaux, mise en location. Fondateurs en direct, de A à Z."
+        title="Versi Invest — Investissement locatif accompagné"
+        description="Biens off-market qui s'autofinancent. Rendement 8%+ ciblé. Fondateurs en direct, de A à Z. Inscrivez-vous."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

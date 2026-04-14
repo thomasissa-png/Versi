@@ -2,13 +2,8 @@ import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://versi-invest.fr';
+const SITE_NAME = 'Versi Invest';
 
-/**
- * Composant SEO centralise — injecte title, description et canonical via react-helmet-async.
- * @param {string} title — balise <title>
- * @param {string} description — meta description
- * @param {boolean} [noindex] — ajoute robots noindex,follow si true
- */
 export default function PageHead({ title, description, noindex = false }) {
   const { pathname } = useLocation();
   const canonical = `${SITE_URL}${pathname}`;
@@ -19,6 +14,12 @@ export default function PageHead({ title, description, noindex = false }) {
       <meta name="description" content={description} />
       <link rel="canonical" href={canonical} />
       {noindex && <meta name="robots" content="noindex, follow" />}
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={canonical} />
+      <meta property="og:type" content="website" />
+      <meta property="og:locale" content="fr_FR" />
+      <meta property="og:site_name" content={SITE_NAME} />
     </Helmet>
   );
 }

@@ -34,8 +34,8 @@ export default function EquipePage() {
   return (
     <>
       <PageHead
-        title="Équipe — Versi Invest"
-        description="Trois fondateurs. Un seul interlocuteur. Maxime, Thomas et Carl suivent chaque opération d'investissement locatif de A à Z."
+        title="L'équipe Versi Invest"
+        description="3 co-fondateurs, Groupe Versi. 21 appartements rénovés, 3,2M€ de volume opéré."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

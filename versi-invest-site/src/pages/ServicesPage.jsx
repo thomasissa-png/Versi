@@ -54,7 +54,7 @@ export default function ServicesPage() {
     <>
       <PageHead
         title="Nos services — Versi Invest"
-        description="Six volets, un seul interlocuteur. Sourcing off-market, simulation financière, pilotage travaux, mise en location. 5% du prix d'acquisition."
+        description="Sourcing, visite, simulation, financement, travaux, location. 5% d'honoraires côté investisseur. Zéro côté vendeur."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

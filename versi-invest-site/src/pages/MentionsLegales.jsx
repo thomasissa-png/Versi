@@ -8,7 +8,7 @@ export default function MentionsLegales() {
     <>
       <PageHead
         title="Mentions légales — Versi Invest"
-        description="Mentions légales du site Versi Invest. Éditeur, hébergeur, activité réglementée, honoraires, propriété intellectuelle."
+        description="Informations légales du site versi-invest.fr. Éditeur, hébergeur, droits."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

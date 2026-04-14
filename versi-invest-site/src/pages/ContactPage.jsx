@@ -131,7 +131,7 @@ export default function ContactPage() {
     <>
       <PageHead
         title="S'inscrire — Versi Invest"
-        description="Inscrivez-vous sur la liste d'attente Versi Invest. Un fondateur vous recontacte sous 48h pour un premier échange."
+        description="Rejoignez la liste d'attente. Un fondateur vous recontacte sous 48h pour un premier échange."
       />
       <Nav />
       <main>

@@ -56,8 +56,8 @@ export default function BlogPage() {
   return (
     <>
       <PageHead
-        title="Blog — Versi Invest"
-        description="Ressources investisseurs : analyses de marché, cas concrets et points de méthode rédigés par les fondateurs Versi Invest."
+        title="Blog investissement locatif — Versi Invest"
+        description="Rendement, cashflow, zones Hauts-de-France et IDF. Analyses terrain par les fondateurs."
       />
       <Nav />
       <main>
