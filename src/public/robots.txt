@@ -14,4 +14,7 @@ Allow: /
 User-agent: Amazonbot
 Allow: /
 
+User-agent: PerplexityBot
+Allow: /
+
 Sitemap: https://versi.fr/sitemap.xml
