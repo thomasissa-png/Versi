@@ -132,22 +132,47 @@ async function prerender() {
       // Petit délai pour laisser les animations de fade-in se déclencher
       await page.waitForTimeout(500);
 
+      // Extraire le title et la description actifs du DOM.
+      // react-helmet-async ajoute ses tags en plus des originaux du index.html.
+      // Les tags de helmet sont les DERNIERS dans le DOM, donc on prend le dernier de chaque.
+      const activeTitle = await page.title();
+      const activeDesc = await page.evaluate(() => {
+        const metas = document.querySelectorAll('meta[name="description"]');
+        return metas.length > 0 ? metas[metas.length - 1].getAttribute('content') || '' : '';
+      });
+      const activeCanonical = await page.evaluate(() => {
+        const links = document.querySelectorAll('link[rel="canonical"]');
+        return links.length > 0 ? links[links.length - 1].getAttribute('href') || '' : '';
+      });
+      const noindex = await page.evaluate(() => {
+        const meta = document.querySelector('meta[name="robots"][content*="noindex"]');
+        return !!meta;
+      });
+
       let html = await page.content();
       await page.close();
 
-      // Nettoyer les balises dupliquées : react-helmet-async ajoute ses tags
-      // en début de <head>, mais les tags originaux de index.html restent.
-      // On garde uniquement le PREMIER <title> et la PREMIÈRE <meta name="description">.
-      let titleCount = 0;
-      html = html.replace(/<title>[^<]*<\/title>/g, (match) => {
-        titleCount++;
-        return titleCount === 1 ? match : '';
-      });
-      let descCount = 0;
-      html = html.replace(/<meta name="description" content="[^"]*">/g, (match) => {
-        descCount++;
-        return descCount === 1 ? match : '';
-      });
+      // Supprimer TOUTES les balises title, description, canonical et robots dupliquées,
+      // puis injecter les bonnes valeurs une seule fois.
+      html = html.replace(/<title>[^<]*<\/title>/g, '');
+      html = html.replace(/<meta name="description" content="[^"]*"\s*\/?>/g, '');
+      html = html.replace(/<link rel="canonical" href="[^"]*"\s*\/?>/g, '');
+      html = html.replace(/<meta name="robots" content="[^"]*"\s*\/?>/g, '');
+      // Supprimer aussi le commentaire placeholder laissé dans index.html
+      html = html.replace(/<!-- Canonical géré par react-helmet-async \(par page\) -->\n?\s*/g, '');
+
+      // Injecter les balises correctes juste après <meta charset>
+      const seoTags = [
+        `<title>${activeTitle}</title>`,
+        `<meta name="description" content="${activeDesc}">`,
+        activeCanonical ? `<link rel="canonical" href="${activeCanonical}">` : '',
+        noindex ? '<meta name="robots" content="noindex, follow">' : '',
+      ].filter(Boolean).join('\n    ');
+
+      html = html.replace(
+        /(<meta charset="UTF-8">)/i,
+        `$1\n    ${seoTags}`
+      );
 
       // Écrire le HTML dans dist/<route>/index.html
       const outputDir = route === '/'
