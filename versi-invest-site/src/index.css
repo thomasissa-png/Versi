@@ -1,0 +1,383 @@
+/* ============================================
+   Versi Invest — Design Tokens
+   Inherited from Versi holding design system
+   Accent: bleu #1B3A5C (au lieu du vert)
+   ============================================ */
+
+:root {
+  /* --- Couleurs primitives --- */
+  --color-white: #FFFFFF;
+  --color-calcaire-50: #F7F5F2;
+  --color-calcaire-100: #EDE9E3;
+  --color-stone-200: #D9D4CE;
+  --color-stone-400: #C8B9A6;
+  --color-stone-600: #6B6560;
+  --color-charcoal-800: #1A1A1A;
+  --color-charcoal-950: #0B0B0B;
+  --color-bleu-invest: #1B3A5C;
+
+  /* --- Couleurs semantiques — fonds --- */
+  --color-bg-primary: #F7F5F2;
+  --color-bg-secondary: #FFFFFF;
+  --color-bg-subtle: #EFECE7;
+  --color-bg-dark: #0B0B0B;
+  --color-bg-dark-alt: #1A1A1A;
+  --color-bg-accent: #1B3A5C;
+
+  /* --- Couleurs semantiques — textes --- */
+  --color-text-primary: #0B0B0B;
+  --color-text-inverse: #F7F5F2;
+  --color-text-muted: #6B6560;
+
+  /* --- Couleurs semantiques — accents & bordures --- */
+  --color-accent: #C8B9A6;
+  --color-accent-blue: #1B3A5C;
+  --color-border: #D9D4CE;
+  --color-border-input: rgba(255, 255, 255, 0.2);
+  --color-border-dark: rgba(255, 255, 255, 0.12);
+  --color-border-focus: #C8B9A6;
+  --color-error: #DC3545;
+  --color-error-on-dark: #FF6B6B;
+  --color-success: #28A745;
+
+  /* --- Cards --- */
+  --card-radius: 8px;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  /* --- Typographie --- */
+  --font-family: 'PP Neue Montreal', 'DM Sans', system-ui, sans-serif;
+  --font-weight-thin: 200;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+
+  /* --- Espacements --- */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-4xl: 96px;
+  --spacing-5xl: 120px;
+
+  /* --- Layout --- */
+  --nav-height: 80px;
+  --content-max-width: 1280px;
+  --text-max-width-lg: 760px;
+  --text-max-width-md: 640px;
+  --text-max-width-sm: 560px;
+
+  /* --- Rayons --- */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-pill: 9999px;
+
+  /* --- Ombres --- */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-nav: 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* --- Tailles typographiques semantiques --- */
+  --font-size-small: 0.75rem;
+  --font-size-label: 0.8125rem;
+  --font-size-body-sm: 0.875rem;
+  --font-size-body-md: 1rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-display-num: 4rem;
+  --font-size-display-num-mobile: 3rem;
+  --font-size-caption: 0.75rem;
+
+  /* --- Opacites semantiques --- */
+  --opacity-muted: 0.5;
+  --opacity-subtle: 0.15;
+  --opacity-soft: 0.7;
+  --opacity-readable: 0.8;
+
+  /* --- Durees --- */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-moderate: 300ms;
+  --duration-slow: 400ms;
+  --duration-glacial: 2000ms;
+}
+
+/* === Reset & Base === */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-regular);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* === Focus visible global === */
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 3px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* === Skip navigation === */
+
+.skip-nav {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 1000;
+  background: var(--color-bg-dark);
+  color: var(--color-text-inverse);
+  padding: 12px 24px;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.skip-nav:focus {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  z-index: 10000;
+}
+
+/* === Prefers reduced motion === */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* === Typographic utility classes === */
+
+.text-display {
+  font-size: 3.5rem;
+  font-weight: var(--font-weight-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+}
+
+.text-heading-lg {
+  font-size: 2.25rem;
+  font-weight: var(--font-weight-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+}
+
+.text-heading-md {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-regular);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
+.text-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+}
+
+.text-cta {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.text-body-lg {
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.text-body-md {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.text-body-sm {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.text-stat {
+  font-size: 3rem;
+  font-weight: var(--font-weight-thin);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* === Section layout utility === */
+
+.section-padding {
+  padding: var(--spacing-3xl) var(--spacing-2xl);
+  scroll-margin-top: var(--nav-height);
+}
+
+.container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* === Fade-in utility === */
+
+.fade-hidden {
+  opacity: 0;
+}
+
+/* === Shared page header (dark) === */
+
+.page-header {
+  background: var(--color-bg-dark);
+  padding: var(--spacing-5xl) var(--spacing-2xl) var(--spacing-3xl);
+  padding-top: calc(var(--nav-height) + var(--spacing-4xl));
+}
+
+.page-header__title {
+  font-size: 2.75rem;
+  font-weight: var(--font-weight-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  color: var(--color-text-inverse);
+  margin-bottom: var(--spacing-lg);
+  max-width: var(--text-max-width-lg);
+}
+
+.page-header__intro {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
+  line-height: 1.65;
+  max-width: var(--text-max-width-md);
+}
+
+/* === Shared page CTA (dark) === */
+
+.page-cta {
+  background: var(--color-bg-dark);
+}
+
+.page-cta__text {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-text-inverse);
+  margin-bottom: var(--spacing-lg);
+  max-width: var(--text-max-width-md);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 32px;
+  background: var(--color-accent);
+  color: var(--color-bg-dark);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  transition: opacity var(--duration-normal) ease;
+}
+
+.page-cta__btn:hover {
+  opacity: 0.88;
+}
+
+/* === Responsive section padding === */
+
+@media (max-width: 767px) {
+  .section-padding {
+    padding: var(--spacing-2xl) var(--spacing-lg);
+  }
+
+  .text-display {
+    font-size: 2.25rem;
+  }
+
+  .text-heading-lg {
+    font-size: 1.75rem;
+  }
+
+  .text-stat {
+    font-size: var(--font-size-display-num-mobile);
+  }
+
+  .page-header {
+    padding: calc(var(--nav-height) + var(--spacing-2xl)) var(--spacing-lg) var(--spacing-2xl);
+  }
+
+  .page-header__title {
+    font-size: 2rem;
+  }
+}
