@@ -145,11 +145,11 @@ export default function PropertyDetailPage() {
                 <div
                   className="property-detail__placeholder"
                   role="img"
-                  aria-label="Visuels bientôt disponibles"
+                  aria-label="Photos bientôt disponibles"
                 >
                   <CameraIcon />
                   <span className="property-detail__placeholder-text">
-                    Visuels bientôt disponibles
+                    Photos bientôt disponibles
                   </span>
                   <span className="property-detail__placeholder-sub">
                     Rendez-vous pour une visite privée

@@ -30,7 +30,7 @@ const PROCESS_STEPS = [
   {
     number: '01',
     title: 'Vous soumettez votre dossier.',
-    description: 'Adresse, type de bien, surface, situation locative. Le formulaire ci-dessous ou un email à contact@versi-immobilier.fr. Nous accusons réception sous 24h.',
+    description: 'Adresse, type de bien, surface, situation locative. Le formulaire ci-dessous ou un email à contact@versi.fr. Nous accusons réception sous 24h.',
     delay: 'Accusé de réception sous 24h.',
   },
   {

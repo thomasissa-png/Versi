@@ -28,42 +28,22 @@
   display: block;
 }
 
+.project-card__image-link {
+  display: block;
+}
+
 .project-card__image-label {
   font-size: var(--font-size-body-sm);
   color: var(--color-text-muted);
 }
 
-.project-card__toggle {
-  position: absolute;
-  bottom: var(--spacing-sm);
-  left: var(--spacing-sm);
-  display: flex;
-  gap: 1px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+.project-card__title-link {
+  color: inherit;
+  text-decoration: none;
 }
 
-.project-card__tab {
-  font-size: 12px;
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-inverse);
-  padding: 10px 14px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color var(--duration-fast) ease;
-  min-height: 44px;
-}
-
-.project-card__tab:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.project-card__tab--active {
-  background: rgba(255, 255, 255, 0.2);
+.project-card__title-link:hover {
+  text-decoration: underline;
 }
 
 .project-card__body {

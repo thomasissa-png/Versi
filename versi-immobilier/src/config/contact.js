@@ -2,4 +2,4 @@
 export const CONTACT_ENDPOINT = '/api/contact';
 export const SELL_ENDPOINT = '/api/sell';
 
-export const CONTACT_EMAIL = 'contact@versi-immobilier.fr';
+export const CONTACT_EMAIL = 'contact@versi.fr';

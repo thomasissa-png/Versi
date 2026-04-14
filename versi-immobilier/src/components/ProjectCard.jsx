@@ -1,47 +1,37 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './ProjectCard.css';
 
 export default function ProjectCard({ project }) {
-  const [view, setView] = useState('apres');
-
   return (
     <article className="project-card">
       <div className="project-card__image-wrapper">
-        {project.cover_url ? (
-          <img
-            src={project.cover_url}
-            alt={project.title}
-            className="project-card__image project-card__image--photo"
-          />
-        ) : (
-          <div className="project-card__image image-placeholder">
-            <span className="project-card__image-label">
-              {view === 'avant' ? 'Photo avant' : 'Photo après'}
-            </span>
-          </div>
-        )}
-        <div className="project-card__toggle" role="tablist" aria-label="Basculer avant/après">
-          <button
-            role="tab"
-            aria-selected={view === 'apres'}
-            className={`project-card__tab ${view === 'apres' ? 'project-card__tab--active' : ''}`}
-            onClick={() => setView('apres')}
-          >
-            Après
-          </button>
-          <button
-            role="tab"
-            aria-selected={view === 'avant'}
-            className={`project-card__tab ${view === 'avant' ? 'project-card__tab--active' : ''}`}
-            onClick={() => setView('avant')}
-          >
-            Avant
-          </button>
-        </div>
+        <Link
+          to={`/realisations/${project.id}`}
+          className="project-card__image-link"
+          tabIndex="-1"
+          aria-hidden="true"
+        >
+          {project.cover_url ? (
+            <img
+              src={project.cover_url}
+              alt={project.title}
+              className="project-card__image project-card__image--photo"
+            />
+          ) : (
+            <div className="project-card__image image-placeholder">
+              <span className="project-card__image-label">
+                Photo bientôt disponible
+              </span>
+            </div>
+          )}
+        </Link>
       </div>
       <div className="project-card__body">
-        <h3 className="project-card__title">{project.title}</h3>
+        <h3 className="project-card__title">
+          <Link to={`/realisations/${project.id}`} className="project-card__title-link">
+            {project.title}
+          </Link>
+        </h3>
         <div className="project-card__figures">
           {project.sellPrice && (
             <span className="text-body-sm project-card__figure">

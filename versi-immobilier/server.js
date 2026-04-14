@@ -96,8 +96,8 @@ if (!resend) {
   );
 }
 
-const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'contact@versi-immobilier.fr';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'formulaire@versi-immobilier.fr';
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'contact@versi.fr';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'formulaire@versi.fr';
 
 // ---------------------------------------------------------------------------
 // Rate limiting simple en mémoire (max 5 envois / IP / heure)

@@ -150,7 +150,7 @@
   6. Fiche réalisation — détail opération (galerie, chiffres, description)
   7. Investir — page passerelle vers versi-invest.fr
   8. Notre approche — process détaillé + différenciateurs + lien vers Versi holding
-  9. Contact — formulaire + email contact@versi-immobilier.fr
+  9. Contact — formulaire + email contact@versi.fr
   10. Mentions légales + Politique de confidentialité
 
 ### Stack technique

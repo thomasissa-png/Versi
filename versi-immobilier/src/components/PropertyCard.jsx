@@ -30,7 +30,7 @@ export default function PropertyCard({ property }) {
           ) : (
             <div className="property-card__image property-card__placeholder">
               <span className="property-card__placeholder-label">
-                Visuel bientôt disponible
+                Photo bientôt disponible
               </span>
             </div>
           )}
