@@ -128,9 +128,9 @@ export default function HomePage() {
               Investissement locatif off-market — France
             </span>
             <h1 className="hero__title">
-              Des biens off-market qui s'autofinancent.
+              Off-market.
               <br />
-              Les fondateurs suivent chaque dossier.
+              Autofinancé.
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
