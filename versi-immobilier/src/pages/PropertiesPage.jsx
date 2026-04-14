@@ -78,7 +78,7 @@ export default function PropertiesPage() {
 
             {/* En-tête */}
             <h1 className="text-heading-lg properties-page__header-title">
-              Les biens disponibles.
+              Appartements et biens rénovés à vendre — Lille et Hauts-de-France.
             </h1>
             <p className="text-body-lg properties-page__header-subtitle">
               Appartements et biens mixtes en Hauts-de-France et Île-de-France.

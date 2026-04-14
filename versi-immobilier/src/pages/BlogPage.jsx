@@ -189,12 +189,12 @@ export default function BlogPage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-dark-alt)', textAlign: 'center' }}>
           <div className="container">
             <p className="text-body-lg" style={{ color: 'var(--color-text-inverse)', marginBottom: 'var(--spacing-sm)' }}>
-              Vous avez un bien à céder ?
+              Vous cherchez un bien rénové à Lille ?
             </p>
             <p className="text-body-md" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-lg)' }}>
-              Offre ferme sous 7 jours. Fonds propres. Aucun mandat.
+              Appartements sélectionnés, diagnostics fournis, vente directe sans frais d'agence.
             </p>
-            <Link to="/vendre" className="text-cta" style={{
+            <Link to="/nos-biens" className="text-cta" style={{
               display: 'inline-flex',
               alignItems: 'center',
               background: 'var(--color-accent)',
@@ -204,7 +204,7 @@ export default function BlogPage() {
               textDecoration: 'none',
               minHeight: '52px',
             }}>
-              Soumettre mon dossier
+              Voir les biens disponibles
             </Link>
           </div>
         </section>

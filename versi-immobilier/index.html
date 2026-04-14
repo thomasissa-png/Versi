@@ -60,9 +60,16 @@
         "name": "Versi",
         "url": "https://versi.fr"
       },
-      "areaServed": {
-        "@type": "Country",
-        "name": "France"
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Hauts-de-France" },
+        { "@type": "City", "name": "Lille" },
+        { "@type": "AdministrativeArea", "name": "Île-de-France" }
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Lille",
+        "addressRegion": "Hauts-de-France",
+        "addressCountry": "FR"
       },
       "contactPoint": {
         "@type": "ContactPoint",
@@ -118,10 +125,10 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Comment fonctionne Versi Immobilier ?",
+          "name": "Y a-t-il des frais d'agence pour acheter un bien chez Versi Immobilier ?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Versi Immobilier achète des biens en nom propre, les rénove, puis les revend. Pas d'intermédiaire, pas de mandat d'agence. Offre ferme sous 7 jours ou refus motivé par écrit."
+            "text": "Non. Versi Immobilier vend en direct — pas d'intermédiaire, pas de commission d'agence à la charge de l'acquéreur. Le prix affiché est le prix net vendeur."
           }
         },
         {
@@ -129,23 +136,23 @@
           "name": "Versi Immobilier est-il un agent immobilier ?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Non. Versi Immobilier est un marchand de biens : il achète pour son propre compte, pas en tant qu'intermédiaire. Il n'est pas soumis à la loi Hoguet."
+            "text": "Non. Versi Immobilier est un marchand de biens : il achète pour son propre compte, rénove et revend en direct. Pas d'intermédiaire, pas de mandat d'agence."
           }
         },
         {
           "@type": "Question",
-          "name": "Quels types de biens Versi Immobilier achète-t-il ?",
+          "name": "Quelles garanties accompagnent un bien rénové par Versi Immobilier ?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Des actifs résidentiels et mixtes entre 250 000 € et 1 000 000 € en Hauts-de-France et Île-de-France. Immeubles de rapport, maisons divisibles, plateaux à transformer."
+            "text": "Chaque bien livré par Versi Immobilier est accompagné de diagnostics complets, de l'historique des travaux réalisés et d'une garantie décennale sur les parties structurelles. Le dossier complet est remis avant la visite."
           }
         },
         {
           "@type": "Question",
-          "name": "Comment est financé l'achat ?",
+          "name": "Quels types de biens Versi Immobilier propose-t-il à la vente ?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sur fonds propres. Pas de condition suspensive de financement. C'est ce qui permet l'offre ferme et le délai court."
+            "text": "Versi Immobilier commercialise des appartements rénovés de 1 à 6 pièces, principalement à Lille et dans les Hauts-de-France. Les biens sont sélectionnés, transformés et vendus en direct par les fondateurs."
           }
         },
         {
