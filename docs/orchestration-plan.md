@@ -140,7 +140,66 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 | Agent | Mission | Statut |
 |-------|---------|--------|
 | orchestrator | Brief + project-context.md | TERMINÉ |
-| Toutes phases 0→5 | Autopilot prochaine session | À LANCER |
+
+---
+
+## Versi Invest (versi-invest.fr) — Autopilot Phases 0→5
+
+> Lancé : 2026-04-14 (session s9)
+> Mode : Autopilot avec checkpoint après Phase 0
+> Profil : V1-Production (toutes les gates)
+> Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
+> Estimation : 5 phases, ~12 agents, 2-3 sessions
+
+<!-- SESSION_VI2: phases=0 tasks_prod=0 tasks_consult=0 -->
+
+### Phase VINV-0a — Fondations stratégiques (parallèle)
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @creative-strategy | Personas Versi Invest + brand platform adaptation + benchmark concurrentiel (Masteos, Bevouac, Beanstock, CGPI) | versi-invest/project-context.md | EN COURS |
+| @legal | Audit juridique Versi Invest (carte T, investissement immo, offre d'accompagnement, RGPD formulaire qualification) | versi-invest/project-context.md | EN COURS |
+
+### Phase VINV-0b — Specs fonctionnelles (après creative-strategy)
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | EN ATTENTE |
+
+### Phase VINV-0c — Agents testeurs
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @agent-factory | Créer testeur-persona investisseur Versi Invest (si distinct de Laurent versi.fr) | personas VI2 | EN ATTENTE |
+
+### Phase VINV-1 — Conception
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @ux | Parcours utilisateur + wireframes multi-pages | specs + brand-platform VI2 | EN ATTENTE |
+| @design | Design system adaptation + page compositions | brand-platform VI2 + wireframes | EN ATTENTE |
+| @copywriter | Brand voice adaptation + copy complet toutes pages | brand-platform VI2 + wireframes | EN ATTENTE |
+
+### Phase VINV-2 — Développement
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @fullstack | Site complet multi-pages + simulateur + serveur Express + BDD inscriptions | design-system + copy + specs | EN ATTENTE |
+| @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
+
+### Phase VINV-3 — Visibilité
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @seo | SEO technique + métadonnées + schema.org | Site développé | EN ATTENTE |
+| @geo | Visibilité LLM (GEO) | brand-platform + site | EN ATTENTE |
+
+### Phase VINV-4 — Acquisition (allégée)
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | EN ATTENTE |
+| @social | Stratégie LinkedIn corporate Versi Invest | brand-platform | EN ATTENTE |
+
+### Phase VINV-5 — Audit & Validation
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE |
+| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE |
+| Revue finale page par page | Audit chirurgical 21 dimensions | Après corrections reviewer | EN ATTENTE |
 
 ## Décisions clés
 
