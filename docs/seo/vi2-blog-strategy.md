@@ -19,19 +19,20 @@ Volumes estimés sur la base des SERP analysées (WebSearch) et de la logique se
 |---|---|---|---|---|
 | investissement locatif Lille | Moyen (1 000-2 000/mois) | Moyenne | A1 | Forte concurrence plateforme, mais pas d'acteur local terrain crédible |
 | investissement locatif Hauts-de-France | Faible-Moyen (300-800/mois) | Faible | A1 | Quasi aucun acteur local positionné sur ce terme |
-| LMNP ancien rentable 2026 | Moyen (1 000-3 000/mois) | Moyenne-forte | A2 | Portails généralistes présents, mais peu de contenu terrain/chiffres réels |
-| cashflow positif investissement locatif | Moyen (800-2 000/mois) | Moyenne | A1 | Forte demande chez les investisseurs actifs — Nicolas cherche exactement ce terme |
+| cashflow positif investissement locatif | Moyen (800-2 000/mois) | Moyenne | A2 | Forte demande chez les investisseurs actifs — déplacé vers A2 (calcul) |
 | immeuble de rapport rendement Hauts-de-France | Faible (100-300/mois) | Faible | A3 | Niche quasi vierge, très forte pertinence Versi Invest |
+| investissement locatif 60 000 euros apport | Faible (100-400/mois) | Faible | A4 | Correspond exactement au profil de Nicolas — article dédié |
+| fiscalité investissement locatif 2026 | Fort (>2 000/mois) | Forte | A2 | Volume élevé, traité en angle cashflow (pas en article fiscal pur) |
 
 ### 1.2 Mots-clés secondaires (volume plus faible, niche)
 
 | Mot-clé | Volume estimé | Difficulté | Article cible | Remarque |
 |---|---|---|---|---|
-| off-market investissement locatif | Faible (200-500/mois) | Faible | A1 | Terme clé du positionnement Versi Invest — peu de concurrents y répondent sérieusement |
-| simulateur cashflow locatif réel | Faible (100-300/mois) | Faible | A2 | Intention de conversion forte — chercheur = proche de la décision |
-| investissement locatif 60 000 euros apport | Faible (100-400/mois) | Faible | A2 | Correspond exactement au profil de Nicolas |
-| SCI vs LMNP investisseur | Faible-Moyen (300-700/mois) | Moyenne | A4 | Question récurrente des forums — zéro réponse terrain de qualité |
-| co-investissement immobilier locatif | Faible (50-200/mois) | Faible | A3 | Territoire Versi Invest (accompagnement fondateur), quasi vierge |
+| rendement locatif Roubaix | Faible (200-400/mois) | Très faible | A3 | Page locale ultra-spécifique, Versi Invest peut dominer |
+| rendement locatif Tourcoing | Faible (100-300/mois) | Très faible | A3 | Idem — niche géographique vierge |
+| immeuble de rapport financement | Faible-Moyen (300-600/mois) | Faible | A3 | Intention transactionnelle forte |
+| SCI vs LMNP investisseur | Faible-Moyen (300-700/mois) | Moyenne | A2 | Question récurrente — traitée en angle cashflow |
+| investissement locatif sans gestion | Faible-Moyen (500-1 000/mois) | Moyenne | A4 | Intention directe Nicolas — actif, pas de temps |
 
 ### 1.3 Longue traîne — questions et formulations naturelles
 
@@ -54,7 +55,7 @@ Volumes estimés sur la base des SERP analysées (WebSearch) et de la logique se
 
 **Cluster secondaire** : LMNP 2026 + fiscalité + simulation honnête → crédibilité et E-E-A-T
 
-**Cluster off-market** : accès off-market + immeuble rapport + co-investissement → différenciateur Versi Invest
+**Cluster accès terrain** : accès direct + immeuble rapport + réseau terrain → différenciateur Versi Invest (pas exclusivement off-market)
 
 **Angle différenciant vs concurrents** : les plateformes (Masteos, Beanstock, Bevouac) dominent les requêtes génériques. Elles n'ont pas de contenu terrain local sur Hauts-de-France. Elles n'adressent pas la question du cashflow réel vs cashflow promis. L'espace libre est **l'opérateur terrain qui montre les chiffres réels sur une zone géographique précise**.
 
@@ -71,16 +72,16 @@ Volumes estimés sur la base des SERP analysées (WebSearch) et de la logique se
 
 ---
 
-| # | Titre | Mot-clé cible | Angle éditorial | H2 prévus | Longueur |
+| # | Titre | Mot-clé cible | Angle éditorial | CTA naturel | Longueur |
 |---|---|---|---|---|---|
-| A1 | Investir dans l'immobilier locatif à Lille en 2026 : les chiffres qu'on ne vous montre pas | "investissement locatif Lille" + "cashflow positif investissement locatif" | Pas une plaquette commerciale — une décomposition honnête de ce que ça coûte vraiment d'investir à Lille : taxe foncière, vacance locative, charges de copro, gestion. Les chiffres bruts vs les chiffres réels. Angle terrain, données vérifiables. | Le marché locatif lillois en 2026 : ce que les portails ne montrent pas / Brut vs net vs cashflow : les trois rendements que vous devez connaître / Les quartiers de Lille selon votre profil et votre ticket d'entrée / Ce que ça change d'acheter via un opérateur off-market / Nos 3 critères non négociables avant de présenter un bien | 1 200-1 500 mots |
-| A2 | Comment calculer le cashflow réel d'un investissement locatif (sans les hypothèses optimistes) | "comment calculer le cashflow d'un bien locatif" + "simulateur cashflow locatif réel" | Pédagogie radicalement honnête. On montre la formule ligne par ligne — charges réelles, vacance provisionnée, gestion locative, taxe foncière. On prend un exemple fictif [HYPOTHÈSE] proche des biens que Versi Invest présente. On montre la différence entre le calcul d'une plateforme volume et le calcul de Versi Invest. | La formule complète (aucun raccourci) / Les 7 charges que les simulateurs oublient / Exemple chiffré : un T3 à Roubaix à 120 000€ / Scénario optimiste vs scénario dégradé : les deux sont obligatoires / Pourquoi un cashflow à l'équilibre est déjà un bon signe en 2026 | 1 000-1 200 mots |
-| A3 | Immeubles de rapport en Hauts-de-France : où les trouver, comment les analyser, pourquoi le ticket d'entrée change tout | "immeuble de rapport rendement Hauts-de-France" + "off-market investissement locatif" | Article terrain : les bassins d'investissement du Nord (Roubaix, Tourcoing, Valenciennes, Douai), les fourchettes de prix réelles, les raisons pour lesquelles les bons dossiers ne passent pas sur les portails publics. Angle opérateur, pas théorique. | Les villes du Nord où les rendements dépassent 8% brut / Immeuble de rapport vs appartement : ce que ça change pour votre cashflow / Comment un opérateur terrain accède à des biens avant les portails / Les 4 signaux d'alerte sur un immeuble de rapport qui semble parfait / Notre méthode d'analyse avant de présenter un dossier | 1 200-1 500 mots |
-| A4 | LMNP ancien en 2026 : ce qui a changé fiscalement, ce qui reste avantageux, ce qu'on vous dit rarement | "LMNP ancien rentable 2026" + "SCI vs LMNP investisseur" | L'article de fond pour les investisseurs qui ont entendu parler du LMNP mais doutent depuis la réforme de 2025 (réintégration des amortissements dans les plus-values). On explique ce qui a vraiment changé, ce qui reste avantageux, dans quels cas le LMNP reste le meilleur régime. Ton : ni alarmiste ni promotionnel — on expose les faits. | Ce que la réforme de 2025 change concrètement / LMNP ancien vs LMNP neuf : comparaison nette en 2026 / SCI à l'IS : quand ça s'impose, quand ça ne sert à rien / Les profils pour lesquels le LMNP reste optimal / Notre position : LMNP ou IS selon le projet, pas selon la mode | 1 000-1 200 mots |
+| A1 | Investir dans l'immobilier locatif à Lille en 2026 : les chiffres qu'on ne vous montre pas | "investissement locatif Lille" | Décomposition honnête de ce que ça coûte vraiment d'investir à Lille. Chiffres bruts vs réels. Quartiers par profil. Angle terrain. | "Dites-nous votre apport et votre zone cible" → /contact | 1 200-1 500 mots |
+| A3 | Immeubles de rapport en Hauts-de-France : rendement réel, où investir, méthode | "immeuble de rapport rendement Hauts-de-France" + "rendement locatif Roubaix" | Article terrain : Roubaix, Tourcoing, Valenciennes, Douai. Prix réels, signaux d'alerte, méthode d'analyse. Angle opérateur. | "Vous cherchez un immeuble de rapport — dites-nous votre budget" → /contact | 1 200-1 500 mots |
+| A2 | Comment calculer le cashflow réel d'un investissement locatif (sans les hypothèses optimistes) | "cashflow positif investissement locatif" + "calculer cashflow" | Formule complète, 7 charges oubliées, exemple chiffré T3 Roubaix. Scénario dégradé obligatoire. | "Simulation complète avec un fondateur" → /contact | 1 000-1 200 mots |
+| A4 | Avec 60 000€ d'apport : combien de biens en Hauts-de-France ? | "investissement locatif 60 000 euros apport" + "investissement locatif sans gestion" | L'article que Nicolas cherche : son ticket d'entrée, sa capacité d'emprunt, les scénarios possibles (1 appart, 1 immeuble, 2 lots). Chiffres réels HdF. | "On analyse votre capacité avec vos vrais chiffres" → /contact | 1 000-1 200 mots |
 
-**Ordre de publication recommandé** : A1 → A2 → A3 → A4
+**Ordre de publication** : A1 → A3 → A2 → A4
 
-Rationale : A1 et A2 couvrent les requêtes à plus fort volume et adressent les deux premières questions de Nicolas. A3 positionne Versi Invest sur l'off-market et les Hauts-de-France (différenciateur clé). A4 traite la question fiscale souvent bloquante en phase de décision.
+Rationale : A1 attire (Lille, awareness). A3 qualifie (immeubles, territoire Versi). A2 convertit (méthode de calcul, crédibilité). A4 personnalise (apport Nicolas, decision).
 
 ---
 

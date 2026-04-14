@@ -1,0 +1,258 @@
+/**
+ * Pipeline blog autonome — Versi Invest
+ *
+ * Génère un article de blog via l'API Claude, puis le publie en BDD.
+ * Conçu pour être exécuté périodiquement (cron) sans intervention humaine.
+ *
+ * Usage :
+ *   ANTHROPIC_API_KEY=... DATABASE_URL=... node scripts/generate-blog-article.js
+ *
+ * Optionnel :
+ *   --topic "rendement locatif Valenciennes"  → force un sujet
+ *   --dry-run                                 → génère sans publier
+ *
+ * Le script :
+ * 1. Charge le calendrier éditorial (topics non encore publiés)
+ * 2. Sélectionne le prochain sujet
+ * 3. Génère l'article via Claude API
+ * 4. Insert en BDD avec status='published'
+ * 5. Log le résultat
+ */
+
+import pg from 'pg';
+
+const { Pool } = pg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 2,
+  connectionTimeoutMillis: 5000,
+});
+
+// ---------------------------------------------------------------------------
+// Calendrier éditorial — sujets disponibles pour la génération automatique
+// ---------------------------------------------------------------------------
+const EDITORIAL_CALENDAR = [
+  {
+    slug: 'rendement-locatif-valenciennes-2026',
+    topic: 'Rendement locatif à Valenciennes en 2026 : quartiers, prix, cashflow',
+    keywords: 'rendement locatif Valenciennes, investissement locatif Valenciennes',
+    tags: ['investissement', 'Valenciennes', 'Hauts-de-France', 'rendement'],
+  },
+  {
+    slug: 'investir-roubaix-immobilier-locatif',
+    topic: 'Investir à Roubaix : les chiffres réels derrière les rendements à deux chiffres',
+    keywords: 'rendement locatif Roubaix, investissement Roubaix',
+    tags: ['investissement', 'Roubaix', 'Hauts-de-France', 'rendement'],
+  },
+  {
+    slug: 'sci-is-investissement-locatif-quand',
+    topic: 'SCI à l\'IS pour l\'investissement locatif : quand ça vaut le coup, quand non',
+    keywords: 'SCI IS investissement locatif, SCI vs LMNP',
+    tags: ['fiscalité', 'SCI', 'LMNP', 'investissement'],
+  },
+  {
+    slug: 'investir-tourcoing-immobilier',
+    topic: 'Investir à Tourcoing : rendement, risques, quartiers à cibler',
+    keywords: 'rendement locatif Tourcoing, investissement Tourcoing',
+    tags: ['investissement', 'Tourcoing', 'Hauts-de-France', 'rendement'],
+  },
+  {
+    slug: 'charges-investissement-locatif-liste-complete',
+    topic: 'Toutes les charges d\'un investissement locatif : la liste que personne ne donne',
+    keywords: 'charges investissement locatif, frais investissement locatif',
+    tags: ['charges', 'cashflow', 'méthode', 'investissement'],
+  },
+  {
+    slug: 'immeuble-rapport-financement-2026',
+    topic: 'Financer un immeuble de rapport en 2026 : taux, apport, structure',
+    keywords: 'immeuble de rapport financement, financer immeuble rapport',
+    tags: ['financement', 'immeubles', 'investissement'],
+  },
+  {
+    slug: 'vacance-locative-hauts-de-france',
+    topic: 'Vacance locative en Hauts-de-France : la vraie durée entre deux locataires',
+    keywords: 'vacance locative Lille, vacance locative Hauts-de-France',
+    tags: ['Hauts-de-France', 'gestion', 'rendement'],
+  },
+  {
+    slug: 'division-appartement-immeuble-rapport',
+    topic: 'Division d\'appartement et immeuble de rapport : règles, rentabilité, pièges',
+    keywords: 'division appartement immobilier, immeuble de rapport division',
+    tags: ['immeubles', 'travaux', 'rendement'],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Prompt système pour la génération d'article
+// ---------------------------------------------------------------------------
+const SYSTEM_PROMPT = `Tu es le rédacteur du blog Versi Invest (versi-invest.fr).
+Versi Invest détecte des opportunités immobilières rentables pour les investisseurs particuliers en Hauts-de-France et Île-de-France. 16 immeubles, 7,2M€ de volume opéré. 5% de commission côté investisseur, zéro côté vendeur. Carte T obtenue.
+
+RÈGLES DE RÉDACTION :
+- Ton : fondateur qui sait de quoi il parle. Direct, factuel, zéro blabla.
+- Vouvoiement systématique.
+- Vocabulaire investisseur supposé connu : cashflow, rendement brut/net, LMNP, SCI, vacance locative.
+- MOTS INTERDITS : garanti, sans risque, clé en main, accompagnement, expertise, sur-mesure, passive income, liberté financière.
+- L'article doit être utile MÊME sans Versi Invest — pas de pub déguisée.
+- Versi Invest ne fait PAS exclusivement de l'off-market. Les biens viennent du réseau terrain ET du marché.
+- Chiffres : utiliser des fourchettes réalistes, signaler si estimation ("selon les données de marché disponibles").
+- Pas de superlatifs auto-décernés.
+- CTA en fin d'article : naturel, vers /contact, sans forcer.
+
+FORMAT DE SORTIE (markdown) :
+# [Titre H1]
+
+[Chapô — 2-3 phrases d'accroche]
+
+---
+
+## [H2 section 1]
+[Contenu]
+
+## [H2 section 2]
+[Contenu]
+
+[... autant de H2 que nécessaire]
+
+---
+
+[CTA naturel vers /contact]
+
+L'article doit faire entre 1 000 et 1 500 mots. Structure en 4-6 H2.`;
+
+// ---------------------------------------------------------------------------
+// Génération via API Claude
+// ---------------------------------------------------------------------------
+async function generateArticle(topic, keywords) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY non configuré');
+  }
+
+  const userPrompt = `Rédige un article de blog sur le sujet suivant :
+
+Sujet : ${topic}
+Mots-clés SEO à intégrer naturellement : ${keywords}
+
+L'article doit :
+- Apporter de la valeur terrain (chiffres locaux, fourchettes de prix, rendements)
+- Être structuré en 4-6 sections H2
+- Faire 1 000 à 1 500 mots
+- Se terminer par un CTA naturel vers /contact`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Claude erreur ${response.status}: ${err}`);
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+// ---------------------------------------------------------------------------
+// Publication en BDD
+// ---------------------------------------------------------------------------
+async function publishArticle(slug, content, tags, topic) {
+  // Extraire le titre H1 du markdown
+  const h1Match = content.match(/^# (.+)$/m);
+  const title = h1Match ? h1Match[1] : topic;
+
+  // Extraire le chapô (premier paragraphe après le H1)
+  const afterH1 = content.replace(/^# .+\n+/, '');
+  const firstPara = afterH1.split(/\n\n/)[0]?.trim() || '';
+  const excerpt = firstPara.slice(0, 200);
+
+  const tagsJson = JSON.stringify(tags);
+
+  const existing = await pool.query('SELECT id FROM blog_articles WHERE slug = $1', [slug]);
+
+  if (existing.rows.length > 0) {
+    await pool.query(
+      `UPDATE blog_articles SET title=$1, excerpt=$2, content=$3, tags=$4, status='published', published_at=COALESCE(published_at, NOW()), updated_at=NOW() WHERE slug=$5`,
+      [title, excerpt, content, tagsJson, slug],
+    );
+    console.log(`[BLOG-GEN] Article mis à jour : "${title}"`);
+  } else {
+    await pool.query(
+      `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at) VALUES ($1,$2,$3,$4,'Versi Invest',$5,'published',NOW())`,
+      [title, slug, excerpt, content, tagsJson],
+    );
+    console.log(`[BLOG-GEN] Article publié : "${title}"`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function main() {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const topicIdx = args.indexOf('--topic');
+  const forcedTopic = topicIdx >= 0 ? args[topicIdx + 1] : null;
+
+  try {
+    // Trouver le prochain sujet non publié
+    let entry;
+
+    if (forcedTopic) {
+      entry = EDITORIAL_CALENDAR.find((e) => e.topic.toLowerCase().includes(forcedTopic.toLowerCase()));
+      if (!entry) {
+        console.error(`[BLOG-GEN] Sujet introuvable : "${forcedTopic}"`);
+        process.exit(1);
+      }
+    } else {
+      // Vérifier quels slugs sont déjà publiés
+      const published = await pool.query(
+        `SELECT slug FROM blog_articles WHERE status = 'published'`,
+      );
+      const publishedSlugs = new Set(published.rows.map((r) => r.slug));
+
+      entry = EDITORIAL_CALENDAR.find((e) => !publishedSlugs.has(e.slug));
+
+      if (!entry) {
+        console.log('[BLOG-GEN] Tous les sujets du calendrier sont déjà publiés.');
+        await pool.end();
+        return;
+      }
+    }
+
+    console.log(`[BLOG-GEN] Génération : "${entry.topic}"`);
+    console.log(`[BLOG-GEN] Slug : ${entry.slug}`);
+    console.log(`[BLOG-GEN] Keywords : ${entry.keywords}`);
+
+    const content = await generateArticle(entry.topic, entry.keywords);
+
+    console.log(`[BLOG-GEN] Article généré (${content.length} chars)`);
+
+    if (dryRun) {
+      console.log('\n--- DRY RUN — contenu généré ---\n');
+      console.log(content);
+      console.log('\n--- Fin dry run ---');
+    } else {
+      await publishArticle(entry.slug, content, entry.tags, entry.topic);
+    }
+  } catch (err) {
+    console.error('[BLOG-GEN] Erreur :', err.message);
+    process.exit(1);
+  } finally {
+    await pool.end();
+  }
+}
+
+main();
