@@ -17,9 +17,9 @@ const PROPERTIES = [
     type: 'Appartement',
     surface: '47 m²',
     rooms: 2,
-    price: '95 000 €',
-    price_num: 95000,
-    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 130 000 €.',
+    price: '98 700 €',
+    price_num: 98700,
+    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 117 000 €.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -31,7 +31,7 @@ const PROPERTIES = [
 
 Le séjour-cuisine de 26 m² est lumineux et ouvre sur l'extérieur sans marche, sans seuil. L'été, on pose la table dehors et on mange à l'air libre. L'hiver, la lumière traverse le séjour toute la journée. La chambre de 10,2 m² donne côté cour, au calme. Chauffage collectif, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
 
-L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logements de qualité. Finitions soignées : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 95 000 € vous achetez avant travaux et vous choisissez vos finitions, à 130 000 € on vous livre prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.
+L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logements de qualité. Finitions soignées : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 98 700 € vous achetez avant travaux et vous choisissez vos finitions, à 117 000 € on vous livre prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.
 
 Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     works: JSON.stringify([]),
@@ -47,7 +47,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
   },
   {
     id: 'muguets-lot-2-t3',
-    title: 'T3 de 82 m² avec séjour traversant de 40 m², 1er étage',
+    title: 'T3 de 86 m² avec séjour traversant de 40 m², 1er étage',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -55,11 +55,11 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     nearby_transport: 'Métro Cormontaigne (ligne 2) à 8 minutes à pied. Correspondance Porte des Postes (lignes 1 et 2). Gare Lille Flandres et Gare Lille Europe accessibles en métro direct.',
     nearby_amenities: 'Écoles maternelles Florian et La Briqueterie, école élémentaire Turgot (rue du Faubourg des Postes), collège Louise Michel. Crèches municipales Marie Curie et Les P\'tits Minouches. Parc du Grand Sud (4 hectares). Centre commercial Lillenium (rue du Faubourg des Postes, une centaine d\'enseignes). CHU de Lille — Hôpital Roger Salengro dans le quartier (urgences adultes et pédiatriques).',
     type: 'Appartement',
-    surface: '82,2 m²',
+    surface: '86 m²',
     rooms: 3,
-    price: '165 000 €',
-    price_num: 165000,
-    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 230 000 €.',
+    price: '176 300 €',
+    price_num: 176300,
+    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 232 200 €.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -67,11 +67,11 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `82 m² d'un seul tenant, sans couloir qui mange la surface, sans mur porteur au milieu. C'est ce que donne un ancien plateau de bureaux quand on le transforme bien. Un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. Tout l'espace est utile.
+    description: `86 m² d'un seul tenant, sans couloir qui mange la surface, sans mur porteur au milieu. C'est ce que donne un ancien plateau de bureaux quand on le transforme bien. Un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. Tout l'espace est utile.
 
 Le séjour donne une vraie liberté d'aménagement. Table de 8, canapé d'angle, coin bureau, tout rentre sans compromis. Les deux chambres sont séparées du séjour. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
 
-Ancien bâtiment de bureaux transformé en 3 logements de qualité par Versi. Sols en parquet contrecollé chêne, double vitrage sur toutes les menuiseries, salle d'eau grand format, cuisine pré-équipée. À 165 000 € avant travaux ou 230 000 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
+Ancien bâtiment de bureaux transformé en 3 logements de qualité par Versi. Sols en parquet contrecollé chêne, double vitrage sur toutes les menuiseries, salle d'eau grand format, cuisine pré-équipée. À 176 300 € avant travaux ou 232 200 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
 
 Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     works: JSON.stringify([]),
@@ -87,7 +87,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
   },
   {
     id: 'muguets-lot-3-duplex',
-    title: 'Duplex 126 m² sur deux niveaux, terrasse et plafond cathédrale',
+    title: 'Duplex 137 m² sur deux niveaux, terrasse et plafond cathédrale',
     city: 'Lille',
     location: 'Lille',
     neighborhood: 'Lille-Sud',
@@ -95,11 +95,11 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     nearby_transport: 'Métro Cormontaigne (ligne 2) à 8 minutes à pied. Correspondance Porte des Postes (lignes 1 et 2). Gare Lille Flandres et Gare Lille Europe accessibles en métro direct.',
     nearby_amenities: 'Écoles maternelles Florian et La Briqueterie, école élémentaire Turgot (rue du Faubourg des Postes), collège Louise Michel. Crèches municipales Marie Curie et Les P\'tits Minouches. Parc du Grand Sud (4 hectares). Centre commercial Lillenium (rue du Faubourg des Postes, une centaine d\'enseignes). CHU de Lille — Hôpital Roger Salengro dans le quartier (urgences adultes et pédiatriques).',
     type: 'Duplex',
-    surface: '126,3 m²',
+    surface: '137 m²',
     rooms: 5,
-    price: '250 000 €',
-    price_num: 250000,
-    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 355 000 €.',
+    price: '274 000 €',
+    price_num: 274000,
+    price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 342 500 €.',
     status: 'disponible',
     dpe: null,
     dpe_note: 'DPE en cours',
@@ -107,16 +107,16 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     tenancy: 'Libre',
     renovation_year: null,
     charges: null,
-    description: `Terrasse de 12 m² donnant sur l'église du quartier. Vue sur pierre, pas sur fenêtres d'immeuble. En haut, un plafond cathédrale qui donne au séjour une hauteur qu'on ne retrouve nulle part ailleurs dans l'immeuble. Les deux derniers étages, pour un seul appartement : 126 m² sur deux niveaux.
+    description: `Terrasse de 12 m² donnant sur l'église du quartier. Vue sur pierre, pas sur fenêtres d'immeuble. En haut, un plafond cathédrale qui donne au séjour une hauteur qu'on ne retrouve nulle part ailleurs dans l'immeuble. Les deux derniers étages, pour un seul appartement : 137 m² sur deux niveaux.
 
 En bas : trois chambres de 15 m² chacune, chaque chambre indépendante, chacun son espace, et une salle d'eau. En haut : un séjour-cuisine de 47 m² sous les toits, lumineux, avec accès direct à la terrasse. On prend le café dehors le matin avec vue sur le clocher, on reçoit des amis le soir dans un séjour où personne n'est à l'étroit. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
 
-L'immeuble, ancien bâtiment de bureaux, est intégralement transformé par Versi en 3 logements de qualité. Chaque finition est choisie pour durer : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 250 000 € avant travaux ou 355 000 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
+L'immeuble, ancien bâtiment de bureaux, est intégralement transformé par Versi en 3 logements de qualité. Chaque finition est choisie pour durer : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 274 000 € avant travaux ou 342 500 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
 
 Pour visiter le duplex ou recevoir la plaquette détaillée, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Duplex 126 m² sur deux niveaux',
+      'Duplex 137 m² sur deux niveaux',
       'Terrasse 12 m² donnant sur l\'église',
       'Plafond cathédrale au dernier étage',
       'Séjour-cuisine 47 m² sous les toits',
