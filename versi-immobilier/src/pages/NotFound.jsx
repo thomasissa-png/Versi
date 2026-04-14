@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 
 export default function NotFound() {
   return (
     <>
+      <PageHead
+        title="Page introuvable — Versi Immobilier"
+        description="La page demandée n'existe pas ou a été déplacée."
+        noindex
+      />
       <Nav />
       <main style={{
         paddingTop: 'var(--nav-height)',

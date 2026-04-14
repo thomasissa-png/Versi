@@ -145,7 +145,7 @@ export default function SellPage() {
     <>
       <PageHead
         title="Céder un bien à Lille — Offre ferme 7j | Versi Immo"
-        description="Versi Immobilier achète en direct à Lille et Hauts-de-France, sans condition suspensive de financement. Offre ferme sous 7 jours, fonds propres, ou refus motivé par écrit."
+        description="Versi Immobilier achète en direct à Lille, sans condition suspensive. Offre ferme sous 7 jours ou refus motivé."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal

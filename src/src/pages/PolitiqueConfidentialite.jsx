@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import './LegalPage.css';
 
 export default function PolitiqueConfidentialite() {
@@ -19,6 +20,11 @@ export default function PolitiqueConfidentialite() {
 
   return (
     <>
+      <PageHead
+        title="Politique de confidentialité — Versi"
+        description="Politique de confidentialité et RGPD du site versi.fr."
+        noindex
+      />
       <Nav />
       <div className="legal-page">
         <main className="legal-page__content container">

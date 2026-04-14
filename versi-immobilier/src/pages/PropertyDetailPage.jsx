@@ -152,7 +152,7 @@ export default function PropertyDetailPage() {
   return (
     <>
       <PageHead
-        title={`${property.title.slice(0, 35)} — ${property.city || 'Lille'} | Versi Immo`}
+        title={`${property.title.slice(0, 30)} — ${property.city || 'Lille'} | Versi Immo`}
         description={`${property.type || 'Bien immobilier'}, ${property.surface || ''}, ${property.price || ''}. Visite sur demande.`}
       />
       <a href="#main-content" className="skip-nav">

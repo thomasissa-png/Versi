@@ -202,12 +202,10 @@ export default function BlogArticlePage() {
 
   return (
     <>
-      {article && (
-        <PageHead
-          title={`${article.title.slice(0, 45)} | Versi Immo`}
-          description={article.excerpt || ''}
-        />
-      )}
+      <PageHead
+        title={article ? `${article.title.slice(0, 45)} | Versi Immo` : 'Blog | Versi Immobilier'}
+        description={article ? (article.excerpt || '') : 'Article de blog Versi Immobilier.'}
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>
