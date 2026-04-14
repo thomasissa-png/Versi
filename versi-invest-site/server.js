@@ -327,7 +327,7 @@ app.get('/api/health', async (req, res) => {
 // ---------------------------------------------------------------------------
 // SPA fallback — toutes les routes non-API renvoient index.html
 // ---------------------------------------------------------------------------
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   const indexPath = join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
