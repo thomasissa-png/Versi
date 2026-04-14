@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PropertyCard from '../components/PropertyCard.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useProperties } from '../hooks/useProperties.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -68,6 +69,10 @@ export default function PropertiesPage() {
 
   return (
     <>
+      <PageHead
+        title="Appartements et biens rénovés à vendre — Lille, Hauts-de-France | Versi Immobilier"
+        description="Biens disponibles et en précommercialisation. Diagnostics inclus, visite sur demande. Vente directe sans frais d'agence."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

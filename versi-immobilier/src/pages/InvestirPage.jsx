@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 
 export default function InvestirPage() {
   return (
     <>
+      <PageHead
+        title="Investir avec Versi | Versi Immobilier"
+        description="Acquisition, transformation, structuration — une équipe qui maîtrise l'ensemble du cycle. Investissez aux côtés d'un opérateur intégré."
+        noindex
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

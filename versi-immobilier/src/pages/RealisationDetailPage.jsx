@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useProject } from '../hooks/useProject.js';
 import { useProjects } from '../hooks/useProjects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
@@ -107,6 +108,10 @@ export default function RealisationDetailPage() {
 
   return (
     <>
+      <PageHead
+        title={`${project.title} — Réalisation Versi Immobilier`}
+        description={`Rénovation ${project.type || 'immobilière'} à ${project.location || 'Hauts-de-France'}. ${project.surface || ''}. Vendu ${project.sellPrice || ''}.`}
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

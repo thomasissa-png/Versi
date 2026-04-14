@@ -4,6 +4,7 @@ import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import SellForm from '../components/SellForm.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { PROJECTS } from '../config/projects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import thomas from '../assets/team/thomas.png';
@@ -116,6 +117,10 @@ export default function SellPage() {
 
   return (
     <>
+      <PageHead
+        title="Céder un bien immobilier — Offre ferme en 7 jours | Versi Immobilier"
+        description="Versi Immobilier achète en direct, sans condition suspensive de financement. Offre ferme sous 7 jours ou refus motivé par écrit."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

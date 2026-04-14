@@ -1,10 +1,15 @@
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { CONTACT_EMAIL } from '../config/contact.js';
 
 export default function MentionsLegales() {
   return (
     <>
+      <PageHead
+        title="Mentions légales — Versi Immobilier"
+        description="Mentions légales de Versi Immobilier, marchand de biens."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useBlogArticles } from '../hooks/useBlogArticles.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -43,6 +44,10 @@ export default function BlogPage() {
 
   return (
     <>
+      <PageHead
+        title="Blog immobilier Lille — Achat, rénovation, marché | Versi Immobilier"
+        description="Guides pratiques pour acheter à Lille : marché, prix au m², garanties d'un marchand de biens, financement. Rédigés par l'équipe Versi."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

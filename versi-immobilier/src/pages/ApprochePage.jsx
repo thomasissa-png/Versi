@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 import thomasPhoto from '../assets/team/thomas.png';
 import maxPhoto from '../assets/team/max.png';
@@ -123,6 +124,10 @@ export default function ApprochePage() {
 
   return (
     <>
+      <PageHead
+        title="Comment Versi Immobilier travaille — Méthode et équipe"
+        description="Sourcer, analyser, acquérir, transformer. Quatre étapes, zéro délégation. Les trois fondateurs gèrent chaque opération en direct."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

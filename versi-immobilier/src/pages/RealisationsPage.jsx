@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import ProjectCard from '../components/ProjectCard.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useProjects } from '../hooks/useProjects.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -23,6 +24,10 @@ export default function RealisationsPage() {
 
   return (
     <>
+      <PageHead
+        title="Réalisations — Immeubles et appartements rénovés | Versi Immobilier"
+        description="Chaque rénovation documentée : adresse, délais, chiffres. 3,2M€ de volume traité depuis 2022."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

@@ -2,6 +2,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import ContactForm from '../components/ContactForm.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -12,6 +13,10 @@ export default function ContactPage() {
 
   return (
     <>
+      <PageHead
+        title="Contact — Versi Immobilier"
+        description="Contactez Versi Immobilier pour visiter un bien, soumettre un dossier ou demander une présentation."
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

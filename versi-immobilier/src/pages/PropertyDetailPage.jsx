@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PropertyCard from '../components/PropertyCard.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useProperty } from '../hooks/useProperty.js';
 import { useProperties } from '../hooks/useProperties.js';
 import { CONTACT_EMAIL } from '../config/contact.js';
@@ -41,6 +43,58 @@ export default function PropertyDetailPage() {
   const { property, photos, loading, error } = useProperty(id);
   const { properties: allProperties } = useProperties('disponible');
   const { ref, isVisible } = useFadeIn();
+
+  /* JSON-LD RealEstateListing — GEO R6 */
+  useEffect(() => {
+    if (!property) return;
+
+    const mainImage = photos.length > 0 ? photos[0].url : undefined;
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'RealEstateListing',
+      name: property.title,
+      description: property.description
+        ? property.description.slice(0, 200)
+        : undefined,
+      url: `https://versi-immobilier.fr/nos-biens/${property.id}`,
+      datePosted: property.created_at,
+      ...(mainImage && { image: mainImage }),
+      offers: {
+        '@type': 'Offer',
+        price: property.priceNum,
+        priceCurrency: 'EUR',
+        availability:
+          property.status === 'disponible'
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/SoldOut',
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: property.city,
+        addressRegion: 'Hauts-de-France',
+      },
+      ...(property.surface && {
+        floorSize: {
+          '@type': 'QuantitativeValue',
+          value: parseInt(property.surface, 10),
+          unitCode: 'MTK',
+        },
+      }),
+      ...(property.rooms && { numberOfRooms: property.rooms }),
+      seller: { '@id': 'https://versi-immobilier.fr/#organization' },
+    };
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(jsonLd);
+    script.id = 'property-jsonld';
+    document.head.appendChild(script);
+
+    return () => {
+      const el = document.getElementById('property-jsonld');
+      if (el) el.remove();
+    };
+  }, [property, photos]);
 
   if (loading) {
     return (
@@ -97,6 +151,10 @@ export default function PropertyDetailPage() {
 
   return (
     <>
+      <PageHead
+        title={`${property.title} — ${property.city || 'Hauts-de-France'} | Versi Immobilier`}
+        description={`${property.type || 'Bien immobilier'}, ${property.surface || ''}, ${property.price || ''}. Visite sur demande.`}
+      />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>

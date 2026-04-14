@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import { useBlogArticle } from '../hooks/useBlogArticle.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
 
@@ -186,14 +187,9 @@ export default function BlogArticlePage() {
     script.id = 'blog-jsonld';
     document.head.appendChild(script);
 
-    // Update page title
-    const prevTitle = document.title;
-    document.title = `${article.title} — Versi Immobilier`;
-
     return () => {
       const el = document.getElementById('blog-jsonld');
       if (el) el.remove();
-      document.title = prevTitle;
     };
   }, [article]);
 
@@ -206,6 +202,12 @@ export default function BlogArticlePage() {
 
   return (
     <>
+      {article && (
+        <PageHead
+          title={`${article.title} — Versi Immobilier`}
+          description={article.excerpt || ''}
+        />
+      )}
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
       </a>
@@ -307,6 +309,45 @@ export default function BlogArticlePage() {
                     color: 'var(--color-text-primary)',
                   }}
                 />
+
+                {/* CTA acquéreur — GEO R2 */}
+                <div
+                  className="blog-article__cta-box"
+                  style={{
+                    background: 'var(--color-bg-subtle)',
+                    padding: 'var(--spacing-xl)',
+                    borderRadius: 'var(--card-radius)',
+                    marginTop: 'var(--spacing-2xl)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <p style={{
+                    fontSize: 'var(--font-size-body-md)',
+                    fontWeight: 'var(--font-weight-medium)',
+                    marginBottom: 'var(--spacing-md)',
+                    color: 'var(--color-text-primary)',
+                  }}>
+                    Vous cherchez un appartement rénové à Lille ?
+                  </p>
+                  <Link
+                    to="/nos-biens"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'var(--color-charcoal-950)',
+                      color: 'var(--color-calcaire-50)',
+                      padding: '12px 32px',
+                      borderRadius: 'var(--radius-sm)',
+                      textDecoration: 'none',
+                      minHeight: '44px',
+                      fontSize: 'var(--font-size-body-sm)',
+                      fontWeight: 'var(--font-weight-medium)',
+                      transition: 'opacity var(--duration-normal) ease',
+                    }}
+                  >
+                    Voir les biens disponibles →
+                  </Link>
+                </div>
 
                 {/* Footer navigation */}
                 <div style={{
