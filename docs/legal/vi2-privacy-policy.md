@@ -1,133 +1,164 @@
 # Politique de confidentialité — Versi Invest
 
 > Agent : @legal | Date : 2026-04-14 | Version : 1.0
-> Statut : Draft de référence — validation avocat recommandée avant mise en ligne
-> Chemin : docs/legal/vi2-privacy-policy.md
-
-Dernière mise à jour : [À REMPLIR — date de déploiement du site]
-
----
-
-## 1. Responsable du traitement
-
-Le responsable du traitement des données collectées sur versi-invest.fr est :
-
-**SAS Gradient One**
-SIREN 932 271 181 — RCS Nanterre
-Contact : contact@versi.fr
-
-> Note : à mettre à jour avec les coordonnées de SAS Versi Invest dès son immatriculation.
+> Base légale : RGPD (Règlement UE 2016/679) + Loi Informatique et Libertés modifiée
+> Périmètre : formulaire de qualification investisseur + analytics Umami (exemption cookies)
+> Adapté depuis : docs/legal/privacy-policy.md (versi.fr générique)
 
 ---
 
-## 2. Données collectées
+## Résumé exécutif — Risques en 5 points
 
-### 2.1 Formulaire de qualification investisseur
-
-Lors de votre inscription sur la liste d'attente Versi Invest, les données suivantes sont collectées :
-
-| Donnée | Obligatoire | Finalité |
-|--------|------------|----------|
-| Nom et prénom | Oui | Identification et personnalisation du contact |
-| Adresse email | Oui | Recontact et envoi d'opportunités |
-| Numéro de téléphone | Oui | Qualification téléphonique du projet |
-| Budget d'investissement estimé | Oui | Matching avec les opportunités disponibles |
-| Zone géographique souhaitée | Oui | Ciblage des recherches de biens |
-| Premier investissement (oui/non) | Oui | Adaptation du niveau d'accompagnement |
-| Message libre | Non | Précisions sur le projet d'investissement |
-
-Versi Invest ne collecte pas de données sensibles au sens de l'article 9 du RGPD (santé, origine ethnique, opinions politiques, etc.).
-
-### 2.2 Données de navigation
-
-Le site utilise Umami Analytics, une solution de mesure d'audience respectueuse de la vie privée. Umami ne dépose aucun cookie, ne collecte aucune donnée personnelle identifiable et ne transfère aucune donnée en dehors de l'Union européenne. Conformément aux lignes directrices de la CNIL (délibération n° 2020-091), cette mesure d'audience est exemptée de consentement.
+| # | Point | Statut |
+|---|-------|--------|
+| R1 | Données patrimoniales (budget, capacité d'emprunt) : base légale mesures précontractuelles | Couvert — art. 6.1.b RGPD + consentement marketing en complément |
+| R2 | Information obligatoire au moment de la collecte (art. 13 RGPD) | Couvert — texte à afficher sous le formulaire de qualification |
+| R3 | Durée de conservation : 3 ans prospects non convertis, 5 ans clients | Couvert — conforme référentiel CNIL |
+| R4 | Umami Analytics : cookieless — exemption CNIL applicable si correctement configuré | Couvert — aucune bannière cookies requise |
+| R5 | Sous-traitants : Replit (hébergement) + Formspree (formulaire) — DPA à signer | À faire avant mise en ligne |
 
 ---
 
-## 3. Finalités du traitement
+## POLITIQUE DE CONFIDENTIALITÉ — VERSI INVEST
 
-Les données collectées via le formulaire de qualification sont traitées pour les finalités suivantes :
-
-1. **Qualification du projet d'investissement :** analyser votre profil et votre budget pour identifier les opportunités correspondantes
-2. **Gestion de la liste d'attente :** vous recontacter lors de l'ouverture officielle du service ou lors de la disponibilité d'une opportunité correspondant à votre profil
-3. **Envoi d'informations :** vous communiquer des opportunités d'investissement immobilier off-market sélectionnées par Versi Invest
-4. **Amélioration du service :** analyser les profils agrégés (sans identification individuelle) pour affiner l'offre
+*(Texte à intégrer dans la page /politique-de-confidentialite du site Versi Invest)*
 
 ---
 
-## 4. Base légale du traitement
+### Introduction
 
-| Finalité | Base légale (RGPD art. 6) |
-|----------|--------------------------|
-| Qualification et recontact | Consentement (art. 6.1.a) — recueilli via le formulaire d'inscription |
-| Envoi d'opportunités | Consentement (art. 6.1.a) |
-| Amélioration du service | Intérêt légitime (art. 6.1.f) — données agrégées et anonymisées |
+Versi Invest, filiale de **SAS Gradient One** (dont le siège social est situé [À REMPLIR PAR LE FONDATEUR — adresse], immatriculée au RCS de [À REMPLIR PAR LE FONDATEUR — ville et SIREN]), attache une importance particulière à la protection de vos données personnelles.
 
-Vous pouvez retirer votre consentement à tout moment en écrivant à contact@versi.fr. Le retrait du consentement ne remet pas en cause la licéité du traitement effectué avant ce retrait.
+La présente politique de confidentialité décrit comment Versi Invest collecte, utilise et protège les informations personnelles que vous nous communiquez lorsque vous utilisez le site Versi Invest, notamment via le formulaire de qualification investisseur.
 
 ---
 
-## 5. Durée de conservation
+### 1. Responsable du traitement
 
-| Catégorie | Durée |
-|-----------|-------|
-| Données des inscrits actifs (ayant eu une interaction dans les 24 derniers mois) | Durée de la relation + 3 ans après le dernier contact actif |
-| Données des inscrits inactifs (aucune interaction depuis 2 ans) | Suppression automatique après un email de réactivation sans réponse |
-| Données en cas de relation commerciale (mandat signé) | 5 ans à compter de la fin de la relation (prescription civile) |
-| Données de prospection sans suite | 3 ans à compter du dernier contact |
+**Responsable du traitement :** SAS Gradient One (Groupe Versi / Versi Invest)
+**Adresse :** [À REMPLIR PAR LE FONDATEUR]
+**Email de contact :** contact@versi.fr
 
----
-
-## 6. Destinataires des données
-
-Vos données sont exclusivement transmises aux personnes et entités suivantes :
-
-- **Équipe Versi Invest :** les fondateurs et collaborateurs habilités, dans le cadre strict de la qualification et du suivi de votre projet
-- **Replit Inc. (hébergeur technique) :** en qualité de sous-traitant, pour l'hébergement du site et de la base de données. Replit dispose d'un accord de traitement des données (DPA) — voir checklist RGPD vi2-rgpd-checklist.md, point 5
-
-Vos données ne sont jamais vendues, louées ou cédées à des tiers à des fins commerciales.
+Versi Invest ne dispose pas de Délégué à la Protection des Données (DPO) obligatoire au sens de l'article 37 du RGPD, la nature des traitements ne relevant pas des catégories visées à l'art. 37.1. Pour toute question relative à vos données personnelles : contact@versi.fr — ce contact fait office de point de contact RGPD.
 
 ---
 
-## 7. Transferts hors Union européenne
+### 2. Données collectées et finalités
 
-L'hébergeur technique Replit Inc. est établi aux États-Unis. Ce transfert est encadré par les clauses contractuelles types (CCT) de la Commission européenne, conformément à l'article 46 du RGPD.
+#### 2.1 Formulaire de qualification investisseur
 
-Aucune autre donnée n'est transférée hors de l'Union européenne.
+Lorsque vous remplissez le formulaire de qualification disponible sur le site Versi Invest, nous collectons les informations suivantes :
 
----
+| Donnée | Finalité | Base légale |
+|--------|----------|-------------|
+| Nom et prénom | Identifier votre profil et personnaliser l'accompagnement | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Adresse email | Vous recontacter et vous envoyer votre simulation | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Numéro de téléphone | Prise de contact pour qualifier votre projet | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Budget d'acquisition | Qualifier votre capacité d'investissement et identifier des biens adaptés | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Capacité d'emprunt | Évaluer la faisabilité financière de votre projet | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Ville(s) cible(s) | Orienter le sourcing vers les marchés correspondant à votre projet | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Objectif d'investissement | Adapter la stratégie d'accompagnement | Mesures précontractuelles (art. 6.1.b RGPD) |
+| Consentement communications | Vous envoyer des informations sur l'offre Versi Invest | Consentement (art. 6.1.a RGPD) — case à cocher distincte, non pré-cochée |
 
-## 8. Vos droits
+**Ces données sont utilisées exclusivement pour vous accompagner dans votre projet d'investissement immobilier locatif. Elles ne sont pas cédées à des tiers à des fins commerciales.**
 
-Conformément au RGPD (articles 15 à 22) et à la loi Informatique et Libertés, vous disposez des droits suivants :
+#### 2.2 Analytics — Umami
 
-| Droit | Description |
-|-------|-------------|
-| Accès (art. 15) | Obtenir une copie de vos données personnelles traitées |
-| Rectification (art. 16) | Corriger des données inexactes ou incomplètes |
-| Effacement (art. 17) | Demander la suppression de vos données ("droit à l'oubli") |
-| Limitation (art. 18) | Suspendre temporairement le traitement de vos données |
-| Opposition (art. 21) | Vous opposer au traitement pour motif légitime |
-| Portabilité (art. 20) | Recevoir vos données dans un format structuré et lisible par machine |
-| Retrait du consentement | Retirer votre consentement à tout moment, sans justification |
+Versi Invest utilise **Umami Analytics** pour mesurer l'audience du site. Umami est une solution d'analyse d'audience respectueuse de la vie privée :
 
-**Pour exercer vos droits :** envoyez un email à contact@versi.fr en précisant votre nom, prénom et la nature de votre demande. Réponse sous 30 jours calendaires. Une pièce d'identité peut être demandée pour les droits d'accès et d'effacement.
+- Aucun cookie d'identification n'est déposé sur votre navigateur
+- Aucune donnée personnelle identifiable n'est collectée : Umami collecte des données agrégées et anonymisées (pages vues, pays, type d'appareil, source de trafic)
+- Aucun suivi inter-sites n'est effectué
 
----
+Lorsque Umami est configuré en mode anonymisé, **aucun consentement cookies n'est requis**, conformément aux lignes directrices CNIL sur les solutions d'analyse d'audience exemptées.
 
-## 9. Réclamation auprès de la CNIL
+#### 2.3 Données non collectées
 
-Si vous estimez que le traitement de vos données ne respecte pas la réglementation applicable, vous avez le droit d'introduire une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) :
-
-- **Site web :** www.cnil.fr
-- **Adresse :** 3 Place de Fontenoy — TSA 80715 — 75334 Paris Cedex 07
-
----
-
-## 10. Modification de la politique
-
-Versi Invest se réserve le droit de modifier la présente politique de confidentialité. En cas de modification substantielle, vous serez informé par email à l'adresse renseignée lors de votre inscription. La version en vigueur est celle affichée sur le site à la date de votre consultation.
+Versi Invest ne collecte pas :
+- Données de santé
+- Données bancaires (RIB, numéro de carte)
+- Données relatives à des infractions ou condamnations
+- Données concernant des mineurs de moins de 16 ans
 
 ---
 
-**Handoff → @fullstack :** implémenter ce contenu dans `PolitiqueConfidentialite.jsx`. Lier cette page depuis le formulaire (texte sous le bouton de soumission) et depuis le footer. La page doit être accessible sans authentification.
+### 3. Durée de conservation
+
+| Catégorie | Durée | Fondement |
+|-----------|-------|-----------|
+| Prospects qualifiés non convertis | 3 ans à compter du dernier contact | Référentiel CNIL prospects |
+| Clients (données liées à la mission) | 5 ans à compter de la fin de la mission | Prescription contractuelle (art. 2224 C. civ.) |
+| Données de simulation financière | 3 ans à compter de la simulation | Référentiel CNIL prospects |
+| Logs analytics Umami | 13 mois glissants | Recommandation CNIL |
+| Preuve de consentement marketing | Jusqu'au retrait + 3 ans | Art. 7.1 RGPD |
+
+---
+
+### 4. Sous-traitants et transferts hors UE
+
+Versi Invest fait appel aux sous-traitants suivants :
+
+| Sous-traitant | Rôle | Localisation | Garanties |
+|---------------|------|-------------|-----------|
+| Replit Inc. | Hébergement du site | États-Unis | Clauses contractuelles types UE (décision 2021/914) |
+| Formspree (si utilisé) | Traitement des soumissions de formulaire | États-Unis | Clauses contractuelles types UE |
+
+Les transferts vers les États-Unis sont encadrés par les Clauses Contractuelles Types adoptées par la Commission européenne. Versi Invest s'assure que ses sous-traitants respectent les obligations de l'art. 28 RGPD.
+
+**Aucun transfert de données à des partenaires commerciaux sans votre consentement explicite préalable.**
+
+---
+
+### 5. Vos droits
+
+Conformément au RGPD (art. 15 à 22), vous disposez des droits suivants :
+
+- **Droit d'accès** : obtenir une copie de vos données traitées
+- **Droit de rectification** : corriger des données inexactes ou incomplètes
+- **Droit à l'effacement** : demander la suppression de vos données, sauf obligation légale
+- **Droit à la limitation** : suspendre le traitement dans certains cas
+- **Droit à la portabilité** : recevoir vos données dans un format structuré
+- **Droit d'opposition** : vous opposer aux traitements fondés sur l'intérêt légitime
+- **Droit de retrait du consentement** : retirer votre consentement à tout moment sans remettre en cause les traitements antérieurs
+
+**Pour exercer vos droits :** contact@versi.fr — délai de réponse : 1 mois (prorogeable à 3 mois en cas de demande complexe).
+
+**Réclamation :** vous pouvez introduire une réclamation auprès de la **CNIL** — www.cnil.fr — 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.
+
+---
+
+### 6. Sécurité des données
+
+Versi Invest met en oeuvre les mesures techniques et organisationnelles appropriées pour protéger vos données :
+- Connexion sécurisée HTTPS sur l'ensemble du site
+- Accès aux données limité aux personnes habilitées
+- Authentification sécurisée sur les outils de traitement
+
+---
+
+### 7. Cookies
+
+**Le site Versi Invest ne dépose pas de cookies de traçage publicitaire ou de profilage.**
+
+Umami Analytics fonctionne sans cookies d'identification. Aucun bandeau de consentement cookies n'est requis. Les éventuels cookies techniques strictement nécessaires au fonctionnement du site (session, préférences) ne nécessitent pas de consentement (exemption CNIL).
+
+---
+
+### 8. Modifications de la politique
+
+Versi Invest se réserve le droit de modifier la présente politique à tout moment. En cas de modification substantielle, vous serez informé par email ou par notification sur le site. La date de dernière mise à jour est indiquée en bas de page.
+
+---
+
+*Dernière mise à jour : avril 2026*
+
+---
+
+**Handoff → @fullstack**
+- Fichiers produits : docs/legal/vi2-privacy-policy.md
+- Décisions prises : base légale formulaire = mesures précontractuelles (art. 6.1.b) + consentement marketing séparé ; Umami = exemption cookies CNIL si configuré correctement ; sous-traitants = Replit + Formspree avec CCT ; DPO non obligatoire
+- Points d'attention :
+  - DPA à signer avec Replit et Formspree avant mise en ligne
+  - Case consentement marketing non pré-cochée et distincte dans le formulaire de qualification
+  - Umami configuré en mode anonymisé (pas de fingerprinting, pas de cookie persistant)
+  - Lien vers cette politique dans le footer + mention sous le formulaire de qualification
