@@ -197,9 +197,9 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE |
-| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE |
-| Revue finale page par page | Audit chirurgical 21 dimensions | Après corrections reviewer | EN ATTENTE |
+| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE — session suivante |
+| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE — session suivante |
+| Revue finale page par page | Audit chirurgical 21 dimensions | Après corrections reviewer | EN ATTENTE — session suivante |
 
 ## Décisions clés
 

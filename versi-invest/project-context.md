@@ -132,7 +132,17 @@
 
 | Agent | Date | Fichiers produits | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-------------------|-----------------|----------------------------------|
-| @legal | 2026-04-14 | docs/legal/vi2-legal-audit.md, docs/legal/vi2-mentions-legales-draft.md, docs/legal/vi2-privacy-policy.md, docs/legal/vi2-rgpd-checklist.md | Activité soumise Loi Hoguet — carte T requise avant sourcing actif ; pas de statut CIF/AMF (immobilier physique) ; IOBSP à étudier si accompagnement financement central ; honoraires 5% TTC légaux sous mandat écrit ; disclaimer simulation indicative (pas de disclaimer AMF "performances passées") ; double mandat Versi Immo/Versi Invest à déclarer par écrit ; base légale RGPD = mesures précontractuelles ; Umami = exemption CNIL ; éditeur = SAS Gradient One pendant période transitoire | Disclaimer "performances passées ne préjugent pas" écarté : Versi Invest accompagne à l'immobilier physique et ne collecte pas de fonds — réglementation AMF non applicable. Qualification CIF écartée : l'immobilier physique n'est pas un instrument financier au sens du CMF. IOBSP : non tranché — dépend du positionnement de l'accompagnement financement (simple conseil vs présentation d'offres de crédit). |
+| @legal | 2026-04-14 | docs/legal/vi2-legal-audit.md, vi2-mentions-legales-draft.md, vi2-privacy-policy.md, vi2-rgpd-checklist.md | Carte T requise avant sourcing actif, pas de CIF/AMF, disclaimer simulateur obligatoire, RGPD = mesures précontractuelles, Umami exempté CNIL | Disclaimer AMF écarté (immobilier physique). CIF écarté. IOBSP non tranché. |
+| @creative-strategy | 2026-04-14 | docs/strategy/vi2-brand-platform.md, vi2-personas.md, vi2-competitive-benchmark.md | Persona Nicolas (41 ans, Lille, 60-80k apport), positionnement "haute conviction, off-market structurel", accent bleu #1B3A5C, 5 concurrents benchmarkés | Persona distinct de Laurent (versi.fr) — Nicolas cherche un accompagnateur, Laurent évalue un opérateur. Clients partout en France (validation fondateur). |
+| @product-manager | 2026-04-14 | docs/product/vi2-functional-specs.md, vi2-product-vision.md | 9 pages spécifiées, simulateur côté client avec formules exactes, formulaire 8 champs, 7 user stories, blog en BDD | Simulateur côté client (pas de backend) — calcul instantané. Références en config seed (pas de back office V1). |
+| @design | 2026-04-14 | docs/design/vi2-design-system.md, vi2-page-compositions.md | Accent bleu #1B3A5C (distinct du vert Versi Immobilier), 5 composants spécifiques, 9 pages composées | Bleu profond = confiance/investissement vs vert = patrimoine bâti. Contrastes WCAG AA vérifiés. |
+| @copywriter | 2026-04-14 | docs/copy/vi2-brand-voice.md, vi2-landing-page-copy.md | Hero "Des biens qui s'autofinancent. Fondateurs en direct, de A à Z.", 10 mots interdits, 9 pages copyées | "accompagnement" interdit en client-facing (trop proche plateformes volume). |
+| @fullstack | 2026-04-14 | versi-invest-site/ (40+ fichiers) | Site complet : 9 pages + serveur Express + PostgreSQL + simulateur + blog + formulaire qualification | 2 agents parallèles (statique + dynamique). Build OK 331 KB JS. |
+| @seo | 2026-04-14 | docs/seo/vi2-seo-strategy.md | 15 mots-clés, meta tags 10 pages, Schema.org, prerender requis | SEO dans meta tags, UX dans H1 (learning s8). |
+| @geo | 2026-04-14 | docs/geo/vi2-geo-strategy.md | llms.txt, FAQPage 8 questions, contenu citationnable, E-E-A-T | Off-site (LinkedIn, Pappers) = action fondateur. |
+| @growth | 2026-04-14 | docs/growth/vi2-growth-strategy.md | Canal prescripteurs = meilleur ROI 30j, LinkedIn 3-5 posts/semaine, blog 2 articles/mois | Budget acquisition = 0€, tout organique. |
+| @social | 2026-04-14 | docs/social/vi2-social-strategy.md | Calendrier éditorial 3j/semaine, pipeline IA, format texte+image | Vidéo écartée en V1 (ROI insuffisant). |
+| orchestrator | 2026-04-14 | orchestration-plan.md, tous les livrables ci-dessus | Session s9 : Phases 0-4 complètes. Phase 5 (audit) en attente session suivante. | Timeouts récurrents agents → orchestrateur a écrit directement specs, design, SEO, GEO. |
 
 ---
 
@@ -146,14 +156,49 @@
 
 ### Mémo de reprise
 
-**Branche** : À définir lors du lancement
-**Date de clôture** : —
-**Dernier commit** : —
+**Branche** : `claude/extract-project-context-osLWB`
+**Date de clôture** : 2026-04-14
+**Dernier commit** : voir `git log --oneline -1`
 
-**Résumé** : Projet Versi Invest créé. project-context.md prêt. En attente du lancement autopilot.
+**Résumé session (versi-s9)** : Session complète Phases 0→4 Versi Invest en autopilot. (1) Phase 0 : @creative-strategy (brand-platform, personas Nicolas, benchmark 5 concurrents), @legal (audit juridique carte T, mentions légales, RGPD), @product-manager (specs 9 pages, simulateur formules, user stories). Checkpoint fondateur validé. (2) Phase 1 : @design (design system accent bleu #1B3A5C, compositions 9 pages), @copywriter (brand voice + copy 9 pages 760 lignes). (3) Phase 2 : @fullstack en 2 agents parallèles — site complet 40+ fichiers (React 19, Express, PostgreSQL, simulateur côté client, formulaire qualification, blog). Build OK 331 KB. (4) Phase 3 : SEO (15 mots-clés, meta tags, Schema.org) + GEO (llms.txt, FAQPage, E-E-A-T). (5) Phase 4 : growth (organique, prescripteurs, LinkedIn) + social (calendrier éditorial 3j/semaine).
 
-**Prochaines actions** :
-1. Lancer le prompt autopilot (phases 0→5)
+**Décisions fondateur cette session** :
+- Nicolas validé comme persona investisseur
+- Investisseurs peuvent résider PARTOUT EN FRANCE (sourcing HdF+IDF)
+- Blog séparé de versi-immobilier confirmé (cible ≠ : investisseurs vs acquéreurs)
+- Pas de back office V1 (références en config/seed)
+
+**Travail restant — PROCHAINE SESSION** :
+
+1. **Phase 5 — Audit & Validation** :
+   - @reviewer : revue croisée GO/NO-GO (32 gates) sur tous les livrables
+   - @agent-factory : créer testeur-persona investisseur Versi Invest (si distinct de Laurent)
+   - testeur-persona : audit GP1-GP10 sur le site
+   - Revue finale page par page : audit chirurgical 21 dimensions
+
+2. **Implémentation SEO/GEO** :
+   - robots.txt + sitemap.xml + llms.txt dans public/
+   - PageHead avec meta tags exacts (cf. docs/seo/vi2-seo-strategy.md section 4)
+   - Schema.org Organization + FAQPage dans index.html
+   - Prerender Playwright des 10 routes
+
+3. **Déploiement** :
+   - npm install dans versi-invest-site/
+   - Configuration .replit pour le 3e site
+   - DNS versi-invest.fr
+   - Seed blog (scripts/seed-blog.js)
+   - Seed BDD (tables waitlist_entries + blog_articles)
+
+4. **Actions fondateur (hors agents)** :
+   - Uploader les 5 vrais immeubles de référence
+   - Créer page LinkedIn entreprise Versi Invest
+   - Créer fiche Pappers.fr (dès immatriculation SAS)
+   - Obtenir carte T CCI
+
+**Commande de reprise suggérée** :
+```
+@orchestrator mode reprise de session. Lis versi-invest/project-context.md et docs/orchestration-plan.md. Priorité : (1) implémentation SEO/GEO technique, (2) @reviewer audit 32 gates, (3) déploiement Replit.
+```
 2. @creative-strategy définit le persona, les frustrations, les verbatims, le benchmark concurrentiel
 3. Phase 0 complète (stratégie + legal + specs)
 4. Checkpoint fondateur avant Phase 1
