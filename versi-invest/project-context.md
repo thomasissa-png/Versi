@@ -18,10 +18,10 @@
 ---
 
 ## Cible
-- **Persona principal** : À définir par @creative-strategy. Direction : particulier souhaitant investir dans l'immobilier locatif (petits ou grands immeubles, biens multi-lots) mais n'ayant pas le temps ou les compétences pour sourcer, analyser, financer et rénover seul. Profil à affiner : cadre supérieur, libéral, chef d'entreprise, investisseur déjà propriétaire de sa RP.
+- **Persona principal** : Nicolas, 41 ans, directeur commercial ETI. Apport 60-80k€, revenus 85k€+, propriétaire RP + 1 studio locatif. Veut scaler son patrimoine locatif sans y passer ses week-ends. Refroidi par les plateformes volume (Masteos, Beanstock). Cherche un interlocuteur qui montre les vrais chiffres. **ATTENTION : les investisseurs peuvent être partout en France** — pas de restriction géographique sur le profil client. Le sourcing est Hauts-de-France + IDF, mais les clients viennent de toute la France.
 - **Problème principal** : Veut se constituer un patrimoine immobilier qui s'autofinance et génère du cashflow positif, mais ne sait pas comment trouver les bons biens, monter le financement, gérer les travaux et la mise en location. Ou n'a simplement pas le temps.
-- **Alternative actuelle** : À étudier par @creative-strategy. Probablement : plateformes d'investissement clé-en-main (Masteos, Bevouac, Beanstock), CGPI classiques, faire soi-même (LeBonCoin + courtier + artisan), ou ne rien faire (paralysie).
-- **Persona secondaire** : Aucun identifié pour l'instant.
+- **Alternative actuelle** : Plateformes clé-en-main volume (Masteos 8-10%, Bevouac 7-9%, Beanstock 8-10%), CGPI classiques (pas de sourcing terrain), faire soi-même (LeBonCoin + courtier + artisan), ou ne rien faire (paralysie).
+- **Persona secondaire** : Pierre, 55 ans, courtier crédit immobilier — prescripteur qui recommande Versi Invest à ses clients investisseurs.
 - **Verbatims persona** : À produire par @creative-strategy.
 
 ---

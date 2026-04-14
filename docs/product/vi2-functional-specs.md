@@ -222,7 +222,7 @@ effort_epargne = max(0, -cashflow_net)
 | Email | email | oui | — |
 | Téléphone | tel | oui | — |
 | Budget estimé | select | oui | < 100k€ / 100-200k€ / 200-500k€ / 500k€+ |
-| Zone géographique | select | oui | Hauts-de-France / Île-de-France / Autre |
+| Zone de sourcing souhaitée | select | oui | Hauts-de-France / Île-de-France / Autre (les investisseurs peuvent résider partout en France — ce champ concerne la zone où ils souhaitent investir) |
 | Premier investissement ? | radio | oui | Oui / Non |
 | Message | textarea | non | — |
 | Consentement RGPD | checkbox (non pré-cochée) | oui | "J'accepte que mes données soient utilisées pour me recontacter dans le cadre de mon projet d'investissement. Voir notre [politique de confidentialité]." |

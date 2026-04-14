@@ -151,7 +151,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 > Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
 > Estimation : 5 phases, ~12 agents, 2-3 sessions
 
-<!-- SESSION_VI2: phases=0 tasks_prod=3 tasks_consult=0 -->
+<!-- SESSION_VI2: phases=1 tasks_prod=3 tasks_consult=0 -->
 
 ### Phase VINV-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
