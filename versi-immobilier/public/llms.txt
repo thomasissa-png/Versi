@@ -1,5 +1,7 @@
 # Versi Immobilier — Marchand de biens
 
+> Last updated: 2026-04-14
+
 > Versi Immobilier est un marchand de biens spécialisé dans l'acquisition, la transformation et la revente d'actifs résidentiels et mixtes en France. Entité du Groupe Versi (https://versi.fr).
 
 ## Activité
@@ -59,13 +61,13 @@ Certains biens sont proposés en double tarification :
 
 ## Pages du site
 
-- Accueil : biens disponibles et en précommercialisation, chiffres clés, équipe
-- Nos biens : grille filtrable des appartements rénovés en vente (ville, type, budget). Page centrale pour les acquéreurs.
-- Vendre un bien : processus de soumission, engagements, FAQ vendeur
-- Réalisations : projets terminés avec chiffres et photos avant/après
-- Notre approche : méthode en 4 étapes, critères de sélection, équipe complète
-- Blog : guides pratiques pour acheter à Lille, marché immobilier, financement, garanties
-- Contact : formulaire segmenté (acquéreur, vendeur, partenaire)
+- Accueil — https://versi-immobilier.fr/ : biens disponibles et en précommercialisation, chiffres clés, FAQ acquéreurs, équipe
+- Nos biens — https://versi-immobilier.fr/nos-biens : grille filtrable des appartements rénovés en vente (ville, type, budget). Page centrale pour les acquéreurs.
+- Vendre un bien — https://versi-immobilier.fr/vendre : processus de soumission, engagements, FAQ vendeur
+- Réalisations — https://versi-immobilier.fr/realisations : projets terminés avec chiffres et photos avant/après
+- Notre approche — https://versi-immobilier.fr/notre-approche : méthode en 4 étapes, critères de sélection, équipe complète
+- Blog — https://versi-immobilier.fr/blog : guides pratiques pour acheter à Lille, marché immobilier, financement, garanties
+- Contact — https://versi-immobilier.fr/contact : formulaire segmenté (acquéreur, vendeur, partenaire)
 
 ## FAQ acquéreurs
 
