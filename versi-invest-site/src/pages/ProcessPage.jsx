@@ -14,7 +14,7 @@ const STEPS = [
   },
   {
     num: '02',
-    title: 'Visite accompagnée',
+    title: 'Visite sur site',
     description: 'Quand un bien passe la présélection, vous visitez avec un fondateur. Pas un assistant, pas un commercial — un des trois co-fondateurs de Versi Invest. Sur site, on valide l\'état réel du bien, on estime les travaux, on vérifie la cohérence du dossier. Vous posez les questions, on répond avec les chiffres.',
     included: 'Déplacement d\'un fondateur. Analyse technique sur site. Rapport de visite écrit. Photos et compte-rendu.',
     duration: '1 journée (visite + rapport sous 48h).',
@@ -56,8 +56,8 @@ export default function ProcessPage() {
   return (
     <>
       <PageHead
-        title="Comment investir avec Versi Invest"
-        description="Sourcing off-market, visite accompagnée, simulation financière, financement, travaux, mise en location. 6 étapes."
+        title="Investissement locatif off-market : 6 étapes — Versi Invest"
+        description="Sourcing off-market, visite sur site avec un fondateur, simulation financière ligne par ligne, financement, travaux, mise en location. Rendement cible 8%+."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -111,13 +111,18 @@ export default function ProcessPage() {
 
         {/* CTA */}
         <section className="page-cta section-padding" aria-label="Inscription">
-          <div className="container" style={{ textAlign: 'center' }}>
+          <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Vous avez un projet d'investissement locatif. Inscrivez-vous sur la liste d'attente.
+              Vous avez un projet d'investissement locatif.
             </p>
-            <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
-            </Link>
+            <div className="page-cta__actions">
+              <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
+                Simuler mon investissement
+              </Link>
+              <Link to="/contact" className="page-cta__btn">
+                S'inscrire — réponse sous 48h
+              </Link>
+            </div>
           </div>
         </section>
       </main>

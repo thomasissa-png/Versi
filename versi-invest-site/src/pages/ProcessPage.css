@@ -29,7 +29,7 @@
 }
 
 .step__title {
-  font-size: 1.5rem;
+  font-size: var(--font-size-heading-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   text-transform: uppercase;
@@ -82,7 +82,7 @@
   }
 
   .step__title {
-    font-size: 1.25rem;
+    font-size: var(--font-size-body-lg);
   }
 
   .step__details {
