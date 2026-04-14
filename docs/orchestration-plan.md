@@ -151,18 +151,18 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 > Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
 > Estimation : 5 phases, ~12 agents, 2-3 sessions
 
-<!-- SESSION_VI2: phases=0 tasks_prod=0 tasks_consult=0 -->
+<!-- SESSION_VI2: phases=0 tasks_prod=2 tasks_consult=0 -->
 
 ### Phase VINV-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @creative-strategy | Personas Versi Invest + brand platform adaptation + benchmark concurrentiel (Masteos, Bevouac, Beanstock, CGPI) | versi-invest/project-context.md | EN COURS |
-| @legal | Audit juridique Versi Invest (carte T, investissement immo, offre d'accompagnement, RGPD formulaire qualification) | versi-invest/project-context.md | EN COURS |
+| @creative-strategy | Personas Versi Invest + brand platform adaptation + benchmark concurrentiel (Masteos, Bevouac, Beanstock, CGPI) | versi-invest/project-context.md | TERMINÉ |
+| @legal | Audit juridique Versi Invest (carte T, investissement immo, offre d'accompagnement, RGPD formulaire qualification) | versi-invest/project-context.md | TERMINÉ |
 
 ### Phase VINV-0b — Specs fonctionnelles (après creative-strategy)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | EN ATTENTE |
+| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | EN COURS |
 
 ### Phase VINV-0c — Agents testeurs
 | Agent | Mission | Dépendance | Statut |

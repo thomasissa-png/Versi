@@ -132,7 +132,7 @@
 
 | Agent | Date | Fichiers produits | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-------------------|-----------------|----------------------------------|
-| | | | | |
+| @legal | 2026-04-14 | docs/legal/vi2-legal-audit.md, docs/legal/vi2-mentions-legales-draft.md, docs/legal/vi2-privacy-policy.md, docs/legal/vi2-rgpd-checklist.md | Activité soumise Loi Hoguet — carte T requise avant sourcing actif ; pas de statut CIF/AMF (immobilier physique) ; IOBSP à étudier si accompagnement financement central ; honoraires 5% TTC légaux sous mandat écrit ; disclaimer simulation indicative (pas de disclaimer AMF "performances passées") ; double mandat Versi Immo/Versi Invest à déclarer par écrit ; base légale RGPD = mesures précontractuelles ; Umami = exemption CNIL ; éditeur = SAS Gradient One pendant période transitoire | Disclaimer "performances passées ne préjugent pas" écarté : Versi Invest accompagne à l'immobilier physique et ne collecte pas de fonds — réglementation AMF non applicable. Qualification CIF écartée : l'immobilier physique n'est pas un instrument financier au sens du CMF. IOBSP : non tranché — dépend du positionnement de l'accompagnement financement (simple conseil vs présentation d'offres de crédit). |
 
 ---
 
