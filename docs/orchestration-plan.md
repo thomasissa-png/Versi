@@ -121,11 +121,26 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 | @geo | Audit GEO final (versi.fr 8, VI 9/10) | TERMINÉ |
 | orchestrator | Corrections SEO/GEO (og:image, sitemap, Schema, FAQ visible, favicons) | TERMINÉ |
 
-### Phase VI-5 — Pré-déploiement (À FAIRE)
+### Phase VI-5 — Pré-déploiement (PARTIEL)
 | Agent | Mission | Statut |
 |-------|---------|--------|
-| @qa | Tests E2E back office + blog | À FAIRE |
-| @infrastructure | Déploiement Replit + DNS versi-immobilier.fr | À FAIRE |
+| @qa | Tests E2E back office + blog | TERMINÉ (859 + 594 lignes, commit 6c44859) |
+| @infrastructure | Déploiement Replit + DNS versi-immobilier.fr | TERMINÉ (fondateur a déployé) |
+
+### Phase VI-6 — SEO/GEO post-déploiement (session s8)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| @seo | Audit SEO complet post-pivot acquéreur (4 passes) | TERMINÉ — 5→10/10 |
+| @geo | Audit GEO complet post-pivot acquéreur (3 passes) | TERMINÉ — 6.5→8.5/10 (plafond off-site) |
+| @fullstack | react-helmet-async + prerender + BuyerFAQ + Schema | TERMINÉ |
+| orchestrator | Corrections code (6 retours fondateur + titles + favicon) | TERMINÉ |
+| orchestrator | versi.fr : react-helmet-async + PageHead 4 pages | TERMINÉ |
+
+### Versi Invest — Préparation (session s8)
+| Agent | Mission | Statut |
+|-------|---------|--------|
+| orchestrator | Brief + project-context.md | TERMINÉ |
+| Toutes phases 0→5 | Autopilot prochaine session | À LANCER |
 
 ## Décisions clés
 

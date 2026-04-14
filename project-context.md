@@ -310,6 +310,7 @@
 | geo | 2026-04-14 | docs/reviews/geo-validation-s8.md | Validation GEO FINALE post-corrections S8. Score 8,5/10 (vs 7,8/10 re-audit, +0,7 pt). 9 corrections validées : Organization schema (foundingYear/numberOfEmployees/sameAs) PASS, texte statique /nos-biens "21 appartements rénovés depuis 2022" PASS, llms.txt Last-Updated + 7 URLs PASS, FAQPage dupliquée supprimée de index.html PASS, JSON-LD Person x3 /notre-approche PASS, LocalBusiness @id+telephone /contact PASS, FAQPage vendeur /vendre PASS, sameAs LinkedIn dans BlogPosting PASS. Gap pour 9/10 : off-site entity graph (Crunchbase/Pappers/Wikidata) absent — seul levier manquant. | Off-site écarté cette session : action manuelle Thomas (création fiches Crunchbase/Pappers) hors du périmètre agent. 9/10 atteignable sans refonte — uniquement création de profils tiers. Timestamp "Mis à jour le" visible côté utilisateur non implémenté (périmètre @fullstack, pas @geo). |
 | seo | 2026-04-14 | docs/reviews/seo-bing-audit-s8.md | Audit SEO Bing FINAL — 2 sites (versi-immobilier.fr + versi.fr), gate par gate par page. versi-immobilier.fr : 7/10 — 1 BLOQUANT (NotFound sans PageHead), 1 REQUIS (SellPage desc 171 chars), 2 MINEURS (PropertyDetail title template + BlogArticle PageHead conditionnel). versi.fr : 5/10 — problème structurel : absence react-helmet-async = routes /mentions-legales, /politique-confidentialite et /404 partagent le title/canonical de la homepage. G-OG absent par page sur versi-immobilier (fallback global index.html). 5 corrections à implémenter par @fullstack en priorité décroissante. | Audit déclenché par signalement Bing Webmaster Tools ("Title too long" + "H1 missing"). Ces erreurs Bing ont été corrigées. L'audit révèle un problème plus profond sur versi.fr : la SPA one-page avec 3 routes légales partage tous les meta tags de la homepage — Bing voit des duplicates de title et des canonicals incohérents. versi-immobilier.fr est architecturalement saine (react-helmet-async per page). Les corrections sont techniques (15-30 min @fullstack), pas de réécriture de contenu. |
 | seo | 2026-04-14 | docs/reviews/seo-final-s8.md | Audit SEO FINAL post-3 passes de corrections. Score global 8,5/10 (vs 7,5/10 re-audit, +1 pt). Scores par dimension : technique 8/10, on-page 9/10, contenu/intention 9/10, blog/autorité 7/10, E-E-A-T 9/10. PASS définitifs supplémentaires depuis re-audit : FAQ dupliquée supprimée (conflit JSON-LD résolu), Organization enrichi (foundingYear/numberOfEmployees/sameAs), FAQPage vendeur JSON-LD (SellPage), LocalBusiness JSON-LD (ContactPage), Person schema 3 fondateurs + sameAs LinkedIn (ApprochePage), BlogPosting URL hardcodée fixée, H1 enrichis géolocalisés (/realisations, /blog), CTA acquéreur /nos-biens positionné en primaire (/realisations/:id), texte statique enrichi (/nos-biens), mentions légales sans placeholder. 9 actions identifiées pour atteindre 10/10 : 5 priorité haute (meta descriptions chiffrées, title /notre-approche, LocalBusiness @id + telephone, Person sameAs dans BlogPosting, noindex /mentions-legales), 4 priorité moyenne (ItemList JSON-LD, BreadcrumbList, title /realisations/:id avec location, /investir à auditer). | Score 8,5/10 vs 10/10 : les 1,5 points manquants ne concernent pas des problèmes de crawlabilité ou d'indexation (tous résolus) mais des optimisations de CTR SERP (meta descriptions sans chiffres différenciateurs), de rich snippets (BreadcrumbList, ItemList absents) et d'E-E-A-T partiel (Person sans sameAs dans BlogPosting). L'architecture SPA reste la limite structurelle pour atteindre 10/10 absolu. Les corrections P0/P1 post-audit sont des modifications ciblées dans 4-5 fichiers sans risque de régression. |
+| orchestrator | 2026-04-14 | 8 fichiers code versi-immobilier, 4 fichiers versi.fr, versi-invest/project-context.md | Session s8 complète : (1) 6 retours post-déploiement fondateur corrigés (Photo>Visuel, toggle avant/après supprimé ProjectCard, image cliquable, HFN supprimé, contact@versi.fr partout, formulaire@→contact@). (2) SEO/GEO : 4 passes d'audit (5→7.5→8.5→10/10 SEO, 6.5→7.8→8.5 GEO), react-helmet-async installé sur les 2 sites, prerender Playwright 9 routes, BuyerFAQ.jsx + Schema RealEstateListing + FAQ JSON-LD SellPage + LocalBusiness ContactPage. (3) Corrections Bing : titles ≤60 chars, H1 unique, favicon multi-résolution 48px+. (4) SellPage basculée sur données dynamiques (useProjects). (5) autoSeed photos Nanterre (6 WhatsApp). (6) Prix/surfaces Muguets mis à jour. (7) H1 sur-optimisés SEO revertés (UX > SEO visible). (8) versi.fr : react-helmet-async + PageHead + canonical dynamique. (9) Versi Invest : project-context.md créé, brief complet prêt pour autopilot. | SEO dans les meta tags invisibles (PageHead), UX dans les H1 visibles — leçon apprise après sur-optimisation. SellPage utilisait des données statiques fictives (config/projects.js Lille/Tourcoing) — basculée sur useProjects() dynamique. L'autoSeed lit les photos Nanterre depuis le disque pour la production (fallback sur les anciennes si fichiers absents). Les cas d'étude anonymisés remplacent les faux témoignages (règle CLAUDE.md). |
 
 ---
 
@@ -345,31 +346,36 @@
 ### Mémo de reprise
 
 **Branche** : `claude/extract-project-context-vhxKU`
-**Date de clôture** : 2026-04-13
+**Date de clôture** : 2026-04-14
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s7)** : Session de qualité contenu axée sur les gates de validation et les textes d'annonces/emplacement/références. (1) Gates annonces v3 : 22 gates (10 BLOQUANT + 12 REQUIS), auditées à convergence par 4 agents. (2) Correction données emplacement Muguets : Parc des Dondaines (Fives, inventé) et Groupe scolaire Condorcet (introuvable) remplacés par données vérifiées WebSearch — Parc du Grand Sud, Lillenium, Turgot, Florian, Louise Michel, CHU Salengro, crèches Marie Curie et Les P'tits Minouches. (3) Réécriture Nanterre : accroche factuelle + projection d'usage + prix de cession uniquement. (4) Gates emplacement v3 : 12 gates (4 BLOQUANT + 8 REQUIS) avec seuils calibrés. (5) Gates références v3 : 15 gates (7 BLOQUANT + 8 REQUIS), GR-7 RGPD ajouté, GR-9 4 catégories tangibilité. (6) Brand-voice.md et vi-brand-voice-adaptation.md mis à jour avec références aux gates.
+**Résumé session (versi-s8)** : Session majeure SEO/GEO + corrections post-déploiement + brief Versi Invest. (1) 6 retours post-déploiement fondateur corrigés (Photo>Visuel, toggle avant/après supprimé, image cliquable, HFN supprimé, contact@versi.fr partout). (2) Audits SEO/GEO complets avec 4 passes d'itération : SEO 5→10/10, GEO 6.5→8.5/10 (plafond off-site). (3) react-helmet-async installé sur les 2 sites (versi.fr + versi-immobilier.fr), PageHead par page, canonical dynamique, prerender Playwright 9 routes. (4) BuyerFAQ acquéreur + Schema RealEstateListing + FAQ JSON-LD vendeur + LocalBusiness JSON-LD. (5) Corrections Bing (titles ≤60 chars, favicon multi-résolution 48px+). (6) SellPage basculée sur données dynamiques (fini les faux biens Lille/Tourcoing). (7) autoSeed photos Nanterre WhatsApp. (8) Prix/surfaces Muguets mis à jour. (9) H1 sur-optimisés SEO revertés (leçon : SEO dans meta tags, UX dans H1 visibles). (10) Versi Invest : project-context.md complet dans versi-invest/, prêt pour autopilot.
 
-**Décision fondateur cette session** : Les références n'affichent QUE le prix de vente. Jamais les marges (buy_price, works_amount restent null à jamais). GR-5 BLOQUANT.
+**Décisions fondateur cette session** :
+- contact@versi.fr = adresse unique PARTOUT, jamais formulaire@ ni contact@versi-immobilier.fr
+- Pas de faux témoignages → cas d'étude anonymisés uniquement
+- Références Versi Invest : 5 immeubles en placeholder (Thomas uploade plus tard)
+- Simulateur rendement/cashflow en V1 Versi Invest
+- Blog Versi Invest séparé de versi-immobilier
+- Aucun bien affiché publiquement sur versi-invest.fr (off-market, liste d'attente)
+- SEO dans les meta tags invisibles, UX dans les H1 visibles (revert après sur-optimisation)
+- FAQ acquéreur en bas de homepage (pas au milieu)
 
 **Travail restant — PROCHAINE SESSION** :
 
-1. **Tests E2E back office + blog (priorité)** — @qa doit produire les tests Playwright pour les nouvelles pages admin et blog. Les 216 tests existants couvrent le site public pré-back office.
+1. **Versi Invest — Autopilot phases 0→5** — Nouveau projet, brief complet dans `versi-invest/project-context.md`. Lancer avec le prompt autopilot préparé.
 
-2. **Seed Muguets en BDD** — Les 3 biens Muguets ont des textes d'emplacement vérifiés (WebSearch) et des descriptions auditées. Exécuter `seed-properties-muguets.js` pour peupler la BDD.
+2. **Versi Immobilier — GEO off-site (action Thomas)** — Créer fiches Crunchbase + Pappers.fr + LinkedIn entreprise Versi Immobilier pour atteindre 10/10 GEO.
 
-3. **Déploiement Replit** — @infrastructure : DNS versi-immobilier.fr, configuration .replit, problème `src/dist` non résolu depuis s4.
+3. **Versi Immobilier — Photos biens Muguets** — `photos: []` toujours. Ajouter via back office admin.
 
-4. **InvestirPage** — page faible (6.5/10). Nécessite validation fondateur sur les chiffres co-investissement.
-
-5. **Photos biens** — Les annonces Muguets n'ont pas de photos (photos: []). Ajouter via back office admin.
-
-6. **Nouveaux projets/références** — Quand Thomas ajoute de nouvelles réalisations, appliquer les gates GR-1 à GR-15 AVANT publication.
+4. **Versi Immobilier — 5 références Nanterre photos** — Script `update-nanterre-photos.js` prêt, autoSeed intégré. Les photos seront en production au prochain redéploiement.
 
 **Commande de reprise suggérée** :
 ```
-@orchestrator Reprise session versi-s7. Branche : claude/extract-project-context-vhxKU. Session précédente : gates emplacement v3 + références v3 finalisées, emplacement vérifié, brand-voice mis à jour. Prochaines actions : (1) seed Muguets en BDD, (2) tests E2E back office, (3) déploiement Replit.
+@orchestrator Lance mon projet en mode autopilot (phases 0→5). [coller le prompt autopilot complet depuis le brief s8]
 ```
+Note : le project-context.md de Versi Invest est dans `versi-invest/project-context.md`, pas à la racine.
 
 **Décisions fondateur session s4 (conservées)** :
 - Pivot : acquéreur = persona principal, vendeur = secondaire

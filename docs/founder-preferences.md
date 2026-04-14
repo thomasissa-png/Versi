@@ -54,3 +54,16 @@
 
 ### Email
 - **Adresse unique : contact@versi.fr** pour TOUS les sites Versi (versi.fr, versi-immobilier.fr, futures entités). Jamais d'adresse spécifique par site (pas de contact@versi-immobilier.fr, pas de formulaire@versi.fr). FROM_EMAIL, CONTACT_EMAIL, CONTACT_EMAIL_VERSI = toujours contact@versi.fr. Insistance multiple du fondateur.
+
+### SEO vs UX
+- **Les H1 sont du copywriting, pas du SEO.** Ne JAMAIS modifier un H1 validé par @creative-strategy ou @copywriter pour des raisons SEO. Le SEO passe exclusivement par les meta tags (PageHead title/description), schema.org, robots.txt, sitemap, llms.txt. Le contenu visible est le territoire de @copywriter/@creative-strategy.
+- **Titles SEO ≤ 60 chars.** Bing rejette au-delà. Vérifier avec `echo -n "title" | wc -c`.
+- **FAQ en bas de page.** Jamais au milieu du parcours de conversion. Position classique : après le contenu principal, avant le dernier CTA.
+
+### Versi Invest (nouvelle entité)
+- **Aucun bien affiché publiquement.** Off-market uniquement. CTA = inscription liste d'attente ("s'inscrire pour être recontacté").
+- **5% du prix d'acquisition** = seule rémunération. Zéro côté vendeur du bien.
+- **Cas d'étude anonymisés** pour les témoignages. Jamais de noms fictifs.
+- **Simulateur rendement/cashflow en V1.**
+- **Blog séparé** de versi-immobilier, dédié investissement locatif.
+- **Pas de back office V1.**
