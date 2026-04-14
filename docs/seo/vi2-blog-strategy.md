@@ -413,7 +413,7 @@ Dites-nous votre apport, votre capacité d'emprunt et votre zone cible. On s'occ
 
 # Avec 60 000€ d'apport : combien de biens en Hauts-de-France ?
 
-C'est la question que pose Nicolas en premier. Pas "quelle fiscalité ?", pas "quel régime ?". Juste : avec ce que j'ai en poche, je peux faire quoi concrètement ?
+C'est la question que pose l'investisseur actif en premier. Pas "quelle fiscalité ?", pas "quel régime ?". Juste : avec ce que j'ai en poche, je peux faire quoi concrètement ?
 
 Voici une réponse directe, avec des chiffres de marché réels sur les Hauts-de-France.
 
