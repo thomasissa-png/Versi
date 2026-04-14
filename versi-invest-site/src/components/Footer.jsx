@@ -38,7 +38,7 @@ export default function Footer() {
       <div className="footer__disclaimer">
         <div className="container">
           <p className="footer__disclaimer-text">
-            Versi Invest ne détient pas de carte T et n'est pas un prestataire de services d'investissement réglementé. Les informations présentées sur ce site ne constituent pas un conseil en investissement au sens de la réglementation financière.
+            Versi Invest est titulaire de la carte professionnelle T (transaction immobilière). Les informations présentées sur ce site ne constituent pas un conseil en investissement au sens de la réglementation financière.
           </p>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function Footer() {
         <div className="footer__col">
           <span className="footer__col-title">Groupe Versi</span>
           <nav className="footer__nav" aria-label="Liens Groupe Versi">
-            <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" className="footer__nav-link">versi.fr</a>
+            <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" className="footer__nav-link">Versi</a>
             <a href="https://versi-immobilier.fr" target="_blank" rel="noopener noreferrer" className="footer__nav-link">Versi Immobilier</a>
           </nav>
         </div>

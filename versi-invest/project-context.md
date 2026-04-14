@@ -62,7 +62,7 @@
 - **Pays de commercialisation** : France
 - **Données sensibles collectées** : [x] Non — nom, email, téléphone, budget estimé, zone géographique souhaitée via formulaire de qualification
 - **Statut juridique** : SAS en cours de création, entité du Groupe Versi
-- **Réglementation** : Carte T (transaction immobilière) en cours d'obtention. Versi Invest n'est PAS un agent immobilier — la carte T est détenue pour conformité réglementaire.
+- **Réglementation** : Carte T (transaction immobilière) obtenue. Versi Invest n'est PAS un agent immobilier — la carte T est détenue pour conformité réglementaire.
 - **Disclaimer rendement** : Aucun disclaimer "performances passées" nécessaire — Versi Invest ne propose pas d'investir chez/avec Versi, mais accompagne l'investisseur sur des biens vendus par des tiers.
 
 ---
