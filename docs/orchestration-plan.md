@@ -151,7 +151,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 > Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
 > Estimation : 5 phases, ~12 agents, 2-3 sessions
 
-<!-- SESSION_VI2: phases=3 tasks_prod=9 tasks_consult=0 -->
+<!-- SESSION_VI2: phases=5 tasks_prod=13 tasks_consult=0 -->
 
 ### Phase VINV-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
@@ -185,14 +185,14 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-3 — Visibilité
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | EN COURS |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | EN COURS |
+| @seo | SEO technique + métadonnées + schema.org | Site développé | TERMINÉ |
+| @geo | Visibilité LLM (GEO) | brand-platform + site | TERMINÉ |
 
 ### Phase VINV-4 — Acquisition (allégée)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | EN ATTENTE |
-| @social | Stratégie LinkedIn corporate Versi Invest | brand-platform | EN ATTENTE |
+| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | TERMINÉ |
+| @social | Stratégie LinkedIn corporate Versi Invest | brand-platform | TERMINÉ |
 
 ### Phase VINV-5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |
