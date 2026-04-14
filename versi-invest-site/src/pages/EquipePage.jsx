@@ -77,7 +77,7 @@ export default function EquipePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="founder__linkedin"
-                      aria-label={`Profil LinkedIn de ${founder.name}`}
+                      aria-label={`Profil LinkedIn de ${founder.name} — s'ouvre dans un nouvel onglet`}
                     >
                       LinkedIn →
                     </a>

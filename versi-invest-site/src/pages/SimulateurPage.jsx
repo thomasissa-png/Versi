@@ -188,7 +188,11 @@ export default function SimulateurPage() {
         {/* --- Header --- */}
         <header className="page-header">
           <div className="container">
-            <h1 className="page-header__title">Simulez votre investissement.</h1>
+            <h1 className="page-header__title">
+              Les chiffres d'abord.
+              <br />
+              La décision ensuite.
+            </h1>
             <p className="page-header__intro">
               Renseignez les informations ci-dessous. La simulation intègre chaque charge et
               présente systématiquement un scénario prudent — pas uniquement le meilleur cas.
@@ -508,16 +512,11 @@ export default function SimulateurPage() {
         {/* --- CTA --- */}
         <section className="simulateur-cta page-cta section-padding" aria-label="Inscription">
           <div className="container page-cta__inner">
-            <h2 className="simulateur-cta__title">
-              Ces chiffres correspondent à ce que vous cherchez.
-            </h2>
-            <p className="simulateur-cta__text">
-              Les biens que Versi Invest source répondent à ces critères — off-market, simulés
-              sur 15+ critères, présentés uniquement si le cashflow tient en scénario prudent.
-              Inscrivez-vous pour accéder aux prochaines opportunités disponibles.
+            <p className="page-cta__text">
+              Les biens sourcés par Versi Invest passent ce simulateur en scénario prudent — ou ne sont pas présentés. Si vous voulez accéder aux prochaines opportunités, la liste d'attente est ouverte.
             </p>
             <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
+              Demander à rejoindre la liste →
             </Link>
           </div>
         </section>

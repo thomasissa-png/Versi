@@ -113,7 +113,7 @@ export default function ProcessPage() {
         <section className="page-cta section-padding" aria-label="Inscription">
           <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Vous avez un projet d'investissement locatif.
+              Les chiffres tiennent en scénario prudent ou on ne présente pas le bien.
             </p>
             <div className="page-cta__actions">
               <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
