@@ -45,7 +45,7 @@ export default function BlogPage() {
   return (
     <>
       <PageHead
-        title="Blog immobilier Lille — Achat, rénovation, marché | Versi Immobilier"
+        title="Blog immobilier Lille — Achat, rénovation | Versi Immo"
         description="Guides pratiques pour acheter à Lille : marché, prix au m², garanties d'un marchand de biens, financement. Rédigés par l'équipe Versi."
       />
       <a href="#main-content" className="skip-nav">

@@ -70,7 +70,7 @@ export default function PropertiesPage() {
   return (
     <>
       <PageHead
-        title="Appartements et biens rénovés à vendre — Lille, Hauts-de-France | Versi Immobilier"
+        title="Biens rénovés à vendre — Lille | Versi Immobilier"
         description="Biens disponibles et en précommercialisation. Diagnostics inclus, visite sur demande. Vente directe sans frais d'agence."
       />
       <a href="#main-content" className="skip-nav">

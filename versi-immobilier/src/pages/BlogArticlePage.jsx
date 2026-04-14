@@ -204,7 +204,7 @@ export default function BlogArticlePage() {
     <>
       {article && (
         <PageHead
-          title={`${article.title} — Versi Immobilier`}
+          title={`${article.title.slice(0, 45)} | Versi Immo`}
           description={article.excerpt || ''}
         />
       )}

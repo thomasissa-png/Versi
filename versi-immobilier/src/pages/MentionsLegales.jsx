@@ -74,9 +74,9 @@ export default function MentionsLegales() {
 
             {/* Politique de confidentialité */}
             <div id="politique-de-confidentialite" style={{ scrollMarginTop: 'calc(var(--nav-height) + var(--spacing-lg))' }}>
-              <h1 className="text-heading-lg" style={{ marginTop: 'var(--spacing-4xl)', marginBottom: 'var(--spacing-2xl)' }}>
+              <h2 className="text-heading-lg" style={{ marginTop: 'var(--spacing-4xl)', marginBottom: 'var(--spacing-2xl)' }}>
                 Politique de confidentialité
-              </h1>
+              </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                 <div>

@@ -164,7 +164,7 @@ export default function ApprochePage() {
   return (
     <>
       <PageHead
-        title="Marchand de biens à Lille — Méthode et équipe | Versi Immobilier"
+        title="Marchand de biens Lille — Méthode | Versi Immobilier"
         description="Sourcer, analyser, acquérir, transformer. Quatre étapes, zéro délégation. Les trois fondateurs gèrent chaque opération en direct."
       />
       <a href="#main-content" className="skip-nav">

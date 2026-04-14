@@ -25,7 +25,7 @@ export default function RealisationsPage() {
   return (
     <>
       <PageHead
-        title="Rénovations immobilières à Lille et Hauts-de-France | Versi Immobilier"
+        title="Rénovations immobilières Lille | Versi Immobilier"
         description="5 rénovations terminées à Lille et Hauts-de-France. Chaque projet documenté : adresse, surface, délais, prix de vente. 3,2M€ de volume traité."
       />
       <a href="#main-content" className="skip-nav">
