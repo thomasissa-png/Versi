@@ -340,12 +340,12 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/extract-project-context-vhxKU`
+- Branche de développement : `claude/extract-project-context-osLWB`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-**Branche** : `claude/extract-project-context-vhxKU`
+**Branche** : `claude/extract-project-context-osLWB`
 **Date de clôture** : 2026-04-14
 **Dernier commit** : voir `git log --oneline -1`
 
