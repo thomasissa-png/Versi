@@ -151,7 +151,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 > Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
 > Estimation : 5 phases, ~12 agents, 2-3 sessions
 
-<!-- SESSION_VI2: phases=2 tasks_prod=6 tasks_consult=0 -->
+<!-- SESSION_VI2: phases=3 tasks_prod=9 tasks_consult=0 -->
 
 ### Phase VINV-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
@@ -179,14 +179,14 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-2 — Développement
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @fullstack | Site complet multi-pages + simulateur + serveur Express + BDD inscriptions | design-system + copy + specs | EN COURS |
+| @fullstack | Site complet multi-pages + simulateur + serveur Express + BDD inscriptions | design-system + copy + specs | TERMINÉ |
 | @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
 
 ### Phase VINV-3 — Visibilité
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | EN ATTENTE |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | EN ATTENTE |
+| @seo | SEO technique + métadonnées + schema.org | Site développé | EN COURS |
+| @geo | Visibilité LLM (GEO) | brand-platform + site | EN COURS |
 
 ### Phase VINV-4 — Acquisition (allégée)
 | Agent | Mission | Dépendance | Statut |
