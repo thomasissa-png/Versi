@@ -215,7 +215,7 @@ export default function SellPage() {
         )}
 
         {/* Process détaillé */}
-        <section className="sell-section--primary section-padding" ref={procRef}>
+        <section className="sell-section--primary section-padding" ref={procRef} id="process" style={{ scrollMarginTop: 'var(--nav-height)' }}>
           <div className={`container ${procVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h2 className="text-heading-lg sell-section-title">
               Trois étapes. Sept jours.

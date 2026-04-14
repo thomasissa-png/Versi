@@ -3,13 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import './Footer.css';
 
-/** Lien footer qui scroll en haut même si on est déjà sur la page cible */
+/** Lien footer : scroll en haut si pas de hash, scroll vers l'ancre si hash */
 function FooterLink({ to, className, children }) {
   const navigate = useNavigate();
   const handleClick = useCallback((e) => {
     e.preventDefault();
-    window.scrollTo(0, 0);
-    navigate(to);
+    const [path, hash] = to.split('#');
+    navigate(path || '/');
+    if (hash) {
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      window.scrollTo(0, 0);
+    }
   }, [navigate, to]);
 
   return (
@@ -46,7 +56,7 @@ export default function Footer() {
 
   return (
     <footer className="footer">
-      <div className="footer__subscribe" style={{
+      <div id="notification" className="footer__subscribe" style={{
         background: 'var(--color-bg-dark)',
         padding: 'var(--spacing-2xl) var(--spacing-lg)',
         textAlign: 'center',
@@ -141,9 +151,17 @@ export default function Footer() {
             <FooterLink to="/realisations" className="footer__nav-link">Nos réalisations</FooterLink>
             <FooterLink to="/notre-approche" className="footer__nav-link">Notre approche</FooterLink>
             <FooterLink to="/blog" className="footer__nav-link">Notre regard</FooterLink>
-            <FooterLink to="/nos-biens#notification" className="footer__nav-link footer__nav-link--cta">
+            <a
+              href="#notification"
+              className="footer__nav-link footer__nav-link--cta"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById('notification');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
               Être notifié en avant-première
-            </FooterLink>
+            </a>
           </nav>
         </div>
 
