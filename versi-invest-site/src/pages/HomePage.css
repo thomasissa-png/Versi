@@ -233,7 +233,7 @@
 }
 
 .founders__card {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -304,7 +304,7 @@
 /* === Simulateur teaser === */
 
 .sim-teaser {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-subtle);
 }
 
 .sim-teaser__inner {
@@ -391,11 +391,25 @@
   transition: transform var(--duration-normal) ease;
 }
 
+.faq__answer-wrap {
+  overflow: hidden;
+  transition: max-height var(--duration-moderate) ease;
+}
+
 .faq__answer {
-  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
   font-size: var(--font-size-body-md);
   color: var(--color-text-muted);
   line-height: 1.65;
+}
+
+/* === CTA meta === */
+
+.page-cta__meta {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-inverse);
+  opacity: 0.5;
+  margin-bottom: var(--spacing-xl);
 }
 
 /* === Focus visible === */

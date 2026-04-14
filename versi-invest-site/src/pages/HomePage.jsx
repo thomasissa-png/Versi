@@ -261,9 +261,12 @@ export default function HomePage() {
                       {openFaq === i ? '−' : '+'}
                     </span>
                   </button>
-                  {openFaq === i && (
+                  <div
+                    className="faq__answer-wrap"
+                    style={{ maxHeight: openFaq === i ? '300px' : '0' }}
+                  >
                     <p className="faq__answer">{item.a}</p>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -276,8 +279,9 @@ export default function HomePage() {
             <p className="page-cta__text">
               On ne présente pas un bien si le cashflow ne tient pas en scénario dégradé. Si vous voulez travailler avec des fondateurs qui raisonnent comme ça — la liste d'attente est ouverte.
             </p>
+            <p className="page-cta__meta">Places limitées. Volume intentionnellement restreint.</p>
             <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
+              Demander à rejoindre la liste →
             </Link>
           </div>
         </section>
