@@ -82,19 +82,19 @@ export default function ProcessPage() {
         <section className="steps section-padding" aria-label="Les 6 étapes">
           <div className="container">
             {STEPS.map((step) => (
-              <article key={step.num} className="step">
+              <article key={step.num} className={`step${step.num === '03' ? ' step--featured' : ''}`}>
                 <div className="step__header">
                   <span className="step__num">{step.num}</span>
                   <h2 className="step__title">{step.title}</h2>
                 </div>
                 <p className="step__desc">{step.description}</p>
                 <div className="step__details">
-                  <div className="step__detail">
+                  <div className="step__detail step__detail--included">
                     <span className="step__detail-label">Ce qui est inclus</span>
                     <p className="step__detail-text">{step.included}</p>
                   </div>
                   {step.notIncluded && (
-                    <div className="step__detail">
+                    <div className="step__detail step__detail--excluded">
                       <span className="step__detail-label">Ce qui n'est pas inclus</span>
                       <p className="step__detail-text">{step.notIncluded}</p>
                     </div>

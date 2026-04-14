@@ -91,27 +91,36 @@ export default function ServicesPage() {
         <section className="volets section-padding" aria-label="Détail des services">
           <div className="container">
             {VOLETS.map((volet) => (
-              <article key={volet.num} className="volet">
-                <div className="volet__header">
-                  <span className="volet__num">{volet.num}</span>
-                  <h2 className="volet__title">{volet.title}</h2>
-                </div>
-                <div className="volet__body">
-                  {volet.description.split('\n\n').map((paragraph, i) => (
-                    <p key={i} className="volet__desc">{paragraph}</p>
-                  ))}
-                  <div className="volet__details">
-                    <div className="volet__detail volet__detail--included">
-                      <span className="volet__detail-label">Inclus</span>
-                      <p className="volet__detail-text">{volet.included}</p>
-                    </div>
-                    <div className="volet__detail volet__detail--excluded">
-                      <span className="volet__detail-label">Non inclus</span>
-                      <p className="volet__detail-text">{volet.notIncluded}</p>
+              <div key={volet.num}>
+                <article className="volet">
+                  <div className="volet__header">
+                    <span className="volet__num">{volet.num}</span>
+                    <h2 className="volet__title">{volet.title}</h2>
+                  </div>
+                  <div className="volet__body">
+                    {volet.description.split('\n\n').map((paragraph, i) => (
+                      <p key={i} className="volet__desc">{paragraph}</p>
+                    ))}
+                    <div className="volet__details">
+                      <div className="volet__detail volet__detail--included">
+                        <span className="volet__detail-label">Inclus</span>
+                        <p className="volet__detail-text">{volet.included}</p>
+                      </div>
+                      <div className="volet__detail volet__detail--excluded">
+                        <span className="volet__detail-label">Non inclus</span>
+                        <p className="volet__detail-text">{volet.notIncluded}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
+                </article>
+                {volet.num === '03' && (
+                  <div className="volets__mid-cta">
+                    <Link to="/simulateur" className="volets__mid-cta-link">
+                      Tester les chiffres maintenant →
+                    </Link>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>

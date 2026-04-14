@@ -18,7 +18,7 @@
 }
 
 .contact__info-title {
-  font-size: 1.5rem;
+  font-size: var(--font-size-heading-sm);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -231,13 +231,13 @@
 }
 
 .contact__success-icon {
-  font-size: 2.5rem;
+  font-size: var(--font-size-display-num, 2.5rem);
   margin-bottom: var(--spacing-md);
   color: var(--color-success);
 }
 
 .contact__success-title {
-  font-size: 1.25rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-md);

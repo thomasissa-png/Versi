@@ -13,6 +13,14 @@
   border-bottom: none;
 }
 
+.step--featured {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-accent);
+  margin: var(--spacing-lg) 0;
+}
+
 .step__header {
   display: flex;
   align-items: baseline;
@@ -23,7 +31,7 @@
 .step__num {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
   letter-spacing: 0.1em;
   flex-shrink: 0;
 }
@@ -53,8 +61,16 @@
 .step__detail {
   padding: var(--spacing-md);
   background: var(--color-bg-secondary);
-  border-radius: var(--card-radius);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
+}
+
+.step__detail--included .step__detail-label {
+  color: var(--color-accent);
+}
+
+.step__detail--excluded .step__detail-label {
+  color: var(--color-text-muted);
 }
 
 .step__detail-label {
@@ -63,7 +79,7 @@
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
   margin-bottom: var(--spacing-sm);
 }
 
@@ -87,5 +103,9 @@
 
   .step__details {
     grid-template-columns: 1fr;
+  }
+
+  .step--featured {
+    padding: var(--spacing-lg);
   }
 }
