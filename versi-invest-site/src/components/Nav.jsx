@@ -5,7 +5,6 @@ import './Nav.css';
 const NAV_ITEMS = [
   { label: 'COMMENT ÇA MARCHE', href: '/comment-ca-marche' },
   { label: 'SERVICES', href: '/services' },
-  { label: 'SIMULATEUR', href: '/simulateur' },
   { label: 'RÉFÉRENCES', href: '/references' },
   { label: 'ÉQUIPE', href: '/equipe' },
   { label: 'CONTACT', href: '/contact' },

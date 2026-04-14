@@ -4,7 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import ProcessPage from './pages/ProcessPage.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
 import EquipePage from './pages/EquipePage.jsx';
-import SimulateurPage from './pages/SimulateurPage.jsx';
+
 import ReferencesPage from './pages/ReferencesPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import BlogPage from './pages/BlogPage.jsx';
@@ -21,7 +21,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/comment-ca-marche" element={<ProcessPage />} />
         <Route path="/services" element={<ServicesPage />} />
-        <Route path="/simulateur" element={<SimulateurPage />} />
+
         <Route path="/references" element={<ReferencesPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/blog" element={<BlogPage />} />

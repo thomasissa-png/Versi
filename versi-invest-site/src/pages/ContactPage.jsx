@@ -131,7 +131,7 @@ export default function ContactPage() {
     <>
       <PageHead
         title="Liste d'attente investissement locatif — Versi Invest"
-        description="Inscrivez-vous. Un fondateur Versi Invest vous recontacte sous 48h. Accès off-market, simulation financière, suivi de A à Z."
+        description="Inscrivez-vous. Un fondateur Versi Invest vous recontacte sous 48h. Biens sélectionnés, simulation financière, suivi personnalisé."
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
       <Nav />
@@ -168,7 +168,7 @@ export default function ContactPage() {
                 </p>
                 <div className="contact__info-list">
                   <div className="contact__info-item">
-                    Accès prioritaire aux biens off-market
+                    Accès prioritaire aux opportunités détectées
                   </div>
                   <div className="contact__info-item">
                     Simulation financière personnalisée

@@ -99,7 +99,7 @@ export default function ReferencesPage() {
               <div className="references__empty">
                 <p className="references__empty-text">
                   Nos premières références investisseurs arrivent bientôt. En attendant, le track
-                  record du Groupe Versi — 21 appartements rénovés, 3,2M€ de volume opéré via
+                  record du Groupe Versi — 16 immeubles, 7,2M€ de volume opéré via
                   Versi Immobilier — est disponible sur demande. Inscrivez-vous sur la liste
                   d'attente pour y accéder lors de notre premier appel.
                 </p>
@@ -119,8 +119,8 @@ export default function ReferencesPage() {
                 Vous voulez accéder au détail de ces opérations et aux prochaines opportunités ?
               </p>
               <div className="page-cta__actions">
-                <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
-                  Simuler mon investissement
+                <Link to="/comment-ca-marche" className="page-cta__btn page-cta__btn--secondary">
+                  Voir les 8 étapes
                 </Link>
                 <Link to="/contact" className="page-cta__btn">
                   S'inscrire — réponse sous 48h

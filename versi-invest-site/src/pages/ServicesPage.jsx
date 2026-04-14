@@ -7,7 +7,7 @@ import './ServicesPage.css';
 const VOLETS = [
   {
     num: '01',
-    title: 'Sourcing off-market',
+    title: 'Détection d\'opportunités',
     description: 'Les biens présentés par Versi Invest ne transitent pas par les portails publics. Ils arrivent de notre réseau — alimenté par l\'activité quotidienne de Versi Immobilier, notre branche marchand de biens. Des propriétaires qui cèdent hors publicité. Des immeubles identifiés avant la mise en vente. Un flux que les outils de filtrage ne captent pas.\n\nChaque bien passe une analyse préliminaire sur 15+ critères avant d\'être présenté. Si le rendement brut est inférieur à 8%, le dossier est écarté.',
     included: 'Recherche active sur réseau Versi Immobilier. Analyse préliminaire multi-critères. Dossier de présélection chiffré.',
     notIncluded: 'Sourcing sur portails publics. Prospection hors réseau Versi sur demande spécifique d\'un investisseur.',
@@ -115,8 +115,8 @@ export default function ServicesPage() {
                 </article>
                 {volet.num === '03' && (
                   <div className="volets__mid-cta">
-                    <Link to="/simulateur" className="volets__mid-cta-link">
-                      Tester les chiffres maintenant →
+                    <Link to="/contact" className="volets__mid-cta-link">
+                      Accéder aux prochaines opportunités →
                     </Link>
                   </div>
                 )}
@@ -132,8 +132,8 @@ export default function ServicesPage() {
               Les prochains biens passent ce filtre avant d'arriver chez vous.
             </p>
             <div className="page-cta__actions">
-              <Link to="/simulateur" className="page-cta__btn page-cta__btn--secondary">
-                Simuler mon investissement
+              <Link to="/comment-ca-marche" className="page-cta__btn page-cta__btn--secondary">
+                Voir les 8 étapes
               </Link>
               <Link to="/contact" className="page-cta__btn">
                 S'inscrire — réponse sous 48h
