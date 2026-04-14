@@ -115,6 +115,28 @@ export default function SellPage() {
     }
   }, [location.hash]);
 
+  /* JSON-LD FAQPage vendeur — SEO rich snippets */
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: FAQ_ITEMS.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(jsonLd);
+    script.id = 'sell-faq-jsonld';
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById('sell-faq-jsonld');
+      if (el) el.remove();
+    };
+  }, []);
+
   return (
     <>
       <PageHead

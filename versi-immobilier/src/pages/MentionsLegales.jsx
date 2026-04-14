@@ -28,7 +28,7 @@ export default function MentionsLegales() {
                   Versi Immobilier<br />
                   Société par actions simplifiée (SAS)<br />
                   SIREN : 912 862 612<br />
-                  Siège social : [adresse à compléter avant mise en ligne]<br />
+                  Siège social : 54 rue Henri Barbusse, 92000 Nanterre<br />
                   Email : {CONTACT_EMAIL}
                 </p>
               </div>
@@ -44,8 +44,8 @@ export default function MentionsLegales() {
               <div>
                 <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>Hébergeur</h2>
                 <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  [Nom de l'hébergeur à compléter]<br />
-                  [Adresse de l'hébergeur à compléter]
+                  Replit, Inc.<br />
+                  303 2nd Street, Suite 400 South, San Francisco, CA 94107, États-Unis
                 </p>
               </div>
 

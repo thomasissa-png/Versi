@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
@@ -10,6 +11,41 @@ export default function ContactPage() {
   const [searchParams] = useSearchParams();
   const bien = searchParams.get('bien') || '';
   const { ref, isVisible } = useFadeIn();
+
+  /* JSON-LD LocalBusiness — SEO local Lille */
+  useEffect(() => {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: 'Versi Immobilier',
+      url: 'https://versi-immobilier.fr',
+      email: 'contact@versi.fr',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Lille',
+        addressRegion: 'Hauts-de-France',
+        addressCountry: 'FR',
+      },
+      areaServed: [
+        { '@type': 'City', name: 'Lille' },
+        { '@type': 'AdministrativeArea', name: 'Hauts-de-France' },
+      ],
+      sameAs: [
+        'https://www.linkedin.com/in/thomasissa/',
+        'https://www.linkedin.com/in/maxime-lemoine-34550354/',
+        'https://www.linkedin.com/in/carlstandertskjold/',
+      ],
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(jsonLd);
+    script.id = 'contact-localbusiness-jsonld';
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById('contact-localbusiness-jsonld');
+      if (el) el.remove();
+    };
+  }, []);
 
   return (
     <>

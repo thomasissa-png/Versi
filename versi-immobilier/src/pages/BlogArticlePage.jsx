@@ -152,7 +152,7 @@ export default function BlogArticlePage() {
   useEffect(() => {
     if (!article) return;
 
-    const siteUrl = window.location.origin;
+    const siteUrl = 'https://versi-immobilier.fr';
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
