@@ -128,13 +128,13 @@ export default function HomePage() {
               Investissement locatif off-market — France
             </span>
             <h1 className="hero__title">
-              Off-market.
+              Biens rares.
               <br />
               En direct.
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              Des biens qui s'autofinancent. Cashflow positif. 5% acquéreur, zéro vendeur.
+              Des biens qui s'autofinancent. Cashflow positif. Une seule commission : 5%.
             </p>
             <Link to="/contact" className="hero__cta">
               S'inscrire sur la liste d'attente
