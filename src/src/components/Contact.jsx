@@ -106,7 +106,13 @@ export default function Contact() {
         <div className="contact__form-wrapper">
           {status === 'success' ? (
             <div className="contact__success" role="status" aria-live="polite">
-              <p>Message reçu. Nous vous répondons sous 72h.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                <span style={{ fontSize: '48px', lineHeight: 1 }}>&#10003;</span>
+                <p style={{ fontSize: 'var(--font-size-body-lg)', fontWeight: 'var(--font-weight-medium)' }}>
+                  Message reçu.
+                </p>
+                <p>Nous vous répondons sous 72h.</p>
+              </div>
             </div>
           ) : (
             <form

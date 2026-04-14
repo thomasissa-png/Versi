@@ -126,8 +126,14 @@ export default function SellForm() {
 
   if (status === 'success') {
     return (
-      <div className="contact-form__success" role="status" aria-live="polite">
-        <p>Votre dossier a été transmis. Nous accusons réception sous 24h et planifions la suite avec vous.</p>
+      <div className="contact-form__success contact-form__success--light" role="status" aria-live="polite">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+          <span style={{ fontSize: '48px', lineHeight: 1 }}>&#10003;</span>
+          <p style={{ fontSize: 'var(--font-size-body-lg)', fontWeight: 'var(--font-weight-medium)' }}>
+            Dossier transmis.
+          </p>
+          <p>Nous accusons réception sous 24h et planifions la suite avec vous.</p>
+        </div>
       </div>
     );
   }
