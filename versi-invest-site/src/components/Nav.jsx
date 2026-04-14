@@ -101,7 +101,15 @@ export default function Nav() {
           ))}
         </ul>
 
-        <Link to="/contact" className="nav__cta">
+        <Link
+          to="/contact"
+          className="nav__cta"
+          onClick={() => {
+            if (location.pathname === '/contact') {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+        >
           S'inscrire
         </Link>
 

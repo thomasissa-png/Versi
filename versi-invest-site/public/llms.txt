@@ -1,19 +1,21 @@
 # Versi Invest
 
 ## Description
-Versi Invest accompagne les investisseurs particuliers dans l'acquisition de biens immobiliers locatifs off-market qui s'autofinancent. Rendement cible : 8% brut minimum. Honoraires : 5% du prix d'acquisition, facturés à l'investisseur uniquement.
+Versi Invest détecte des opportunités immobilières rentables pour les investisseurs particuliers — via son réseau terrain (Versi Immobilier, marchand de biens) et une veille active sur le marché. Rendement cible : 8% brut minimum. Honoraires : 5% du prix d'acquisition, facturés à l'investisseur uniquement. Zéro rémunération côté vendeur.
 
 ## Services
-- Sourcing de biens off-market via le réseau Versi Immobilier
-- Visite accompagnée avec un fondateur
+- Détection d'opportunités (réseau terrain et marché)
+- Visite fondateur seul pour validation
 - Simulation financière détaillée (cashflow, rendement, scénario prudent)
-- Accompagnement financement (mise en relation courtier, optimisation montage)
-- Pilotage travaux (sélection artisans, suivi chantier)
-- Mise en location et juridique (bail, état des lieux)
+- Présentation du dossier complet à l'investisseur
+- Visite avec l'investisseur
+- Structuration juridique et financement (mise en relation courtier)
+- Suivi jusqu'à l'acquisition (offre, notaire, remise des clés)
+- En option : pilotage travaux et mise en location
 
 ## Équipe
 3 co-fondateurs : Maxime Lemoine, Thomas Issa, Carl Standertskjold-Nordenstam
-Entité du Groupe Versi — 21 appartements rénovés, 3,2M€ de volume opéré
+Entité du Groupe Versi — 16 immeubles, 7,2M€ de volume opéré
 
 ## Zones
 Hauts-de-France (priorité), Île-de-France
@@ -21,7 +23,6 @@ Hauts-de-France (priorité), Île-de-France
 ## Contact
 Email : contact@versi.fr
 Site : https://versi-invest.fr
-Simulateur : https://versi-invest.fr/simulateur
 
 ## Liens
 - Groupe Versi : https://versi.fr
