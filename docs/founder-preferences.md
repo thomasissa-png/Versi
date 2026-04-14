@@ -51,3 +51,6 @@
 
 ### Process
 - Ne pas changer de branche sans vérification. Le fondateur attend que le travail validé soit préservé.
+
+### Email
+- **Adresse unique : contact@versi.fr** pour TOUS les sites Versi (versi.fr, versi-immobilier.fr, futures entités). Jamais d'adresse spécifique par site (pas de contact@versi-immobilier.fr, pas de formulaire@versi.fr). FROM_EMAIL, CONTACT_EMAIL, CONTACT_EMAIL_VERSI = toujours contact@versi.fr. Insistance multiple du fondateur.

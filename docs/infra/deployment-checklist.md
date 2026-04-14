@@ -170,8 +170,8 @@ Toutes ces variables doivent etre configurees dans Replit Secrets (jamais dans .
 | DATABASE_URL | Oui | URL de connexion PostgreSQL Replit (fournie automatiquement par Replit quand PostgreSQL est provisionne) |
 | ADMIN_PASSWORD | Oui | Mot de passe admin pour le backoffice versi-immobilier |
 | RESEND_API_KEY | Oui | Cle API Resend pour l'envoi d'emails transactionnels |
-| FROM_EMAIL | Non | Adresse expeditrice (defaut: formulaire@versi-immobilier.fr) |
-| CONTACT_EMAIL | Non | Adresse de reception des formulaires versi-immobilier (defaut: contact@versi-immobilier.fr) |
+| FROM_EMAIL | Non | Adresse expeditrice (defaut: contact@versi.fr) |
+| CONTACT_EMAIL | Non | Adresse de reception des formulaires versi-immobilier (defaut: contact@versi.fr) |
 | CONTACT_EMAIL_VERSI | Non | Adresse de reception des formulaires versi.fr holding (defaut: contact@versi.fr) |
 | PORT | Non | Port du serveur (defaut: 3001, Replit injecte automatiquement) |
 | SITE_URL | Non | URL publique du site (defaut: https://versi-immobilier.fr) |
