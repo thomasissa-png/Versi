@@ -25,7 +25,7 @@ export default function RealisationsPage() {
   return (
     <>
       <PageHead
-        title="Réalisations — Immeubles et appartements rénovés | Versi Immobilier"
+        title="Rénovations immobilières à Lille et Hauts-de-France | Versi Immobilier"
         description="Chaque rénovation documentée : adresse, délais, chiffres. 3,2M€ de volume traité depuis 2022."
       />
       <a href="#main-content" className="skip-nav">
@@ -37,7 +37,7 @@ export default function RealisationsPage() {
         <section className="section-padding" ref={ref}>
           <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
             <h1 className="text-heading-lg" style={{ marginBottom: 'var(--spacing-md)' }}>
-              Réalisations.
+              Rénovations immobilières — Lille et Hauts-de-France.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)', maxWidth: 'var(--text-max-width-md)' }}>
               Chaque rénovation documentée — adresse, délais, chiffres. Aucun chiffre inventé.

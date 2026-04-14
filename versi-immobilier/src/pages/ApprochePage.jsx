@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
@@ -121,6 +121,45 @@ export default function ApprochePage() {
   const { ref: procRef, isVisible: procVisible } = useFadeIn();
   const { ref: diffRef, isVisible: diffVisible } = useFadeIn();
   const { ref: teamRef, isVisible: teamVisible } = useFadeIn();
+
+  /* JSON-LD Person — fondateurs pour E-E-A-T */
+  useEffect(() => {
+    const jsonLd = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: 'Maxime Lemoine',
+        jobTitle: 'Co-fondateur',
+        worksFor: { '@id': 'https://versi-immobilier.fr/#organization' },
+        sameAs: 'https://www.linkedin.com/in/maxime-lemoine-34550354/',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: 'Thomas Issa',
+        jobTitle: 'Co-fondateur',
+        worksFor: { '@id': 'https://versi-immobilier.fr/#organization' },
+        sameAs: 'https://www.linkedin.com/in/thomasissa/',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: 'Carl Standertskjold-Nordenstam',
+        jobTitle: 'Co-fondateur',
+        worksFor: { '@id': 'https://versi-immobilier.fr/#organization' },
+        sameAs: 'https://www.linkedin.com/in/carlstandertskjold/',
+      },
+    ];
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(jsonLd);
+    script.id = 'approche-persons-jsonld';
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById('approche-persons-jsonld');
+      if (el) el.remove();
+    };
+  }, []);
 
   return (
     <>

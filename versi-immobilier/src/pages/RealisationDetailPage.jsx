@@ -272,7 +272,7 @@ export default function RealisationDetailPage() {
             {/* CTAs */}
             <div className="realisation-detail__ctas">
               <Link
-                to="/vendre"
+                to="/nos-biens"
                 className="text-cta"
                 style={{
                   display: 'inline-flex',
@@ -285,10 +285,10 @@ export default function RealisationDetailPage() {
                   minHeight: '52px',
                 }}
               >
-                Soumettre mon bien
+                Voir les biens disponibles
               </Link>
               <Link
-                to="/contact"
+                to="/vendre"
                 className="text-cta"
                 style={{
                   display: 'inline-flex',
@@ -301,7 +301,7 @@ export default function RealisationDetailPage() {
                   minHeight: '52px',
                 }}
               >
-                Nous contacter
+                Soumettre mon bien
               </Link>
             </div>
           </div>
