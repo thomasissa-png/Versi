@@ -80,3 +80,4 @@
 - **Audits sévères exigés** — les notes complaisantes (8-9/10 premier jet) sont inacceptables.
 - **H1 court** — pattern versi.fr "Quatre métiers. Un cycle maîtrisé." 2 lignes max.
 - **Description versi.fr sacrée** — ne pas modifier sans demande explicite.
+- **Délégation aux agents = principe non négociable** — Thomas veut que les agents spécialisés fassent le travail, même si c'est plus lent (3 relances plutôt qu'écriture manuelle par l'orchestrateur). La qualité de la délégation prime sur la vitesse. (versi-s12)

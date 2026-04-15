@@ -153,25 +153,44 @@ Génération d'un PDF brandé au nom et aux couleurs du marchand (logo, coordonn
 | copywriter | 2026-04-15 | docs/copy/vs-ux-writing.md | Principes UX writing : concis, terrain, actionnable. Zéro mot "IA" dans l'UI ("créer" au lieu de "générer"). 18 types de pièces en français courant. Ton agent architecte défini (professionnel, pas chatbot). Formulations interdites documentées pour le prompt système. Vouvoiement systématique. | "Générer" remplacé par "créer" car le fondateur veut un outil professionnel, pas un gadget tech. L'agent architecte parle comme un professionnel car c'est la perception de valeur — pas comme un assistant IA. |
 | product-manager | 2026-04-15 | docs/product/vs-functional-specs.md | Évaluation 9 fichiers existants. Workflow simplifié 8→4 étapes. 13 user stories détaillées (Given/When/Then). Recommandation Next.js 14 App Router. Modèle BDD 6 tables vs_*. 26 endpoints API. Stack : Next.js + Tailwind + PostgreSQL + Canvas HTML5. | 8→4 étapes car les étapes intermédiaires (qualification, recommandations) sont des raffinements V2 — le fondateur veut le workflow core. Next.js car l'existant est déjà en Next.js et les API Routes évitent un serveur séparé. |
 | orchestrator | 2026-04-15 | Phase VS-2 complète (versi-studio/src/) | Next.js 16 (pas 14 — version plus récente lors de l'init). Tailwind v4 @theme CSS. Canvas HTML5 natif (pas Konva/Fabric.js — budget bundle). Pipeline IA : schemas Zod, plan-extractor, visual-generator, architect-agent — audit 10/10. 4 steps complets : Upload, Lots (canvas drag/resize), Pièces (lot par lot), Visuels (12 styles, chat agent). 19 API routes. Mode simulation si OPENAI_API_KEY absente. | Next.js 16 car init automatique, pas de raison de downgrade. Canvas natif car le bundle Konva (200-400Ko) n'apporte que 20% des features nécessaires. Stockage /tmp en V1 (éphémère) car Object Storage Replit requiert une config supplémentaire — à migrer en V2. Fire-and-forget pour la génération async (acceptable en V1, à améliorer avec job queue en V2). |
+| fullstack | 2026-04-15 | versi-studio/src/ (setup + Step 1 + Step 2 + Step 3 + Step 4) | Setup Next.js 16 + Tailwind v4 @theme + DB Pool pg singleton + ensureVsTables 6 tables. Step 1 : DropZone drag-and-drop, PlanThumbnail, upload multipart /tmp. Step 2 : PlanCanvas HTML5 natif drag/resize 8 poignées, détection chevauchement, LotPanel édition inline, API lots CRUD + validate transaction atomique. Step 3 : RoomCanvas zoom sur lot, RoomPanel dropdown 18 types, validation lot par lot, passage auto au lot suivant. Step 4 : StyleGrid 12 styles, VisualResult 4 états (processing/failed/generated/validated), ChatAgent drawer, RoomGrid panneau latéral, génération async fire-and-forget + polling 5s, mode simulation. | Validation server-side manuelle (pas de Zod dans les API routes V1) car ça évite une dep supplémentaire et la complexité est gérable. Font PP Neue Montreal via Fontshare CDN (pas de local hosting en V1). Debounce 1s pour toutes les sauvegardes auto (lots, pièces). Optimistic UI partout avec rollback sur erreur. Chat agent côté client uniquement (pas en DB en V1). |
+| ia | 2026-04-15 | versi-studio/src/lib/vs/ (schemas + plan-extractor + visual-generator + architect-agent + styles + types) | Schemas Zod adaptés V1 : TypeBien limité à 3, ProjectStatus simplifié, StyleIdEnum 12 styles, VisualGenerationInputSchema, ArchitectIterationInputSchema. Plan-extractor : system prompt expert 7 étapes, JSON schema strict compatible Zod, self-correction, sanitizeSurfaces (10x, cm→m, caps), validateExtraction 7 gates. Visual-generator : gpt-image-1.5 via Responses API, prompt de transformation photoréaliste, enrichissement via gpt-4.1-mini. Architect-agent : enrichissement instruction + génération itérative. | Audit 10/10 après 7 corrections (JSON schema contraintes numériques alignées Zod, deep clone sanitizeSurfaces, gates G6/G7 ajoutées, typage strict Set<ExtractionWarning>, type guard isMessageItem). Les schemas V1 excluent volontairement target_buyer, recommendations, lot_qualification — réintroduits en V2. |
 
 ### Mémo de reprise
 
 **Branche** : `claude/phase-2-orchestration-KsLoA`
 **Date de clôture** : 2026-04-15
-**Dernier commit** : voir `git log --oneline -1`
+**Dernier commit** : `e2312f2` (chore: ignore versi-studio-tmp)
 
 **Résumé session (versi-s12)** : Session de développement Phase 2 complète. (1) Phase VS-2a : setup Next.js 16 + Tailwind v4 tokens Versi + DB 6 tables vs_* + API routes projects/plans + Dashboard + Step 1 Upload + pipeline IA complet (schemas, plan-extractor GPT-4.1, visual-generator gpt-image-1.5, architect-agent) — audit 10/10 sur les 3 modules IA. (2) Phase VS-2b : Step 2 éditeur canvas lots (PlanCanvas HTML5 natif, drag/resize 8 poignées, détection chevauchement, LotPanel, sauvegarde debounce 1s) + Step 3 éditeur pièces par lot (RoomCanvas, RoomPanel dropdown 18 types, validation lot par lot, optimistic UI). (3) Phase VS-2c : Step 4 visuels post-travaux (StyleGrid 12 styles, VisualResult 4 états, ChatAgent drawer itération, RoomGrid panneau latéral, génération async polling 5s, mode simulation sans API key).
 
-**Total livré** : ~16 000 lignes de code, 50+ fichiers, 4 steps complets, 19 API routes, 12 composants, pipeline IA 3 modules.
+**Total livré** : ~16 000 lignes de code, 50 fichiers, 4 steps complets, 19 API routes, 12 composants, pipeline IA 3 modules.
 
 **Phases terminées** : VS-0a, VS-0b (checkpoint), VS-1, VS-2a, VS-2b, VS-2c
 **Phase suivante** : VS-2d (QA) puis VS-3 (SEO/GEO allégé) puis VS-5 (audit final)
 
-**Travail restant — PROCHAINE SESSION** :
+**Travaux en cours** :
+- Build non vérifié (`npm run build` pas exécuté — potentielles erreurs TS)
+- Tests E2E non écrits (agent @qa non lancé)
+- Stockage fichiers en /tmp (éphémère) — migration Object Storage en V2
+- Chat agent : historique côté client uniquement (perdu au refresh)
 
-1. **Phase VS-2d — @qa** : Tests E2E Playwright sur les 4 étapes. Vérifier le flux complet upload → lots → pièces → visuels. Tester les 5 états UI par page. Tester les edge cases (fichiers > 20Mo, lots chevauchement, pièces non typées).
-2. **Build et deploy** : `cd versi-studio && npm run build` — corriger les erreurs TypeScript éventuelles. Tester le dev server.
-3. **Phase VS-3 — SEO/GEO allégé** : SEO technique minimal (meta, sitemap). Pas prioritaire pour un outil SaaS interne.
+**Prochaines actions recommandées** :
+1. **PRIORITÉ 1 — Build + fix** : `cd versi-studio && npm run build` — corriger toutes les erreurs TypeScript. C'est la gate bloquante avant toute QA. Agent : @fullstack.
+2. **PRIORITÉ 2 — @qa Tests E2E** : Playwright sur les 4 étapes. Flux complet upload → lots → pièces → visuels. 5 états UI par page. Edge cases (> 20Mo, chevauchement, pièces non typées). Agent : @qa.
+3. **PRIORITÉ 3 — Dev server + test manuel** : Démarrer `npm run dev`, tester le flux avec les vrais plans PDF de test dans `versi-studio/reference-existant/plans-test/`. Agent : @fullstack ou fondateur.
+
+**Blockers** :
+- OPENAI_API_KEY nécessaire pour tester les features IA en réel (extraction plans, génération visuels). Mode simulation fonctionnel en attendant.
+- PostgreSQL nécessaire pour toutes les API routes (DATABASE_URL). Si pas dispo, les routes retournent 500.
+
+**PROPAGATION P0/P1 EN ATTENTE** (gate bloquante prochaine session) :
+1. P0 → CLAUDE.md règle n°3 : ajouter "Pour les fichiers > 300 lignes, DÉCOUPER le brief en 2-3 agents. Brief max 2000 mots pour un agent producteur."
+2. P1 → CLAUDE.md règle n°4 : ajouter "Après 2 timeouts, réduire scope 50%. Après 3, écriture manuelle + audit agent 10/10 obligatoire."
+3. P1 → .claude/agents/fullstack.md : ajouter "Vérifier la version installée vs demandée (Next.js, Tailwind) et alerter si divergence."
+4. P2 → .claude/agents/orchestrator.md : ajouter "Mettre à jour le compteur SESSION après chaque phase, pas en fin de session."
+
+**Commande de reprise** : `@orchestrator mode reprise de session. Lis versi-studio/project-context.md et versi-studio/orchestration-plan.md, continue Phase 2d (QA). Commence par propager les learnings P0/P1 EN ATTENTE, puis npm run build et corrige les erreurs.`
 4. **Phase VS-5 — Audit final** : @reviewer revue croisée GO/NO-GO.
 
 **Commande de reprise** : `@orchestrator mode reprise de session. Lis versi-studio/project-context.md et versi-studio/orchestration-plan.md, continue Phase 2d (QA).`
