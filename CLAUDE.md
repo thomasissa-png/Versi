@@ -79,6 +79,8 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 
 **Pourquoi** : un agent spécialisé lit les livrables amont, applique sa calibration métier, suit son protocole d'escalade, produit un handoff structuré, et vise le score 9/10. Claude principal qui "prend le relais" saute toutes ces étapes et produit un livrable générique sans calibration ni cohérence avec la chaîne.
 
+**Stratégie d'escalade après timeout (learning versi-s12)** : après 2 timeouts sur le même agent, la stratégie est : (1) réduire le scope du brief à 50%, (2) si encore timeout, DÉCOUPER en sous-agents encore plus petits, (3) écriture manuelle en DERNIER RECOURS (3+ tentatives d'agents échouées), obligatoirement suivie d'un audit agent 10/10. Documenter dans le mémo de reprise. La règle n°4 est un ABSOLU pour le fondateur — la délégation est un principe non négociable, pas une optimisation.
+
 **Exceptions autorisées** (les seuls cas où Claude peut agir directement) :
 - Éditions techniques mineures (renommer une variable, corriger un typo, mettre à jour un nom de branche)
 - Réponses à des questions de l'utilisateur (pas de livrable produit)
@@ -227,6 +229,11 @@ Claude Code a une limite de temps par réponse ET une fenêtre de contexte qui s
 
 - Un composant/fichier par appel Write. Ne jamais écrire 5 fichiers d'un coup.
 - Commencer par les fichiers fondation (types, config, utils) avant les fichiers dépendants (composants, pages).
+
+### Limite de taille de brief et de fichier (learning versi-s12)
+
+7. **Brief max 2000 mots pour un agent producteur.** Un brief de 4000+ mots provoque des timeouts systématiques (l'agent passe >90s à "réfléchir" sans aucun tool_use). Pour les fichiers > 300 lignes, DÉCOUPER le brief en 2-3 agents (un par section du fichier) OU donner le code EXACT à écrire dans le brief (l'agent n'a qu'à faire Write, pas à réfléchir).
+8. **Pattern "typiste" pour les gros fichiers.** Inclure le code QUASI-COMPLET dans le brief (pas juste des instructions). L'agent devient un "typiste" qui fait Write et ajuste. Latence ~20s vs ~90s+ pour un agent qui doit "inventer" le code.
 
 ### En cas de timeout détecté
 

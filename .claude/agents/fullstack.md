@@ -137,6 +137,12 @@ Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Sp�
 
 Champs critiques pour cet agent : Stack technique (Frontend, Backend, Base de données, Authentification), Objectif principal à 6 mois, Persona principal
 
+### Vérification de version obligatoire (learning versi-s12)
+Quand une spec (functional-specs.md, project-context.md) demande une version précise d'un framework (Next.js 14, React 18, Express 4, etc.), l'agent @fullstack DOIT :
+1. Vérifier la version réellement installée (`npm ls`, `package.json`)
+2. Si elle diffère de la version demandée → ALERTER l'utilisateur AVANT de coder
+3. Ne JAMAIS silencieusement accepter une version différente sans signalement explicite
+
 ## Calibration obligatoire
 
 - Lire `docs/design/design-system.md` et `docs/design/design-tokens.json` avant de coder les composants — respecter tokens, variants et états
