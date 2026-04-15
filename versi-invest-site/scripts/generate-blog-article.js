@@ -192,6 +192,40 @@ L'article doit :
 }
 
 // ---------------------------------------------------------------------------
+// Audit multi-agents (copy + SEO + stratégie) via Claude
+// ---------------------------------------------------------------------------
+async function auditArticle(content) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const prompt = `Audite cet article pour Versi Invest. Note 3 dimensions /10. Corrections si <9.
+
+ARTICLE :
+${content.slice(0, 6000)}
+
+DIMENSIONS :
+1. COPY (ton fondateur, mots interdits, utilité autonome, vouvoiement)
+2. SEO (H1 mot-clé, structure H2, longueur, CTA /contact)
+3. STRATÉGIE (angle différenciant, pas générique, pertinence investisseur)
+
+Format JSON strict :
+{"copy":{"score":N,"corrections":["..."]},"seo":{"score":N,"corrections":["..."]},"strategy":{"score":N,"corrections":["..."]},"average":N,"publishable":BOOL}
+
+publishable = true si average >= 8.5 ET aucune dimension < 7.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+  });
+
+  if (!response.ok) return { copy: { score: 7 }, seo: { score: 7 }, strategy: { score: 7 }, average: 7, publishable: false };
+  const data = await response.json();
+  const text = data.content[0].text;
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return { average: 7, publishable: false };
+  try { return JSON.parse(jsonMatch[0]); } catch { return { average: 7, publishable: false }; }
+}
+
+// ---------------------------------------------------------------------------
 // Publication en BDD
 // ---------------------------------------------------------------------------
 async function publishArticle(slug, content, tags, topic) {
@@ -287,6 +321,42 @@ async function main() {
       }
     } else {
       console.log('[BLOG-GEN] Gates OK.');
+    }
+
+    // Audit multi-agents (copy, SEO, stratégie) — itère jusqu'à 8.5+/10
+    if (!dryRun && process.env.ANTHROPIC_API_KEY) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`[BLOG-GEN] Audit multi-agents (tentative ${attempt}/3)...`);
+        const audit = await auditArticle(content);
+        console.log(`[BLOG-GEN] Scores : copy=${audit.copy?.score}, seo=${audit.seo?.score}, strategy=${audit.strategy?.score}, avg=${audit.average}`);
+
+        if (audit.publishable) {
+          console.log('[BLOG-GEN] Audit PASS — article validé pour publication.');
+          break;
+        }
+
+        if (attempt === 3) {
+          console.error('[BLOG-GEN] Audit FAIL après 3 tentatives — article NON publié.');
+          process.exit(1);
+        }
+
+        console.log('[BLOG-GEN] Audit FAIL — régénération avec corrections...');
+        const corrections = [
+          ...(audit.copy?.corrections || []),
+          ...(audit.seo?.corrections || []),
+          ...(audit.strategy?.corrections || []),
+        ].join('. ');
+        content = await generateArticle(
+          entry.topic + '. CORRECTIONS : ' + corrections,
+          entry.keywords,
+        );
+        const retryGates = validateArticle(content);
+        if (retryGates.length > 0) {
+          console.error('[BLOG-GEN] Gates échouées après régénération');
+          retryGates.forEach((e) => console.error(`  ${e}`));
+          process.exit(1);
+        }
+      }
     }
 
     if (dryRun) {
