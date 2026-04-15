@@ -66,6 +66,34 @@ async function initDatabase() {
       );
     `);
 
+    // ---------------------------------------------------------------------------
+    // Migrations : ajouter les colonnes manquantes sur table existante
+    // ---------------------------------------------------------------------------
+    const migrations = [
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT '[]'`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'draft'`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS cover_image VARCHAR(500)`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+    ];
+
+    for (const sql of migrations) {
+      try {
+        await pool.query(sql);
+      } catch (migErr) {
+        // Ignorer les erreurs "column already exists" silencieusement
+        if (!migErr.message.includes('already exists')) {
+          console.warn('[DB] Migration warning :', migErr.message);
+        }
+      }
+    }
+
+    // Migrer les anciennes données : published=true → status='published'
+    await pool.query(`
+      UPDATE blog_articles SET status = 'published'
+      WHERE status IS NULL OR status = 'draft'
+      AND (published_at IS NOT NULL)
+    `).catch(() => {});
+
     console.log('[DB] Tables initialisées avec succès.');
   } catch (err) {
     console.error('[DB] Erreur initialisation tables :', err.message);

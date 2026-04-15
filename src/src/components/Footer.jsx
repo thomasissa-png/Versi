@@ -16,7 +16,7 @@ export default function Footer() {
             {CONTACT_EMAIL}
           </a>
           <span className="footer__entities">
-            <a href="https://versi-immobilier.fr" target="_blank" rel="noopener noreferrer" className="footer__entity-link">Versi Immobilier</a> · Versi Invest · Versi Capital · Versi Finance
+            <a href="https://versi-immobilier.fr" target="_blank" rel="noopener noreferrer" className="footer__entity-link">Versi Immobilier</a> · <a href="https://versi-invest.fr" target="_blank" rel="noopener noreferrer" className="footer__entity-link">Versi Invest</a> · Versi Capital · Versi Finance
           </span>
           <div className="footer__legal">
             <Link to="/mentions-legales" className="footer__legal-link">
