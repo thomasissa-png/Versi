@@ -56,6 +56,12 @@ export default function ReferenceDetailPage() {
                 <span className="ref-detail__metric-value">{ref.rendementBrut.toFixed(1).replace('.', ',')}%</span>
                 <span className="ref-detail__metric-label">Rendement brut</span>
               </div>
+              {ref.cashflowNet != null && (
+              <div className="ref-detail__metric">
+                <span className="ref-detail__metric-value ref-detail__metric-value--highlight">+{ref.cashflowNet} €</span>
+                <span className="ref-detail__metric-label">Cashflow net / mois</span>
+              </div>
+              )}
               <div className="ref-detail__metric">
                 <span className="ref-detail__metric-value">{ref.lots}</span>
                 <span className="ref-detail__metric-label">Lots</span>
@@ -63,10 +69,6 @@ export default function ReferenceDetailPage() {
               <div className="ref-detail__metric">
                 <span className="ref-detail__metric-value">{ref.prix || '—'}</span>
                 <span className="ref-detail__metric-label">Prix d'acquisition</span>
-              </div>
-              <div className="ref-detail__metric">
-                <span className="ref-detail__metric-value">{ref.loyersAnnuels || '—'}</span>
-                <span className="ref-detail__metric-label">Loyers annuels</span>
               </div>
             </div>
           </div>
