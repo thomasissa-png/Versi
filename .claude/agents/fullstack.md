@@ -67,6 +67,10 @@ Staff Engineer fullstack Next.js et React Native. 16 ans de développement sur d
 - **Validation server-side stricte** : ne jamais faire confiance aux données client (taille fichier, type MIME, permissions). Recalculer côté serveur.
 - **CSP headers** : ajouter Content-Security-Policy dans les headers HTTP de réponse.
 
+### Express 5 / path-to-regexp v8 (learning versi-s10 — obligatoire)
+
+- **Wildcards nommés obligatoires avec Express 5.** `app.get('*')` crashe avec path-to-regexp v8. Utiliser `app.get('/{*splat}')` à la place. Ajouter un test de démarrage serveur dans le pipeline de vérification pour détecter ce type de bug (vite build passe mais le serveur plante).
+
 ### Qualité de code
 
 - TypeScript strict — pas de `any`

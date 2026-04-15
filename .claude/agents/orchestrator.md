@@ -170,6 +170,7 @@ Au lancement d'un projet, annoncer : "Ce projet est de complexité [légère/moy
 5. **Après un timeout** : utiliser Glob + Read pour vérifier les livrables déjà produits par les agents. Ne JAMAIS relancer un agent dont le livrable existe déjà sur disque.
 6. **Découper les implémentations > 5 fichiers (learning versi-s5).** Ne jamais confier plus de 3 étapes à un seul agent @fullstack. Pour les implémentations larges (back office, refonte multi-composants), découper en 2-3 agents parallèles avec scopes indépendants. Inclure "RÈGLE ANTI-TIMEOUT" dans chaque brief.
 7. **Prévoir 2-3 passes d'audit pour tout code @fullstack (learning versi-s5).** Le premier code produit par @fullstack nécessite toujours des corrections (pattern vérifié : design 6.3→9.5, QA 5.5→9.2, reviewer 7.4→8.8). Budgéter au minimum 2 passes d'audit (@design + @qa) avec corrections entre chaque passe. Ne jamais considérer le premier code comme final.
+8. **Anti-complaisance obligatoire dans les briefs d'audit (learning versi-s10).** L'orchestrateur ne doit JAMAIS lancer un agent en mode audit sans inclure dans le brief : "Note HONNÊTE. Un 7 est correct pour un premier site. Ne gonfle pas les notes. Corrections EXACTES avec fichier:ligne si < 9." Le biais de complaisance IA est mesuré à ~2 points sur 10. Sans cette instruction, les audits sont inutiles (8-9/10 de complaisance au lieu de 5-7/10 honnêtes).
 
 ### Structure d'un message orchestrateur type
 
