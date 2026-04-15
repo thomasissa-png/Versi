@@ -86,19 +86,26 @@ const EDITORIAL_CALENDAR = [
 // ---------------------------------------------------------------------------
 // Prompt système pour la génération d'article
 // ---------------------------------------------------------------------------
+const INTERNAL_ROUTES = ['/', '/comment-ca-marche', '/references', '/equipe', '/contact', '/blog'];
+
 const SYSTEM_PROMPT = `Tu es le rédacteur du blog Versi Invest (versi-invest.fr).
 Versi Invest détecte des opportunités immobilières rentables pour les investisseurs particuliers en Hauts-de-France et Île-de-France. 16 immeubles, 7,2M€ de volume opéré. 5% de commission côté investisseur, zéro côté vendeur. Carte T obtenue.
 
 RÈGLES DE RÉDACTION :
 - Ton : fondateur qui sait de quoi il parle. Direct, factuel, zéro blabla.
+- Exemple de ton correct : "À Valenciennes, un T3 en centre-ville tourne à 8-9% brut. Pas exceptionnel, mais solide si vous achetez au bon prix."
+- Exemple de ton à éviter : "Découvrez les incroyables opportunités de Valenciennes !"
 - Vouvoiement systématique.
 - Vocabulaire investisseur supposé connu : cashflow, rendement brut/net, LMNP, SCI, vacance locative.
-- MOTS INTERDITS : garanti, sans risque, clé en main, accompagnement, expertise, sur-mesure, passive income, liberté financière.
+- MOTS INTERDITS : garanti, sans risque, clé en main, accompagnement, expertise, sur-mesure, passive income, liberté financière, opportunité unique, investissement passif, meilleur, leader.
 - L'article doit être utile MÊME sans Versi Invest — pas de pub déguisée.
 - Versi Invest ne fait PAS exclusivement de l'off-market. Les biens viennent du réseau terrain ET du marché.
-- Chiffres : utiliser des fourchettes réalistes, signaler si estimation ("selon les données de marché disponibles").
+- Chiffres : utiliser des fourchettes réalistes, signaler si estimation.
 - Pas de superlatifs auto-décernés.
+- Le MOT-CLÉ PRINCIPAL doit apparaître dans le H1 et dans les 100 premiers mots.
 - CTA en fin d'article : naturel, vers /contact, sans forcer.
+- LIENS INTERNES : inclure au moins 2 liens vers les pages existantes du site : /, /comment-ca-marche, /references, /equipe, /contact, /blog.
+- MÉTA-DESCRIPTION : la première phrase après le H1 doit pouvoir servir de meta-description SEO (150-160 chars).
 
 FORMAT DE SORTIE (markdown) :
 # [Titre H1]
@@ -148,20 +155,24 @@ function validateArticle(content) {
   if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
 
   // G6 — Vouvoiement (pas de tutoiement)
-  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) errors.push('G6 FAIL: tutoiement détecté');
+  if (content.match(/\b(tu|ton|ta|tes|toi)\b/i)) errors.push('G6 FAIL: tutoiement détecté');
 
-  // G7 — Liens internes (au moins 2 liens vers d'autres pages du site)
-  const internalLinks = (content.match(/\]\(\//g) || []).length;
-  if (internalLinks < 2) errors.push(`G7 FAIL: ${internalLinks} lien(s) interne(s) (minimum 2)`);
+  // G7 — Liens internes (≥2, vers des routes existantes)
+  const linkMatches = content.match(/\]\(\/[a-z-]*\)/g) || [];
+  const validLinks = linkMatches.filter((l) => {
+    const path = l.match(/\]\((\/[a-z-]*)\)/)?.[1];
+    return INTERNAL_ROUTES.includes(path);
+  });
+  if (validLinks.length < 2) errors.push(`G7 FAIL: ${validLinks.length} lien(s) interne(s) valide(s) (min 2). Routes valides : ${INTERNAL_ROUTES.join(', ')}`);
 
-  // G8 — Fierté fondateur : pas de contenu creux, chaque section doit avoir du fond
+  // G8 — Densité minimale : pas de paragraphes creux
   const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
-  const shortParagraphs = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
-  if (shortParagraphs.length > 2) errors.push(`G8 FAIL: ${shortParagraphs.length} paragraphes trop courts — contenu potentiellement creux`);
+  const shortP = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
+  if (shortP.length > 2) errors.push(`G8 FAIL: ${shortP.length} paragraphes creux (<50 chars)`);
 
-  // G9 — Valeur ajoutée : au moins 1 chiffre concret (prix, %, rendement)
-  const hasNumbers = content.match(/\d+[\s]?(%|€|euros?|mois|ans?|m²)/gi);
-  if (!hasNumbers || hasNumbers.length < 3) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (minimum 3) — l'article doit apporter de la valeur terrain`);
+  // G9 — Valeur terrain : ≥3 données chiffrées
+  const hasNumbers = content.match(/\d[\d\s.,]*\s?(%|€|euros?|mois|ans?|m²)/gi);
+  if (!hasNumbers || hasNumbers.length < 3) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (min 3)`);
 
   return errors;
 }
@@ -193,6 +204,7 @@ L'article doit :
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
+    signal: AbortSignal.timeout(120000),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
@@ -217,10 +229,10 @@ async function auditArticle(content) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const prompt = `Tu es un comité d'audit composé de 4 experts : @copy, @seo, @creative-strategy, et un expert marchand de biens immobilier.
 
-Audite cet article pour Versi Invest. Note HONNÊTEMENT 4 dimensions /10. Corrections EXACTES si <9.
+Audite cet article pour Versi Invest. Note 4 dimensions /10. BARÈME : 10=aucune correction, 9=1 mineure, 8=mineures multiples, 7=correction structurelle, <7=réécriture.
 
 ARTICLE :
-${content.slice(0, 6000)}
+${content}
 
 CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 16 immeubles, 7,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
 
@@ -238,6 +250,7 @@ Format JSON strict :
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    signal: AbortSignal.timeout(60000),
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
   });
 
@@ -362,6 +375,7 @@ async function main() {
         if (retryErrors.length > 0) {
           console.error('[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES — article NON publié');
           retryErrors.forEach((e) => console.error(`  ${e}`));
+          await notifyFailure(entry.topic, entry.slug, 'Gates fail x2 : ' + retryErrors.join(', '));
           process.exit(1);
         }
         console.log('[BLOG-GEN] Gates OK après retry.');
