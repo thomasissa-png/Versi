@@ -70,7 +70,7 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 ### Phase VS-2d — QA
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @qa | Tests E2E + audit qualité | Code complet | EN ATTENTE |
+| @qa | Tests E2E + audit qualité | Code complet | EN COURS — pages.spec.ts + fixtures.ts (688L), workflow.spec.ts en cours |
 
 ### Phase VS-3 — Visibilité (allégée)
 | Agent | Mission | Dépendance | Statut |
