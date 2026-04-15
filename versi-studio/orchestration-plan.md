@@ -70,13 +70,13 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 ### Phase VS-2d — QA
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @qa | Tests E2E + audit qualité | Code complet | EN COURS — pages.spec.ts + fixtures.ts (688L), workflow.spec.ts en cours |
+| @qa | Tests E2E + audit qualité | Code complet | TERMINÉ — 32 tests, 984 lignes (pages + workflow + fixtures), vs-qa-strategy.md |
 
 ### Phase VS-3 — Visibilité (allégée)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @seo | SEO technique minimal | Site développé | EN ATTENTE |
-| @geo | GEO minimal | Site développé | EN ATTENTE |
+| @seo | SEO technique minimal | Site développé | TERMINÉ — noindex/nofollow, metadata dans layout.tsx |
+| @geo | GEO minimal | Site développé | TERMINÉ — N/A documenté (outil interne) |
 
 ### Phase VS-5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |

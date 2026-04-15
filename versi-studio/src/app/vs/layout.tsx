@@ -4,9 +4,22 @@
  * Header avec logo + lien retour "Mes opérations".
  * Le stepper est affiché uniquement dans les pages projet (pas le dashboard).
  * Rendu : SSR — layout shell sans données dynamiques.
+ *
+ * SEO : noindex/nofollow sur toutes les routes /vs/* — outil interne.
  */
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Versi Studio — Outil de découpe et visualisation",
+  description:
+    "Outil interne Versi — découpe de lots, visualisation et pré-commercialisation pour marchands de biens.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function VsLayout({ children }: { children: React.ReactNode }) {
   return (
