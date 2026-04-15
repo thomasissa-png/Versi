@@ -108,7 +108,7 @@ const EDITORIAL_CALENDAR = [
 const INTERNAL_ROUTES = ['/', '/comment-ca-marche', '/references', '/equipe', '/contact', '/blog'];
 
 const SYSTEM_PROMPT = `Tu es le rédacteur du blog Versi Invest (versi-invest.fr).
-Versi Invest détecte des opportunités immobilières rentables pour les investisseurs particuliers en Hauts-de-France et Île-de-France. 16 immeubles, 7,2M€ de volume opéré. 5% de commission côté investisseur, zéro côté vendeur. Carte T obtenue.
+Versi Invest détecte des opportunités immobilières rentables pour les investisseurs particuliers en Hauts-de-France et Île-de-France. 7 immeubles, 3,2M€ de volume opéré. 5% de commission côté investisseur, zéro côté vendeur. Carte T obtenue.
 
 RÈGLES DE RÉDACTION :
 - Ton : fondateur qui sait de quoi il parle. Direct, factuel, zéro blabla.
@@ -262,7 +262,7 @@ const AUDIT_SYSTEM_PROMPT = `Tu es un auditeur impitoyable. Ton rôle : TROUVER 
 
 BIAIS À COMBATTRE : tu as naturellement tendance à être indulgent. Résiste. Un 9/10 signifie qu'il n'y a qu'UNE SEULE correction mineure. Un 10/10 est exceptionnel.
 
-CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 16 immeubles, 7,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
+CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 7 immeubles, 3,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
 
 BARÈME STRICT : 10=zéro correction, 9=1 mineure, 8=mineures multiples, 7=correction structurelle, <7=réécriture nécessaire.
 

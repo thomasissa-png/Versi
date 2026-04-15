@@ -90,10 +90,11 @@ async function initDatabase() {
     }
 
     // Migrer les anciennes données : published=true → status='published'
+    // Couvre le cas où la table existait avec l'ancien schéma (published BOOLEAN)
     await pool.query(`
       UPDATE blog_articles SET status = 'published'
-      WHERE status IS NULL OR status = 'draft'
-      AND (published_at IS NOT NULL)
+      WHERE (status IS NULL OR status = 'draft')
+      AND published_at IS NOT NULL
     `).catch(() => {});
 
     console.log('[DB] Tables initialisées avec succès.');

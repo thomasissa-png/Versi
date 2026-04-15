@@ -99,7 +99,7 @@ export default function ReferencesPage() {
               <div className="references__empty">
                 <p className="references__empty-text">
                   Nos premières références investisseurs arrivent bientôt. En attendant, le track
-                  record du Groupe Versi — 16 immeubles, 7,2M€ de volume opéré via
+                  record du Groupe Versi — 7 immeubles, 3,2M€ de volume opéré via
                   Versi Immobilier — est disponible sur demande. Inscrivez-vous sur la liste
                   d'attente pour y accéder lors de notre premier appel.
                 </p>

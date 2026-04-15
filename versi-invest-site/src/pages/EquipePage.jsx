@@ -36,7 +36,7 @@ export default function EquipePage() {
     <>
       <PageHead
         title="Maxime, Thomas, Carl — Fondateurs Versi Invest"
-        description="3 co-fondateurs, ex-Sony et Algolia. 16 immeubles, 7,2M€ de volume opéré. Investissement locatif en direct."
+        description="3 co-fondateurs, ex-Sony et Algolia. 7 immeubles, 3,2M€ de volume opéré. Investissement locatif en direct."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -95,7 +95,7 @@ export default function EquipePage() {
               Versi Invest fait partie du Groupe Versi.
             </h2>
             <p className="groupe__text">
-              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (16 immeubles, 7,2M€ de volume opéré via Versi Immobilier) alimente le flux d'opportunités que Versi Invest propose à ses investisseurs. Ce n'est pas un argument marketing — c'est le flux opérationnel sur lequel repose notre modèle.
+              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (7 immeubles, 3,2M€ de volume opéré via Versi Immobilier) alimente le flux d'opportunités que Versi Invest propose à ses investisseurs. Ce n'est pas un argument marketing — c'est le flux opérationnel sur lequel repose notre modèle.
             </p>
             <a
               href="https://versi.fr"

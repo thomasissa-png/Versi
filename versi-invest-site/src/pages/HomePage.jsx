@@ -53,8 +53,8 @@ const PROCESS_STEPS = [
 ];
 
 const STATS = [
-  { value: '16', label: 'immeubles' },
-  { value: '7,2M€', label: 'de volume opéré' },
+  { value: '7', label: 'immeubles' },
+  { value: '3,2M€', label: 'de volume opéré' },
   { value: '8%+', label: 'rendement brut ciblé' },
 ];
 
