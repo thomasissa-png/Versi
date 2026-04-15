@@ -67,3 +67,16 @@
 - **Simulateur rendement/cashflow en V1.**
 - **Blog séparé** de versi-immobilier, dédié investissement locatif.
 - **Pas de back office V1.**
+
+### Session s10 — 2026-04-15
+- **Bleu #1B3A5C rejeté** — palette unique pour l'écosystème Versi (charcoal + stone). Pas de couleur d'accent par entité.
+- **Off-market pas systématique** — ne jamais présenter comme promesse principale.
+- **Stats volatiles** — 7 immeubles, 3,2M€ (au 2026-04-15). Toujours utiliser les derniers chiffres fondateur.
+- **Carte T obtenue** — ne plus écrire "en cours d'obtention".
+- **"Thèse" rejeté** — mot trop académique. Préfère "Le regard Versi".
+- **Autonomie = IA end-to-end** — automatisation IA qui génère, audite et publie seule.
+- **Simulateur supprimé** du site V1.
+- **Processus métier = vérité fondateur** — les 8 étapes dictées par Thomas.
+- **Audits sévères exigés** — les notes complaisantes (8-9/10 premier jet) sont inacceptables.
+- **H1 court** — pattern versi.fr "Quatre métiers. Un cycle maîtrisé." 2 lignes max.
+- **Description versi.fr sacrée** — ne pas modifier sans demande explicite.
