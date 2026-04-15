@@ -52,14 +52,23 @@ function sleep(ms: number): Promise<void> {
  * The SDK types for `response.output` are generic — this helper
  * encapsulates the runtime shape check in one place.
  */
+interface ResponseMessageItem {
+  type: "message";
+  content: Array<{ type: string; text?: string }>;
+}
+
+function isMessageItem(o: { type: string }): o is ResponseMessageItem {
+  return o.type === "message" && "content" in o && Array.isArray((o as ResponseMessageItem).content);
+}
+
 function extractTextFromResponse(
   response: Awaited<ReturnType<OpenAI["responses"]["create"]>>
 ): string {
   const messageItem = response.output.find(
-    (o: { type: string }) => o.type === "message"
-  ) as { type: "message"; content: Array<{ type: string; text?: string }> } | undefined;
+    (o: { type: string }) => isMessageItem(o)
+  );
 
-  if (!messageItem) {
+  if (!messageItem || !isMessageItem(messageItem)) {
     throw new Error("No message output in response");
   }
 
@@ -212,14 +221,14 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
           properties: {
             temp_id: { type: "string" as const },
             name_raw: { type: "string" as const },
-            surface_m2: { type: ["number", "null"] as const },
+            surface_m2: { type: ["number", "null"] as const, exclusiveMinimum: 0 },
             dimensions: {
               anyOf: [
                 {
                   type: "object" as const,
                   properties: {
-                    length_m: { type: "number" as const },
-                    width_m: { type: "number" as const },
+                    length_m: { type: "number" as const, exclusiveMinimum: 0 },
+                    width_m: { type: "number" as const, exclusiveMinimum: 0 },
                   },
                   required: ["length_m", "width_m"],
                   additionalProperties: false,
@@ -227,11 +236,11 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
                 { type: "null" as const },
               ],
             },
-            ceiling_height_m: { type: ["number", "null"] as const },
-            windows_count: { type: "integer" as const },
-            doors_count: { type: "integer" as const },
-            floor: { type: ["integer", "null"] as const },
-            confidence: { type: "number" as const },
+            ceiling_height_m: { type: ["number", "null"] as const, exclusiveMinimum: 0 },
+            windows_count: { type: "integer" as const, minimum: 0 },
+            doors_count: { type: "integer" as const, minimum: 0 },
+            floor: { type: ["integer", "null"] as const, minimum: 0 },
+            confidence: { type: "number" as const, minimum: 0, maximum: 1 },
             shape: {
               anyOf: [
                 {
@@ -308,8 +317,8 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
           { type: "null" as const },
         ],
       },
-      total_surface_m2: { type: ["number", "null"] as const },
-      floors_count: { type: "integer" as const },
+      total_surface_m2: { type: ["number", "null"] as const, exclusiveMinimum: 0 },
+      floors_count: { type: "integer" as const, minimum: 1 },
       extraction_warnings: {
         type: "array" as const,
         items: {
@@ -532,7 +541,8 @@ export async function extractMultiplePlans(
   }
 
   const allRooms: PlanExtractionResult["rooms"] = [];
-  const allWarnings: Set<string> = new Set();
+  type ExtractionWarning = PlanExtractionResult["extraction_warnings"][number];
+  const allWarnings = new Set<ExtractionWarning>();
   let totalSurface = 0;
   let hasAnySurface = false;
   let scaleRef: PlanExtractionResult["scale_reference"] = "none";
@@ -554,7 +564,7 @@ export async function extractMultiplePlans(
     building_outline: firstOutline,
     total_surface_m2: hasAnySurface ? totalSurface : null,
     floors_count: plans.length,
-    extraction_warnings: Array.from(allWarnings) as PlanExtractionResult["extraction_warnings"],
+    extraction_warnings: Array.from(allWarnings),
     scale_reference: scaleRef,
   };
 }
@@ -584,7 +594,11 @@ export interface SanitizationEntry {
 }
 
 export function sanitizeSurfaces(data: PlanExtractionResult, typeBien?: string): { data: PlanExtractionResult; log: SanitizationEntry[] } {
-  const rooms = [...data.rooms];
+  const rooms = data.rooms.map((r) => ({
+    ...r,
+    dimensions: r.dimensions ? { ...r.dimensions } : null,
+    bounding_box: r.bounding_box ? { ...r.bounding_box } : r.bounding_box,
+  }));
   let totalSurface = data.total_surface_m2;
   const log: SanitizationEntry[] = [];
 
@@ -649,9 +663,14 @@ export function sanitizeSurfaces(data: PlanExtractionResult, typeBien?: string):
         log.push({ room: room.name_raw, from: before, to: room.surface_m2, reason: "cm_to_m" });
       }
     }
+    // Reject non-positive surfaces (could result from bad corrections)
+    if (room.surface_m2 !== null && room.surface_m2 <= 0) {
+      log.push({ room: room.name_raw, from: room.surface_m2, to: null, reason: "non_positive" });
+      room.surface_m2 = null; room.dimensions = null; room.confidence = Math.min(room.confidence, 0.3);
+    }
     const rType = inferRoomTypeFromName(room.name_raw);
     const maxForType = ROOM_TYPE_MAX[rType] ?? ROOM_TYPE_MAX.autre;
-    if (room.surface_m2 > maxForType * 1.2) {
+    if (room.surface_m2 !== null && room.surface_m2 > maxForType * 1.2) {
       log.push({ room: room.name_raw, from: room.surface_m2, to: null, reason: `cap_type_${rType}` });
       room.surface_m2 = null; room.dimensions = null; room.confidence = Math.min(room.confidence, 0.3);
     }
@@ -731,21 +750,62 @@ export function validateExtraction(
     const max = RT_MAX[inferRoomTypeFromName(r.name_raw)] ?? RT_MAX.autre;
     return r.surface_m2 > max * 1.2;
   });
-  gates.push({ id: "G1_SURFACE_RANGE", label: "Surfaces réalistes par type", passed: oversized.length === 0 });
+  gates.push({
+    id: "G1_SURFACE_RANGE", label: "Surfaces réalistes par type", passed: oversized.length === 0,
+    detail: oversized.length > 0 ? `Pièces hors range : ${oversized.map((r) => `${r.name_raw} (${r.surface_m2}m²)`).join(", ")}` : undefined,
+  });
 
   const totalSurface = data.rooms.reduce((s, r) => s + (r.surface_m2 ?? 0), 0);
-  gates.push({ id: "G2_TOTAL_SURFACE", label: `Surface totale < ${maxTotal}m²`, passed: totalSurface > 0 && totalSurface < maxTotal });
-  gates.push({ id: "G3_MIN_ROOMS", label: "Au moins 1 pièce", passed: data.rooms.length >= 1 });
+  gates.push({
+    id: "G2_TOTAL_SURFACE", label: `Surface totale < ${maxTotal}m²`, passed: totalSurface > 0 && totalSurface < maxTotal,
+    detail: `Total calculé : ${totalSurface.toFixed(1)}m²`,
+  });
+  gates.push({
+    id: "G3_MIN_ROOMS", label: "Au moins 1 pièce", passed: data.rooms.length >= 1,
+    detail: `${data.rooms.length} pièce(s) détectée(s)`,
+  });
 
   const withBbox = data.rooms.filter((r) => r.bounding_box).length;
-  gates.push({ id: "G4_BBOXES", label: "Bounding boxes > 50%", passed: withBbox > data.rooms.length * 0.5 });
+  gates.push({
+    id: "G4_BBOXES", label: "Bounding boxes > 50%", passed: withBbox > data.rooms.length * 0.5,
+    detail: `${withBbox}/${data.rooms.length} pièces avec bounding box`,
+  });
 
   const avgConf = data.rooms.reduce((s, r) => s + r.confidence, 0) / Math.max(data.rooms.length, 1);
-  gates.push({ id: "G5_CONFIDENCE", label: "Confiance > 0.4", passed: avgConf > 0.4 });
+  gates.push({
+    id: "G5_CONFIDENCE", label: "Confiance > 0.4", passed: avgConf > 0.4,
+    detail: `Confiance moyenne : ${avgConf.toFixed(2)}`,
+  });
+
+  // G6: Duplicate detection — same name on same floor is suspicious
+  const roomKeys = data.rooms.map((r) => `${r.name_raw.toLowerCase().trim()}__f${r.floor ?? 0}`);
+  const duplicates = roomKeys.filter((k, i) => roomKeys.indexOf(k) !== i);
+  const uniqueDups = Array.from(new Set(duplicates));
+  gates.push({
+    id: "G6_NO_DUPLICATES", label: "Pas de pièces dupliquées", passed: uniqueDups.length === 0,
+    detail: uniqueDups.length > 0 ? `Doublons : ${uniqueDups.join(", ")}` : undefined,
+  });
+
+  // G7: Rooms inside building outline
+  if (data.building_outline) {
+    const ol = data.building_outline;
+    const olMaxX = ol.x_percent + ol.width_percent;
+    const olMaxY = ol.y_percent + ol.height_percent;
+    const outsideRooms = data.rooms.filter((r) => {
+      if (!r.bounding_box) return false;
+      const bb = r.bounding_box;
+      return bb.x_percent < ol.x_percent - 2 || bb.y_percent < ol.y_percent - 2 ||
+        bb.x_percent + bb.width_percent > olMaxX + 2 || bb.y_percent + bb.height_percent > olMaxY + 2;
+    });
+    gates.push({
+      id: "G7_INSIDE_OUTLINE", label: "Pièces dans le building outline", passed: outsideRooms.length === 0,
+      detail: outsideRooms.length > 0 ? `Hors outline : ${outsideRooms.map((r) => r.name_raw).join(", ")}` : undefined,
+    });
+  }
 
   const passed = gates.filter((g) => g.passed).length;
   const score = Math.round((passed / gates.length) * 100);
-  const shouldRetry = !gates.find((g) => g.id === "G3_MIN_ROOMS")?.passed || avgConf < 0.3;
+  const shouldRetry = !gates.find((g) => g.id === "G3_MIN_ROOMS")?.passed || avgConf < 0.3 || oversized.length > data.rooms.length * 0.5;
 
   if (shouldRetry) warnings.push("La qualité de l'extraction est faible — une nouvelle tentative est recommandée.");
 
