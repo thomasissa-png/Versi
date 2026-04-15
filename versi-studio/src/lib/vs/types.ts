@@ -97,6 +97,32 @@ export interface VsVisual {
   created_at: string;
 }
 
+// ─── Zone Data (coordonnées % pour le canvas) ────────────────────
+
+export interface ZoneRect {
+  x_percent: number;
+  y_percent: number;
+  width_percent: number;
+  height_percent: number;
+}
+
+// ─── Palette de couleurs lots (8 couleurs, cyclique) ──────────────
+
+export const LOT_COLORS = [
+  { name: "argile", hex: "#C4725A" },
+  { name: "sable", hex: "#D4B896" },
+  { name: "ardoise", hex: "#6B7D8A" },
+  { name: "lin", hex: "#C8B89A" },
+  { name: "lichen", hex: "#7A9A7E" },
+  { name: "calcite", hex: "#E8DDD0" },
+  { name: "silex", hex: "#8C8478" },
+  { name: "ocre", hex: "#C49B40" },
+] as const;
+
+export function getLotColor(index: number): string {
+  return LOT_COLORS[index % LOT_COLORS.length].hex;
+}
+
 // ─── API Payloads ──────────────────────────────────────────────────
 
 export interface CreateProjectPayload {
@@ -110,6 +136,21 @@ export interface UpdateProjectPayload {
   type_bien?: TypeBien;
   surface_totale?: number | null;
   status?: ProjectStatus;
+}
+
+export interface CreateLotPayload {
+  name: string;
+  floor_number?: number;
+  surface_m2?: number | null;
+  zone_data: ZoneRect;
+}
+
+export interface UpdateLotPayload {
+  name?: string;
+  floor_number?: number;
+  surface_m2?: number | null;
+  zone_data?: ZoneRect;
+  status?: LotStatus;
 }
 
 // ─── API Responses ─────────────────────────────────────────────────
