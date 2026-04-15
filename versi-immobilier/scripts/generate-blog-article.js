@@ -10,6 +10,24 @@
  */
 
 import pool from '../db.js';
+import { writeFileSync, readFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
+
+// ---------------------------------------------------------------------------
+// Lock file — empêche les exécutions concurrentes
+// ---------------------------------------------------------------------------
+const LOCK_FILE = '/tmp/versi-immo-blog-gen.lock';
+
+function acquireLock() {
+  if (existsSync(LOCK_FILE)) {
+    const pid = parseInt(readFileSync(LOCK_FILE, 'utf-8').trim(), 10);
+    try { process.kill(pid, 0); console.error(`[BLOG-GEN] Exécution déjà en cours (PID ${pid}). Abandon.`); process.exit(0); } catch { /* process mort, on prend le lock */ }
+  }
+  writeFileSync(LOCK_FILE, String(process.pid));
+}
+
+function releaseLock() {
+  try { unlinkSync(LOCK_FILE); } catch { /* ignore */ }
+}
 
 const EDITORIAL_CALENDAR = [
   {
