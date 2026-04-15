@@ -4,7 +4,7 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
+<!-- SESSION: phases=1 tasks_prod=2 tasks_consult=0 -->
 
 ## Estimation de sessions
 
@@ -27,19 +27,27 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 ### Phase VS-0a — Fondations stratégiques (parallèle)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @creative-strategy | Naming définitif + brand adaptation + persona marchand + benchmark | versi-studio/project-context.md | EN COURS |
-| @product-manager | Specs fonctionnelles workflow 4 étapes + évaluation code existant | project-context.md + code dans reference-existant/ | EN COURS |
+| @creative-strategy | Naming définitif + brand adaptation + persona marchand + benchmark | versi-studio/project-context.md | TERMINÉ (408 lignes) |
+| @product-manager | Specs fonctionnelles workflow 4 étapes + évaluation code existant | project-context.md + code dans reference-existant/ | TERMINÉ (1378 lignes) |
 
 ### Phase VS-0b — Checkpoint fondateur
 | Agent | Mission | Statut |
 |-------|---------|--------|
-| orchestrator | Présenter naming + persona + specs + choix stack pour validation | EN ATTENTE |
+| orchestrator | Présenter naming + persona + specs + choix stack pour validation | TERMINÉ — Validé |
 
-### Phase VS-1 — Conception
+**Décisions validées au checkpoint** :
+- Nom : Versi Studio (confirmé)
+- URL : studio.versi.fr (confirmé)
+- Stack : Next.js 14 App Router (confirmé)
+- Styles : @creative-strategy choisit pour le persona, style custom = priorité
+- Fusion/séparation lots : V1 = version complète (fusion + séparation + ajustement)
+- Multi-projets : un seul à la fois en V1
+
+### Phase VS-1 — Conception (EN COURS)
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @ux | Parcours workflow 4 étapes + wireframes éditeur de plans | specs + brand | EN ATTENTE |
-| @design | Design system SaaS adapté Versi + compositions pages/étapes | brand + wireframes | EN ATTENTE |
+| @ux | Parcours workflow 4 étapes + wireframes éditeur de plans | specs + brand | EN COURS |
+| @design | Design system SaaS adapté Versi + compositions pages/étapes | brand + wireframes | EN COURS |
 | @copywriter | UX writing (labels, messages, tooltips, onboarding) | brand + specs | EN ATTENTE |
 
 ### Phase VS-2 — Développement
