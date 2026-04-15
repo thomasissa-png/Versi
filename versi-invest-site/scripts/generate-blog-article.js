@@ -196,6 +196,19 @@ function validateArticle(content) {
   return errors;
 }
 
+// Version enrichie avec vérification mot-clé (appelée quand keywords disponible)
+function validateArticleWithKeywords(content, keywords) {
+  const errors = validateArticle(content);
+
+  // G10 — Densité mot-clé principal ≥3 occurrences
+  const primaryKeyword = keywords.split(',')[0].trim().toLowerCase();
+  const keywordRegex = new RegExp(primaryKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const keywordCount = (content.match(keywordRegex) || []).length;
+  if (keywordCount < 3) errors.push(`G10 FAIL: mot-clé "${primaryKeyword}" apparaît ${keywordCount} fois (min 3)`);
+
+  return errors;
+}
+
 // ---------------------------------------------------------------------------
 // Génération via API Claude
 // ---------------------------------------------------------------------------
@@ -222,12 +235,13 @@ L'article doit :
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
     },
     signal: AbortSignal.timeout(120000),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userPrompt }],
     }),
   });
@@ -244,16 +258,22 @@ L'article doit :
 // ---------------------------------------------------------------------------
 // Audit multi-agents (copy + SEO + stratégie) via Claude
 // ---------------------------------------------------------------------------
+const AUDIT_SYSTEM_PROMPT = `Tu es un auditeur impitoyable. Ton rôle : TROUVER LES DÉFAUTS. Tu n'es PAS l'auteur de l'article — tu es l'avocat du diable.
+
+BIAIS À COMBATTRE : tu as naturellement tendance à être indulgent. Résiste. Un 9/10 signifie qu'il n'y a qu'UNE SEULE correction mineure. Un 10/10 est exceptionnel.
+
+CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 16 immeubles, 7,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
+
+BARÈME STRICT : 10=zéro correction, 9=1 mineure, 8=mineures multiples, 7=correction structurelle, <7=réécriture nécessaire.
+
+SEUIL DE PUBLICATION : average ≥ 9.0 ET aucune dimension < 8.5. En cas de doute, REFUSE.`;
+
 async function auditArticle(content) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  const prompt = `Tu es un comité d'audit composé de 4 experts : @copy, @seo, @creative-strategy, et un expert marchand de biens immobilier.
-
-Audite cet article pour Versi Invest. Note 4 dimensions /10. BARÈME : 10=aucune correction, 9=1 mineure, 8=mineures multiples, 7=correction structurelle, <7=réécriture.
+  const userPrompt = `Audite cet article pour le blog Versi Invest.
 
 ARTICLE :
 ${content}
-
-CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 16 immeubles, 7,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
 
 4 DIMENSIONS :
 1. COPY : ton fondateur direct, mots interdits (garanti, sans risque, clé en main, accompagnement, expertise, sur-mesure), utilité autonome, vouvoiement strict
@@ -261,24 +281,32 @@ CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Ha
 3. STRATÉGIE : angle différenciant vs portails, pas de contenu générique, pertinence pour un investisseur avec 60-80k€ d'apport
 4. MARCHAND DE BIENS : les chiffres sont-ils crédibles ? Le vocabulaire immobilier est-il correct ? Un professionnel de l'immobilier trouverait-il cet article sérieux ?
 
-SEUIL DE PUBLICATION : average ≥ 9.0 ET aucune dimension < 8.5
-
 Format JSON strict :
 {"copy":{"score":N,"corrections":["..."]},"seo":{"score":N,"corrections":["..."]},"strategy":{"score":N,"corrections":["..."]},"mdb":{"score":N,"corrections":["..."]},"average":N,"publishable":BOOL}`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
+    },
     signal: AbortSignal.timeout(60000),
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: [{ type: 'text', text: AUDIT_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
   });
 
-  if (!response.ok) return { copy: { score: 7 }, seo: { score: 7 }, strategy: { score: 7 }, mdb: { score: 7 }, average: 7, publishable: false };
+  if (!response.ok) return { copy: { score: 7, corrections: [] }, seo: { score: 7, corrections: [] }, strategy: { score: 7, corrections: [] }, mdb: { score: 7, corrections: [] }, average: 7, publishable: false };
   const data = await response.json();
   const text = data.content[0].text;
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return { average: 7, publishable: false };
-  try { return JSON.parse(jsonMatch[0]); } catch { return { average: 7, publishable: false }; }
+  if (!jsonMatch) return { copy: { score: 7, corrections: [] }, seo: { score: 7, corrections: [] }, strategy: { score: 7, corrections: [] }, mdb: { score: 7, corrections: [] }, average: 7, publishable: false };
+  try { return JSON.parse(jsonMatch[0]); } catch { return { copy: { score: 7, corrections: [] }, seo: { score: 7, corrections: [] }, strategy: { score: 7, corrections: [] }, mdb: { score: 7, corrections: [] }, average: 7, publishable: false }; }
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +373,9 @@ async function main() {
   const topicIdx = args.indexOf('--topic');
   const forcedTopic = topicIdx >= 0 ? args[topicIdx + 1] : null;
 
+  // P1-3 : Lock file — empêcher exécutions concurrentes
+  acquireLock();
+
   try {
     // Trouver le prochain sujet non publié
     let entry;
@@ -378,8 +409,8 @@ async function main() {
     let content = await generateArticle(entry.topic, entry.keywords);
     console.log(`[BLOG-GEN] Généré (${content.split(/\s+/).length} mots)`);
 
-    // Gates de qualité
-    const errors = validateArticle(content);
+    // Gates de qualité (avec G10 densité mot-clé)
+    const errors = validateArticleWithKeywords(content, entry.keywords);
     if (errors.length > 0) {
       console.error('[BLOG-GEN] GATES ÉCHOUÉES :');
       errors.forEach((e) => console.error(`  ${e}`));
@@ -390,7 +421,7 @@ async function main() {
           entry.topic + '. IMPORTANT : ' + errors.join('. '),
           entry.keywords,
         );
-        const retryErrors = validateArticle(content);
+        const retryErrors = validateArticleWithKeywords(content, entry.keywords);
         if (retryErrors.length > 0) {
           console.error('[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES — article NON publié');
           retryErrors.forEach((e) => console.error(`  ${e}`));
@@ -427,12 +458,13 @@ async function main() {
           ...(audit.copy?.corrections || []),
           ...(audit.seo?.corrections || []),
           ...(audit.strategy?.corrections || []),
+          ...(audit.mdb?.corrections || []),
         ].join('. ');
         content = await generateArticle(
           entry.topic + '. CORRECTIONS : ' + corrections,
           entry.keywords,
         );
-        const retryGates = validateArticle(content);
+        const retryGates = validateArticleWithKeywords(content, entry.keywords);
         if (retryGates.length > 0) {
           console.error('[BLOG-GEN] Gates échouées après régénération');
           retryGates.forEach((e) => console.error(`  ${e}`));
@@ -440,6 +472,13 @@ async function main() {
         }
       }
     }
+
+    // P1-5 : Backup markdown local avant publication BDD
+    const BACKUP_DIR = new URL('../blog-backups', import.meta.url).pathname;
+    mkdirSync(BACKUP_DIR, { recursive: true });
+    const backupPath = `${BACKUP_DIR}/${entry.slug}-${new Date().toISOString().slice(0, 10)}.md`;
+    writeFileSync(backupPath, content, 'utf-8');
+    console.log(`[BLOG-GEN] Backup sauvegardé : ${backupPath}`);
 
     if (dryRun) {
       console.log('\n--- DRY RUN ---\n');
@@ -451,6 +490,7 @@ async function main() {
     console.error('[BLOG-GEN] Erreur :', err.message);
     process.exit(1);
   } finally {
+    releaseLock();
     await pool.end();
   }
 }
