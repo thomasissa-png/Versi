@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/*
+ * Versi Studio — Design Tokens
+ * Source de vérité : docs/design/vs-design-system.md
+ * Tailwind v4 : les tokens sont définis via @theme
+ */
+
+@theme {
+  /* ─── Couleurs primitives ─── */
+  --color-calcaire: #F7F5F2;
+  --color-blanc: #FFFFFF;
+  --color-gris-chaud: #D9D4CE;
+  --color-gris-pierre: #6B6560;
+  --color-beige-pierre: #C8B9A6;
+  --color-vert-mineral: #1E2A23;
+  --color-anthracite: #1A1A1A;
+  --color-noir-profond: #0B0B0B;
+
+  /* ─── Couleurs sémantiques ─── */
+  --color-bg-default: #F7F5F2;
+  --color-bg-card: #FFFFFF;
+  --color-bg-dark: #0B0B0B;
+  --color-text-default: #0B0B0B;
+  --color-text-muted: #6B6560;
+  --color-text-inverse: #F7F5F2;
+  --color-border-default: #D9D4CE;
+  --color-interactive-primary: #0B0B0B;
+  --color-interactive-hover: #1A1A1A;
+
+  /* ─── Couleurs lots (overlays canvas) ─── */
+  --color-lot-argile: #C4725A;
+  --color-lot-sable: #D4B896;
+  --color-lot-ardoise: #6B7D8A;
+  --color-lot-lin: #C8B89A;
+  --color-lot-lichen: #7A9A7E;
+  --color-lot-calcite: #E8DDD0;
+  --color-lot-silex: #8C8478;
+  --color-lot-ocre: #C49B40;
+
+  /* ─── Couleurs utilitaires ─── */
+  --color-error: #B91C1C;
+  --color-success: #15803D;
+  --color-warning: #D97706;
+
+  /* ─── Typographie ─── */
+  --font-sans: "PP Neue Montreal", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --font-size-xs: 0.8125rem;   /* 13px — labels */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px — body */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px — h3 */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+
+  /* ─── Spacing (base 4px) ─── */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-4xl: 96px;
+
+  /* ─── Border radius ─── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ─── Fonts (Fontshare) ─── */
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@700&display=swap") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Base styles ─── */
+body {
+  background-color: var(--color-bg-default);
+  color: var(--color-text-default);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Utility classes for Versi labels ─── */
+.vs-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.vs-h3 {
+  font-size: var(--font-size-xl);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
