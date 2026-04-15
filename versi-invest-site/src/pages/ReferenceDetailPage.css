@@ -1,0 +1,112 @@
+/* === Reference Detail === */
+
+.ref-detail__back-top {
+  display: inline-block;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
+  text-decoration: none;
+  margin-bottom: var(--spacing-lg);
+  transition: opacity var(--duration-normal) ease;
+}
+
+.ref-detail__back-top:hover {
+  opacity: 1;
+}
+
+.ref-detail__back {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+/* === Métriques === */
+
+.ref-detail__metrics {
+  background: var(--color-bg-secondary);
+}
+
+.ref-detail__metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-xl);
+  text-align: center;
+}
+
+.ref-detail__metric-value {
+  display: block;
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.ref-detail__metric-value--highlight {
+  color: #1e7e34;
+}
+
+.ref-detail__metric-label {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+}
+
+/* === Body grid === */
+
+.ref-detail__body {
+  background: var(--color-bg-primary);
+}
+
+.ref-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2xl);
+}
+
+.ref-detail__block {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ref-detail__block-title {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ref-detail__block-text {
+  font-size: var(--font-size-body-md);
+  color: var(--color-text-primary);
+  line-height: 1.65;
+}
+
+/* === Photos === */
+
+.ref-detail__photo {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.ref-detail__photos-placeholder {
+  background: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-2xl);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+}
+
+/* === Responsive === */
+
+@media (max-width: 767px) {
+  .ref-detail__metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ref-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}

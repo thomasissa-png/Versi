@@ -1,6 +1,5 @@
 /**
- * Données de référence — immeubles placeholder V1
- * Source : vi2-functional-specs.md section 2.5 + vi2-landing-page-copy.md PAGE 5
+ * Données de référence — immeubles
  *
  * RÈGLES ABSOLUES (décision fondateur) :
  * - JAMAIS de prix d'achat, marge brute/nette, montant travaux
@@ -11,6 +10,7 @@
 export const REFERENCES = [
   {
     id: 1,
+    slug: 'immeuble-4-lots-lille',
     ville: 'Lille',
     departement: '59',
     type: 'Immeuble de rapport',
@@ -19,11 +19,19 @@ export const REFERENCES = [
     cashflowNet: 340,
     montage: 'SCI à l\'IS',
     annee: 2024,
-    description:
-      'Immeuble 4 lots — Hauts-de-France, 2024. Rénovation intégrale (électricité, plomberie, second oeuvre). Rendement brut 8,7 %. Cashflow net +340 \u20AC/mois. Structure : SCI à l\'IS.',
+    description: 'Immeuble 4 lots — Hauts-de-France, 2024. Rénovation intégrale. Rendement brut 8,7%. Cashflow net +340 €/mois.',
+    detail: {
+      intro: 'Immeuble de 4 lots acquis en 2024 dans le secteur lillois. Rénovation intégrale pilotée par le Groupe Versi : électricité, plomberie, second œuvre.',
+      travaux: 'Rénovation complète — remise aux normes électriques, plomberie, second œuvre. Livraison en état locatif.',
+      duree: 'Acquisition à mise en location : 4 mois.',
+      structure: 'SCI à l\'IS — montage patrimonial avec amortissement du bien.',
+      resultat: 'Les 4 lots ont été loués en moins de 3 semaines après livraison. Cashflow positif dès le premier mois.',
+      photos: [],
+    },
   },
   {
     id: 2,
+    slug: 'maison-divisee-roubaix',
     ville: 'Roubaix',
     departement: '59',
     type: 'Maison divisée',
@@ -32,11 +40,19 @@ export const REFERENCES = [
     cashflowNet: 280,
     montage: 'Nom propre',
     annee: 2023,
-    description:
-      'Appartement T3 — Métropole lilloise, 2024. Mise aux normes énergétiques, DPE D vers B. Rendement brut 7,9 %. Cashflow net +195 \u20AC/mois. Structure : LMNP au réel.',
+    description: 'Maison divisée 3 lots — Roubaix, 2023. Division et rénovation. Rendement brut 9,2%. Cashflow net +280 €/mois.',
+    detail: {
+      intro: 'Maison individuelle divisée en 3 lots dans le secteur de Roubaix. Opération de division + rénovation complète.',
+      travaux: 'Division en 3 lots indépendants. Création d\'entrées séparées, compteurs individuels, rénovation complète de chaque lot.',
+      duree: 'Acquisition à mise en location : 5 mois.',
+      structure: 'Acquisition en nom propre — LMNP au réel.',
+      resultat: 'Rendement brut 9,2% avec un cashflow net de +280 €/mois. Les 3 lots loués en 4 semaines.',
+      photos: [],
+    },
   },
   {
     id: 3,
+    slug: 'immeuble-mixte-tourcoing',
     ville: 'Tourcoing',
     departement: '59',
     type: 'Immeuble mixte',
@@ -45,11 +61,19 @@ export const REFERENCES = [
     cashflowNet: 420,
     montage: 'SCI à l\'IS',
     annee: 2024,
-    description:
-      'Appartement T2 — Hauts-de-France, 2023. Bien acheté off-market, travaux légers (rafraîchissement). Rendement brut 9,1 %. Cashflow net +220 \u20AC/mois. Mis en location sous 3 semaines.',
+    description: 'Immeuble mixte 5 lots — Tourcoing, 2024. Travaux légers. Rendement brut 8,1%. Cashflow net +420 €/mois.',
+    detail: {
+      intro: 'Immeuble de 5 lots (commerce en RDC + 4 logements) à Tourcoing. Travaux légers — rafraîchissement et mise aux normes.',
+      travaux: 'Rafraîchissement des parties communes et des logements. Pas de gros œuvre.',
+      duree: 'Acquisition à mise en location : 2 mois.',
+      structure: 'SCI à l\'IS — adapté au profil investisseur.',
+      resultat: 'Mis en location sous 3 semaines. Cashflow net de +420 €/mois grâce au mixte commerce/logement.',
+      photos: [],
+    },
   },
   {
     id: 4,
+    slug: 'immeuble-6-lots-lens',
     ville: 'Lens',
     departement: '62',
     type: 'Immeuble de rapport',
@@ -58,11 +82,19 @@ export const REFERENCES = [
     cashflowNet: 580,
     montage: 'SCI à l\'IS',
     annee: 2023,
-    description:
-      'Immeuble 6 lots — Hauts-de-France, 2023. Opération de marchand de biens suivie d\'une revente en lots. Rendement moyen brut 8,4 % sur les lots investisseurs. Volume : 480k \u20AC.',
+    description: 'Immeuble 6 lots — Lens, 2023. Rendement brut 10,3%. Cashflow net +580 €/mois.',
+    detail: {
+      intro: 'Immeuble de 6 lots acquis en 2023 dans le bassin lensois. Rendement exceptionnel grâce à un prix d\'acquisition maîtrisé.',
+      travaux: 'Rénovation partielle — mise aux normes des parties communes, rafraîchissement de 3 lots sur 6.',
+      duree: 'Acquisition à mise en location : 3 mois.',
+      structure: 'SCI à l\'IS.',
+      resultat: 'Rendement brut 10,3% — le meilleur de notre portefeuille. Cashflow net +580 €/mois. 6 lots loués en 5 semaines.',
+      photos: [],
+    },
   },
   {
     id: 5,
+    slug: 'immeuble-3-lots-nanterre',
     ville: 'Nanterre',
     departement: '92',
     type: 'Immeuble de rapport',
@@ -71,7 +103,14 @@ export const REFERENCES = [
     cashflowNet: 210,
     montage: 'SCI à l\'IR',
     annee: 2025,
-    description:
-      'Appartement T4 — Île-de-France, 2024. Bien identifié hors marché, rénovation complète. Rendement brut 6,8 % (marché IDF). Cashflow net +90 \u20AC/mois. Structure : SCI à l\'IS, montage familial.',
+    description: 'Immeuble 3 lots — Nanterre (92), 2025. Rénovation complète. Rendement brut 7,4%. Cashflow net +210 €/mois.',
+    detail: {
+      intro: 'Immeuble de 3 lots en Île-de-France, acquis début 2025. Bien identifié hors marché, rénovation complète.',
+      travaux: 'Rénovation complète — gros œuvre conservé, tout le reste refait. DPE amélioré.',
+      duree: 'Acquisition à mise en location : 6 mois (rénovation plus lourde).',
+      structure: 'SCI à l\'IR — montage familial.',
+      resultat: 'Rendement brut 7,4% — dans la norme IDF. Cashflow net +210 €/mois. Valorisation patrimoniale en prime.',
+      photos: [],
+    },
   },
 ];

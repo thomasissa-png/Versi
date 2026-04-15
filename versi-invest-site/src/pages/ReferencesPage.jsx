@@ -7,7 +7,7 @@ import './ReferencesPage.css';
 
 function ReferenceCard({ ref: _ref, reference }) {
   return (
-    <article className="ref-card">
+    <Link to={`/references/${reference.slug}`} className="ref-card ref-card--link">
       <div className="ref-card__header">
         <span className="ref-card__badge">{reference.type}</span>
         <span className="ref-card__year">{reference.annee}</span>
@@ -42,7 +42,8 @@ function ReferenceCard({ ref: _ref, reference }) {
       </div>
 
       <p className="ref-card__desc">{reference.description}</p>
-    </article>
+      <span className="ref-card__more">Voir le détail →</span>
+    </Link>
   );
 }
 

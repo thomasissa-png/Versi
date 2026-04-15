@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import ProcessPage from './pages/ProcessPage.jsx';
 import EquipePage from './pages/EquipePage.jsx';
 import ReferencesPage from './pages/ReferencesPage.jsx';
+import ReferenceDetailPage from './pages/ReferenceDetailPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import BlogPage from './pages/BlogPage.jsx';
 import BlogArticlePage from './pages/BlogArticlePage.jsx';
@@ -20,6 +21,7 @@ function App() {
         <Route path="/comment-ca-marche" element={<ProcessPage />} />
         <Route path="/services" element={<Navigate to="/comment-ca-marche" replace />} />
         <Route path="/references" element={<ReferencesPage />} />
+        <Route path="/references/:slug" element={<ReferenceDetailPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogArticlePage />} />

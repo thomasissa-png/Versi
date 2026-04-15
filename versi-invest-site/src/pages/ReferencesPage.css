@@ -15,16 +15,32 @@
 .ref-card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--card-radius);
+  border-radius: var(--radius-sm);
   padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  transition: box-shadow var(--duration-normal) ease;
+  transition: box-shadow var(--duration-normal) ease, transform var(--duration-normal) ease;
+}
+
+.ref-card--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .ref-card:hover {
   box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.ref-card__more {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  margin-top: auto;
 }
 
 .ref-card__header {
