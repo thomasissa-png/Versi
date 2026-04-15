@@ -167,7 +167,7 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-0c — Agents testeurs
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @agent-factory | Créer testeur-persona investisseur Versi Invest (si distinct de Laurent versi.fr) | personas VI2 | EN ATTENTE |
+| @agent-factory | Créer testeur-persona investisseur Versi Invest (si distinct de Laurent versi.fr) | personas VI2 | TERMINÉ — testeur-persona-nicolas créé |
 
 ### Phase VINV-1 — Conception
 | Agent | Mission | Dépendance | Statut |

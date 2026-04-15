@@ -113,6 +113,7 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 | Décision projet / arbitrage fondateur | moi | orchestrator |
 | Evaluation persona investisseur (gates GP) | testeur-persona-laurent | orchestrator, reviewer |
 | Evaluation persona vendeuse (gates GP) | testeur-persona-sophie | orchestrator, reviewer |
+| Evaluation persona investisseur VI2 (gates GP) | testeur-persona-nicolas | orchestrator, reviewer |
 
 ## Convention d'appel
 
@@ -138,6 +139,7 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 - `@moi` : proxy décisionnel du fondateur Thomas, review de livrables et arbitrages comme Thomas le ferait
 - `@testeur-persona-laurent` : evaluation des livrables du point de vue de Laurent (investisseur, gates GP1-GP10)
 - `@testeur-persona-sophie` : evaluation des livrables Versi Immobilier du point de vue de Sophie (vendeuse, gates GP1-GP10)
+- `@testeur-persona-nicolas` : evaluation des livrables Versi Invest du point de vue de Nicolas (investisseur particulier, gates GP1-GP10)
 
 ## Convention de chemin des livrables
 
