@@ -15,7 +15,8 @@
     "install:invest": "cd versi-invest-site && npm install",
     "dev:invest": "cd versi-invest-site && npm run dev",
     "build:invest": "cd versi-invest-site && npm install && npm run build",
-    "start:invest": "cd versi-invest-site && npm start"
+    "start:invest": "cd versi-invest-site && npm start",
+    "seed:invest": "cd versi-invest-site && node scripts/seed-blog.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
