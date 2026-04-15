@@ -74,8 +74,9 @@ async function seed() {
     // Lire le fichier blog strategy
     const mdPath = join(__dirname, '..', '..', 'docs', 'seo', 'vi2-blog-strategy.md');
     if (!fs.existsSync(mdPath)) {
-      console.error(`[SEED] Fichier introuvable : ${mdPath}`);
-      process.exit(1);
+      console.warn(`[SEED] Fichier introuvable : ${mdPath} — skip seed.`);
+      await pool.end();
+      return;
     }
 
     const mdContent = fs.readFileSync(mdPath, 'utf-8');
@@ -128,8 +129,8 @@ async function seed() {
 
     console.log('[SEED] Seed terminé avec succès.');
   } catch (err) {
-    console.error('[SEED] Erreur :', err.message);
-    process.exit(1);
+    console.error('[SEED] Erreur (non-bloquant) :', err.message);
+    console.log('[SEED] Le seed sera réessayé au prochain démarrage.');
   } finally {
     await pool.end();
   }
