@@ -72,7 +72,7 @@ export default function Footer() {
             <FooterLink to="/comment-ca-marche" className="footer__nav-link">Comment ça marche</FooterLink>
             <FooterLink to="/references" className="footer__nav-link">Références</FooterLink>
             <FooterLink to="/equipe" className="footer__nav-link">Équipe</FooterLink>
-            <FooterLink to="/blog" className="footer__nav-link">Blog</FooterLink>
+            <FooterLink to="/blog" className="footer__nav-link">Le regard Versi</FooterLink>
             <FooterLink to="/contact" className="footer__nav-link footer__nav-link--cta">Contact</FooterLink>
           </nav>
         </div>

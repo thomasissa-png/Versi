@@ -195,7 +195,7 @@ export default function BlogArticlePage() {
               {error && !loading && (
                 <div className="blog__error" role="alert">
                   <p>{error}</p>
-                  <Link to="/blog" className="article__back">← Retour au blog</Link>
+                  <Link to="/blog" className="article__back">← Retour au regard Versi</Link>
                 </div>
               )}
 
@@ -232,7 +232,7 @@ export default function BlogArticlePage() {
                   </div>
 
                   <div className="article__nav">
-                    <Link to="/blog" className="article__back">← Tous les articles</Link>
+                    <Link to="/blog" className="article__back">← Le regard Versi</Link>
                   </div>
                 </>
               )}
