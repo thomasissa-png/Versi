@@ -3,6 +3,7 @@
 **Date** : 2026-04-15
 **Agent** : @qa
 **Projet** : Versi Studio (workflow 4 etapes marchand de biens)
+**Persona** : Thomas, 35 ans, marchand de biens, 8-12 operations/an. Il utilise Versi Studio apres chaque visite terrain pour decouper plans en lots et generer des visuels post-travaux. Ses frustrations cles : cout externe (500 euros/3 visuels), delai (2 semaines), impossibilite d'iterer rapidement. Les tests E2E verifient que Thomas peut completer le workflow entier (upload → lots → pieces → visuels) sans friction.
 
 ---
 

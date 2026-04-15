@@ -7,6 +7,15 @@
 > À lire en parallèle : docs/design/design-system.md (parent Versi), docs/strategy/vs-brand-platform.md
 > Architecture : Endorsed Brand — hérite à 100% de la palette Versi, aucune couleur d'accent propre
 
+### Persona cible
+
+**Thomas, 35 ans, marchand de biens, 8-12 opérations/an.** Il utilise Versi Studio après chaque visite terrain pour découper ses plans en lots et générer des visuels post-travaux. Ses frustrations principales : payer 500 euros pour 3 visuels chez un prestataire externe, attendre 2 semaines pour un rendu, et ne pas pouvoir itérer rapidement.
+
+Les choix de design sont ancrés dans son usage :
+- **Desktop-first** : Thomas travaille sur laptop au bureau après ses visites terrain — l'édition de plans sur canvas HTML5 est incompatible avec l'interaction tactile mobile
+- **Palette minérale discrète** : contexte professionnel crédible — Thomas montre les visuels à ses acquéreurs et partenaires
+- **Layout 4 zones** (header + sidebar + canvas + panel droit) : workflow séquentiel qui guide Thomas étape par étape sans navigation libre — il ne se perd jamais
+
 ---
 
 ## 1. Tokens hérités de Versi (ne pas modifier)
