@@ -1929,6 +1929,9 @@ async function upsertBlogArticle(client, article) {
 // Cron blog — génération automatique d'articles (jeudi 9h)
 // ---------------------------------------------------------------------------
 function scheduleBlogCron() {
+  // Rythme évolutif (@seo) :
+  // <8 articles publiés → bimensuel (1er et 3e jeudi)
+  // ≥8 articles → hebdomadaire
   const PUBLISH_DAY = 4; // Jeudi
   const PUBLISH_HOUR = 9;
   let lastPublishDate = null;
@@ -1939,6 +1942,19 @@ function scheduleBlogCron() {
     if (lastPublishDate === today) return;
     if (now.getDay() !== PUBLISH_DAY || now.getHours() !== PUBLISH_HOUR) return;
     if (!process.env.ANTHROPIC_API_KEY) return;
+
+    // Rythme adaptatif
+    try {
+      const countResult = await pool.query(`SELECT COUNT(*) FROM blog_articles WHERE status = 'published'`);
+      const articleCount = parseInt(countResult.rows[0].count, 10);
+      if (articleCount < 8) {
+        const weekOfMonth = Math.ceil(now.getDate() / 7);
+        if (weekOfMonth !== 1 && weekOfMonth !== 3) return;
+        console.log(`[CRON] Phase fondation (${articleCount} articles) — bimensuel.`);
+      } else {
+        console.log(`[CRON] Phase accélération (${articleCount} articles) — hebdomadaire.`);
+      }
+    } catch { return; }
 
     lastPublishDate = today;
     console.log(`[CRON] ${now.toISOString()} — Lancement génération article blog VI...`);

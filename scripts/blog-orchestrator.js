@@ -182,22 +182,68 @@ CORRECTIONS À APPLIQUER (issues d'un audit) :
 // ---------------------------------------------------------------------------
 // Renouvellement éditorial
 // ---------------------------------------------------------------------------
-async function refreshEditorialPlan(siteConfig) {
+async function getExistingArticles(dbUrl) {
+  if (!dbUrl) return [];
+  const { default: pg } = await import('pg');
+  const tempPool = new pg.Pool({ connectionString: dbUrl, max: 1, connectionTimeoutMillis: 5000 });
+  try {
+    const result = await tempPool.query(
+      `SELECT title, slug, tags FROM blog_articles WHERE status = 'published' ORDER BY created_at DESC LIMIT 50`
+    );
+    return result.rows.map((r) => ({ title: r.title, slug: r.slug, tags: r.tags }));
+  } catch { return []; }
+  finally { await tempPool.end(); }
+}
+
+async function refreshEditorialPlan(siteConfig, existingArticles = []) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  const prompt = `Tu es le stratège éditorial pour ${siteConfig.name}.
+  const existingList = existingArticles.length > 0
+    ? existingArticles.map((a) => `- "${a.title}" (/${a.slug})`).join('\n')
+    : '(aucun article publié à ce jour)';
 
-Mots-clés du domaine : ${siteConfig.keywords.join(', ')}
+  const month = new Date().toLocaleString('fr-FR', { month: 'long' });
+  const seasonalMap = {
+    janvier: 'bilan patrimonial, résolutions, fiscalité fin d\'exercice',
+    février: 'préparation saison immobilière, budget annuel',
+    mars: 'début saison immobilière, primo-accédants actifs',
+    avril: 'pic de la saison d\'achat, comparaisons de marché',
+    mai: 'avant-saison estivale, décisions avant vacances',
+    juin: 'fin saison scolaire, investisseurs en mode décision',
+    juillet: 'marché calme, stratégie long terme',
+    août: 'contenu evergreen prioritaire',
+    septembre: 'rentrée immobilière, reprise des recherches, fiscalité Q4',
+    octobre: 'arbitrages fin d\'année, optimisation fiscale',
+    novembre: 'bilan et projections, marché qui ralentit',
+    décembre: 'projections année suivante, préparation dossiers crédit',
+  };
+  const seasonalContext = seasonalMap[month] || 'contexte standard';
 
-Propose 4 NOUVEAUX sujets d'articles de blog. Chaque sujet doit :
-- Cibler un mot-clé longue traîne spécifique
-- Apporter de la valeur terrain (pas du contenu générique)
-- Être différent des sujets classiques des portails immobiliers
+  const prompt = `Tu es le stratège éditorial SEO pour ${siteConfig.name}.
 
-Format JSON strict :
+CONTEXTE DU SITE
+Mots-clés cibles : ${siteConfig.keywords.join(', ')}
+Saison actuelle (${month}) : ${seasonalContext}
+
+ARTICLES DÉJÀ PUBLIÉS (à ne pas dupliquer)
+${existingList}
+
+RÈGLES DE SÉLECTION
+1. Aucun sujet ne doit dupliquer ni approcher un article existant (vérifier titre ET slug)
+2. Prioriser la longue traîne (difficulté faible, intention précise) — le domaine est récent
+3. Si pertinent pour ${month}, inclure 1 sujet saisonnier parmi les 4
+4. Chaque sujet doit répondre à une question précise du persona
+5. Angle terrain obligatoire : données locales, chiffres réels, exemple géographique précis
+
+Format JSON strict, aucun texte en dehors :
 [
-  { "slug": "...", "topic": "...", "keywords": "...", "tags": ["...", "..."] },
-  ...
+  {
+    "slug": "mot-cle-principal-geo",
+    "topic": "Titre H1 exact (formulation naturelle, pas clickbait)",
+    "keywords": "mot-clé principal | secondaires séparés par |",
+    "tags": ["tag1", "tag2"],
+    "seo_rationale": "Pourquoi ce sujet maintenant : intention, concurrence, cluster"
+  }
 ]`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -207,6 +253,7 @@ Format JSON strict :
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
+    signal: AbortSignal.timeout(30000),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
@@ -247,10 +294,15 @@ async function main() {
   console.log(`[ORCHESTRATOR] Mode : ${planMode ? 'RENOUVELLEMENT ÉDITORIAL' : 'GÉNÉRATION ARTICLE'}`);
 
   if (planMode) {
-    console.log('[ORCHESTRATOR] Génération de 4 nouveaux sujets...');
-    const newTopics = await refreshEditorialPlan(site);
+    console.log('[ORCHESTRATOR] Récupération des articles existants...');
+    const dbUrl = process.env[site.dbEnvVar] || process.env.DATABASE_URL;
+    const existingArticles = await getExistingArticles(dbUrl);
+    console.log(`[ORCHESTRATOR] ${existingArticles.length} articles déjà publiés.`);
+
+    console.log('[ORCHESTRATOR] Génération de 4 nouveaux sujets (anti-doublons, saisonnier)...');
+    const newTopics = await refreshEditorialPlan(site, existingArticles);
     console.log('[ORCHESTRATOR] Nouveaux sujets :');
-    newTopics.forEach((t) => console.log(`  - ${t.topic} (${t.slug})`));
+    newTopics.forEach((t) => console.log(`  - ${t.topic} (${t.slug}) — ${t.seo_rationale || ''}`));
     if (!dryRun) {
       console.log('[ORCHESTRATOR] Les sujets sont affichés. À intégrer dans le calendrier du script generate-blog-article.js');
     }
