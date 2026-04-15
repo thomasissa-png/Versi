@@ -384,7 +384,7 @@ export default function RoomCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[400px] bg-[#F0EDE8] rounded-lg overflow-hidden"
+      className="relative w-full h-full min-h-[200px] sm:min-h-[400px] bg-[#F0EDE8] rounded-lg overflow-hidden"
     >
       <canvas
         ref={canvasRef}

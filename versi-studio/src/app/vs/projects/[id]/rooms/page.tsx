@@ -486,9 +486,9 @@ export default function RoomsPage({
   // ─── Rendu principal ──────────────────────────────────────────
 
   return (
-    <div className="flex gap-2xl h-[calc(100vh-120px)]">
-      {/* Stepper latéral */}
-      <aside className="w-64 flex-shrink-0">
+    <div className="flex flex-col sm:flex-row gap-md sm:gap-2xl h-auto sm:h-[calc(100vh-120px)]">
+      {/* Stepper latéral — caché sur mobile */}
+      <aside className="hidden sm:block w-64 flex-shrink-0">
         <Stepper
           currentStep={3}
           projectId={projectId}
@@ -500,8 +500,8 @@ export default function RoomsPage({
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
         <div className="mb-lg">
-          <p className="vs-label mb-xs">{project.adresse}</p>
-          <h1 className="vs-h3">Identifiez les pièces</h1>
+          <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
+          <h1 className="vs-h3 text-base sm:text-xl">Identifiez les pièces</h1>
         </div>
 
         {/* Erreur globale */}
@@ -545,9 +545,9 @@ export default function RoomsPage({
         )}
 
         {/* Canvas + Panel */}
-        <div className="flex flex-1 min-h-0 gap-0">
-          {/* Canvas */}
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
+          {/* Canvas — visible read-only sur mobile */}
+          <div className="h-[250px] sm:h-auto sm:flex-1 min-w-0">
             <RoomCanvas
               planImageUrl={planImageUrl}
               lotZone={lotZone}

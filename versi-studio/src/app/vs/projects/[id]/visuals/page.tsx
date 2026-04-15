@@ -109,9 +109,13 @@ export default function VisualsPage({
         // Sélectionner le premier lot
         setSelectedLotId(lotsData[0]?.id ?? null);
 
-        // Charger les statuts de toutes les pièces
+        // Charger les statuts de toutes les pièces (non-critique : ne pas bloquer)
         const allRooms = Object.values(roomsMap).flat();
-        await fetchRoomStatuses(allRooms);
+        try {
+          await fetchRoomStatuses(allRooms);
+        } catch {
+          // Les statuts de visuels sont secondaires — pas d'erreur globale
+        }
       }
     } catch {
       setError("Impossible de charger les données du projet.");
@@ -305,9 +309,9 @@ export default function VisualsPage({
   // ─── Rendu principal ──────────────────────────────────────────
 
   return (
-    <div className="flex gap-2xl h-[calc(100vh-120px)]">
-      {/* Stepper latéral */}
-      <aside className="w-64 flex-shrink-0">
+    <div className="flex flex-col sm:flex-row gap-md sm:gap-2xl h-auto sm:h-[calc(100vh-120px)]">
+      {/* Stepper latéral — caché sur mobile */}
+      <aside className="hidden sm:block w-64 flex-shrink-0">
         <Stepper
           currentStep={4}
           projectId={projectId}
@@ -319,8 +323,8 @@ export default function VisualsPage({
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
         <div className="mb-lg px-lg pt-lg">
-          <p className="vs-label mb-xs">{project.adresse}</p>
-          <h1 className="vs-h3">Créez vos visuels</h1>
+          <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
+          <h1 className="vs-h3 text-base sm:text-xl">Créez vos visuels</h1>
         </div>
 
         {/* Erreur globale */}
