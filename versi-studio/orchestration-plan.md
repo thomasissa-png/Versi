@@ -4,7 +4,7 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=2 tasks_prod=5 tasks_consult=0 -->
+<!-- SESSION: phases=5 tasks_prod=13 tasks_consult=0 -->
 
 ## Estimation de sessions
 
@@ -50,12 +50,27 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 | @design | Design system SaaS adapté Versi + compositions pages/étapes | brand + wireframes | TERMINÉ (990 lignes) |
 | @copywriter | UX writing (labels, messages, tooltips, onboarding) | brand + specs | TERMINÉ (479 lignes) |
 
-### Phase VS-2 — Développement
+### Phase VS-2a — Setup + Pipeline IA — COMPLETE
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @fullstack | App complète (Next.js ou React/Vite) + intégrations IA | design + copy + specs | EN ATTENTE |
-| @ia | Pipeline IA (extraction plans + génération visuels + agent architecte) | specs techniques | EN ATTENTE |
-| @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
+| @fullstack | Next.js 16 setup + DB 6 tables vs_* + API routes + Dashboard + Step 1 Upload | design + copy + specs | TERMINÉ (21 fichiers) |
+| @ia | Schemas Zod + plan-extractor GPT-4.1 + visual-generator gpt-image-1.5 + architect-agent | specs techniques | TERMINÉ (7 fichiers, audit 10/10) |
+
+### Phase VS-2b — Steps 2-3 — COMPLETE
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @fullstack (Step 2) | Éditeur canvas lots : PlanCanvas HTML5, LotPanel, API lots, drag/resize, détection chevauchement | VS-2a | TERMINÉ (1 780 lignes) |
+| @fullstack (Step 3) | Éditeur pièces par lot : RoomCanvas, RoomPanel, dropdown 18 types, validation lot par lot | VS-2a | TERMINÉ (1 396 lignes) |
+
+### Phase VS-2c — Step 4 — COMPLETE
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @fullstack (Step 4) | Visuels post-travaux : StyleGrid 12 styles, VisualResult, ChatAgent, RoomGrid, génération async, polling 5s | VS-2b | TERMINÉ (2 372 lignes) |
+
+### Phase VS-2d — QA
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @qa | Tests E2E + audit qualité | Code complet | EN ATTENTE |
 
 ### Phase VS-3 — Visibilité (allégée)
 | Agent | Mission | Dépendance | Statut |

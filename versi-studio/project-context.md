@@ -152,23 +152,26 @@ Génération d'un PDF brandé au nom et aux couleurs du marchand (logo, coordonn
 | design | 2026-04-15 | docs/design/vs-design-system.md | Tokens 3 tiers (gate G31). 8 couleurs de lots palette minérale (argile, sable, ardoise, lin, lichen, calcite, silex, ocre) — overlays semi-transparents sur canvas. Layout desktop-first : header 56px + sidebar 240px + canvas flex + panel 320px. 10 composants SaaS avec 6 états (gate G32). Mobile = consultation seule (pas d'édition canvas). Logo "VERSI STUDIO" avec em-space. | Palette minérale choisie pour cohérence Versi (pas de couleurs vives/rainbow). Desktop-first inversé vs les sites vitrines car c'est un outil de travail. Mobile consultation-only car canvas HTML5 tactile = UX dégradée. |
 | copywriter | 2026-04-15 | docs/copy/vs-ux-writing.md | Principes UX writing : concis, terrain, actionnable. Zéro mot "IA" dans l'UI ("créer" au lieu de "générer"). 18 types de pièces en français courant. Ton agent architecte défini (professionnel, pas chatbot). Formulations interdites documentées pour le prompt système. Vouvoiement systématique. | "Générer" remplacé par "créer" car le fondateur veut un outil professionnel, pas un gadget tech. L'agent architecte parle comme un professionnel car c'est la perception de valeur — pas comme un assistant IA. |
 | product-manager | 2026-04-15 | docs/product/vs-functional-specs.md | Évaluation 9 fichiers existants. Workflow simplifié 8→4 étapes. 13 user stories détaillées (Given/When/Then). Recommandation Next.js 14 App Router. Modèle BDD 6 tables vs_*. 26 endpoints API. Stack : Next.js + Tailwind + PostgreSQL + Canvas HTML5. | 8→4 étapes car les étapes intermédiaires (qualification, recommandations) sont des raffinements V2 — le fondateur veut le workflow core. Next.js car l'existant est déjà en Next.js et les API Routes évitent un serveur séparé. |
+| orchestrator | 2026-04-15 | Phase VS-2 complète (versi-studio/src/) | Next.js 16 (pas 14 — version plus récente lors de l'init). Tailwind v4 @theme CSS. Canvas HTML5 natif (pas Konva/Fabric.js — budget bundle). Pipeline IA : schemas Zod, plan-extractor, visual-generator, architect-agent — audit 10/10. 4 steps complets : Upload, Lots (canvas drag/resize), Pièces (lot par lot), Visuels (12 styles, chat agent). 19 API routes. Mode simulation si OPENAI_API_KEY absente. | Next.js 16 car init automatique, pas de raison de downgrade. Canvas natif car le bundle Konva (200-400Ko) n'apporte que 20% des features nécessaires. Stockage /tmp en V1 (éphémère) car Object Storage Replit requiert une config supplémentaire — à migrer en V2. Fire-and-forget pour la génération async (acceptable en V1, à améliorer avec job queue en V2). |
 
 ### Mémo de reprise
 
-**Branche** : `claude/extract-project-context-72rHa`
+**Branche** : `claude/phase-2-orchestration-KsLoA`
 **Date de clôture** : 2026-04-15
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s11)** : Session de lancement Versi Studio. (1) Propagation 9 learnings P0/P1 de s10. (2) QA E2E versi.fr 30/30 PASS + versi-invest.fr 38/38 PASS. (3) Création du projet Versi Studio : project-context.md, orchestration-plan.md, code existant copié en référence. (4) Phase 0 complète : naming "Versi Studio" validé, brand platform (408L), specs fonctionnelles (1378L). (5) Phase 1 complète : wireframes (688L), design system SaaS (990L), UX writing (479L).
+**Résumé session (versi-s12)** : Session de développement Phase 2 complète. (1) Phase VS-2a : setup Next.js 16 + Tailwind v4 tokens Versi + DB 6 tables vs_* + API routes projects/plans + Dashboard + Step 1 Upload + pipeline IA complet (schemas, plan-extractor GPT-4.1, visual-generator gpt-image-1.5, architect-agent) — audit 10/10 sur les 3 modules IA. (2) Phase VS-2b : Step 2 éditeur canvas lots (PlanCanvas HTML5 natif, drag/resize 8 poignées, détection chevauchement, LotPanel, sauvegarde debounce 1s) + Step 3 éditeur pièces par lot (RoomCanvas, RoomPanel dropdown 18 types, validation lot par lot, optimistic UI). (3) Phase VS-2c : Step 4 visuels post-travaux (StyleGrid 12 styles, VisualResult 4 états, ChatAgent drawer itération, RoomGrid panneau latéral, génération async polling 5s, mode simulation sans API key).
 
-**Phases terminées** : VS-0a, VS-0b (checkpoint), VS-1
-**Phase suivante** : VS-2 (développement)
+**Total livré** : ~16 000 lignes de code, 50+ fichiers, 4 steps complets, 19 API routes, 12 composants, pipeline IA 3 modules.
+
+**Phases terminées** : VS-0a, VS-0b (checkpoint), VS-1, VS-2a, VS-2b, VS-2c
+**Phase suivante** : VS-2d (QA) puis VS-3 (SEO/GEO allégé) puis VS-5 (audit final)
 
 **Travail restant — PROCHAINE SESSION** :
 
-1. **Phase VS-2 — Développement** : @fullstack setup Next.js 14 + implémentation des 4 étapes. Découper en 2-3 agents parallèles (setup+étapes1-2 / étapes3-4+API IA / BDD+intégrations). Inclure la règle anti-timeout dans chaque brief.
-2. **Phase VS-2 — @ia** : Pipeline IA (extraction plans GPT-4.1, génération visuels gpt-image-1.5, agent architecte). Évaluer et adapter le code existant (`plan-extractor.ts`, `architect-agent.ts`).
-3. **Phase VS-2 — @qa** : Tests E2E Playwright après développement.
-4. **Phases VS-3 et VS-5** : SEO/GEO allégé + audit final.
+1. **Phase VS-2d — @qa** : Tests E2E Playwright sur les 4 étapes. Vérifier le flux complet upload → lots → pièces → visuels. Tester les 5 états UI par page. Tester les edge cases (fichiers > 20Mo, lots chevauchement, pièces non typées).
+2. **Build et deploy** : `cd versi-studio && npm run build` — corriger les erreurs TypeScript éventuelles. Tester le dev server.
+3. **Phase VS-3 — SEO/GEO allégé** : SEO technique minimal (meta, sitemap). Pas prioritaire pour un outil SaaS interne.
+4. **Phase VS-5 — Audit final** : @reviewer revue croisée GO/NO-GO.
 
-**Commande de reprise** : `@orchestrator mode reprise de session. Lis versi-studio/project-context.md et versi-studio/orchestration-plan.md, continue Phase 2.`
+**Commande de reprise** : `@orchestrator mode reprise de session. Lis versi-studio/project-context.md et versi-studio/orchestration-plan.md, continue Phase 2d (QA).`
