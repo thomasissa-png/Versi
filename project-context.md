@@ -343,49 +343,45 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/extract-project-context-osLWB`
+- Branche de développement : `claude/extract-project-context-72rHa`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
 
-**Branche** : `claude/extract-project-context-osLWB`
-**Date de clôture** : 2026-04-14
+**Branche** : `claude/extract-project-context-72rHa`
+**Date de clôture** : 2026-04-15
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s8)** : Session majeure SEO/GEO + corrections post-déploiement + brief Versi Invest. (1) 6 retours post-déploiement fondateur corrigés (Photo>Visuel, toggle avant/après supprimé, image cliquable, HFN supprimé, contact@versi.fr partout). (2) Audits SEO/GEO complets avec 4 passes d'itération : SEO 5→10/10, GEO 6.5→8.5/10 (plafond off-site). (3) react-helmet-async installé sur les 2 sites (versi.fr + versi-immobilier.fr), PageHead par page, canonical dynamique, prerender Playwright 9 routes. (4) BuyerFAQ acquéreur + Schema RealEstateListing + FAQ JSON-LD vendeur + LocalBusiness JSON-LD. (5) Corrections Bing (titles ≤60 chars, favicon multi-résolution 48px+). (6) SellPage basculée sur données dynamiques (fini les faux biens Lille/Tourcoing). (7) autoSeed photos Nanterre WhatsApp. (8) Prix/surfaces Muguets mis à jour. (9) H1 sur-optimisés SEO revertés (leçon : SEO dans meta tags, UX dans H1 visibles). (10) Versi Invest : project-context.md complet dans versi-invest/, prêt pour autopilot.
+**Résumé session (versi-s11)** : Session de maintenance et QA. (1) Propagation gate bloquante : 9 learnings P0/P1 de session s10 propagés dans CLAUDE.md (+3 règles : n°16 anti-complaisance, n°17 promesse non-systématique, n°18 process métier), orchestrator.md (+1 règle anti-complaisance briefs), fullstack.md (+1 section Express 5). (2) QA E2E versi-invest.fr — tests Playwright. (3) QA E2E versi.fr — tests Playwright.
 
-**Décisions fondateur cette session** :
-- contact@versi.fr = adresse unique PARTOUT, jamais formulaire@ ni contact@versi-immobilier.fr
+**Résumé session précédente (versi-s10)** : Session majeure Versi Invest. (1) Audits multi-agents 3 rounds : HomePage 6/10→9+/10, toutes pages 8-9+/10. (2) Blog complet pipeline IA autonome (9 gates, 4-dim audit, crons). (3) Référence réelle Nanterre 8 studios, 7 photos. (4) SEO/GEO implémentation (robots.txt, sitemap, llms.txt, Schema.org, OG tags). (5) Comparaison VI/VI2 : 9 écarts détectés, 6 corrigés. (6) Corrections fondateur : stats 7 immeubles/3,2M€, bleu rejeté, off-market pas en H1, "thèse" rejeté, process 8 étapes fondateur.
+
+**Décisions fondateur cumulées (s4→s10)** :
+- contact@versi.fr = adresse unique PARTOUT
 - Pas de faux témoignages → cas d'étude anonymisés uniquement
-- Références Versi Invest : 5 immeubles en placeholder (Thomas uploade plus tard)
-- Simulateur rendement/cashflow en V1 Versi Invest
-- Blog Versi Invest séparé de versi-immobilier
 - Aucun bien affiché publiquement sur versi-invest.fr (off-market, liste d'attente)
-- SEO dans les meta tags invisibles, UX dans les H1 visibles (revert après sur-optimisation)
+- SEO dans les meta tags invisibles, UX dans les H1 visibles
 - FAQ acquéreur en bas de homepage (pas au milieu)
-
-**Travail restant — PROCHAINE SESSION** :
-
-1. **Versi Invest — Autopilot phases 0→5** — Nouveau projet, brief complet dans `versi-invest/project-context.md`. Lancer avec le prompt autopilot préparé.
-
-2. **Versi Immobilier — GEO off-site (action Thomas)** — Créer fiches Crunchbase + Pappers.fr + LinkedIn entreprise Versi Immobilier pour atteindre 10/10 GEO.
-
-3. **Versi Immobilier — Photos biens Muguets** — `photos: []` toujours. Ajouter via back office admin.
-
-4. **Versi Immobilier — 5 références Nanterre photos** — Script `update-nanterre-photos.js` prêt, autoSeed intégré. Les photos seront en production au prochain redéploiement.
-
-**Commande de reprise suggérée** :
-```
-@orchestrator Lance mon projet en mode autopilot (phases 0→5). [coller le prompt autopilot complet depuis le brief s8]
-```
-Note : le project-context.md de Versi Invest est dans `versi-invest/project-context.md`, pas à la racine.
-
-**Décisions fondateur session s4 (conservées)** :
-- Pivot : acquéreur = persona principal, vendeur = secondaire
-- Hero validé : "Peu de biens. Pas d'approximation."
+- Pivot : acquéreur = persona principal VI, vendeur = secondaire
+- Hero validé VI : "Peu de biens. Pas d'approximation."
 - Régions : Hauts-de-France ET Île-de-France
 - Prix : toujours net vendeur
 - Ordre fondateurs : Maxime → Thomas → Carl
 - Back office : admin custom avec mdp PostgreSQL Replit
+- Palette unique écosystème Versi (charcoal + stone), pas de couleur d'accent par entité
+- Stats track record volatiles : 7 immeubles, 3,2M€ (au 2026-04-15)
+- Blog = "Le regard Versi" (pas "thèse")
+- Blog autonome = IA end-to-end (génération + audit + publication)
+- Process métier = 8 étapes validées par le fondateur
 
-**Prompt de reprise** : `@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise). Priorité : (1) @qa tests E2E back office + blog, (2) rédiger les 3 premiers articles blog via pipeline IA, (3) @infrastructure déploiement Replit + DNS.`
+**Travail restant — PROCHAINE SESSION** :
+
+1. **Versi Immobilier — GEO off-site (action Thomas)** — Créer fiches Crunchbase + Pappers.fr + LinkedIn entreprise Versi Immobilier pour atteindre 10/10 GEO.
+
+2. **Versi Immobilier — Photos biens Muguets** — `photos: []` toujours. Ajouter via back office admin.
+
+3. **Versi Immobilier — 5 références Nanterre photos** — Script `update-nanterre-photos.js` prêt, autoSeed intégré. Les photos seront en production au prochain redéploiement.
+
+4. **versi-capital.fr + versi-finance.fr** — Les 2 dernières entités de l'écosystème (scope futur).
+
+**Prompt de reprise** : `@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise).`
