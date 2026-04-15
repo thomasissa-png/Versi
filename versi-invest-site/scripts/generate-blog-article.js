@@ -122,6 +122,32 @@ FORMAT DE SORTIE (markdown) :
 L'article doit faire entre 1 000 et 1 500 mots. Structure en 4-6 H2.`;
 
 // ---------------------------------------------------------------------------
+// Gates de qualité — vérification avant publication
+// ---------------------------------------------------------------------------
+function validateArticle(content) {
+  const errors = [];
+
+  const wordCount = content.split(/\s+/).length;
+  if (wordCount < 800) errors.push(`FAIL: ${wordCount} mots (minimum 800)`);
+
+  const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passive income', 'liberté financière'];
+  for (const word of forbidden) {
+    if (content.toLowerCase().includes(word)) errors.push(`FAIL: mot interdit "${word}"`);
+  }
+
+  if (!content.match(/^# .+/m)) errors.push('FAIL: pas de titre H1');
+
+  const h2Count = (content.match(/^## /gm) || []).length;
+  if (h2Count < 3) errors.push(`FAIL: ${h2Count} H2 (minimum 3)`);
+
+  if (!content.includes('/contact')) errors.push('FAIL: pas de CTA vers /contact');
+
+  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) errors.push('FAIL: tutoiement détecté');
+
+  return errors;
+}
+
+// ---------------------------------------------------------------------------
 // Génération via API Claude
 // ---------------------------------------------------------------------------
 async function generateArticle(topic, keywords) {
@@ -236,14 +262,36 @@ async function main() {
     console.log(`[BLOG-GEN] Slug : ${entry.slug}`);
     console.log(`[BLOG-GEN] Keywords : ${entry.keywords}`);
 
-    const content = await generateArticle(entry.topic, entry.keywords);
+    let content = await generateArticle(entry.topic, entry.keywords);
+    console.log(`[BLOG-GEN] Généré (${content.split(/\s+/).length} mots)`);
 
-    console.log(`[BLOG-GEN] Article généré (${content.length} chars)`);
+    // Gates de qualité
+    const errors = validateArticle(content);
+    if (errors.length > 0) {
+      console.error('[BLOG-GEN] GATES ÉCHOUÉES :');
+      errors.forEach((e) => console.error(`  ${e}`));
+
+      if (!dryRun) {
+        console.log('[BLOG-GEN] Régénération avec corrections...');
+        content = await generateArticle(
+          entry.topic + '. IMPORTANT : ' + errors.join('. '),
+          entry.keywords,
+        );
+        const retryErrors = validateArticle(content);
+        if (retryErrors.length > 0) {
+          console.error('[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES — article NON publié');
+          retryErrors.forEach((e) => console.error(`  ${e}`));
+          process.exit(1);
+        }
+        console.log('[BLOG-GEN] Gates OK après retry.');
+      }
+    } else {
+      console.log('[BLOG-GEN] Gates OK.');
+    }
 
     if (dryRun) {
-      console.log('\n--- DRY RUN — contenu généré ---\n');
+      console.log('\n--- DRY RUN ---\n');
       console.log(content);
-      console.log('\n--- Fin dry run ---');
     } else {
       await publishArticle(entry.slug, content, entry.tags, entry.topic);
     }
