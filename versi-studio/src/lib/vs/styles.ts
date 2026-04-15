@@ -122,6 +122,60 @@ export const ROOM_TYPE_LABELS: Record<RoomTypeKey, string> = {
   autre: "pièce",
 };
 
+// ─── Couleurs par type de pièce (canvas overlays, 40% opacity) ────
+
+export const ROOM_TYPE_COLORS: Record<RoomTypeKey, string> = {
+  chambre: "#4A90D9",
+  chambre_parentale: "#4A90D9",
+  salon: "#5BA55B",
+  sejour: "#5BA55B",
+  salle_a_manger: "#5BA55B",
+  cuisine: "#E67E22",
+  sdb: "#8E44AD",
+  wc: "#E84393",
+  bureau: "#2C3E50",
+  entree: "#95A5A6",
+  dressing: "#2C3E50",
+  cellier: "#7F8C8D",
+  terrasse: "#7F8C8D",
+  garage: "#7F8C8D",
+  couloir: "#95A5A6",
+  cave: "#7F8C8D",
+  balcon: "#7F8C8D",
+  autre: "#7F8C8D",
+};
+
+/**
+ * Retourne la couleur hex d'un type de pièce.
+ * Fallback sur gris foncé si type inconnu.
+ */
+export function getRoomColor(roomType: string): string {
+  return ROOM_TYPE_COLORS[roomType as RoomTypeKey] ?? "#7F8C8D";
+}
+
+// ─── Labels dropdown (pour le panneau latéral Step 3) ─────────────
+
+export const ROOM_TYPE_DROPDOWN: { value: RoomTypeKey; label: string }[] = [
+  { value: "chambre", label: "Chambre" },
+  { value: "chambre_parentale", label: "Suite parentale" },
+  { value: "salon", label: "Salon" },
+  { value: "sejour", label: "Séjour" },
+  { value: "salle_a_manger", label: "Salle à manger" },
+  { value: "cuisine", label: "Cuisine" },
+  { value: "sdb", label: "Salle de bains" },
+  { value: "wc", label: "WC" },
+  { value: "bureau", label: "Bureau" },
+  { value: "entree", label: "Entrée" },
+  { value: "dressing", label: "Dressing" },
+  { value: "cellier", label: "Cellier" },
+  { value: "terrasse", label: "Terrasse" },
+  { value: "garage", label: "Garage" },
+  { value: "couloir", label: "Couloir" },
+  { value: "cave", label: "Cave" },
+  { value: "balcon", label: "Balcon" },
+  { value: "autre", label: "Autre" },
+];
+
 // ─── Helpers ───────────────────────────────────────────────────────
 
 /**
