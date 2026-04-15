@@ -365,11 +365,55 @@ app.get('/{*splat}', (req, res) => {
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Cron blog — génération automatique d'articles
+// ---------------------------------------------------------------------------
+function scheduleBlogCron() {
+  // Vérifie toutes les heures si c'est le bon moment pour générer un article
+  // Lundi 9h (jour 1) = Versi Invest publie
+  const PUBLISH_DAY = 1; // Lundi
+  const PUBLISH_HOUR = 9;
+
+  let lastPublishDate = null;
+
+  setInterval(async () => {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    // Ne publier qu'une fois par jour max
+    if (lastPublishDate === today) return;
+    if (now.getDay() !== PUBLISH_DAY || now.getHours() !== PUBLISH_HOUR) return;
+    if (!process.env.ANTHROPIC_API_KEY) return;
+
+    lastPublishDate = today;
+    console.log(`[CRON] ${now.toISOString()} — Lancement génération article blog...`);
+
+    try {
+      const { execSync } = await import('child_process');
+      execSync('node scripts/generate-blog-article.js', {
+        cwd: join(__dirname),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 300000, // 5 min max
+      });
+      console.log('[CRON] Article généré et publié.');
+    } catch (err) {
+      console.error('[CRON] Erreur génération article :', err.message);
+    }
+  }, 60 * 60 * 1000); // Check toutes les heures
+
+  console.log(`[CRON] Blog planifié : chaque lundi à ${PUBLISH_HOUR}h.`);
+}
+
+// ---------------------------------------------------------------------------
+// Démarrage
+// ---------------------------------------------------------------------------
 async function start() {
   await initDatabase();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[VERSI INVEST] Serveur démarré sur le port ${PORT}`);
   });
+  scheduleBlogCron();
 }
 
 start();

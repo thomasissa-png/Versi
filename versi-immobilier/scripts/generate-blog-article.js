@@ -122,12 +122,81 @@ function validateArticle(content, topic) {
     errors.push('FAIL: pas de CTA vers /contact');
   }
 
-  // Gate 6 — Vouvoiement (pas de tutoiement)
-  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) {
-    errors.push('FAIL: tutoiement détecté');
-  }
+  // Gate 6 — Vouvoiement
+  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) errors.push('G6 FAIL: tutoiement');
+
+  // Gate 7 — Liens internes (≥2)
+  const internalLinks = (content.match(/\]\(\//g) || []).length;
+  if (internalLinks < 2) errors.push(`G7 FAIL: ${internalLinks} lien(s) interne(s) (min 2)`);
+
+  // Gate 8 — Fierté fondateur (pas de contenu creux)
+  const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
+  const shortP = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
+  if (shortP.length > 2) errors.push(`G8 FAIL: ${shortP.length} paragraphes creux`);
+
+  // Gate 9 — Valeur (≥3 données chiffrées)
+  const nums = content.match(/\d+[\s]?(%|€|euros?|mois|ans?|m²)/gi);
+  if (!nums || nums.length < 3) errors.push(`G9 FAIL: ${nums?.length || 0} données chiffrées (min 3)`);
 
   return errors;
+}
+
+// ---------------------------------------------------------------------------
+// Audit multi-agents (copy + SEO + stratégie + MdB) via Claude
+// ---------------------------------------------------------------------------
+async function auditArticle(content) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { average: 7, publishable: false };
+
+  const prompt = `Comité d'audit : @copy, @seo, @creative-strategy, expert marchand de biens.
+Audite cet article pour Versi Immobilier. Note 4 dimensions /10. Corrections si <9.
+
+ARTICLE :
+${content.slice(0, 6000)}
+
+CONTEXTE : Versi Immobilier = marchand de biens Lille/HdF. 16 immeubles, 7,2M€. Trois fondateurs.
+
+4 DIMENSIONS :
+1. COPY : ton fondateur, mots interdits, vouvoiement, utilité autonome
+2. SEO : H1 mot-clé, H2 progressifs, ≥1000 mots, liens internes ≥2, CTA /contact
+3. STRATÉGIE : angle différenciant vs agences classiques, pertinence acquéreur/vendeur
+4. MARCHAND DE BIENS : chiffres crédibles, vocabulaire immobilier correct, sérieux professionnel
+
+SEUIL : average ≥ 9.0 ET aucune dimension < 8.5
+
+JSON strict :
+{"copy":{"score":N,"corrections":["..."]},"seo":{"score":N,"corrections":["..."]},"strategy":{"score":N,"corrections":["..."]},"mdb":{"score":N,"corrections":["..."]},"average":N,"publishable":BOOL}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+  });
+
+  if (!response.ok) return { average: 7, publishable: false };
+  const data = await response.json();
+  const jsonMatch = data.content[0].text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return { average: 7, publishable: false };
+  try { return JSON.parse(jsonMatch[0]); } catch { return { average: 7, publishable: false }; }
+}
+
+// ---------------------------------------------------------------------------
+// Notification email en cas d'échec
+// ---------------------------------------------------------------------------
+async function notifyFailure(topic, slug, reason) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'contact@versi.fr',
+      to: 'contact@versi.fr',
+      subject: `[Blog VI] Article REFUSÉ — ${slug}`,
+      html: `<p>L'article <strong>"${topic}"</strong> (${slug}) refusé après 3 tentatives.</p><p>${reason}</p>`,
+    });
+  } catch (err) {
+    console.error('[BLOG-GEN] Erreur notification :', err.message);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +293,28 @@ async function main() {
           retryErrors.forEach((e) => console.error(`  ${e}`));
           process.exit(1);
         }
+      }
+    }
+
+    // Audit multi-agents — itère jusqu'à 9/10 avg, 8.5 min
+    if (!dryRun && process.env.ANTHROPIC_API_KEY) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`[BLOG-GEN] Audit multi-agents (${attempt}/3)...`);
+        const audit = await auditArticle(content);
+        console.log(`[BLOG-GEN] copy=${audit.copy?.score}, seo=${audit.seo?.score}, strat=${audit.strategy?.score}, mdb=${audit.mdb?.score}, avg=${audit.average}`);
+
+        if (audit.publishable) { console.log('[BLOG-GEN] Audit PASS.'); break; }
+        if (attempt === 3) {
+          const reason = `copy=${audit.copy?.score}, seo=${audit.seo?.score}, strat=${audit.strategy?.score}, mdb=${audit.mdb?.score}`;
+          console.error('[BLOG-GEN] Audit FAIL x3 — NON publié.');
+          await notifyFailure(entry.topic, entry.slug, reason);
+          process.exit(1);
+        }
+        console.log('[BLOG-GEN] Régénération avec corrections audit...');
+        const corrections = [...(audit.copy?.corrections||[]), ...(audit.seo?.corrections||[]), ...(audit.strategy?.corrections||[]), ...(audit.mdb?.corrections||[])].join('. ');
+        content = await generateArticle(entry.topic + '. CORRECTIONS : ' + corrections, entry.keywords);
+        const rg = validateArticle(content, entry.topic);
+        if (rg.length > 0) { console.error('[BLOG-GEN] Gates fail après regen'); rg.forEach(e => console.error(`  ${e}`)); process.exit(1); }
       }
     }
 

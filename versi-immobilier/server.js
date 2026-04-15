@@ -1926,12 +1926,47 @@ async function upsertBlogArticle(client, article) {
 }
 
 // ---------------------------------------------------------------------------
+// Cron blog — génération automatique d'articles (jeudi 9h)
+// ---------------------------------------------------------------------------
+function scheduleBlogCron() {
+  const PUBLISH_DAY = 4; // Jeudi
+  const PUBLISH_HOUR = 9;
+  let lastPublishDate = null;
+
+  setInterval(async () => {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    if (lastPublishDate === today) return;
+    if (now.getDay() !== PUBLISH_DAY || now.getHours() !== PUBLISH_HOUR) return;
+    if (!process.env.ANTHROPIC_API_KEY) return;
+
+    lastPublishDate = today;
+    console.log(`[CRON] ${now.toISOString()} — Lancement génération article blog VI...`);
+
+    try {
+      const { execSync } = await import('child_process');
+      execSync('node scripts/generate-blog-article.js', {
+        cwd: join(__dirname),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 300000,
+      });
+      console.log('[CRON] Article VI généré et publié.');
+    } catch (err) {
+      console.error('[CRON] Erreur génération article VI :', err.message);
+    }
+  }, 60 * 60 * 1000);
+
+  console.log(`[CRON] Blog VI planifié : chaque jeudi à ${PUBLISH_HOUR}h.`);
+}
+
+// ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
 app.listen(PORT, async () => {
   console.log(`[versi] Serveur multi-site démarré sur le port ${PORT}`);
   console.log(`  - versi-immobilier : ${VERSI_IMMO_DIST}`);
   console.log(`  - versi.fr         : ${VERSI_FR_DIST}`);
-  // AutoSeed au démarrage
   await autoSeed();
+  scheduleBlogCron();
 });

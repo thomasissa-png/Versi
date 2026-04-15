@@ -127,22 +127,41 @@ L'article doit faire entre 1 000 et 1 500 mots. Structure en 4-6 H2.`;
 function validateArticle(content) {
   const errors = [];
 
+  // G1 — Longueur minimale
   const wordCount = content.split(/\s+/).length;
-  if (wordCount < 800) errors.push(`FAIL: ${wordCount} mots (minimum 800)`);
+  if (wordCount < 800) errors.push(`G1 FAIL: ${wordCount} mots (minimum 800)`);
 
+  // G2 — Mots interdits
   const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passive income', 'liberté financière'];
   for (const word of forbidden) {
-    if (content.toLowerCase().includes(word)) errors.push(`FAIL: mot interdit "${word}"`);
+    if (content.toLowerCase().includes(word)) errors.push(`G2 FAIL: mot interdit "${word}"`);
   }
 
-  if (!content.match(/^# .+/m)) errors.push('FAIL: pas de titre H1');
+  // G3 — H1 présent
+  if (!content.match(/^# .+/m)) errors.push('G3 FAIL: pas de titre H1');
 
+  // G4 — Au moins 3 H2
   const h2Count = (content.match(/^## /gm) || []).length;
-  if (h2Count < 3) errors.push(`FAIL: ${h2Count} H2 (minimum 3)`);
+  if (h2Count < 3) errors.push(`G4 FAIL: ${h2Count} H2 (minimum 3)`);
 
-  if (!content.includes('/contact')) errors.push('FAIL: pas de CTA vers /contact');
+  // G5 — CTA /contact présent
+  if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
 
-  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) errors.push('FAIL: tutoiement détecté');
+  // G6 — Vouvoiement (pas de tutoiement)
+  if (content.match(/\b(tu |ton |ta |tes |toi)\b/i)) errors.push('G6 FAIL: tutoiement détecté');
+
+  // G7 — Liens internes (au moins 2 liens vers d'autres pages du site)
+  const internalLinks = (content.match(/\]\(\//g) || []).length;
+  if (internalLinks < 2) errors.push(`G7 FAIL: ${internalLinks} lien(s) interne(s) (minimum 2)`);
+
+  // G8 — Fierté fondateur : pas de contenu creux, chaque section doit avoir du fond
+  const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
+  const shortParagraphs = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
+  if (shortParagraphs.length > 2) errors.push(`G8 FAIL: ${shortParagraphs.length} paragraphes trop courts — contenu potentiellement creux`);
+
+  // G9 — Valeur ajoutée : au moins 1 chiffre concret (prix, %, rendement)
+  const hasNumbers = content.match(/\d+[\s]?(%|€|euros?|mois|ans?|m²)/gi);
+  if (!hasNumbers || hasNumbers.length < 3) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (minimum 3) — l'article doit apporter de la valeur terrain`);
 
   return errors;
 }
@@ -196,20 +215,25 @@ L'article doit :
 // ---------------------------------------------------------------------------
 async function auditArticle(content) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  const prompt = `Audite cet article pour Versi Invest. Note 3 dimensions /10. Corrections si <9.
+  const prompt = `Tu es un comité d'audit composé de 4 experts : @copy, @seo, @creative-strategy, et un expert marchand de biens immobilier.
+
+Audite cet article pour Versi Invest. Note HONNÊTEMENT 4 dimensions /10. Corrections EXACTES si <9.
 
 ARTICLE :
 ${content.slice(0, 6000)}
 
-DIMENSIONS :
-1. COPY (ton fondateur, mots interdits, utilité autonome, vouvoiement)
-2. SEO (H1 mot-clé, structure H2, longueur, CTA /contact)
-3. STRATÉGIE (angle différenciant, pas générique, pertinence investisseur)
+CONTEXTE : Versi Invest détecte des opportunités immobilières rentables en Hauts-de-France et IDF. 16 immeubles, 7,2M€ opérés. 5% côté investisseur. Pas exclusivement off-market.
+
+4 DIMENSIONS :
+1. COPY : ton fondateur direct, mots interdits (garanti, sans risque, clé en main, accompagnement, expertise, sur-mesure), utilité autonome, vouvoiement strict
+2. SEO : H1 avec mot-clé, structure H2 progressive, longueur ≥1000 mots, liens internes ≥2, CTA /contact naturel
+3. STRATÉGIE : angle différenciant vs portails, pas de contenu générique, pertinence pour un investisseur avec 60-80k€ d'apport
+4. MARCHAND DE BIENS : les chiffres sont-ils crédibles ? Le vocabulaire immobilier est-il correct ? Un professionnel de l'immobilier trouverait-il cet article sérieux ?
+
+SEUIL DE PUBLICATION : average ≥ 9.0 ET aucune dimension < 8.5
 
 Format JSON strict :
-{"copy":{"score":N,"corrections":["..."]},"seo":{"score":N,"corrections":["..."]},"strategy":{"score":N,"corrections":["..."]},"average":N,"publishable":BOOL}
-
-publishable = true si average >= 8.5 ET aucune dimension < 7.`;
+{"copy":{"score":N,"corrections":["..."]},"seo":{"score":N,"corrections":["..."]},"strategy":{"score":N,"corrections":["..."]},"mdb":{"score":N,"corrections":["..."]},"average":N,"publishable":BOOL}`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -217,12 +241,35 @@ publishable = true si average >= 8.5 ET aucune dimension < 7.`;
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
   });
 
-  if (!response.ok) return { copy: { score: 7 }, seo: { score: 7 }, strategy: { score: 7 }, average: 7, publishable: false };
+  if (!response.ok) return { copy: { score: 7 }, seo: { score: 7 }, strategy: { score: 7 }, mdb: { score: 7 }, average: 7, publishable: false };
   const data = await response.json();
   const text = data.content[0].text;
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return { average: 7, publishable: false };
   try { return JSON.parse(jsonMatch[0]); } catch { return { average: 7, publishable: false }; }
+}
+
+// ---------------------------------------------------------------------------
+// Notification email en cas d'échec (via Resend si configuré)
+// ---------------------------------------------------------------------------
+async function notifyFailure(topic, slug, reason) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[BLOG-GEN] Pas de RESEND_API_KEY — notification email non envoyée.');
+    return;
+  }
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'contact@versi.fr',
+      to: 'contact@versi.fr',
+      subject: `[Blog Versi Invest] Article REFUSÉ — ${slug}`,
+      html: `<p>L'article <strong>"${topic}"</strong> (slug: ${slug}) a été refusé après 3 tentatives.</p><p>Raison : ${reason}</p><p>Action requise : vérifier le calendrier éditorial et relancer manuellement.</p>`,
+    });
+    console.log('[BLOG-GEN] Email de notification envoyé à contact@versi.fr');
+  } catch (err) {
+    console.error('[BLOG-GEN] Erreur envoi notification :', err.message);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -328,7 +375,7 @@ async function main() {
       for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`[BLOG-GEN] Audit multi-agents (tentative ${attempt}/3)...`);
         const audit = await auditArticle(content);
-        console.log(`[BLOG-GEN] Scores : copy=${audit.copy?.score}, seo=${audit.seo?.score}, strategy=${audit.strategy?.score}, avg=${audit.average}`);
+        console.log(`[BLOG-GEN] Scores : copy=${audit.copy?.score}, seo=${audit.seo?.score}, strategy=${audit.strategy?.score}, mdb=${audit.mdb?.score}, avg=${audit.average}`);
 
         if (audit.publishable) {
           console.log('[BLOG-GEN] Audit PASS — article validé pour publication.');
@@ -337,6 +384,8 @@ async function main() {
 
         if (attempt === 3) {
           console.error('[BLOG-GEN] Audit FAIL après 3 tentatives — article NON publié.');
+          const reason = `Scores finaux : copy=${audit.copy?.score}, seo=${audit.seo?.score}, strategy=${audit.strategy?.score}, mdb=${audit.mdb?.score}, avg=${audit.average}`;
+          await notifyFailure(entry.topic, entry.slug, reason);
           process.exit(1);
         }
 
