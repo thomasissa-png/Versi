@@ -25,12 +25,20 @@ function ReferenceCard({ ref: _ref, reference }) {
             {reference.rendementBrut.toFixed(1).replace('.', ',')} %
           </span>
         </div>
+        {reference.cashflowNet != null && (
         <div className="ref-card__metric">
           <span className="ref-card__metric-label">Cashflow net</span>
           <span className="ref-card__metric-value ref-card__metric-value--highlight">
             +{reference.cashflowNet} €/mois
           </span>
         </div>
+        )}
+        {reference.prix && (
+        <div className="ref-card__metric">
+          <span className="ref-card__metric-label">Prix</span>
+          <span className="ref-card__metric-value">{reference.prix}</span>
+        </div>
+        )}
         <div className="ref-card__metric">
           <span className="ref-card__metric-label">Lots</span>
           <span className="ref-card__metric-value">{reference.lots}</span>

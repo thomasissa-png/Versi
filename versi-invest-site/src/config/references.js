@@ -1,116 +1,44 @@
 /**
- * Données de référence — immeubles
+ * Données de référence — opérations réelles Versi Invest
  *
- * RÈGLES ABSOLUES (décision fondateur) :
- * - JAMAIS de prix d'achat, marge brute/nette, montant travaux
- * - JAMAIS de noms fictifs comme faux témoignages
- * - Descriptions anonymisées uniquement
+ * RÈGLES :
+ * - Données réelles validées par les fondateurs
+ * - Photos dans public/references/[slug]/
  */
 
 export const REFERENCES = [
   {
     id: 1,
-    slug: 'immeuble-4-lots-lille',
-    ville: 'Lille',
-    departement: '59',
-    type: 'Immeuble de rapport',
-    lots: 4,
-    rendementBrut: 8.7,
-    cashflowNet: 340,
-    montage: 'SCI à l\'IS',
-    annee: 2024,
-    description: 'Immeuble 4 lots — Hauts-de-France, 2024. Rénovation intégrale. Rendement brut 8,7%. Cashflow net +340 €/mois.',
-    detail: {
-      intro: 'Immeuble de 4 lots acquis en 2024 dans le secteur lillois. Rénovation intégrale pilotée par le Groupe Versi : électricité, plomberie, second œuvre.',
-      travaux: 'Rénovation complète — remise aux normes électriques, plomberie, second œuvre. Livraison en état locatif.',
-      duree: 'Acquisition à mise en location : 4 mois.',
-      structure: 'SCI à l\'IS — montage patrimonial avec amortissement du bien.',
-      resultat: 'Les 4 lots ont été loués en moins de 3 semaines après livraison. Cashflow positif dès le premier mois.',
-      photos: [],
-    },
-  },
-  {
-    id: 2,
-    slug: 'maison-divisee-roubaix',
-    ville: 'Roubaix',
-    departement: '59',
-    type: 'Maison divisée',
-    lots: 3,
-    rendementBrut: 9.2,
-    cashflowNet: 280,
-    montage: 'Nom propre',
-    annee: 2023,
-    description: 'Maison divisée 3 lots — Roubaix, 2023. Division et rénovation. Rendement brut 9,2%. Cashflow net +280 €/mois.',
-    detail: {
-      intro: 'Maison individuelle divisée en 3 lots dans le secteur de Roubaix. Opération de division + rénovation complète.',
-      travaux: 'Division en 3 lots indépendants. Création d\'entrées séparées, compteurs individuels, rénovation complète de chaque lot.',
-      duree: 'Acquisition à mise en location : 5 mois.',
-      structure: 'Acquisition en nom propre — LMNP au réel.',
-      resultat: 'Rendement brut 9,2% avec un cashflow net de +280 €/mois. Les 3 lots loués en 4 semaines.',
-      photos: [],
-    },
-  },
-  {
-    id: 3,
-    slug: 'immeuble-mixte-tourcoing',
-    ville: 'Tourcoing',
-    departement: '59',
-    type: 'Immeuble mixte',
-    lots: 5,
-    rendementBrut: 8.1,
-    cashflowNet: 420,
-    montage: 'SCI à l\'IS',
-    annee: 2024,
-    description: 'Immeuble mixte 5 lots — Tourcoing, 2024. Travaux légers. Rendement brut 8,1%. Cashflow net +420 €/mois.',
-    detail: {
-      intro: 'Immeuble de 5 lots (commerce en RDC + 4 logements) à Tourcoing. Travaux légers — rafraîchissement et mise aux normes.',
-      travaux: 'Rafraîchissement des parties communes et des logements. Pas de gros œuvre.',
-      duree: 'Acquisition à mise en location : 2 mois.',
-      structure: 'SCI à l\'IS — adapté au profil investisseur.',
-      resultat: 'Mis en location sous 3 semaines. Cashflow net de +420 €/mois grâce au mixte commerce/logement.',
-      photos: [],
-    },
-  },
-  {
-    id: 4,
-    slug: 'immeuble-6-lots-lens',
-    ville: 'Lens',
-    departement: '62',
-    type: 'Immeuble de rapport',
-    lots: 6,
-    rendementBrut: 10.3,
-    cashflowNet: 580,
-    montage: 'SCI à l\'IS',
-    annee: 2023,
-    description: 'Immeuble 6 lots — Lens, 2023. Rendement brut 10,3%. Cashflow net +580 €/mois.',
-    detail: {
-      intro: 'Immeuble de 6 lots acquis en 2023 dans le bassin lensois. Rendement exceptionnel grâce à un prix d\'acquisition maîtrisé.',
-      travaux: 'Rénovation partielle — mise aux normes des parties communes, rafraîchissement de 3 lots sur 6.',
-      duree: 'Acquisition à mise en location : 3 mois.',
-      structure: 'SCI à l\'IS.',
-      resultat: 'Rendement brut 10,3% — le meilleur de notre portefeuille. Cashflow net +580 €/mois. 6 lots loués en 5 semaines.',
-      photos: [],
-    },
-  },
-  {
-    id: 5,
-    slug: 'immeuble-3-lots-nanterre',
+    slug: 'nanterre-8-studios',
     ville: 'Nanterre',
     departement: '92',
-    type: 'Immeuble de rapport',
-    lots: 3,
-    rendementBrut: 7.4,
-    cashflowNet: 210,
-    montage: 'SCI à l\'IR',
+    type: 'Lot de 8 studios',
+    lots: 8,
+    rendementBrut: 11.9,
+    cashflowNet: null,
+    montage: 'LMNP en couple',
     annee: 2025,
-    description: 'Immeuble 3 lots — Nanterre (92), 2025. Rénovation complète. Rendement brut 7,4%. Cashflow net +210 €/mois.',
+    prix: '590 000 €',
+    travaux: '80 000 € (progressifs)',
+    loyersAnnuels: '70 080 €',
+    emprunt: '450 000 €',
+    description: '8 studios au dernier étage d\'un immeuble à Nanterre. Déjà loués. Rendement brut 11,9%. Acquis en LMNP par un couple d\'investisseurs.',
     detail: {
-      intro: 'Immeuble de 3 lots en Île-de-France, acquis début 2025. Bien identifié hors marché, rénovation complète.',
-      travaux: 'Rénovation complète — gros œuvre conservé, tout le reste refait. DPE amélioré.',
-      duree: 'Acquisition à mise en location : 6 mois (rénovation plus lourde).',
-      structure: 'SCI à l\'IR — montage familial.',
-      resultat: 'Rendement brut 7,4% — dans la norme IDF. Cashflow net +210 €/mois. Valorisation patrimoniale en prime.',
-      photos: [],
+      intro: 'Lot de 8 studios situés au dernier étage d\'un immeuble à Nanterre (92). Tous les studios étaient déjà loués au moment de l\'acquisition. Opération structurée en LMNP pour un couple d\'investisseurs.',
+      travaux: 'Budget travaux de 80 000 € en progressif — les rénovations sont réalisées au fur et à mesure du changement de locataire pour ne pas interrompre les revenus locatifs.',
+      duree: 'Acquisition finalisée en 2025.',
+      structure: 'LMNP en couple. Emprunt bancaire de 450 000 € sur le prix d\'acquisition de 590 000 €.',
+      resultat: 'Loyers annuels de 70 080 € soit un rendement brut de 11,9% sur le prix d\'acquisition. Les studios étant déjà loués, les revenus locatifs ont démarré immédiatement.',
+      chiffres: [
+        { label: 'Prix d\'acquisition', value: '590 000 €' },
+        { label: 'Travaux (progressifs)', value: '80 000 €' },
+        { label: 'Loyers annuels', value: '70 080 €' },
+        { label: 'Emprunt bancaire', value: '450 000 €' },
+        { label: 'Montage', value: 'LMNP en couple' },
+      ],
+      photos: Array.from({ length: 7 }, (_, i) =>
+        `/references/nanterre-8-studios/photo-${String(i + 1).padStart(2, '0')}.jpeg`
+      ),
     },
   },
 ];

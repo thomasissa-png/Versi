@@ -83,10 +83,44 @@
 
 /* === Photos === */
 
+/* === Table chiffres === */
+
+.ref-detail__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-lg);
+}
+
+.ref-detail__table td {
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-body-md);
+}
+
+.ref-detail__table-label {
+  color: var(--color-text-muted);
+  padding-right: var(--spacing-lg);
+}
+
+.ref-detail__table-value {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+/* === Gallery photos === */
+
+.ref-detail__gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+}
+
 .ref-detail__photo {
   width: 100%;
   border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-md);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
 }
 
 .ref-detail__photos-placeholder {
