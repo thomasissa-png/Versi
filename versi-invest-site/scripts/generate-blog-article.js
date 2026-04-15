@@ -20,8 +20,27 @@
  */
 
 import pg from 'pg';
+import { writeFileSync, readFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
 
 const { Pool } = pg;
+
+// ---------------------------------------------------------------------------
+// Lock file — empêche les exécutions concurrentes
+// ---------------------------------------------------------------------------
+const LOCK_FILE = '/tmp/versi-blog-gen.lock';
+
+function acquireLock() {
+  if (existsSync(LOCK_FILE)) {
+    const pid = parseInt(readFileSync(LOCK_FILE, 'utf-8').trim(), 10);
+    // Vérifier si le process est encore vivant
+    try { process.kill(pid, 0); console.error(`[BLOG-GEN] Exécution déjà en cours (PID ${pid}). Abandon.`); process.exit(0); } catch { /* process mort, on prend le lock */ }
+  }
+  writeFileSync(LOCK_FILE, String(process.pid));
+}
+
+function releaseLock() {
+  try { unlinkSync(LOCK_FILE); } catch { /* ignore */ }
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
