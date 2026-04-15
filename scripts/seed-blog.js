@@ -1,23 +1,26 @@
 /**
- * Proxy — redirige vers le vrai seed dans versi-invest-site/
- * Existe à la racine pour que Replit puisse le trouver avec :
- *   node scripts/seed-blog.js
+ * Proxy seed-blog — redirige vers versi-invest-site/scripts/seed-blog.js
+ * Compatible CommonJS (pas de "type": "module" à la racine)
+ * Non-bloquant : échoue silencieusement si le fichier cible n'existe pas
  */
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { execSync } from 'child_process';
+const { execSync } = require('child_process');
+const path = require('path');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const investSeedPath = join(__dirname, '..', 'versi-invest-site', 'scripts', 'seed-blog.js');
-
-console.log('[SEED PROXY] Redirection vers versi-invest-site/scripts/seed-blog.js');
+const targetPath = path.join(__dirname, '..', 'versi-invest-site', 'scripts', 'seed-blog.js');
 
 try {
-  execSync(`node "${investSeedPath}"`, {
+  const fs = require('fs');
+  if (!fs.existsSync(targetPath)) {
+    console.warn('[SEED PROXY] Fichier cible introuvable :', targetPath, '— skip.');
+    process.exit(0);
+  }
+  console.log('[SEED PROXY] Redirection vers', targetPath);
+  execSync(`node "${targetPath}"`, {
     env: process.env,
     stdio: 'inherit',
     timeout: 60000,
   });
 } catch (err) {
   console.warn('[SEED PROXY] Seed échoué (non-bloquant) :', err.message);
+  process.exit(0); // Exit 0 = ne pas bloquer le build
 }
