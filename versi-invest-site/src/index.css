@@ -275,7 +275,7 @@ ul, ol {
 /* === Section layout utility === */
 
 .section-padding {
-  padding: var(--spacing-5xl) var(--spacing-2xl);
+  padding: var(--spacing-3xl) var(--spacing-2xl);
   scroll-margin-top: var(--nav-height);
 }
 
@@ -295,8 +295,8 @@ ul, ol {
 
 .page-header {
   background: var(--color-bg-dark);
-  padding: var(--spacing-5xl) var(--spacing-2xl) var(--spacing-3xl);
-  padding-top: calc(var(--nav-height) + var(--spacing-4xl));
+  padding: var(--spacing-3xl) var(--spacing-2xl);
+  padding-top: calc(var(--nav-height) + var(--spacing-3xl));
 }
 
 .page-header__title {
@@ -385,7 +385,7 @@ ul, ol {
 
 @media (max-width: 767px) {
   .section-padding {
-    padding: var(--spacing-4xl) var(--spacing-lg);
+    padding: var(--spacing-2xl) var(--spacing-lg);
   }
 
   .text-display {
