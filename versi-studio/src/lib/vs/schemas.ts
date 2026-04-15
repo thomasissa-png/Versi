@@ -184,6 +184,7 @@ export const ExtractedRoomSchema = z.object({
         .max(100)
         .describe("Hauteur en % de la hauteur de l'image"),
     })
+    .nullable()
     .optional()
     .describe(
       "Position estimée de la pièce sur le plan (pourcentages 0-100)"

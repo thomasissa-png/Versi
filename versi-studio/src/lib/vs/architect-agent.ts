@@ -34,6 +34,7 @@ export interface IterationResult {
  * Itère sur un visuel existant selon l'instruction de l'utilisateur.
  *
  * @param currentVisualBase64 - Le visuel courant en base64
+ * @param mimeType - MIME type du visuel (image/jpeg, image/png, image/webp)
  * @param instruction - L'instruction utilisateur ("Retire le tapis, ajoute plus de lumière")
  * @param styleId - Le style actif (scandinave, industriel, etc.)
  * @param roomType - Le type de pièce
@@ -42,6 +43,7 @@ export interface IterationResult {
  */
 export async function iterateVisual(
   currentVisualBase64: string,
+  mimeType: string,
   instruction: string,
   styleId: string,
   roomType: string,
@@ -75,7 +77,7 @@ IMPORTANT CONSTRAINTS:
   // Étape 2 : Générer la nouvelle version via gpt-image-1.5
   // Premier essai
   try {
-    const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, finalPrompt);
+    const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, mimeType, finalPrompt);
     return {
       image_base64: imageBase64,
       prompt_used: finalPrompt,
@@ -88,7 +90,7 @@ IMPORTANT CONSTRAINTS:
   // Retry après 5s
   await new Promise(r => setTimeout(r, 5000));
   try {
-    const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, finalPrompt);
+    const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, mimeType, finalPrompt);
     return {
       image_base64: imageBase64,
       prompt_used: finalPrompt,
@@ -105,9 +107,10 @@ IMPORTANT CONSTRAINTS:
 async function callIterationGeneration(
   openai: OpenAI,
   currentVisualBase64: string,
+  mimeType: string,
   prompt: string
 ): Promise<string> {
-  const imageDataUrl = `data:image/png;base64,${currentVisualBase64}`;
+  const imageDataUrl = `data:${mimeType};base64,${currentVisualBase64}`;
 
   const response = await openai.responses.create({
     model: "gpt-image-1.5",
@@ -123,12 +126,15 @@ async function callIterationGeneration(
     tools: [{ type: "image_generation", quality: "high" }],
   });
 
-  const imageOutput = response.output.find((o: any) => o.type === "image_generation_call");
+  const imageOutput = response.output.find(
+    (o: { type: string }) => o.type === "image_generation_call"
+  );
   if (!imageOutput || imageOutput.type !== "image_generation_call") {
     throw new Error("Pas de sortie image dans la réponse gpt-image-1.5");
   }
-  if (!imageOutput.result) {
+  const resultData = (imageOutput as { type: string; result?: string }).result;
+  if (!resultData) {
     throw new Error("Résultat image vide");
   }
-  return imageOutput.result;
+  return resultData;
 }

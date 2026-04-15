@@ -129,15 +129,18 @@ async function callImageGeneration(
   });
 
   // Extraire l'image générée
-  const imageOutput = response.output.find((o: any) => o.type === "image_generation_call");
+  const imageOutput = response.output.find(
+    (o: { type: string }) => o.type === "image_generation_call"
+  );
   if (!imageOutput || imageOutput.type !== "image_generation_call") {
     throw new Error("Pas de sortie image dans la réponse gpt-image-1.5");
   }
   // Le résultat contient result en base64
-  if (!imageOutput.result) {
+  const resultData = (imageOutput as { type: string; result?: string }).result;
+  if (!resultData) {
     throw new Error("Résultat image vide");
   }
-  return imageOutput.result;
+  return resultData;
 }
 
 // ─── Enrichissement de prompt pour itération ───────────────────────
@@ -181,10 +184,15 @@ RÈGLES :
       ],
     });
 
-    const textOutput = response.output.find((o: any) => o.type === "message");
+    const textOutput = response.output.find(
+      (o: { type: string }) => o.type === "message"
+    );
     if (textOutput && textOutput.type === "message") {
-      const textContent = textOutput.content.find((c: any) => c.type === "output_text");
-      if (textContent && textContent.type === "output_text") {
+      const msg = textOutput as { type: string; content: Array<{ type: string; text?: string }> };
+      const textContent = msg.content.find(
+        (c: { type: string }) => c.type === "output_text"
+      );
+      if (textContent && textContent.type === "output_text" && textContent.text) {
         return textContent.text;
       }
     }

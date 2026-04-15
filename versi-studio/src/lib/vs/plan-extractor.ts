@@ -47,6 +47,32 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Extract the text content from an OpenAI Responses API response.
+ * The SDK types for `response.output` are generic — this helper
+ * encapsulates the runtime shape check in one place.
+ */
+function extractTextFromResponse(
+  response: Awaited<ReturnType<OpenAI["responses"]["create"]>>
+): string {
+  const messageItem = response.output.find(
+    (o: { type: string }) => o.type === "message"
+  ) as { type: "message"; content: Array<{ type: string; text?: string }> } | undefined;
+
+  if (!messageItem) {
+    throw new Error("No message output in response");
+  }
+
+  const textContent = messageItem.content.find(
+    (c) => c.type === "output_text"
+  );
+  if (!textContent?.text) {
+    throw new Error("No text content in response message");
+  }
+
+  return textContent.text;
+}
+
 // ─── LotZone interface ─────────────────────────────────────────────
 export interface LotZone {
   id: string;
@@ -346,19 +372,7 @@ async function callVisionExtraction(
     },
   });
 
-  const textOutput = response.output.find(
-    (o: any) => o.type === "message"
-  );
-  if (!textOutput || textOutput.type !== "message") {
-    throw new Error("No message output from GPT-4.1");
-  }
-  const textContent = (textOutput as any).content.find(
-    (c: any) => c.type === "output_text"
-  );
-  if (!textContent || textContent.type !== "output_text") {
-    throw new Error("No text content in GPT-4.1 response");
-  }
-  return textContent.text;
+  return extractTextFromResponse(response);
 }
 
 // ─── Self-correction call ──────────────────────────────────────────
@@ -397,19 +411,7 @@ async function callSelfCorrection(
     },
   });
 
-  const textOutput = response.output.find(
-    (o: any) => o.type === "message"
-  );
-  if (!textOutput || textOutput.type !== "message") {
-    throw new Error("No message output from self-correction");
-  }
-  const textContent = (textOutput as any).content.find(
-    (c: any) => c.type === "output_text"
-  );
-  if (!textContent || textContent.type !== "output_text") {
-    throw new Error("No text content in self-correction response");
-  }
-  return textContent.text;
+  return extractTextFromResponse(response);
 }
 
 // ─── Main extraction function ──────────────────────────────────────
