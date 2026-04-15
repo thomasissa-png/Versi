@@ -1,8 +1,10 @@
 import express from 'express';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import pool from './db.js';
 import { runGates } from './gate-runner.js';
@@ -1929,40 +1931,32 @@ async function upsertBlogArticle(client, article) {
 // Cron blog — génération automatique d'articles (jeudi 9h)
 // ---------------------------------------------------------------------------
 function scheduleBlogCron() {
-  // Rythme évolutif (@seo) :
-  // <8 articles publiés → bimensuel (1er et 3e jeudi)
-  // ≥8 articles → hebdomadaire
-  const PUBLISH_DAY = 4; // Jeudi
-  const PUBLISH_HOUR = 9;
-  let lastPublishDate = null;
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('[CRON] ANTHROPIC_API_KEY absent — crons blog désactivés.');
+    return;
+  }
 
-  setInterval(async () => {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    if (lastPublishDate === today) return;
-    if (now.getDay() !== PUBLISH_DAY || now.getHours() !== PUBLISH_HOUR) return;
-    if (!process.env.ANTHROPIC_API_KEY) return;
+  // Jeudi 9h — Génération d'article (rythme adaptatif)
+  cron.schedule('0 9 * * 4', async () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Vérification publication article VI...`);
 
-    // Rythme adaptatif
     try {
       const countResult = await pool.query(`SELECT COUNT(*) FROM blog_articles WHERE status = 'published'`);
       const articleCount = parseInt(countResult.rows[0].count, 10);
+
       if (articleCount < 8) {
-        const weekOfMonth = Math.ceil(now.getDate() / 7);
-        if (weekOfMonth !== 1 && weekOfMonth !== 3) return;
+        const weekOfMonth = Math.ceil(new Date().getDate() / 7);
+        if (weekOfMonth !== 1 && weekOfMonth !== 3) {
+          console.log(`[CRON] Phase fondation (${articleCount} articles) — semaine skippée.`);
+          return;
+        }
         console.log(`[CRON] Phase fondation (${articleCount} articles) — bimensuel.`);
       } else {
         console.log(`[CRON] Phase accélération (${articleCount} articles) — hebdomadaire.`);
       }
-    } catch { return; }
 
-    lastPublishDate = today;
-    console.log(`[CRON] ${now.toISOString()} — Lancement génération article blog VI...`);
-
-    try {
-      const { execSync } = await import('child_process');
       execSync('node scripts/generate-blog-article.js', {
-        cwd: join(__dirname),
+        cwd: __dirname,
         env: process.env,
         stdio: 'inherit',
         timeout: 300000,
@@ -1971,9 +1965,25 @@ function scheduleBlogCron() {
     } catch (err) {
       console.error('[CRON] Erreur génération article VI :', err.message);
     }
-  }, 60 * 60 * 1000);
+  });
 
-  console.log(`[CRON] Blog VI planifié : chaque jeudi à ${PUBLISH_HOUR}h.`);
+  // Dimanche 20h05 — Renouvellement calendrier éditorial
+  cron.schedule('5 20 * * 0', () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Renouvellement calendrier éditorial VI...`);
+    try {
+      execSync('node scripts/blog-orchestrator.js --site immobilier --plan', {
+        cwd: join(__dirname, '..'),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 60000,
+      });
+      console.log('[CRON] Calendrier VI renouvelé.');
+    } catch (err) {
+      console.error('[CRON] Erreur renouvellement éditorial VI :', err.message);
+    }
+  });
+
+  console.log('[CRON] Blog VI planifié : articles jeudi 9h, calendrier dimanche 20h05.');
 }
 
 // ---------------------------------------------------------------------------

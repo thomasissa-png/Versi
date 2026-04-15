@@ -1,8 +1,10 @@
 import express from 'express';
 import { Resend } from 'resend';
 import pg from 'pg';
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -366,64 +368,63 @@ app.get('/{*splat}', (req, res) => {
 // Démarrage
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// Cron blog — génération automatique d'articles
+// Cron blog — node-cron (génération + renouvellement éditorial)
 // ---------------------------------------------------------------------------
 function scheduleBlogCron() {
-  // Rythme évolutif (@seo) :
-  // Mois 1-2 : 2 articles/mois (1er et 3e lundi)
-  // Mois 3+ : 1 article/semaine (tous les lundis)
-  // Le script détecte automatiquement : si <8 articles publiés → bimensuel, sinon hebdo
-  const PUBLISH_DAY = 1; // Lundi
-  const PUBLISH_HOUR = 9;
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('[CRON] ANTHROPIC_API_KEY absent — crons blog désactivés.');
+    return;
+  }
 
-  let lastPublishDate = null;
+  // Lundi 9h — Génération d'article (rythme adaptatif)
+  cron.schedule('0 9 * * 1', async () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Vérification publication article...`);
 
-  setInterval(async () => {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-
-    if (lastPublishDate === today) return;
-    if (now.getDay() !== PUBLISH_DAY || now.getHours() !== PUBLISH_HOUR) return;
-    if (!process.env.ANTHROPIC_API_KEY) return;
-
-    // Rythme adaptatif : vérifier le nombre d'articles publiés
     try {
+      // Rythme adaptatif : <8 articles → bimensuel, ≥8 → hebdomadaire
       const countResult = await pool.query(`SELECT COUNT(*) FROM blog_articles WHERE status = 'published'`);
       const articleCount = parseInt(countResult.rows[0].count, 10);
 
       if (articleCount < 8) {
-        // Phase fondation : publier uniquement le 1er et 3e lundi du mois
-        const weekOfMonth = Math.ceil(now.getDate() / 7);
+        const weekOfMonth = Math.ceil(new Date().getDate() / 7);
         if (weekOfMonth !== 1 && weekOfMonth !== 3) {
-          return; // Skip cette semaine
+          console.log(`[CRON] Phase fondation (${articleCount} articles) — semaine skippée.`);
+          return;
         }
         console.log(`[CRON] Phase fondation (${articleCount} articles) — publication bimensuelle.`);
       } else {
         console.log(`[CRON] Phase accélération (${articleCount} articles) — publication hebdomadaire.`);
       }
-    } catch {
-      // Si la BDD n'est pas dispo, on skip silencieusement
-      return;
-    }
 
-    lastPublishDate = today;
-    console.log(`[CRON] ${now.toISOString()} — Lancement génération article blog...`);
-
-    try {
-      const { execSync } = await import('child_process');
       execSync('node scripts/generate-blog-article.js', {
-        cwd: join(__dirname),
+        cwd: __dirname,
         env: process.env,
         stdio: 'inherit',
-        timeout: 300000, // 5 min max
+        timeout: 300000,
       });
       console.log('[CRON] Article généré et publié.');
     } catch (err) {
       console.error('[CRON] Erreur génération article :', err.message);
     }
-  }, 60 * 60 * 1000); // Check toutes les heures
+  });
 
-  console.log(`[CRON] Blog planifié : chaque lundi à ${PUBLISH_HOUR}h.`);
+  // Dimanche 20h — Renouvellement calendrier éditorial
+  cron.schedule('0 20 * * 0', () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Renouvellement calendrier éditorial...`);
+    try {
+      execSync('node scripts/blog-orchestrator.js --site invest --plan', {
+        cwd: join(__dirname, '..'),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 60000,
+      });
+      console.log('[CRON] Calendrier éditorial renouvelé.');
+    } catch (err) {
+      console.error('[CRON] Erreur renouvellement éditorial :', err.message);
+    }
+  });
+
+  console.log('[CRON] Blog planifié : articles lundi 9h, calendrier dimanche 20h.');
 }
 
 // ---------------------------------------------------------------------------
