@@ -39,7 +39,7 @@
 }
 
 .founder__name {
-  font-size: 1.5rem;
+  font-size: var(--font-size-heading-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
@@ -49,7 +49,7 @@
   font-weight: var(--font-weight-regular);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-accent-blue);
+  color: var(--color-text-muted);
 }
 
 .founder__bio {
@@ -65,7 +65,7 @@
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--color-accent-blue);
+  color: var(--color-text-muted);
   text-decoration: none;
   margin-top: var(--spacing-sm);
   transition: opacity var(--duration-normal) ease;

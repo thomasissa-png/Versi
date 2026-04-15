@@ -1,6 +1,6 @@
 export const ENTITY_SITES_ACTIVE = {
   immobilier: true,
-  invest: false,
+  invest: true,
   capital: false,
   finance: false,
 };

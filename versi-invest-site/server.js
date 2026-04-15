@@ -1,8 +1,10 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import pg from 'pg';
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,12 +59,43 @@ async function initDatabase() {
         excerpt TEXT,
         content TEXT NOT NULL,
         author VARCHAR(100) DEFAULT 'Versi Invest',
-        image_url VARCHAR(500),
-        published BOOLEAN DEFAULT false,
+        cover_image VARCHAR(500),
+        tags TEXT DEFAULT '[]',
+        status VARCHAR(20) DEFAULT 'draft',
         published_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // ---------------------------------------------------------------------------
+    // Migrations : ajouter les colonnes manquantes sur table existante
+    // ---------------------------------------------------------------------------
+    const migrations = [
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT '[]'`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'draft'`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS cover_image VARCHAR(500)`,
+      `ALTER TABLE blog_articles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+    ];
+
+    for (const sql of migrations) {
+      try {
+        await pool.query(sql);
+      } catch (migErr) {
+        // Ignorer les erreurs "column already exists" silencieusement
+        if (!migErr.message.includes('already exists')) {
+          console.warn('[DB] Migration warning :', migErr.message);
+        }
+      }
+    }
+
+    // Migrer les anciennes données : published=true → status='published'
+    // Couvre le cas où la table existait avec l'ancien schéma (published BOOLEAN)
+    await pool.query(`
+      UPDATE blog_articles SET status = 'published'
+      WHERE (status IS NULL OR status = 'draft')
+      AND published_at IS NOT NULL
+    `).catch(() => {});
 
     console.log('[DB] Tables initialisées avec succès.');
   } catch (err) {
@@ -73,21 +106,16 @@ async function initDatabase() {
 // ---------------------------------------------------------------------------
 // Nodemailer
 // ---------------------------------------------------------------------------
-let transporter = null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587', 10),
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-  console.log('[EMAIL] Transporteur configuré.');
+const FROM_EMAIL = process.env.FROM_EMAIL || 'contact@versi.fr';
+
+if (resend) {
+  console.log('[EMAIL] Resend configuré.');
 } else {
-  console.warn('[WARN] EMAIL_USER / EMAIL_PASS non configurés. Les emails de notification ne seront pas envoyés.');
+  console.warn('[WARN] RESEND_API_KEY non configurée. Les emails de notification ne seront pas envoyés.');
 }
 
 // ---------------------------------------------------------------------------
@@ -101,6 +129,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com https://fonts.googleapis.com; font-src 'self' https://fonts.cdnfonts.com https://fonts.gstatic.com; script-src 'self' https://cloud.umami.is; connect-src 'self' https://cloud.umami.is; frame-ancestors 'none';");
   next();
 });
 
@@ -222,11 +251,12 @@ app.post('/api/waitlist', async (req, res) => {
     );
 
     // Envoi email de notification
-    if (transporter) {
+    if (resend) {
       try {
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+        await resend.emails.send({
+          from: FROM_EMAIL,
           to: CONTACT_EMAIL,
+          replyTo: email.trim().toLowerCase(),
           subject: `[Versi Invest] Nouvelle inscription liste d'attente — ${name.trim()}`,
           html: `
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -269,9 +299,9 @@ app.post('/api/waitlist', async (req, res) => {
 app.get('/api/blog', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, title, slug, excerpt, author, image_url, published_at, created_at
+      `SELECT id, title, slug, excerpt, author, cover_image, tags, published_at, created_at
        FROM blog_articles
-       WHERE published = true
+       WHERE status = 'published'
        ORDER BY published_at DESC NULLS LAST, created_at DESC`
     );
     return res.json({ ok: true, articles: result.rows });
@@ -292,9 +322,9 @@ app.get('/api/blog/:slug', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, title, slug, excerpt, content, author, image_url, published_at, created_at
+      `SELECT id, title, slug, excerpt, content, author, cover_image, tags, published_at, created_at
        FROM blog_articles
-       WHERE slug = $1 AND published = true`,
+       WHERE slug = $1 AND status = 'published'`,
       [slug]
     );
 
@@ -327,7 +357,7 @@ app.get('/api/health', async (req, res) => {
 // ---------------------------------------------------------------------------
 // SPA fallback — toutes les routes non-API renvoient index.html
 // ---------------------------------------------------------------------------
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   const indexPath = join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
@@ -338,11 +368,75 @@ app.get('*', (req, res) => {
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Cron blog — node-cron (génération + renouvellement éditorial)
+// ---------------------------------------------------------------------------
+function scheduleBlogCron() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('[CRON] ANTHROPIC_API_KEY absent — crons blog désactivés.');
+    return;
+  }
+
+  // Lundi 9h — Génération d'article (rythme adaptatif)
+  cron.schedule('0 9 * * 1', async () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Vérification publication article...`);
+
+    try {
+      // Rythme adaptatif : <8 articles → bimensuel, ≥8 → hebdomadaire
+      const countResult = await pool.query(`SELECT COUNT(*) FROM blog_articles WHERE status = 'published'`);
+      const articleCount = parseInt(countResult.rows[0].count, 10);
+
+      if (articleCount < 8) {
+        const weekOfMonth = Math.ceil(new Date().getDate() / 7);
+        if (weekOfMonth !== 1 && weekOfMonth !== 3) {
+          console.log(`[CRON] Phase fondation (${articleCount} articles) — semaine skippée.`);
+          return;
+        }
+        console.log(`[CRON] Phase fondation (${articleCount} articles) — publication bimensuelle.`);
+      } else {
+        console.log(`[CRON] Phase accélération (${articleCount} articles) — publication hebdomadaire.`);
+      }
+
+      execSync('node scripts/generate-blog-article.js', {
+        cwd: __dirname,
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 300000,
+      });
+      console.log('[CRON] Article généré et publié.');
+    } catch (err) {
+      console.error('[CRON] Erreur génération article :', err.message);
+    }
+  });
+
+  // Dimanche 20h — Renouvellement calendrier éditorial
+  cron.schedule('0 20 * * 0', () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Renouvellement calendrier éditorial...`);
+    try {
+      execSync('node scripts/blog-orchestrator.js --site invest --plan', {
+        cwd: join(__dirname, '..'),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 60000,
+      });
+      console.log('[CRON] Calendrier éditorial renouvelé.');
+    } catch (err) {
+      console.error('[CRON] Erreur renouvellement éditorial :', err.message);
+    }
+  });
+
+  console.log('[CRON] Blog planifié : articles lundi 9h, calendrier dimanche 20h.');
+}
+
+// ---------------------------------------------------------------------------
+// Démarrage
+// ---------------------------------------------------------------------------
 async function start() {
   await initDatabase();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[VERSI INVEST] Serveur démarré sur le port ${PORT}`);
   });
+  scheduleBlogCron();
 }
 
 start();

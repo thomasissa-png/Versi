@@ -7,8 +7,8 @@
 
 Versi Invest est un site vitrine dédié à l'accompagnement en investissement immobilier locatif. Le business vient du réseau et du terrain. Le site crédibilise les démarches, il n'est pas un canal d'acquisition autonome — il convertit ce que le réseau apporte.
 
-Persona principal : Laurent, 48 ans, investisseur ou family office manager, élimine en 10 secondes les opérateurs non crédibles.
-KPI North Star : prises de contact qualifiées via le formulaire.
+Persona principal : Nicolas, 41 ans, directeur commercial ETI, apport 60-80k€. Veut scaler son patrimoine locatif sans y passer ses week-ends.
+KPI North Star : inscriptions qualifiées sur la liste d'attente (formulaire avec budget, zone, objectif).
 
 ---
 
@@ -16,7 +16,7 @@ KPI North Star : prises de contact qualifiées via le formulaire.
 
 ### 1. LinkedIn fondateurs (canal #1)
 
-Pourquoi : Laurent est sur LinkedIn. Il voit le contenu de ses pairs et des opérateurs qu'il suit. Un post par un fondateur Versi qui montre la maîtrise métier vaut plus qu'une pub.
+Pourquoi : Nicolas est sur LinkedIn. Il voit le contenu de ses pairs et des opérateurs qu'il suit. Un post par un fondateur Versi qui montre la maîtrise métier vaut plus qu'une pub.
 
 Actions :
 - Optimiser les 3 profils (headline, about, lien versi-invest.fr)
@@ -101,11 +101,11 @@ Mois 3 :
 ## Hypothèses à valider
 
 [HYPOTHESE : taux de conversion visiteur → formulaire estimé à 2-5% pour un site vitrine immobilier B2B — à confirmer après 30 jours de trafic réel]
-[HYPOTHESE : LinkedIn est le canal #1 pour Laurent — à confirmer en demandant la source lors du premier appel]
+[HYPOTHESE : LinkedIn est le canal #1 pour Nicolas — à confirmer en demandant la source lors du premier appel]
 
 ---
 
 **Handoff → fondateur**
 - Fichiers produits : docs/growth/vi2-growth-strategy.md, docs/social/vi2-social-strategy.md
 - Décisions prises : budget 0€ exclusivement organique, 3 canaux prioritaires (LinkedIn, SEO, prescripteurs), funnel en 4 étapes
-- Points d'attention : le canal prescripteur est activable immédiatement et probablement le plus rapide pour générer les premières prises de contact qualifiées. LinkedIn prend 4-6 semaines pour monter en régime. SEO est un investissement 3-6 mois.
+- Points d'attention : le canal prescripteur est activable immédiatement et probablement le plus rapide pour générer les premières inscriptions qualifiées. LinkedIn prend 4-6 semaines pour monter en régime. SEO est un investissement 3-6 mois.

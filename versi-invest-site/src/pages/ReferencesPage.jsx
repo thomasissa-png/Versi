@@ -7,7 +7,7 @@ import './ReferencesPage.css';
 
 function ReferenceCard({ ref: _ref, reference }) {
   return (
-    <article className="ref-card">
+    <Link to={`/references/${reference.slug}`} className="ref-card ref-card--link">
       <div className="ref-card__header">
         <span className="ref-card__badge">{reference.type}</span>
         <span className="ref-card__year">{reference.annee}</span>
@@ -25,12 +25,20 @@ function ReferenceCard({ ref: _ref, reference }) {
             {reference.rendementBrut.toFixed(1).replace('.', ',')} %
           </span>
         </div>
+        {reference.cashflowNet != null && (
         <div className="ref-card__metric">
           <span className="ref-card__metric-label">Cashflow net</span>
           <span className="ref-card__metric-value ref-card__metric-value--highlight">
             +{reference.cashflowNet} €/mois
           </span>
         </div>
+        )}
+        {reference.prix && (
+        <div className="ref-card__metric">
+          <span className="ref-card__metric-label">Prix</span>
+          <span className="ref-card__metric-value">{reference.prix}</span>
+        </div>
+        )}
         <div className="ref-card__metric">
           <span className="ref-card__metric-label">Lots</span>
           <span className="ref-card__metric-value">{reference.lots}</span>
@@ -42,7 +50,8 @@ function ReferenceCard({ ref: _ref, reference }) {
       </div>
 
       <p className="ref-card__desc">{reference.description}</p>
-    </article>
+      <span className="ref-card__more">Voir le détail →</span>
+    </Link>
   );
 }
 
@@ -53,10 +62,11 @@ export default function ReferencesPage() {
     <>
       <PageHead
         title="Références investissement — Versi Invest"
-        description="Des opérations réelles, des chiffres vérifiables. Rendement, cashflow et structure de financement de nos références investisseurs."
+        description="Immeubles de rapport, maisons divisées : rendement, cashflow, montage. Cas réels anonymisés."
       />
+      <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
       <Nav />
-      <main>
+      <main id="main-content">
         {/* --- Header --- */}
         <header className="page-header">
           <div className="container">
@@ -98,11 +108,11 @@ export default function ReferencesPage() {
               <div className="references__empty">
                 <p className="references__empty-text">
                   Nos premières références investisseurs arrivent bientôt. En attendant, le track
-                  record du Groupe Versi — 21 appartements rénovés, 3,2M€ de volume opéré via
+                  record du Groupe Versi — 7 immeubles, 3,2M€ de volume opéré via
                   Versi Immobilier — est disponible sur demande. Inscrivez-vous sur la liste
                   d'attente pour y accéder lors de notre premier appel.
                 </p>
-                <Link to="/contact" className="page-cta__btn" style={{ background: 'var(--color-accent-blue)', color: 'var(--color-text-inverse)' }}>
+                <Link to="/contact" className="page-cta__btn page-cta__btn--blue">
                   S'inscrire sur la liste d'attente
                 </Link>
               </div>
@@ -113,14 +123,18 @@ export default function ReferencesPage() {
         {/* --- CTA --- */}
         {hasReferences && (
           <section className="page-cta section-padding" aria-label="Inscription">
-            <div className="container" style={{ textAlign: 'center' }}>
+            <div className="container page-cta__inner">
               <p className="page-cta__text">
                 Vous voulez accéder au détail de ces opérations et aux prochaines opportunités ?
-                Inscrivez-vous sur la liste d'attente.
               </p>
-              <Link to="/contact" className="page-cta__btn">
-                S'inscrire sur la liste d'attente
-              </Link>
+              <div className="page-cta__actions">
+                <Link to="/comment-ca-marche" className="page-cta__btn page-cta__btn--secondary">
+                  Voir les 8 étapes
+                </Link>
+                <Link to="/contact" className="page-cta__btn">
+                  S'inscrire — réponse sous 48h
+                </Link>
+              </div>
             </div>
           </section>
         )}

@@ -1,10 +1,15 @@
 /**
- * Seed : insère 3 articles de blog dans la table blog_articles.
- * Usage : node scripts/seed-blog.js
- * Requiert DATABASE_URL dans l'environnement.
+ * Seed : insère les 4 articles du blog Versi Invest.
+ * Usage : DATABASE_URL=... node scripts/seed-blog.js
  */
 
 import pg from 'pg';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const { Pool } = pg;
 
@@ -14,110 +19,41 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
-const ARTICLES = [
-  {
-    title: 'Rendement locatif : brut, net, net-net — comment s\'y retrouver ?',
-    slug: 'rendement-locatif-brut-net-net-net',
-    excerpt:
-      'Les trois niveaux de rendement locatif décortiqués avec des exemples chiffrés. La différence entre brut et net peut changer la décision d\'investissement.',
-    content: `## Rendement brut : le point de départ
+/**
+ * Parse le fichier vi2-blog-strategy.md pour extraire les articles.
+ * Chaque article commence par "### Article N" et se termine avant le suivant.
+ */
+function parseArticles(mdContent) {
+  const articles = [];
+  const articleRegex = /### Article \d+\n\n\*\*Slug\*\* : `\/blog\/([^`]+)`\n\*\*Méta-titre\*\* : ([^\n]+)\n\*\*Méta-description\*\* : ([^\n]+)\n\*\*Auteur\*\* : ([^\n]+)\n\*\*Date\*\* : ([^\n]+)\n\n---\n\n# ([^\n]+)\n\n([\s\S]*?)(?=\n### Article |\n## Hypothèses|$)/g;
 
-Le rendement brut est le ratio le plus simple : loyers annuels divisés par le prix d'acquisition. C'est le chiffre que vous verrez sur les annonces et les plateformes.
+  let match;
+  while ((match = articleRegex.exec(mdContent)) !== null) {
+    const slug = match[1];
+    const title = match[6];
+    const excerpt = match[3].slice(0, 200);
+    // Content = everything after the H1 title
+    const rawContent = match[7].trim();
+    // Remove trailing "---" and CTA section
+    const content = rawContent.replace(/\n---\s*$/, '').trim();
 
-Formule : (loyer mensuel x 12) / prix d'acquisition x 100
+    articles.push({
+      title,
+      slug,
+      excerpt,
+      content,
+      author: match[4],
+    });
+  }
 
-Exemple : un bien à 150 000 € avec un loyer de 800 €/mois affiche un rendement brut de 6,4 %. Ce chiffre ne dit rien sur ce que vous mettrez réellement en poche.
-
-## Rendement net : la réalité des charges
-
-Le rendement net déduit les charges réelles : taxe foncière, charges de copropriété, assurance propriétaire non occupant, vacance locative provisionnée, frais de gestion si applicable.
-
-Formule : (loyer mensuel net de charges x 12) / prix d'acquisition x 100
-
-Sur le même bien, avec 1 200 € de taxe foncière, 80 €/mois de charges copro et 1 mois de vacance provisionné, le rendement net tombe à 4,8 %. La différence avec le brut (1,6 point) est significative.
-
-## Rendement net-net : après fiscalité
-
-Le rendement net-net intègre la fiscalité applicable selon votre régime : micro-foncier, réel, LMNP au réel, SCI à l'IS. C'est le rendement final — ce qui reste après que l'État a pris sa part.
-
-Ce chiffre dépend de votre situation personnelle. C'est pourquoi Versi Invest recommande systématiquement de consulter un expert-comptable pour le calcul exact.
-
-## Ce que Versi Invest utilise en interne
-
-Chez Versi Invest, chaque dossier est évalué sur le rendement net, pas le brut. Si le rendement net ne tient pas en scénario prudent (+15 % de charges, 1 mois de vacance supplémentaire), le bien n'est pas présenté à nos investisseurs. C'est la base de notre sélection.`,
-    author: 'Versi Invest',
-  },
-  {
-    title: 'Cashflow positif : mythe ou réalité en 2026 ?',
-    slug: 'cashflow-positif-mythe-realite-2026',
-    excerpt:
-      'Le cashflow positif dès le premier mois est-il encore possible avec les taux actuels ? Analyse concrète avec les chiffres du marché Hauts-de-France.',
-    content: `## Le cashflow positif, c'est quoi exactement ?
-
-Le cashflow positif signifie que les loyers perçus couvrent l'intégralité des charges : mensualité de crédit, taxe foncière, charges de copropriété, assurance, vacance locative et frais de gestion. Après avoir tout payé, il reste de l'argent.
-
-C'est l'opposé de l'effort d'épargne — cette somme que vous devez sortir de votre poche chaque mois pour compléter le loyer.
-
-## Pourquoi c'est plus difficile en 2026
-
-Les taux d'emprunt se sont stabilisés autour de 3,2 % à 3,8 % pour un investissement locatif sur 20 ans. C'est significativement plus haut que les 1,2 % de 2021. Sur un emprunt de 150 000 €, la différence de mensualité est d'environ 180 €/mois.
-
-Conséquence directe : le rendement brut nécessaire pour atteindre le cashflow positif est plus élevé. En 2021, un bien à 6 % brut pouvait être autofinancé. En 2026, il faut viser 8 % à 9 % brut minimum.
-
-## Où trouver du cashflow positif en 2026
-
-Les marchés où le cashflow positif reste accessible ont deux caractéristiques : des prix au m² modérés et des loyers relativement élevés par rapport au prix d'achat.
-
-Les Hauts-de-France cochent ces deux cases. Lille métropole, Lens, Valenciennes, Douai — ces zones affichent des rendements bruts entre 7 % et 11 % sur les immeubles de rapport. Le marché locatif y est tendu (demande forte, offre limitée en bon état), ce qui limite la vacance.
-
-## La méthode Versi Invest
-
-Chaque bien que nous présentons est simulé avec un scénario prudent : charges majorées de 15 %, vacance locative d'un mois par an. Si le cashflow ne tient pas dans ce scénario pessimiste, le bien n'est pas présenté. C'est notre filtre principal.
-
-Résultat : nos investisseurs obtiennent un cashflow positif dès le premier mois sur la grande majorité des opérations. Pas parce que les chiffres sont optimistes — parce que les biens sont sélectionnés pour ça.`,
-    author: 'Versi Invest',
-  },
-  {
-    title: 'Investir dans les Hauts-de-France : les zones à surveiller',
-    slug: 'investir-hauts-de-france-zones-a-surveiller',
-    excerpt:
-      'Pourquoi les Hauts-de-France attirent les investisseurs locatifs en 2026. Analyse des zones les plus intéressantes par le réseau terrain Versi.',
-    content: `## Pourquoi les Hauts-de-France
-
-La région combine trois facteurs favorables à l'investissement locatif : des prix d'acquisition parmi les plus bas de France métropolitaine, une demande locative soutenue (bassin d'emploi, universités, mobilité Paris-Lille en 1h) et un réseau d'artisans compétitif qui permet des rénovations à coût maîtrisé.
-
-Le rendement brut moyen sur un immeuble de rapport en métropole lilloise oscille entre 7 % et 10 %. Sur des villes secondaires comme Lens, Douai ou Valenciennes, il peut dépasser 10 %.
-
-## Lille métropole : la valeur sûre
-
-Lille reste le marché le plus liquide de la région. Les biens se louent vite, la vacance est faible, et la plus-value à moyen terme est probable (dynamique de prix positive depuis 10 ans). Le rendement brut est plus modéré (6 % à 8 %) mais la sécurité du placement compense.
-
-Les quartiers à surveiller : Fives (en pleine transformation urbaine), Hellemmes (encore accessible), Lomme et Lambersart (demande familiale forte).
-
-## Roubaix et Tourcoing : le rapport qualité-prix
-
-Ces deux villes de la métropole lilloise offrent des prix au m² 40 % à 50 % inférieurs à Lille centre. Le rendement brut peut atteindre 9 % à 12 % sur des immeubles bien rénovés. La contrepartie : un travail de sélection plus fin pour éviter les zones à risque (vacance, impayés).
-
-C'est exactement le type de sourcing où le réseau terrain fait la différence. Un immeuble à Roubaix, selon la rue, peut être un excellent investissement ou un piège. La connaissance locale est non négociable.
-
-## Le bassin minier : Lens, Douai, Valenciennes
-
-Le bassin minier offre les rendements les plus élevés de la région. Des immeubles de rapport à 6 lots s'y trouvent sous les 200 000 €, avec des rendements bruts dépassant 10 %. La demande locative existe (emplois tertiaires, hôpital, université d'Artois) mais le marché est moins tendu qu'à Lille.
-
-Le risque principal : la qualité du bâti. Beaucoup de biens nécessitent des rénovations lourdes. Le chiffrage précis des travaux avant acquisition est indispensable — c'est une des étapes clés de notre accompagnement.
-
-## Ce que fait Versi Invest dans la région
-
-Le réseau Versi Invest est ancré dans les Hauts-de-France. Nos fondateurs y investissent personnellement depuis plusieurs années. Notre branche marchand de biens (Versi Immobilier) opère principalement dans ce territoire — ce qui nous donne un accès direct aux opportunités avant qu'elles n'arrivent sur le marché.`,
-    author: 'Versi Invest',
-  },
-];
+  return articles;
+}
 
 async function seed() {
   console.log('[SEED] Connexion à la base de données...');
 
   try {
-    // Vérification que la table existe
+    // Créer la table si elle n'existe pas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS blog_articles (
         id SERIAL PRIMARY KEY,
@@ -126,39 +62,110 @@ async function seed() {
         excerpt TEXT,
         content TEXT NOT NULL,
         author VARCHAR(100) DEFAULT 'Versi Invest',
-        image_url VARCHAR(500),
-        published BOOLEAN DEFAULT false,
+        cover_image VARCHAR(500),
+        tags TEXT DEFAULT '[]',
+        status VARCHAR(20) DEFAULT 'draft',
         published_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    for (const article of ARTICLES) {
-      // Upsert : insérer si le slug n'existe pas, sinon ignorer
-      const existing = await pool.query(
-        'SELECT id FROM blog_articles WHERE slug = $1',
-        [article.slug],
-      );
+    // Lire le fichier blog strategy
+    const mdPath = join(__dirname, '..', '..', 'docs', 'seo', 'vi2-blog-strategy.md');
+    if (!fs.existsSync(mdPath)) {
+      console.warn(`[SEED] Fichier introuvable : ${mdPath} — skip seed.`);
+      await pool.end();
+      return;
+    }
 
-      if (existing.rows.length > 0) {
-        console.log(`[SEED] Article déjà existant, ignoré : "${article.title}"`);
-        continue;
+    const mdContent = fs.readFileSync(mdPath, 'utf-8');
+    const articles = parseArticles(mdContent);
+
+    if (articles.length === 0) {
+      console.warn('[SEED] Aucun article trouvé dans le fichier markdown.');
+      console.log('[SEED] Insertion des articles en fallback...');
+      // Fallback : articles minimaux
+      const fallbackArticles = [
+        {
+          title: 'Investir dans l\'immobilier locatif à Lille en 2026 : les chiffres qu\'on ne vous montre pas',
+          slug: 'investissement-locatif-lille-2026',
+          excerpt: 'Rendement brut, net, cashflow : voici ce que rapporte vraiment un bien locatif à Lille en 2026.',
+          content: 'Article complet disponible prochainement.',
+          author: 'Versi Invest',
+        },
+        {
+          title: 'Comment calculer le cashflow réel d\'un investissement locatif',
+          slug: 'calculer-cashflow-investissement-locatif',
+          excerpt: 'La formule complète pour calculer le cashflow d\'un bien locatif sans les hypothèses optimistes.',
+          content: 'Article complet disponible prochainement.',
+          author: 'Versi Invest',
+        },
+        {
+          title: 'Immeubles de rapport en Hauts-de-France : rendement réel et méthode',
+          slug: 'immeubles-rapport-hauts-de-france-rendement',
+          excerpt: 'Roubaix, Tourcoing, Valenciennes, Douai : où les immeubles de rapport dépassent 8% brut.',
+          content: 'Article complet disponible prochainement.',
+          author: 'Versi Invest',
+        },
+        {
+          title: 'LMNP ancien en 2026 : ce qui a vraiment changé',
+          slug: 'lmnp-ancien-2026-ce-qui-a-change',
+          excerpt: 'La réforme 2025, ses conséquences concrètes, et dans quels cas le LMNP reste avantageux.',
+          content: 'Article complet disponible prochainement.',
+          author: 'Versi Invest',
+        },
+      ];
+
+      for (const article of fallbackArticles) {
+        await upsertArticle(article);
       }
-
-      await pool.query(
-        `INSERT INTO blog_articles (title, slug, excerpt, content, author, published, published_at)
-         VALUES ($1, $2, $3, $4, $5, true, NOW())`,
-        [article.title, article.slug, article.excerpt, article.content, article.author],
-      );
-      console.log(`[SEED] Article inséré : "${article.title}"`);
+    } else {
+      console.log(`[SEED] ${articles.length} articles trouvés dans le markdown.`);
+      for (const article of articles) {
+        await upsertArticle(article);
+      }
     }
 
     console.log('[SEED] Seed terminé avec succès.');
   } catch (err) {
-    console.error('[SEED] Erreur :', err.message);
-    process.exit(1);
+    console.error('[SEED] Erreur (non-bloquant) :', err.message);
+    console.log('[SEED] Le seed sera réessayé au prochain démarrage.');
   } finally {
     await pool.end();
+  }
+}
+
+// Map slug → tags
+const TAGS_MAP = {
+  'investissement-locatif-lille-2026': ['investissement', 'Lille', 'Hauts-de-France', 'rendement'],
+  'calculer-cashflow-investissement-locatif': ['cashflow', 'rendement', 'charges', 'méthode'],
+  'immeubles-rapport-hauts-de-france-rendement': ['immeubles', 'Hauts-de-France', 'Roubaix', 'Tourcoing', 'rendement'],
+  'lmnp-ancien-2026-ce-qui-a-change': ['LMNP', 'fiscalité', 'amortissement', 'investissement'],
+};
+
+async function upsertArticle(article) {
+  const tags = JSON.stringify(TAGS_MAP[article.slug] || []);
+
+  const existing = await pool.query(
+    'SELECT id FROM blog_articles WHERE slug = $1',
+    [article.slug],
+  );
+
+  if (existing.rows.length > 0) {
+    await pool.query(
+      `UPDATE blog_articles SET title = $1, excerpt = $2, content = $3, author = $4, tags = $5, status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW()
+       WHERE slug = $6`,
+      [article.title, article.excerpt, article.content, article.author, tags, article.slug],
+    );
+    console.log(`[SEED] Article mis à jour : "${article.title}"`);
+  } else {
+    await pool.query(
+      `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())`,
+      [article.title, article.slug, article.excerpt, article.content, article.author, tags],
+    );
+    console.log(`[SEED] Article inséré : "${article.title}"`);
   }
 }
 

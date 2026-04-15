@@ -9,7 +9,7 @@
 }
 
 .legal__content h2 {
-  font-size: 1.25rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   text-transform: uppercase;
@@ -34,7 +34,7 @@
 }
 
 .legal__content a {
-  color: var(--color-accent-blue);
+  color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: opacity var(--duration-normal) ease;
@@ -113,7 +113,7 @@
 
 @media (max-width: 767px) {
   .legal__content h2 {
-    font-size: 1.125rem;
+    font-size: var(--font-size-body-md);
   }
 
   .legal__table th,

@@ -14,7 +14,6 @@
   --color-stone-600: #6B6560;
   --color-charcoal-800: #1A1A1A;
   --color-charcoal-950: #0B0B0B;
-  --color-bleu-invest: #1B3A5C;
 
   /* --- Couleurs semantiques — fonds --- */
   --color-bg-primary: #F7F5F2;
@@ -22,7 +21,6 @@
   --color-bg-subtle: #EFECE7;
   --color-bg-dark: #0B0B0B;
   --color-bg-dark-alt: #1A1A1A;
-  --color-bg-accent: #1B3A5C;
 
   /* --- Couleurs semantiques — textes --- */
   --color-text-primary: #0B0B0B;
@@ -31,7 +29,7 @@
 
   /* --- Couleurs semantiques — accents & bordures --- */
   --color-accent: #C8B9A6;
-  --color-accent-blue: #1B3A5C;
+  --color-accent-blue: var(--color-accent); /* alias — bleu supprimé, unifié sur la palette Versi */
   --color-border: #D9D4CE;
   --color-border-input: rgba(255, 255, 255, 0.2);
   --color-border-dark: rgba(255, 255, 255, 0.12);
@@ -86,6 +84,8 @@
   --font-size-body-sm: 0.875rem;
   --font-size-body-md: 1rem;
   --font-size-body-lg: 1.125rem;
+  --font-size-heading-sm: 1.25rem;
+  --font-size-heading-md: 1.5rem;
   --font-size-display-num: 4rem;
   --font-size-display-num-mobile: 3rem;
   --font-size-caption: 0.75rem;
@@ -295,8 +295,8 @@ ul, ol {
 
 .page-header {
   background: var(--color-bg-dark);
-  padding: var(--spacing-5xl) var(--spacing-2xl) var(--spacing-3xl);
-  padding-top: calc(var(--nav-height) + var(--spacing-4xl));
+  padding: var(--spacing-3xl) var(--spacing-2xl);
+  padding-top: calc(var(--nav-height) + var(--spacing-3xl));
 }
 
 .page-header__title {
@@ -333,11 +333,22 @@ ul, ol {
   margin-right: auto;
 }
 
+.page-cta__inner {
+  text-align: center;
+}
+
+.page-cta__actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
 .page-cta__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 32px;
+  padding: var(--spacing-md) var(--spacing-xl);
   background: var(--color-accent);
   color: var(--color-bg-dark);
   font-size: var(--font-size-label);
@@ -352,6 +363,22 @@ ul, ol {
 
 .page-cta__btn:hover {
   opacity: 0.88;
+}
+
+.page-cta__btn--secondary {
+  background: transparent;
+  border: 1px solid var(--color-text-inverse);
+  color: var(--color-text-inverse);
+}
+
+.page-cta__btn--blue {
+  background: var(--color-accent);
+  color: var(--color-bg-dark);
+}
+
+.page-cta__btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
 }
 
 /* === Responsive section padding === */

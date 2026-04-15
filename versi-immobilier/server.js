@@ -1,8 +1,10 @@
 import express from 'express';
 import { Resend } from 'resend';
 import crypto from 'crypto';
+import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import pool from './db.js';
 import { runGates } from './gate-runner.js';
@@ -1926,12 +1928,71 @@ async function upsertBlogArticle(client, article) {
 }
 
 // ---------------------------------------------------------------------------
+// Cron blog — génération automatique d'articles (jeudi 9h)
+// ---------------------------------------------------------------------------
+function scheduleBlogCron() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('[CRON] ANTHROPIC_API_KEY absent — crons blog désactivés.');
+    return;
+  }
+
+  // Jeudi 9h — Génération d'article (rythme adaptatif)
+  cron.schedule('0 9 * * 4', async () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Vérification publication article VI...`);
+
+    try {
+      const countResult = await pool.query(`SELECT COUNT(*) FROM blog_articles WHERE status = 'published'`);
+      const articleCount = parseInt(countResult.rows[0].count, 10);
+
+      if (articleCount < 8) {
+        const weekOfMonth = Math.ceil(new Date().getDate() / 7);
+        if (weekOfMonth !== 1 && weekOfMonth !== 3) {
+          console.log(`[CRON] Phase fondation (${articleCount} articles) — semaine skippée.`);
+          return;
+        }
+        console.log(`[CRON] Phase fondation (${articleCount} articles) — bimensuel.`);
+      } else {
+        console.log(`[CRON] Phase accélération (${articleCount} articles) — hebdomadaire.`);
+      }
+
+      execSync('node scripts/generate-blog-article.js', {
+        cwd: __dirname,
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 300000,
+      });
+      console.log('[CRON] Article VI généré et publié.');
+    } catch (err) {
+      console.error('[CRON] Erreur génération article VI :', err.message);
+    }
+  });
+
+  // Dimanche 20h05 — Renouvellement calendrier éditorial
+  cron.schedule('5 20 * * 0', () => {
+    console.log(`[CRON] ${new Date().toISOString()} — Renouvellement calendrier éditorial VI...`);
+    try {
+      execSync('node scripts/blog-orchestrator.js --site immobilier --plan', {
+        cwd: join(__dirname, '..'),
+        env: process.env,
+        stdio: 'inherit',
+        timeout: 60000,
+      });
+      console.log('[CRON] Calendrier VI renouvelé.');
+    } catch (err) {
+      console.error('[CRON] Erreur renouvellement éditorial VI :', err.message);
+    }
+  });
+
+  console.log('[CRON] Blog VI planifié : articles jeudi 9h, calendrier dimanche 20h05.');
+}
+
+// ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
 app.listen(PORT, async () => {
   console.log(`[versi] Serveur multi-site démarré sur le port ${PORT}`);
   console.log(`  - versi-immobilier : ${VERSI_IMMO_DIST}`);
   console.log(`  - versi.fr         : ${VERSI_FR_DIST}`);
-  // AutoSeed au démarrage
   await autoSeed();
+  scheduleBlogCron();
 });

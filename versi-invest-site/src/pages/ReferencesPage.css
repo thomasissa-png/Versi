@@ -15,16 +15,32 @@
 .ref-card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--card-radius);
+  border-radius: var(--radius-sm);
   padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  transition: box-shadow var(--duration-normal) ease;
+  transition: box-shadow var(--duration-normal) ease, transform var(--duration-normal) ease;
+}
+
+.ref-card--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .ref-card:hover {
   box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.ref-card__more {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  margin-top: auto;
 }
 
 .ref-card__header {
@@ -43,8 +59,8 @@
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(27, 58, 92, 0.1);
-  color: var(--color-accent-blue);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
 }
 
 .ref-card__year {
@@ -53,7 +69,7 @@
 }
 
 .ref-card__ville {
-  font-size: 1.25rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   text-transform: uppercase;
@@ -88,13 +104,13 @@
 }
 
 .ref-card__metric-value {
-  font-size: 1.125rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
 }
 
 .ref-card__metric-value--highlight {
-  color: var(--color-success);
+  color: #1e7e34;
 }
 
 /* --- Description --- */

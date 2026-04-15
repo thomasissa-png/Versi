@@ -7,14 +7,14 @@ import './ServicesPage.css';
 const VOLETS = [
   {
     num: '01',
-    title: 'Sourcing off-market',
+    title: 'Détection d\'opportunités',
     description: 'Les biens présentés par Versi Invest ne transitent pas par les portails publics. Ils arrivent de notre réseau — alimenté par l\'activité quotidienne de Versi Immobilier, notre branche marchand de biens. Des propriétaires qui cèdent hors publicité. Des immeubles identifiés avant la mise en vente. Un flux que les outils de filtrage ne captent pas.\n\nChaque bien passe une analyse préliminaire sur 15+ critères avant d\'être présenté. Si le rendement brut est inférieur à 8%, le dossier est écarté.',
     included: 'Recherche active sur réseau Versi Immobilier. Analyse préliminaire multi-critères. Dossier de présélection chiffré.',
     notIncluded: 'Sourcing sur portails publics. Prospection hors réseau Versi sur demande spécifique d\'un investisseur.',
   },
   {
     num: '02',
-    title: 'Visite accompagnée par un fondateur',
+    title: 'Visite sur site avec un fondateur',
     description: 'Quand vous visitez un bien avec Versi Invest, c\'est un fondateur qui est là — Maxime, Thomas ou Carl. Pas un assistant. L\'objectif de la visite : valider l\'état réel du bien, confronter les hypothèses de la présélection à la réalité terrain, identifier les travaux nécessaires et estimer leur coût. Vous posez toutes vos questions en direct.',
     included: 'Déplacement d\'un fondateur (périmètre Hauts-de-France et Île-de-France). Analyse technique et locative sur site. Rapport de visite écrit sous 48h.',
     notIncluded: 'Expertise technique formelle (Versi Invest n\'est pas bureau d\'études). Pour les biens avec pathologies complexes, nous recommandons un expert indépendant.',
@@ -54,7 +54,7 @@ export default function ServicesPage() {
     <>
       <PageHead
         title="Nos services — Versi Invest"
-        description="Six volets, un seul interlocuteur. Sourcing off-market, simulation financière, pilotage travaux, mise en location. 5% du prix d'acquisition."
+        description="Sourcing, visite, simulation, financement, travaux, location. 5% d'honoraires côté investisseur. Zéro côté vendeur."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -91,40 +91,54 @@ export default function ServicesPage() {
         <section className="volets section-padding" aria-label="Détail des services">
           <div className="container">
             {VOLETS.map((volet) => (
-              <article key={volet.num} className="volet">
-                <div className="volet__header">
-                  <span className="volet__num">{volet.num}</span>
-                  <h2 className="volet__title">{volet.title}</h2>
-                </div>
-                <div className="volet__body">
-                  {volet.description.split('\n\n').map((paragraph, i) => (
-                    <p key={i} className="volet__desc">{paragraph}</p>
-                  ))}
-                  <div className="volet__details">
-                    <div className="volet__detail volet__detail--included">
-                      <span className="volet__detail-label">Inclus</span>
-                      <p className="volet__detail-text">{volet.included}</p>
-                    </div>
-                    <div className="volet__detail volet__detail--excluded">
-                      <span className="volet__detail-label">Non inclus</span>
-                      <p className="volet__detail-text">{volet.notIncluded}</p>
+              <div key={volet.num}>
+                <article className="volet">
+                  <div className="volet__header">
+                    <span className="volet__num">{volet.num}</span>
+                    <h2 className="volet__title">{volet.title}</h2>
+                  </div>
+                  <div className="volet__body">
+                    {volet.description.split('\n\n').map((paragraph, i) => (
+                      <p key={i} className="volet__desc">{paragraph}</p>
+                    ))}
+                    <div className="volet__details">
+                      <div className="volet__detail volet__detail--included">
+                        <span className="volet__detail-label">Inclus</span>
+                        <p className="volet__detail-text">{volet.included}</p>
+                      </div>
+                      <div className="volet__detail volet__detail--excluded">
+                        <span className="volet__detail-label">Non inclus</span>
+                        <p className="volet__detail-text">{volet.notIncluded}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
+                </article>
+                {volet.num === '03' && (
+                  <div className="volets__mid-cta">
+                    <Link to="/contact" className="volets__mid-cta-link">
+                      Accéder aux prochaines opportunités →
+                    </Link>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </section>
 
         {/* CTA */}
         <section className="page-cta section-padding" aria-label="Inscription">
-          <div className="container" style={{ textAlign: 'center' }}>
+          <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Vous souhaitez accéder aux prochains biens disponibles.
+              Les prochains biens passent ce filtre avant d'arriver chez vous.
             </p>
-            <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
-            </Link>
+            <div className="page-cta__actions">
+              <Link to="/comment-ca-marche" className="page-cta__btn page-cta__btn--secondary">
+                Voir les 8 étapes
+              </Link>
+              <Link to="/contact" className="page-cta__btn">
+                S'inscrire — réponse sous 48h
+              </Link>
+            </div>
           </div>
         </section>
       </main>

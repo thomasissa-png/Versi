@@ -62,7 +62,7 @@
 - **Pays de commercialisation** : France
 - **Données sensibles collectées** : [x] Non — nom, email, téléphone, budget estimé, zone géographique souhaitée via formulaire de qualification
 - **Statut juridique** : SAS en cours de création, entité du Groupe Versi
-- **Réglementation** : Carte T (transaction immobilière) en cours d'obtention. Versi Invest n'est PAS un agent immobilier — la carte T est détenue pour conformité réglementaire.
+- **Réglementation** : Carte T (transaction immobilière) obtenue. Versi Invest n'est PAS un agent immobilier — la carte T est détenue pour conformité réglementaire.
 - **Disclaimer rendement** : Aucun disclaimer "performances passées" nécessaire — Versi Invest ne propose pas d'investir chez/avec Versi, mais accompagne l'investisseur sur des biens vendus par des tiers.
 
 ---
@@ -143,6 +143,13 @@
 | @growth | 2026-04-14 | docs/growth/vi2-growth-strategy.md | Canal prescripteurs = meilleur ROI 30j, LinkedIn 3-5 posts/semaine, blog 2 articles/mois | Budget acquisition = 0€, tout organique. |
 | @social | 2026-04-14 | docs/social/vi2-social-strategy.md | Calendrier éditorial 3j/semaine, pipeline IA, format texte+image | Vidéo écartée en V1 (ROI insuffisant). |
 | orchestrator | 2026-04-14 | orchestration-plan.md, tous les livrables ci-dessus | Session s9 : Phases 0-4 complètes. Phase 5 (audit) en attente session suivante. | Timeouts récurrents agents → orchestrateur a écrit directement specs, design, SEO, GEO. |
+| orchestrator + agents | 2026-04-15 | SEO/GEO technique, audits multi-agents, blog complet, pipeline autonome | Session s10 : SEO/GEO implémenté, 5 rounds audit HomePage, refonte process 8 étapes, fusion Services+Process, blog "Le regard Versi" avec 4 articles + pipeline IA autonome, comparaison VI/VI2, référence réelle Nanterre | Bleu #1B3A5C supprimé (fondateur), off-market retiré comme promesse (pas systématique), simulateur supprimé, stats corrigées 7 immeubles/3,2M€, carte T obtenue (pas "en cours") |
+| @reviewer | 2026-04-15 | docs/reviews/vi2-cross-review-report.md | 17/17 livrables audités, GO CONDITIONNEL, G5/G6 corrigés | Persona Laurent→Nicolas corrigé, KPI aligné |
+| @creative-strategy | 2026-04-15 | Hero itéré 5 versions, FAQ réécrite, blog strategy | H1 "Biens rares. En direct.", subtitle raccourci, FAQ orientée Nicolas, blog "Le regard Versi" | "Off-market" retiré du H1 (pas systématique), LMNP article remplacé par "60k€ d'apport" (trop concurrentiel) |
+| @copywriter | 2026-04-15 | docs/seo/vi2-blog-strategy.md (4 articles complets) | 4 articles itérés 7→9/10, off-market corrigé dans A1/A3, [HYPOTHÈSE] supprimés | A4 LMNP remplacé (trop généraliste vs portails) par article apport 60k€ (spécifique Nicolas) |
+| @seo | 2026-04-15 | Audit SEO/GEO 6→9/10, mots-clés blog 5→9/10 | Schema.org corrigé, llms.txt mis à jour, sitemap+robots, FAQ synchronisée JSX/Schema.org | Rythme blog évolutif recommandé (2/mois puis 1/semaine) |
+| @design | 2026-04-15 | Audit design 6.5→8/10, menu mobile corrigé | Bleu supprimé, section-padding aligné VI, fondateurs pattern TeamTeaser, menu mobile responsive | Photos cercle→carte rectangulaire (alignement versi-immobilier) |
+| @ia | 2026-04-15 | Pipeline blog generate-blog-article.js (2 sites) | 9 gates, audit 4 dimensions, prompt caching, lock file, backup local | Score pipeline 5.75→9.5/10 après 2 rounds d'audit |
 
 ---
 
@@ -156,54 +163,44 @@
 
 ### Mémo de reprise
 
-**Branche** : `claude/extract-project-context-osLWB`
-**Date de clôture** : 2026-04-14
-**Dernier commit** : voir `git log --oneline -1`
+**Branche** : `claude/seo-geo-deployment-ycerL`
+**Date de clôture** : 2026-04-15
+**Dernier commit** : `eb9ae98` (cashflow Nanterre)
 
-**Résumé session (versi-s9)** : Session complète Phases 0→4 Versi Invest en autopilot. (1) Phase 0 : @creative-strategy (brand-platform, personas Nicolas, benchmark 5 concurrents), @legal (audit juridique carte T, mentions légales, RGPD), @product-manager (specs 9 pages, simulateur formules, user stories). Checkpoint fondateur validé. (2) Phase 1 : @design (design system accent bleu #1B3A5C, compositions 9 pages), @copywriter (brand voice + copy 9 pages 760 lignes). (3) Phase 2 : @fullstack en 2 agents parallèles — site complet 40+ fichiers (React 19, Express, PostgreSQL, simulateur côté client, formulaire qualification, blog). Build OK 331 KB. (4) Phase 3 : SEO (15 mots-clés, meta tags, Schema.org) + GEO (llms.txt, FAQPage, E-E-A-T). (5) Phase 4 : growth (organique, prescripteurs, LinkedIn) + social (calendrier éditorial 3j/semaine).
+**Résumé session (versi-s10)** : Session massive de finition Versi Invest. (1) SEO/GEO technique complet (robots.txt, sitemap, llms.txt, Schema.org, OG tags, FAQPage). (2) Audit reviewer 32 gates → GO CONDITIONNEL, corrections G5/G6 appliquées. (3) 5 rounds d'itération HomePage avec @creative-strategy, @ux, @design (6/10 → 9+/10). (4) Refonte processus : 8 vraies étapes, fusion Services+Process, simulateur supprimé. (5) Blog "Le regard Versi" complet : 25 mots-clés, 4 articles audités 9/10, pipeline IA autonome (9 gates, audit 4-dim, crons node-cron). (6) Alignement versi-immobilier : tokens, favicons, FAQ, Resend, section-padding. (7) Référence réelle Nanterre 8 studios avec photos et chiffres vrais.
 
 **Décisions fondateur cette session** :
-- Nicolas validé comme persona investisseur
-- Investisseurs peuvent résider PARTOUT EN FRANCE (sourcing HdF+IDF)
-- Blog séparé de versi-immobilier confirmé (cible ≠ : investisseurs vs acquéreurs)
-- Pas de back office V1 (références en config/seed)
+- H1 "Biens rares. En direct." (pas off-market — pas systématique)
+- Subtitle "Des biens qui s'autofinancent. Cashflow positif. Une seule commission : 5%."
+- Carte T OBTENUE (pas "en cours")
+- Stats : 7 immeubles, 3,2M€ de volume opéré
+- Bleu #1B3A5C supprimé → palette stone/charcoal alignée Versi
+- Simulateur supprimé du site
+- Blog renommé "Le regard Versi"
+- Services et Process fusionnés en une page unique
+- Description versi.fr remise à l'originale
+- Référence : une seule vraie (Nanterre 8 studios, 590k€, 11,9% brut, +1 750 €/mois cashflow)
 
 **Travail restant — PROCHAINE SESSION** :
 
-1. **Phase 5 — Audit & Validation** :
-   - @reviewer : revue croisée GO/NO-GO (32 gates) sur tous les livrables
-   - @agent-factory : créer testeur-persona investisseur Versi Invest (si distinct de Laurent)
-   - testeur-persona : audit GP1-GP10 sur le site
-   - Revue finale page par page : audit chirurgical 21 dimensions
+1. **Blog en production** :
+   - Exécuter `npm run seed:invest` sur Replit (insère les 4 articles)
+   - Ajouter `ANTHROPIC_API_KEY` dans les secrets Replit (active les crons blog)
 
-2. **Implémentation SEO/GEO** :
-   - robots.txt + sitemap.xml + llms.txt dans public/
-   - PageHead avec meta tags exacts (cf. docs/seo/vi2-seo-strategy.md section 4)
-   - Schema.org Organization + FAQPage dans index.html
-   - Prerender Playwright des 10 routes
+2. **og:image** :
+   - Créer asset 1200×630 pour les partages sociaux (action fondateur)
+   - Ajouter dans PageHead.jsx
 
-3. **Déploiement** :
-   - npm install dans versi-invest-site/
-   - Configuration .replit pour le 3e site
-   - DNS versi-invest.fr
-   - Seed blog (scripts/seed-blog.js)
-   - Seed BDD (tables waitlist_entries + blog_articles)
+3. **Finitions design** :
+   - Vérifier rendu mobile complet (toutes pages)
+   - Tester formulaire contact en production
 
 4. **Actions fondateur (hors agents)** :
-   - Uploader les 5 vrais immeubles de référence
+   - Ajouter prochaines références réelles (photos + chiffres)
    - Créer page LinkedIn entreprise Versi Invest
    - Créer fiche Pappers.fr (dès immatriculation SAS)
-   - Obtenir carte T CCI
 
 **Commande de reprise suggérée** :
 ```
-@orchestrator mode reprise de session. Lis versi-invest/project-context.md et docs/orchestration-plan.md. Priorité : (1) implémentation SEO/GEO technique, (2) @reviewer audit 32 gates, (3) déploiement Replit.
-```
-2. @creative-strategy définit le persona, les frustrations, les verbatims, le benchmark concurrentiel
-3. Phase 0 complète (stratégie + legal + specs)
-4. Checkpoint fondateur avant Phase 1
-
-**Commande de reprise suggérée** :
-```
-@orchestrator Lance mon projet en mode autopilot (phases 0→5). [coller le prompt autopilot complet]
+@orchestrator mode reprise Versi Invest (s11). Lis versi-invest/project-context.md. Priorité : (1) vérifier blog en prod après seed, (2) audit mobile complet, (3) formulaire contact test en production.
 ```

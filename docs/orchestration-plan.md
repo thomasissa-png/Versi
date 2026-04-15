@@ -197,9 +197,19 @@ Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
 ### Phase VINV-5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE — session suivante |
-| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE — session suivante |
-| Revue finale page par page | Audit chirurgical 21 dimensions | Après corrections reviewer | EN ATTENTE — session suivante |
+| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | TERMINÉ — GO CONDITIONNEL (s10) |
+| Audit multi-agents pages | 5 agents × 9 pages, itéré 3 rounds | Site complet | TERMINÉ (s10) — HomePage 8.3→9+, toutes pages 8-9+ |
+| SEO/GEO implémentation | robots.txt, sitemap, llms.txt, Schema.org, OG tags | Site développé | TERMINÉ (s10) |
+| Blog complet | 4 articles + pipeline IA autonome + crons | Site développé | TERMINÉ (s10) |
+| Comparaison VI/VI2 | 9 écarts détectés, 6 corrigés | Sites déployés | TERMINÉ (s10) |
+| Référence réelle Nanterre | 8 studios, 7 photos, chiffres vrais | Données fondateur | TERMINÉ (s10) |
+
+### Phase VINV-6 — Blog autonome (session s10)
+| Agent | Mission | Dépendance | Statut |
+|-------|---------|------------|--------|
+| @creative-strategy + @seo | Mots-clés 25 termes + plan éditorial 4 articles | Brand platform | TERMINÉ — audité 5→9/10 |
+| @copywriter | 4 articles complets + corrections | Mots-clés + plan | TERMINÉ — audité 7→9/10 |
+| @ia | Pipeline génération autonome (9 gates, 4-dim audit, crons) | Articles + infra | TERMINÉ — audité 5.75→9.5/10 |
 
 ## Décisions clés
 

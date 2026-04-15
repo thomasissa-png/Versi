@@ -4,8 +4,6 @@ import './Nav.css';
 
 const NAV_ITEMS = [
   { label: 'COMMENT ÇA MARCHE', href: '/comment-ca-marche' },
-  { label: 'SERVICES', href: '/services' },
-  { label: 'SIMULATEUR', href: '/simulateur' },
   { label: 'RÉFÉRENCES', href: '/references' },
   { label: 'ÉQUIPE', href: '/equipe' },
   { label: 'CONTACT', href: '/contact' },
@@ -103,7 +101,15 @@ export default function Nav() {
           ))}
         </ul>
 
-        <Link to="/contact" className="nav__cta">
+        <Link
+          to="/contact"
+          className="nav__cta"
+          onClick={() => {
+            if (location.pathname === '/contact') {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+        >
           S'inscrire
         </Link>
 

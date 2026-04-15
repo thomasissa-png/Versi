@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
 import PageHead from '../components/PageHead.jsx';
@@ -34,8 +35,8 @@ export default function EquipePage() {
   return (
     <>
       <PageHead
-        title="Équipe — Versi Invest"
-        description="Trois fondateurs. Un seul interlocuteur. Maxime, Thomas et Carl suivent chaque opération d'investissement locatif de A à Z."
+        title="Maxime, Thomas, Carl — Fondateurs Versi Invest"
+        description="3 co-fondateurs, ex-Sony et Algolia. 7 immeubles, 3,2M€ de volume opéré. Investissement locatif en direct."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -76,7 +77,7 @@ export default function EquipePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="founder__linkedin"
-                      aria-label={`Profil LinkedIn de ${founder.name}`}
+                      aria-label={`Profil LinkedIn de ${founder.name} — s'ouvre dans un nouvel onglet`}
                     >
                       LinkedIn →
                     </a>
@@ -94,7 +95,7 @@ export default function EquipePage() {
               Versi Invest fait partie du Groupe Versi.
             </h2>
             <p className="groupe__text">
-              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (21 appartements rénovés, 3,2M€ de volume opéré via Versi Immobilier) est le fondement de l'accès off-market que Versi Invest propose à ses investisseurs. Ce n'est pas un argument marketing — c'est le flux opérationnel sur lequel repose notre modèle.
+              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (7 immeubles, 3,2M€ de volume opéré via Versi Immobilier) alimente le flux d'opportunités que Versi Invest propose à ses investisseurs. Ce n'est pas un argument marketing — c'est le flux opérationnel sur lequel repose notre modèle.
             </p>
             <a
               href="https://versi.fr"
@@ -104,6 +105,23 @@ export default function EquipePage() {
             >
               Découvrir le Groupe Versi →
             </a>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="page-cta section-padding" aria-label="Prochaines étapes">
+          <div className="container page-cta__inner">
+            <p className="page-cta__text">
+              Vous savez qui nous sommes. Voyez comment nous travaillons.
+            </p>
+            <div className="page-cta__actions">
+              <Link to="/comment-ca-marche" className="page-cta__btn page-cta__btn--secondary">
+                Voir les 8 étapes
+              </Link>
+              <Link to="/contact" className="page-cta__btn">
+                S'inscrire — réponse sous 48h
+              </Link>
+            </div>
           </div>
         </section>
       </main>

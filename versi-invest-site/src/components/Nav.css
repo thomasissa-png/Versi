@@ -163,6 +163,9 @@
   align-items: center;
   gap: var(--spacing-xl);
   list-style: none;
+  width: 100%;
+  padding: 0 var(--spacing-lg);
+  box-sizing: border-box;
 }
 
 .nav__overlay-link {
@@ -173,6 +176,14 @@
   color: var(--color-text-inverse);
   text-decoration: none;
   transition: opacity var(--duration-normal) ease;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .nav__overlay-link {
+    font-size: 1.75rem;
+    letter-spacing: 0.04em;
+  }
 }
 
 .nav__overlay-link:hover {

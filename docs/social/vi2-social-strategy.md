@@ -5,7 +5,7 @@
 
 ## Contexte
 
-LinkedIn est le canal d'acquisition principal à budget zéro pour Versi Invest. Laurent (investisseur, 48 ans) est sur LinkedIn. Il suit des opérateurs immobiliers. Un fondateur Versi qui publie du contenu de qualité constante devient top-of-mind au moment où Laurent cherche un opérateur.
+LinkedIn est le canal d'acquisition principal à budget zéro pour Versi Invest. Nicolas (directeur commercial ETI, 41 ans) est sur LinkedIn. Il suit des opérateurs immobiliers. Un fondateur Versi qui publie du contenu de qualité constante devient top-of-mind au moment où Nicolas cherche un opérateur.
 
 ---
 
@@ -66,7 +66,7 @@ Identique au site versi-invest.fr : confiant, factuel, zéro blabla.
 - Texte seul ou texte + image (photo réelle ou capture chiffre)
 - Pas de carrousel V1 (trop lourd à produire, rendement incertain pour cette audience)
 - Pas de vidéo V1
-- Longueur : 150-300 mots max. Laurent n'a pas le temps de lire un roman.
+- Longueur : 150-300 mots max. Nicolas n'a pas le temps de lire un roman.
 - CTA : optionnel. "Le formulaire est sur versi-invest.fr si tu veux qu'on regarde ton projet." — jamais insistant.
 
 ---

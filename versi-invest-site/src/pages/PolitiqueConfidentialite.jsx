@@ -8,7 +8,7 @@ export default function PolitiqueConfidentialite() {
     <>
       <PageHead
         title="Politique de confidentialité — Versi Invest"
-        description="Politique de confidentialité du site Versi Invest. Protection des données personnelles, RGPD, droits des utilisateurs."
+        description="Traitement des données personnelles, droits RGPD, cookies, analytics Umami."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -26,7 +26,7 @@ export default function PolitiqueConfidentialite() {
             <article className="legal__content">
               <h2>Introduction</h2>
               <p>
-                Versi Invest, filiale de <strong>SAS Gradient One</strong>, attache une importance particulière à la protection de vos données personnelles.
+                Versi Invest, filiale de <strong>SAS Gradient One</strong>, traite vos données personnelles selon les principes du RGPD, décrits ci-dessous.
               </p>
               <p>
                 La présente politique de confidentialité décrit comment Versi Invest collecte, utilise et protège les informations personnelles que vous nous communiquez lorsque vous utilisez le site Versi Invest, notamment via le formulaire de qualification investisseur.
