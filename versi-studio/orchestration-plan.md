@@ -4,7 +4,7 @@
 > Mode : Autopilot avec checkpoint après Phase 0
 > Profil : V1-Production (toutes les gates)
 
-<!-- SESSION: phases=1 tasks_prod=2 tasks_consult=0 -->
+<!-- SESSION: phases=2 tasks_prod=5 tasks_consult=0 -->
 
 ## Estimation de sessions
 
@@ -43,12 +43,12 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 - Fusion/séparation lots : V1 = version complète (fusion + séparation + ajustement)
 - Multi-projets : un seul à la fois en V1
 
-### Phase VS-1 — Conception (EN COURS)
+### Phase VS-1 — Conception — COMPLETE
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @ux | Parcours workflow 4 étapes + wireframes éditeur de plans | specs + brand | EN COURS |
-| @design | Design system SaaS adapté Versi + compositions pages/étapes | brand + wireframes | EN COURS |
-| @copywriter | UX writing (labels, messages, tooltips, onboarding) | brand + specs | EN ATTENTE |
+| @ux | Parcours workflow 4 étapes + wireframes éditeur de plans | specs + brand | TERMINÉ (688 lignes) |
+| @design | Design system SaaS adapté Versi + compositions pages/étapes | brand + wireframes | TERMINÉ (990 lignes) |
+| @copywriter | UX writing (labels, messages, tooltips, onboarding) | brand + specs | TERMINÉ (479 lignes) |
 
 ### Phase VS-2 — Développement
 | Agent | Mission | Dépendance | Statut |
