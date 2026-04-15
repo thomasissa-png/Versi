@@ -1075,11 +1075,11 @@ En tant que Thomas, je veux valider un visuel généré afin de marquer cette pi
 
 ## 7. Recommandation stack technique
 
-### Next.js 14 App Router (confirmé)
+### Next.js 16 App Router (confirmé)
 
 Raison du choix vs React/Vite isolé :
 
-| Critère | Next.js 14 App Router | React/Vite isolé |
+| Critère | Next.js 16 App Router | React/Vite isolé |
 |---|---|---|
 | API Routes | Intégré (pas besoin d'Express séparé pour les appels OpenAI) | Express séparé nécessaire |
 | SSR pour le partage | Possible en V2 (pages de partage de visuels) | Impossible sans backend séparé |
@@ -1353,7 +1353,7 @@ api/
 Avant implémentation, les décisions suivantes doivent être confirmées :
 
 1. **Nombre de styles visuels en V1** : 12 styles curatés documentés ci-dessus. À confirmer ou réduire (8 styles minimum recommandé pour la crédibilité de l'outil).
-2. **Stack Next.js confirmée ?** : L'existant est en Next.js, continuer sur Next.js 14 App Router est la recommandation. Confirmer.
+2. **Stack Next.js confirmée ?** : L'existant est en Next.js, continuer sur Next.js 16 App Router est la recommandation. Confirmer.
 3. **Rate limits** : Les limites documentées (10 générations/heure, 5 extractions/min) sont des estimations basées sur les coûts OpenAI. À valider selon la politique de coût V1.
 4. **Fusion / séparation de lots** : Exclu V1. Confirmer que drag/resize des zones couvre 90% des besoins terrain.
 5. **Modèle de données partagé** : Les tables `vs_` sont dans la même instance PostgreSQL que les autres sites Versi. Confirmer l'isolation acceptable ou préférer une instance séparée.
@@ -1368,7 +1368,7 @@ Avant implémentation, les décisions suivantes doivent être confirmées :
 
 **Handoff → @fullstack**
 - Fichiers produits : `/home/user/Versi/docs/product/vs-functional-specs.md`
-- Décisions prises : Next.js 14 App Router confirmé, tables `vs_` PostgreSQL, Object Storage Replit, modèles gpt-4.1 vision + gpt-image-1.5, polling GET pour les opérations async
+- Décisions prises : Next.js 16 App Router confirmé, tables `vs_` PostgreSQL, Object Storage Replit, modèles gpt-4.1 vision + gpt-image-1.5, polling GET pour les opérations async
 - Points d'attention : réutiliser `plan-extractor.ts`, `architect-agent.ts` et `schemas.ts` existants. Refaire `ProStepper.tsx` (4 étapes), adapter `PlanEditor.tsx` (support fusion/polygones), jeter `ProPaymentGate.tsx` et `description-generator.ts`. Structure de routes API documentée en section 9. Débounce 1s sur les PATCH de zones (opération fréquente, 60/min max).
 
 **Handoff → @design**

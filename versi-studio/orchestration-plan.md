@@ -81,7 +81,7 @@ Ce projet est de complexité **élevée** (SaaS applicatif avec IA, éditeur vis
 ### Phase VS-5 — Audit & Validation
 | Agent | Mission | Dépendance | Statut |
 |-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO | Tous les livrables | EN ATTENTE |
+| @reviewer | Revue croisée GO/NO-GO | Tous les livrables | TERMINÉ — GO CONDITIONNEL (17/18 PASS, G7 corrigé) |
 
 ## Décisions clés
 
