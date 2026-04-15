@@ -287,7 +287,7 @@ export default function RoomPanel({
   // ─── Rendu principal ────────────────────────────────────────────
 
   return (
-    <aside className="w-80 flex-shrink-0 flex flex-col h-full bg-white border-l border-border-default">
+    <aside className="w-full sm:w-80 flex-shrink-0 flex flex-col sm:h-full bg-white sm:border-l border-t sm:border-t-0 border-border-default">
       {/* Header : selecteur de lot */}
       <div className="p-md border-b border-border-default">
         <p className="vs-label mb-sm">Lot</p>

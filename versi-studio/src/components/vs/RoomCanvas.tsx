@@ -390,6 +390,7 @@ export default function RoomCanvas({
         ref={canvasRef}
         width={canvasSize.width}
         height={canvasSize.height}
+        className="touch-none sm:touch-auto"
         style={{ width: "100%", height: "100%" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

@@ -97,6 +97,10 @@ export default function VisualsPage({
                 lotId: lot.id,
                 rooms: json.success ? json.data : [],
               }))
+              .catch(() => ({
+                lotId: lot.id,
+                rooms: [] as VsRoom[],
+              }))
           )
         );
 
@@ -150,12 +154,14 @@ export default function VisualsPage({
     );
 
     for (const { roomId, data } of results) {
+      const photos = Array.isArray(data?.photos) ? data.photos : [];
+      const visuals = Array.isArray(data?.visuals) ? data.visuals : [];
       statuses[roomId] = {
-        hasPhoto: data.photos.length > 0,
-        hasVisual: data.visuals.some(
+        hasPhoto: photos.length > 0,
+        hasVisual: visuals.some(
           (v) => v.status === "generated" || v.status === "validated"
         ),
-        hasValidatedVisual: data.visuals.some(
+        hasValidatedVisual: visuals.some(
           (v) => v.status === "validated"
         ),
       };
@@ -322,9 +328,9 @@ export default function VisualsPage({
       {/* Zone principale */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
-        <div className="mb-lg px-lg pt-lg">
+        <div className="mb-lg px-lg pt-lg overflow-hidden">
           <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
-          <h1 className="vs-h3 text-base sm:text-xl">Créez vos visuels</h1>
+          <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">Créez vos visuels</h1>
         </div>
 
         {/* Erreur globale */}

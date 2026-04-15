@@ -499,9 +499,9 @@ export default function RoomsPage({
       {/* Zone principale */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
-        <div className="mb-lg">
+        <div className="mb-lg overflow-hidden">
           <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
-          <h1 className="vs-h3 text-base sm:text-xl">Identifiez les pièces</h1>
+          <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">Identifiez les pièces</h1>
         </div>
 
         {/* Erreur globale */}
@@ -546,8 +546,8 @@ export default function RoomsPage({
 
         {/* Canvas + Panel */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
-          {/* Canvas — visible read-only sur mobile */}
-          <div className="h-[250px] sm:h-auto sm:flex-1 min-w-0">
+          {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
+          <div className="h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-0">
             <RoomCanvas
               planImageUrl={planImageUrl}
               lotZone={lotZone}
