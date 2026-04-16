@@ -277,13 +277,15 @@ export default function PlanCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Adapter la taille du canvas au conteneur
+    // Adapter la taille du canvas au conteneur (DPR buffer uniquement —
+    // la taille CSS est gérée par les classes Tailwind w-full/h-full du JSX
+    // pour éviter les boucles layout flex ↔ canvas resize).
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvas.width !== targetW) canvas.width = targetW;
+    if (canvas.height !== targetH) canvas.height = targetH;
     ctx.scale(dpr, dpr);
 
     const w = rect.width;
@@ -703,7 +705,7 @@ export default function PlanCanvas({
         tabIndex={0}
         role="application"
         aria-label="Éditeur de plan — flèches directionnelles pour déplacer le lot sélectionné, Tab pour cycler entre les lots"
-        className="block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+        className="absolute inset-0 block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
       {/* Message de chevauchement */}
       {overlappingIds.size > 0 && (

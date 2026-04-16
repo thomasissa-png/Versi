@@ -5,6 +5,8 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
+import AppHeader from "@/components/vs/AppHeader";
+import AppFooter from "@/components/vs/AppFooter";
 
 export const metadata: Metadata = {
   title: "Versi Studio",
@@ -25,7 +27,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AppHeader />
+        {/* padding-top 56px compense la hauteur du header fixe (spec §5) */}
+        <main style={{ paddingTop: "56px" }}>{children}</main>
+        <AppFooter />
+      </body>
     </html>
   );
 }
