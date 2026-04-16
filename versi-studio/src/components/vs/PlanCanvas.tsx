@@ -16,6 +16,7 @@ import {
   useCallback,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { VsLot, ZoneRect } from "@/lib/vs/types";
 import { getLotColor } from "@/lib/vs/types";
@@ -53,7 +54,8 @@ interface PlanCanvasProps {
 // ─── Constantes ───────────────────────────────────────────────────
 
 const HANDLE_SIZE = 8;
-const HANDLE_HIT_SIZE = 12;
+// HANDLE_HIT_SIZE élargi pour touch targets mobile (cible 20px, plus large que HANDLE_SIZE visuel)
+const HANDLE_HIT_SIZE = 20;
 const MIN_LOT_SIZE_PERCENT = 3;
 const LOT_OPACITY = 0.4;
 const HOVER_BORDER_WIDTH = 3;
@@ -173,6 +175,14 @@ export default function PlanCanvas({
     const w = rect.width;
     const h = rect.height;
 
+    // DESIGN-F06 à F09 : lecture des tokens CSS (fallback hex si non définis par Alpha)
+    const styles = getComputedStyle(document.documentElement);
+    const tokenErrorStrong = styles.getPropertyValue("--color-error-strong").trim() || "#B91C1C";
+    const tokenTextDefault = styles.getPropertyValue("--color-text-default").trim() || "#0B0B0B";
+    const tokenTextInverse = styles.getPropertyValue("--color-text-inverse").trim() || "#FFFFFF";
+    const tokenBorderDefault = styles.getPropertyValue("--color-border-default").trim() || "#D9D4CE";
+    const tokenInteractivePrimary = styles.getPropertyValue("--color-interactive-primary").trim() || "#0B0B0B";
+
     // Fond
     ctx.fillStyle = "#F7F5F2";
     ctx.fillRect(0, 0, w, h);
@@ -198,7 +208,7 @@ export default function PlanCanvas({
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
     } else if (!planImageUrl) {
       // Pas de plan
-      ctx.fillStyle = "#D9D4CE";
+      ctx.fillStyle = tokenBorderDefault;
       ctx.font = "14px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("Aucun plan disponible", w / 2, h / 2);
@@ -227,7 +237,7 @@ export default function PlanCanvas({
       let borderColor = color;
 
       if (isOverlapping) {
-        borderColor = "#DC2626";
+        borderColor = tokenErrorStrong;
         borderWidth = HOVER_BORDER_WIDTH;
       }
       if (isHovered && !isSelected) {
@@ -236,7 +246,7 @@ export default function PlanCanvas({
       if (isSelected) {
         borderWidth = SELECTED_BORDER_WIDTH;
         if (!isOverlapping) {
-          borderColor = "#0B0B0B";
+          borderColor = tokenInteractivePrimary;
         }
       }
 
@@ -245,24 +255,24 @@ export default function PlanCanvas({
       ctx.strokeRect(x, y, lw, lh);
 
       // Label du lot
-      ctx.fillStyle = "#0B0B0B";
+      ctx.fillStyle = tokenTextDefault;
       ctx.font = "bold 12px system-ui, sans-serif";
       ctx.textAlign = "left";
       const labelX = x + 6;
       const labelY = y + 18;
-      // Fond du label
+      // Fond du label (overlay translucide, pas un token)
       const textMetrics = ctx.measureText(lot.name);
       ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
       ctx.fillRect(labelX - 2, labelY - 13, textMetrics.width + 4, 16);
-      ctx.fillStyle = "#0B0B0B";
+      ctx.fillStyle = tokenTextDefault;
       ctx.fillText(lot.name, labelX, labelY);
 
       // Poignées de resize si sélectionné
       if (isSelected) {
         const handles = getHandlePositions(x, y, lw, lh);
         for (const handle of handles) {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.strokeStyle = "#0B0B0B";
+          ctx.fillStyle = tokenTextInverse;
+          ctx.strokeStyle = tokenTextDefault;
           ctx.lineWidth = 1.5;
           ctx.fillRect(
             handle.x - HANDLE_SIZE / 2,
@@ -592,6 +602,27 @@ export default function PlanCanvas({
     return Math.min(max, Math.max(min, val));
   }
 
+  // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
+
+  const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    if (!selectedLotId) return;
+    const lot = lots.find((l) => l.id === selectedLotId);
+    if (!lot) return;
+    const zone = parseZoneData(lot);
+    const step = e.shiftKey ? 5 : 1;
+    let { x_percent, y_percent } = zone;
+    const { width_percent, height_percent } = zone;
+    let changed = false;
+    if (e.key === "ArrowUp") { y_percent = Math.max(0, y_percent - step); changed = true; }
+    else if (e.key === "ArrowDown") { y_percent = Math.min(100 - height_percent, y_percent + step); changed = true; }
+    else if (e.key === "ArrowLeft") { x_percent = Math.max(0, x_percent - step); changed = true; }
+    else if (e.key === "ArrowRight") { x_percent = Math.min(100 - width_percent, x_percent + step); changed = true; }
+    if (changed) {
+      e.preventDefault();
+      onUpdateLotZone(lot.id, { x_percent, y_percent, width_percent, height_percent });
+    }
+  }, [selectedLotId, lots, onUpdateLotZone]);
+
   // ─── Rendu ────────────────────────────────────────────────────
 
   return (
@@ -605,11 +636,15 @@ export default function PlanCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        className="block w-full h-full"
+        onKeyDown={handleCanvasKeyDown}
+        tabIndex={0}
+        role="application"
+        aria-label="Éditeur de plan — flèches directionnelles pour déplacer le lot sélectionné, Tab pour cycler entre les lots"
+        className="block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
       {/* Message de chevauchement */}
       {overlappingIds.size > 0 && (
-        <div className="absolute bottom-3 left-3 right-3 bg-red-50 border border-red-200 rounded-md px-md py-sm text-sm text-red-700 flex items-center gap-sm">
+        <div className="absolute bottom-3 left-3 right-3 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-md px-md py-sm text-sm text-[var(--color-error-strong)] flex items-center gap-sm">
           <svg
             className="w-4 h-4 flex-shrink-0"
             fill="none"

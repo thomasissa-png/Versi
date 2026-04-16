@@ -26,6 +26,7 @@ interface LotPanelProps {
   hasOverlap: boolean;
   validating: boolean;
   lotIndexMap: Map<string, number>;
+  validationSuccess?: boolean;
 }
 
 // ─── Composant LotCard ──────────────────────────────────────────
@@ -72,7 +73,7 @@ function LotCard({
   }, [editValue, lot.name, onRename]);
 
   const surfaceLabel =
-    lot.surface_m2 != null ? `${Number(lot.surface_m2).toFixed(0)} m\u00B2` : "Surface non renseignée";
+    lot.surface_m2 != null ? `${Number(lot.surface_m2).toFixed(0)} m²` : "Surface non renseignée";
 
   return (
     <div
@@ -114,20 +115,31 @@ function LotCard({
                 setEditing(false);
               }
             }}
-            className="w-full text-sm font-medium bg-white border border-[var(--color-border-default)] rounded px-sm py-xs focus:outline-none focus:ring-1 focus:ring-[var(--color-interactive-primary)]"
+            className="w-full text-sm font-medium bg-white border border-[var(--color-border-default)] rounded px-sm py-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] focus:outline-none"
             aria-label="Renommer le lot"
           />
         ) : (
-          <button
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-            className="text-sm font-medium text-[var(--color-text-default)] truncate block text-left w-full"
-            title="Double-cliquez pour renommer"
-          >
-            {lot.name}
-          </button>
+          <div className="flex items-center gap-xs">
+            <button
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
+              className="text-sm font-medium text-[var(--color-text-default)] truncate block text-left flex-1 min-w-0"
+              title="Double-cliquez pour renommer"
+            >
+              {lot.name}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ml-xs inline-flex p-2xs rounded text-[var(--color-text-muted)] hover:text-[var(--color-text-default)] transition-opacity"
+              aria-label={`Renommer ${lot.name}`}
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          </div>
         )}
         <p className="text-xs text-[var(--color-text-muted)] mt-2xs">
           {surfaceLabel}
@@ -145,7 +157,7 @@ function LotCard({
           e.stopPropagation();
           onDelete();
         }}
-        className="flex-shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-xs rounded text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 transition-all duration-150"
+        className="flex-shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-sm md:p-xs rounded text-[var(--color-text-muted)] hover:text-[var(--color-error-strong)] hover:bg-[var(--color-error-bg)] transition-all duration-150 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
         aria-label={`Supprimer ${lot.name}`}
       >
         <svg
@@ -179,6 +191,7 @@ export default function LotPanel({
   hasOverlap,
   validating,
   lotIndexMap,
+  validationSuccess = false,
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
 
@@ -194,10 +207,19 @@ export default function LotPanel({
       {/* Liste des lots */}
       <div className="flex-1 overflow-y-auto px-sm py-sm">
         {lots.length === 0 ? (
-          <div className="text-center py-2xl px-md">
+          <div className="text-center py-2xl px-md flex flex-col items-center gap-md">
             <p className="text-sm text-[var(--color-text-muted)]">
               Aucun lot détecté — créez-en manuellement
             </p>
+            <button
+              onClick={onAddLot}
+              className="inline-flex items-center justify-center gap-sm px-md py-sm rounded-md text-sm font-medium border border-dashed border-[var(--color-border-default)] text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-default)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Ajouter un lot
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-2xs">
@@ -254,7 +276,7 @@ export default function LotPanel({
           disabled={!canValidate}
           className="
             w-full px-md py-sm rounded-md text-sm font-medium
-            bg-[var(--color-interactive-primary)] text-white
+            bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]
             hover:opacity-90
             disabled:opacity-50 disabled:cursor-not-allowed
             transition-all duration-150
@@ -263,7 +285,7 @@ export default function LotPanel({
         >
           {validating ? (
             <span className="flex items-center justify-center gap-sm">
-              <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="inline-block w-4 h-4 border-2 border-[var(--color-text-inverse)]/30 border-t-[var(--color-text-inverse)] rounded-full animate-spin" />
               Validation...
             </span>
           ) : (
@@ -273,9 +295,22 @@ export default function LotPanel({
 
         {/* Message d'avertissement chevauchement */}
         {hasOverlap && lots.length > 0 && (
-          <p className="text-xs text-red-600 text-center">
+          <p className="text-xs text-[var(--color-error-strong)] text-center">
             Corrigez les chevauchements avant de continuer.
           </p>
+        )}
+
+        {validationSuccess && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center justify-center gap-sm text-xs text-[var(--color-success,#16A34A)] text-center"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Lots enregistrés
+          </div>
         )}
       </div>
     </aside>

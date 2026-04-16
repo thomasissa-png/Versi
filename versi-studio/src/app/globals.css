@@ -43,6 +43,11 @@
   --color-success: #15803D;
   --color-warning: #D97706;
 
+  /* Variantes erreur (ajout versi-s17 — DESIGN-F01) */
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+  --color-error-strong: #B91C1C;
+
   /* ─── Typographie ─── */
   --font-sans: "PP Neue Montreal", "DM Sans", ui-sans-serif, system-ui, sans-serif;
 
@@ -74,6 +79,16 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+}
+
+/* ─── Prefers-reduced-motion (DESIGN-F18 versi-s17) ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─── Utilitaires spacing custom (compat rétrograde après renommage --spacing-* → --space-*) ─── */

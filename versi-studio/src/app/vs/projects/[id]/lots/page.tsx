@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
 import PlanCanvas from "@/components/vs/PlanCanvas";
 import LotPanel from "@/components/vs/LotPanel";
+import ConfirmModal from "@/components/vs/ConfirmModal";
 import type {
   VsProject,
   VsPlan,
@@ -82,6 +83,9 @@ export default function LotsPage({
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<number>(0);
+  const [saving, setSaving] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [validationSuccess, setValidationSuccess] = useState(false);
 
   // Debounce pour la sauvegarde auto
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -128,7 +132,7 @@ export default function LotsPage({
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      setError("Impossible de charger les données du projet.");
+      setError("Impossible de charger les données du projet. Vérifiez votre connexion et actualisez la page.");
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -182,6 +186,7 @@ export default function LotsPage({
   const saveLotZone = useCallback(
     async (lotId: string, zone: ZoneRect) => {
       try {
+        setSaving(true);
         const res = await fetch(`/api/vs/lots/${lotId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -189,13 +194,17 @@ export default function LotsPage({
         });
         const json = (await res.json()) as ApiResponse<VsLot>;
         if (!json.success) {
-          setError("Impossible de sauvegarder les modifications.");
+          setError("Modifications non enregistrées. Rechargez la page pour reprendre depuis la dernière version sauvegardée.");
+          fetchData();
         }
       } catch {
-        setError("Impossible de sauvegarder les modifications.");
+        setError("Modifications non enregistrées. Rechargez la page pour reprendre depuis la dernière version sauvegardée.");
+        fetchData();
+      } finally {
+        setSaving(false);
       }
     },
-    []
+    [fetchData]
   );
 
   const handleUpdateLotZone = useCallback(
@@ -239,39 +248,44 @@ export default function LotsPage({
       });
       const json = (await res.json()) as ApiResponse<VsLot>;
       if (!json.success) {
-        setError("Impossible de renommer le lot.");
+        setError("Le renommage n'a pas pu être enregistré. Réessayez ou rechargez la page.");
       }
     } catch {
-      setError("Impossible de renommer le lot.");
+      setError("Le renommage n'a pas pu être enregistré. Réessayez ou rechargez la page.");
     }
   }, []);
 
   // ─── Supprimer un lot ─────────────────────────────────────────
 
   const handleDeleteLot = useCallback(
-    async (lotId: string) => {
-      if (!confirm("Supprimer ce lot ? Cette action est irreversible.")) return;
-      // Optimistic update
-      setLots((prev) => prev.filter((lot) => lot.id !== lotId));
-      if (selectedLotId === lotId) setSelectedLotId(null);
+    (lotId: string) => {
+      setDeleteTargetId(lotId);
+    },
+    []
+  );
 
-      try {
-        const res = await fetch(`/api/vs/lots/${lotId}`, {
-          method: "DELETE",
-        });
-        const json = (await res.json()) as ApiResponse<{ deleted: boolean }>;
-        if (!json.success) {
-          // Rollback : recharger
-          setError("Impossible de supprimer le lot.");
-          fetchData();
-        }
-      } catch {
-        setError("Impossible de supprimer le lot.");
+  const confirmDeleteLot = useCallback(async () => {
+    const lotId = deleteTargetId;
+    if (!lotId) return;
+    setDeleteTargetId(null);
+    // Optimistic update
+    setLots((prev) => prev.filter((lot) => lot.id !== lotId));
+    if (selectedLotId === lotId) setSelectedLotId(null);
+
+    try {
+      const res = await fetch(`/api/vs/lots/${lotId}`, {
+        method: "DELETE",
+      });
+      const json = (await res.json()) as ApiResponse<{ deleted: boolean }>;
+      if (!json.success) {
+        setError("La suppression a échoué. Le lot a été restauré automatiquement.");
         fetchData();
       }
-    },
-    [selectedLotId, fetchData]
-  );
+    } catch {
+      setError("La suppression a échoué. Le lot a été restauré automatiquement.");
+      fetchData();
+    }
+  }, [deleteTargetId, selectedLotId, fetchData]);
 
   // ─── Ajouter un lot manuellement ─────────────────────────────
 
@@ -306,7 +320,7 @@ export default function LotsPage({
         setError(json.error);
       }
     } catch {
-      setError("Impossible de créer le lot.");
+      setError("Le lot n'a pas pu être créé. Réessayez ou rechargez la page.");
     }
   }, [lots.length, selectedFloor, projectId]);
 
@@ -323,12 +337,16 @@ export default function LotsPage({
       const json = (await res.json()) as ApiResponse<VsProject>;
 
       if (json.success) {
-        router.push(`/vs/projects/${projectId}/rooms`);
+        setValidationSuccess(true);
+        // Redirection différée pour laisser le feedback visible ~600ms
+        setTimeout(() => {
+          router.push(`/vs/projects/${projectId}/rooms`);
+        }, 600);
       } else {
-        setError(json.error);
+        setError("La validation a échoué. Vérifiez que les lots ne se chevauchent pas, puis réessayez.");
       }
     } catch {
-      setError("Impossible de valider les lots.");
+      setError("La validation a échoué. Vérifiez que les lots ne se chevauchent pas, puis réessayez.");
     } finally {
       setValidating(false);
     }
@@ -409,7 +427,7 @@ export default function LotsPage({
 
         {/* Erreur globale */}
         {error && (
-          <div className="mb-md bg-red-50 border border-red-200 rounded-md p-md text-sm text-red-700 flex items-start gap-sm">
+          <div className="mb-md bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-md p-md text-sm text-[var(--color-error-strong)] flex items-start gap-sm">
             <svg
               className="w-4 h-4 mt-0.5 flex-shrink-0"
               fill="none"
@@ -424,10 +442,18 @@ export default function LotsPage({
                 d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
               />
             </svg>
-            <span>{error}</span>
+            <span className="flex-1">{error}</span>
             <button
+              type="button"
+              onClick={() => { setError(null); fetchData(); }}
+              className="text-[var(--color-error-strong)] underline underline-offset-2 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-error-strong)]"
+            >
+              Réessayer
+            </button>
+            <button
+              type="button"
               onClick={() => setError(null)}
-              className="ml-auto text-red-700 hover:text-red-500"
+              className="text-[var(--color-error-strong)] hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-error-strong)]"
               aria-label="Fermer le message d'erreur"
             >
               <svg
@@ -436,6 +462,7 @@ export default function LotsPage({
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2}
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -444,6 +471,16 @@ export default function LotsPage({
                 />
               </svg>
             </button>
+          </div>
+        )}
+        {/* Feedback sauvegarde en cours (UX-F06) */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {`Étage ${selectedFloor === 0 ? "RDC" : `R+${selectedFloor}`} sélectionné — ${filteredLots.length} lot${filteredLots.length > 1 ? "s" : ""}`}
+        </div>
+        {saving && (
+          <div className="mb-sm flex items-center gap-xs text-xs text-[var(--color-text-muted)]" role="status" aria-live="polite">
+            <span className="inline-block w-3 h-3 border-2 border-[var(--color-border-default)] border-t-[var(--color-interactive-primary)] rounded-full animate-spin" aria-hidden="true" />
+            Sauvegarde en cours…
           </div>
         )}
 
@@ -465,7 +502,7 @@ export default function LotsPage({
                       px-md py-xs rounded-md text-sm font-medium transition-colors duration-150
                       ${
                         isActive
-                          ? "bg-[var(--color-interactive-primary)] text-white"
+                          ? "bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]"
                           : "bg-[var(--color-background-default)] text-[var(--color-text-muted)] hover:text-[var(--color-text-default)]"
                       }
                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
@@ -480,7 +517,7 @@ export default function LotsPage({
         )}
 
         {/* Canvas + Panneau latéral */}
-        <div className="flex-1 flex gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
+        <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
           {/* Canvas */}
           <div className="flex-1 min-w-0">
             <PlanCanvas
@@ -505,9 +542,19 @@ export default function LotsPage({
             hasOverlap={hasOverlap}
             validating={validating}
             lotIndexMap={lotIndexMap}
+            validationSuccess={validationSuccess}
           />
         </div>
       </div>
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        title="Supprimer ce lot ?"
+        message="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        variant="danger"
+        onConfirm={confirmDeleteLot}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

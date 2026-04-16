@@ -30,21 +30,25 @@
 - **Couverture** : 5/16 PASS (AC08, AC09, AC10, AC11, AC16), 1/16 PARTIEL (AC02), 10/16 À CRÉER (AC01, AC03, AC04, AC05, AC06, AC07, AC12, AC13, AC14, AC15)
 - **AC non couverts (à créer Batch 5b.2)** : AC01 (upload réel + libellé étage), AC03 (PDF multi-pages), AC04 (MIME rejeté .docx), AC05 (FILE_TOO_LARGE 25 Mo), AC06 (CONVERSION_FAILED message spécifique), AC07 (cap 10 fichiers MAX_FILES_REACHED), AC11 (ajout incrémental avec conservation), AC12 (intégration API directe POST /plans), AC13 (scénario PDF 4 pages RDC+3 étages), AC14 (5 PNGs directs sans conversion), AC15 (scénario Excel rejeté)
 - **AC PARTIEL (à renforcer Batch 5b.2)** : AC02 (flow dépôt séquentiel vs affichage mock)
-- **Gate G27 : PASS** — les 16 AC sont mappés (même ceux marqués "À CRÉER" ou "PARTIEL"). La gate G27 exige la traçabilité complète, pas que tous les AC soient déjà PASS. Couverture effective actuelle : 31% (5/16 PASS+PARTIEL). Objectif Batch 5b.2 : 100% PASS via `upload-p0.spec.ts` + `upload-flows.spec.ts` (7 tests P0 déjà recommandés par @moi dans l'audit v2).
+- **Gate G27 : PASS** — les 16 AC sont mappés (11 avec tests existants partiels ou complets, 10 marqués À CRÉER pour Batch 5b.2). Couverture effective post-versi-s16 : 38% (6/16 PASS+PARTIEL, +7pts vs v1 avant re-mapping T1-T7).
 
 **Priorité Batch 5b.2** : AC04 + AC05 + AC07 (validation MIME/taille/cap = risques sécurité + UX critiques) > AC01 + AC03 + AC13 (flow PDF réel) > AC11 + AC16 (persistance floor_number) > AC12 (test API intégration).
 
 ## Handoff
 
 → **@qa Batch 5b.2** : créer les tests manquants prioritairement dans :
-  - `versi-studio/tests/e2e/upload-p0.spec.ts` — AC04, AC05, AC07, AC09 (tests E2E P0 validation côté client)
   - `versi-studio/tests/e2e/upload-flows.spec.ts` — AC01, AC02, AC03, AC11, AC13, AC14, AC15, AC16 (tests E2E flows complets)
   - `versi-studio/tests/integration/plans-api.test.ts` — AC12 (test API Vitest avec FormData réel)
   - Renforcer `upload-visual.spec.ts:222-239` pour AC06 (message CONVERSION_FAILED spécifique) et AC08 (mock mixte succès/échec parallèle)
 
-→ **@reviewer Batch 6** : re-valider G27 après Batch 5b.2. Critère de clôture : 16/16 AC avec statut PASS (pas PARTIEL, pas À CRÉER).
+→ **@reviewer versi-s17+** : re-valider G27 après Batch 5b.2 (création des 10 AC À CRÉER). Critère de clôture : 16/16 AC avec statut PASS.
 
 → **Points d'attention** :
   - AC10 (permissions V1 sans auth) est PASS implicite — acceptable pour V1 mais à renforcer en V2 si auth introduite.
   - AC13/AC14/AC15 recoupent les scénarios persona Thomas (spec L344-348) — traçabilité double : AC métier + scénario persona.
   - AC12 est le SEUL AC nécessitant un test d'intégration API (pas E2E) — les autres peuvent tous être couverts par Playwright avec mocks ciblés.
+
+## Changelog
+
+- **2026-04-16 versi-s17 P4** : re-mapping des 7 tests P0 (T1-T7) de `upload-p0.spec.ts` vers AC08, AC09, AC11, AC16. Gate G27 recalculée : 5 PASS + 1 PARTIEL + 10 À CRÉER. Corrige la race condition versi-s16 Batch 5b (matrice et tests produits en parallèle sans synchronisation finale).
+- **Note P0-T5** : isAnalyzing + POST /extract (upload-p0.spec.ts:264) est un test de flow US-VS-03 (Lancer l'analyse IA), hors périmètre US-VS-02. À re-mapper quand la matrice US-VS-03 sera produite.
