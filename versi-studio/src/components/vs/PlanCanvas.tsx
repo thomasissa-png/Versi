@@ -49,6 +49,7 @@ interface PlanCanvasProps {
   onSelectLot: (lotId: string | null) => void;
   onUpdateLotZone: (lotId: string, zone: ZoneRect) => void;
   lotIndexMap: Map<string, number>;
+  m2PerPixel: number | null;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -119,6 +120,7 @@ export default function PlanCanvas({
   onSelectLot,
   onUpdateLotZone,
   lotIndexMap,
+  m2PerPixel,
 }: PlanCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,13 @@ export default function PlanCanvas({
   const [hoveredLotId, setHoveredLotId] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const animFrameRef = useRef<number>(0);
+  const [surfaceOverlay, setSurfaceOverlay] = useState<{
+    x: number;
+    y: number;
+    label: string;
+    visible: boolean;
+  } | null>(null);
+  const rafOverlayRef = useRef<number>(0);
 
   // ─── Charger l'image du plan ──────────────────────────────────
 
@@ -494,6 +503,34 @@ export default function PlanCanvas({
         }
 
         onUpdateLotZone(lotId, newZone);
+
+        // Overlay surface m² temps réel (F05) — calcul dans rAF pour ne pas bloquer le drag
+        cancelAnimationFrame(rafOverlayRef.current);
+        rafOverlayRef.current = requestAnimationFrame(() => {
+          const canvasEl = canvasRef.current;
+          const containerEl = containerRef.current;
+          if (!canvasEl || !containerEl) return;
+          const canvasRect = canvasEl.getBoundingClientRect();
+          const containerRect = containerEl.getBoundingClientRect();
+          const widthPx = (newZone.width_percent / 100) * canvasRect.width;
+          const heightPx = (newZone.height_percent / 100) * canvasRect.height;
+          const label =
+            m2PerPixel != null && m2PerPixel > 0
+              ? `${(widthPx * heightPx * m2PerPixel).toFixed(1)} m²`
+              : "— m²";
+          const lotRightPx =
+            ((newZone.x_percent + newZone.width_percent) / 100) * canvasRect.width;
+          const lotBottomPx =
+            ((newZone.y_percent + newZone.height_percent) / 100) * canvasRect.height;
+          const offsetX = canvasRect.left - containerRect.left;
+          const offsetY = canvasRect.top - containerRect.top;
+          let overlayX = offsetX + lotRightPx + 12;
+          const overlayY = offsetY + lotBottomPx - 28;
+          if (overlayX + 80 > containerRect.width) {
+            overlayX = offsetX + (newZone.x_percent / 100) * canvasRect.width - 84;
+          }
+          setSurfaceOverlay({ x: overlayX, y: overlayY, label, visible: true });
+        });
         return;
       }
 
@@ -514,16 +551,18 @@ export default function PlanCanvas({
       setHoveredLotId(hitLotId);
       if (canvas) canvas.style.cursor = getCursor(null, !!hitLotId);
     },
-    [lots, selectedLotId, onUpdateLotZone]
+    [lots, selectedLotId, onUpdateLotZone, m2PerPixel]
   );
 
   const handleMouseUp = useCallback(() => {
     dragRef.current = null;
+    setSurfaceOverlay(null);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     dragRef.current = null;
     setHoveredLotId(null);
+    setSurfaceOverlay(null);
   }, []);
 
   // ─── Resize logic ─────────────────────────────────────────────

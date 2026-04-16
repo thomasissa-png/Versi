@@ -154,9 +154,12 @@ export async function ensureVsTables(): Promise<void> {
       extraction_data JSONB,
       extraction_status VARCHAR(20) DEFAULT 'pending'
         CHECK (extraction_status IN ('pending','processing','done','failed')),
+      m2_per_pixel DECIMAL(12, 6),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_vs_plans_project ON vs_plans(project_id);
+    -- Migration F05 (versi-s19) : ajout colonne m2_per_pixel pour bases existantes
+    ALTER TABLE vs_plans ADD COLUMN IF NOT EXISTS m2_per_pixel DECIMAL(12, 6);
 
     CREATE TABLE IF NOT EXISTS vs_lots (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -73,7 +73,7 @@ export async function DELETE(
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<ApiResponse<{ id: string; floor_number: number }>>> {
+): Promise<NextResponse<ApiResponse<{ id: string; floor_number?: number; m2_per_pixel?: number }>>> {
   try {
     await ensureDbReady();
     const { id } = await params;
@@ -85,24 +85,59 @@ export async function PATCH(
       );
     }
 
-    const body = (await request.json()) as { floor_number?: unknown };
-    const floorNumber = body.floor_number;
+    const body = (await request.json()) as {
+      floor_number?: unknown;
+      m2_per_pixel?: unknown;
+    };
 
-    // Validation : entier entre -5 (sous-sols) et 50 (tours)
-    if (
-      typeof floorNumber !== "number" ||
-      !Number.isInteger(floorNumber) ||
-      floorNumber < -5 ||
-      floorNumber > 50
-    ) {
+    // Au moins un champ doit être fourni
+    if (body.floor_number === undefined && body.m2_per_pixel === undefined) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Numéro d'étage invalide — doit être un entier compris entre -5 et 50.",
+            "Aucun champ à mettre à jour. Fournissez floor_number ou m2_per_pixel.",
         },
         { status: 400 }
       );
+    }
+
+    // Validation floor_number si fourni
+    if (body.floor_number !== undefined) {
+      if (
+        typeof body.floor_number !== "number" ||
+        !Number.isInteger(body.floor_number) ||
+        body.floor_number < -5 ||
+        body.floor_number > 50
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Numéro d'étage invalide — doit être un entier compris entre -5 et 50.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validation m2_per_pixel si fourni (DECIMAL(12,6) positif)
+    if (body.m2_per_pixel !== undefined) {
+      if (
+        typeof body.m2_per_pixel !== "number" ||
+        !Number.isFinite(body.m2_per_pixel) ||
+        body.m2_per_pixel <= 0 ||
+        body.m2_per_pixel > 1
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Calibration invalide — la valeur m2_per_pixel doit être un nombre strictement positif et inférieur à 1.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Vérifier que le plan existe
@@ -118,16 +153,31 @@ export async function PATCH(
       );
     }
 
-    // Mettre à jour floor_number
+    // Construire UPDATE dynamique selon les champs fournis
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIdx = 1;
+
+    if (body.floor_number !== undefined) {
+      updates.push(`floor_number = $${paramIdx++}`);
+      values.push(body.floor_number);
+    }
+    if (body.m2_per_pixel !== undefined) {
+      updates.push(`m2_per_pixel = $${paramIdx++}`);
+      values.push(body.m2_per_pixel);
+    }
+    values.push(id);
+
     await query(
-      "UPDATE vs_plans SET floor_number = $1 WHERE id = $2",
-      [floorNumber, id]
+      `UPDATE vs_plans SET ${updates.join(", ")} WHERE id = $${paramIdx}`,
+      values
     );
 
-    return NextResponse.json({
-      success: true,
-      data: { id, floor_number: floorNumber },
-    });
+    const data: { id: string; floor_number?: number; m2_per_pixel?: number } = { id };
+    if (body.floor_number !== undefined) data.floor_number = body.floor_number as number;
+    if (body.m2_per_pixel !== undefined) data.m2_per_pixel = body.m2_per_pixel as number;
+
+    return NextResponse.json({ success: true, data });
   } catch (err) {
     console.error("[API] PATCH /api/vs/plans/[id] erreur :", err);
     return NextResponse.json(

@@ -47,6 +47,7 @@ export interface VsPlan {
   original_filename: string | null;
   extraction_data: Record<string, unknown> | null;
   extraction_status: ExtractionStatus;
+  m2_per_pixel: number | null;
   created_at: string;
 }
 
