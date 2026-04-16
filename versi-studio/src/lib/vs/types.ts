@@ -182,7 +182,7 @@ export const STEPS: StepDefinition[] = [
   {
     id: 1,
     label: "Plans",
-    description: "Uploadez vos plans",
+    description: "Déposez vos plans",
     path: (id) => `/vs/projects/${id}/upload`,
   },
   {
