@@ -171,6 +171,24 @@ Pour chaque composant interactif, spécifier :
 9. HIÉRARCHIE — les informations sont classées visuellement par importance : titre > sous-titre > corps > méta. La hiérarchie est testable : en plissant les yeux, les 3 éléments les plus importants de la page sont identifiables
 10. ACCESSIBLE — le design est utilisable par tous : contrastes suffisants, focus visible, texte lisible sans zoom, touch targets adéquats
 
+### Exceptions G23 documentées au design-system (learning versi-s18)
+
+Certains patterns hex hardcoded sont **légitimes ET récurrents** : canvas API native (`ctx.fillStyle` / `ctx.strokeStyle` — ne supporte pas les CSS custom properties), palettes métier (mapping domaine-spécifique `ROOM_TYPE_STYLES`), overlays rgba pour états bloqués. Ces patterns DOIVENT être documentés en **exceptions R0X** dans la section dédiée du design-system du projet (ex : `docs/design/vs-design-system.md` section 2.4 "Exceptions").
+
+**Protocole obligatoire @design avant tout audit G23** :
+1. `Read` la section "Exceptions" du design-system du projet (si elle existe)
+2. Ne JAMAIS signaler comme violation G23 les hex hardcoded qui correspondent à une exception documentée
+3. Si tu détectes un nouveau pattern hex hardcoded légitime et récurrent → proposer de l'ajouter aux exceptions (R05, R06...) avec justification + tableau de mappage hex → token sémantique équivalent
+
+**Format d'une exception dans le design-system** :
+- Code : `R0X`
+- Pattern : description du pattern (ex : "canvas `ctx.fillStyle` / `ctx.strokeStyle`")
+- Justification : pourquoi les tokens CSS ne s'appliquent pas
+- Mappage : tableau hex utilisé → token sémantique équivalent (pour référence)
+- Scope : fichiers concernés (ex : `PlanCanvas.tsx`, `RoomCanvas.tsx`)
+
+**Validation versi-s18** : section 2.4 `vs-design-system.md` documente R02 (canvas API), R03 (palette `ROOM_TYPE_STYLES`), R04 (overlay rgba validation). Évite les faux positifs @design/@reviewer à chaque audit.
+
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : prioriser tokens et palette → composants prioritaires → compositions des pages critiques (homepage, pricing, onboarding) → compositions secondaires. Pour `design-tokens.json` : écrire le JSON complet en un Write, puis documenter dans `design-system.md` séparément.

@@ -219,6 +219,13 @@ Chaque user story de `docs/product/functional-specs.md` DOIT avoir au moins 1 te
 
 Si une story n'a pas de test correspondant → gate G27 FAIL. Vérifier par Grep que chaque US-XX mentionnée dans les specs a une entrée dans la matrice.
 
+**Ordonnancement strict matrice + tests dans un même Batch (learning versi-s16 P1 #9)** : si un Batch crée À LA FOIS la matrice ET les tests E2E, le brief DOIT imposer cet ordre :
+1. **Matrice d'abord** : mappage US → fichier-test:ligne, marquer "à créer" / PARTIEL pour les tests inexistants
+2. **Tests ensuite** : implémenter les tests E2E
+3. **Matrice mise à jour après tests** : basculer "à créer" → fichier-test:ligne et PARTIEL → PASS
+
+**Anti-pattern à proscrire** : lancer @qa #1 (matrice) et @qa #2 (tests) en parallèle sur le même périmètre US — race condition garantie, la matrice produite ne reflète pas la réalité après création des tests. Validé versi-s16 (matrice obsolète après Batch 5b) → versi-s17 P4 a dû re-mapper 7 AC P0 (couverture 31%→38%, AC08/AC09/AC11/AC16 PARTIEL→PASS).
+
 ### Pipeline pre-deploy (obligatoire — Gate G28)
 
 Avant tout déploiement, vérifier dans cet ordre :

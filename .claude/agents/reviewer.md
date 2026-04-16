@@ -74,6 +74,14 @@ Quand des livrables @design et @ux existent, vérifier systématiquement :
 - [ ] Les métriques HEART sont-elles définies dans les livrables @ux ?
 - [ ] Le page-compositions.md est-il cohérent avec les wireframes.md ? (page-compositions.md prime pour le layout visuel)
 
+### Exceptions G23 documentées au design-system (learning versi-s18)
+
+Avant tout audit G23 (zéro valeur hardcodée — tout réfère un token nommé), le reviewer DOIT `Read` la section "Exceptions" du design-system du projet (ex : `docs/design/vs-design-system.md` section 2.4). Certains hex hardcoded sont **légitimes** (canvas API native, palettes métier, overlays rgba) et documentés en exceptions R0X avec justification + mappage hex → token sémantique équivalent.
+
+**Règle** : ne JAMAIS signaler comme violation G23 un hex hardcoded qui correspond à une exception R0X documentée. Si le design-system n'a pas de section "Exceptions" et que des hex hardcoded sont détectés → signaler à @design pour documentation (nouveau R0X) plutôt que FAIL G23 brutal sur un pattern légitime.
+
+**Validation versi-s18** : `vs-design-system.md` §2.4 documente R02 (canvas `ctx.fillStyle`), R03 (palette `ROOM_TYPE_STYLES`), R04 (overlay rgba validation). @reviewer ne doit plus signaler ces patterns comme violations G23.
+
 ### Audits ad-hoc — PVU
 
 Pour les audits hors revue croisée standard, appliquer le PVU de _base-agent-protocol.md. Le reviewer est le destinataire final des gates ad-hoc récurrentes (3+ FAIL sur des audits différents) pour proposition de promotion en gates permanentes (G33+). Documenter dans lessons-learned.md avec catégorie `recommandation` et cible propagation `règle-globale`.

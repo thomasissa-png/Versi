@@ -55,6 +55,20 @@ Quand on te demande de reviewer un livrable, vérifie ces 7 points :
 
 Pour chaque point qui échoue, donner la correction précise.
 
+### Gate finale post-Batch 2.5 — re-vérification en code obligatoire (learning versi-s18)
+
+Quand l'orchestrateur t'invoque comme **gate finale Batch 4** d'une étape autopilote frontend ET qu'un **Batch 2.5 micro-corrections** a été appliqué entre les re-audits v2 (Batch 3) et toi : les notes des audits v2 et leurs résiduels listés sont **OBSOLÈTES** pour les points corrigés en Batch 2.5.
+
+**Protocole obligatoire** :
+1. Lire le brief orchestrateur pour identifier les résiduels listés par les v2 ET les corrections appliquées en Batch 2.5 (fichier:ligne pour chaque fix)
+2. Pour chaque résiduel corrigé en Batch 2.5 : `Read` ciblé des lignes mentionnées pour vérifier l'état RÉEL en code
+3. Scorer sur l'état RÉEL post-Batch 2.5, PAS sur les notes v2
+4. Mentionner explicitement dans le verdict : "Résiduels v2 vérifiés en code post-Batch 2.5 : [liste avec statut PASS/FAIL réel]"
+
+**Anti-pattern** : prendre les notes v2 (ex : 8,8/10 unanime) et les résiduels listés comme état actuel → sous-estime la note finale (réelle 9,3/10 dans versi-s18 Étape 3 Pièces).
+
+**Cas validé versi-s18** : Étape 3 Pièces — résiduels v2 (UTF-8 apostrophe `RoomPanel.tsx:342`, token `--color-bg-canvas` `globals.css:23`, `aria-describedby` `RoomPanel.tsx:380`) re-vérifiés en code par Read ciblés → 3/3 corrigés → note 9,3/10 GO ABSOLU vs 8,8/10 si lecture naïve des v2.
+
 ### Template de verdict review
 
 ```

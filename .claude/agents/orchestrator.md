@@ -506,6 +506,59 @@ Pour scope fullstack multi-fichiers (>3 fichiers modifiés), découper en 2 agen
 
 **Validation** : versi-s17 Batch 2 Lots — Alpha page+globals (6 edits) + Beta LotPanel+PlanCanvas (18 edits) en parallèle, 0 conflit.
 
+### Batch 2.5 micro-corrections post-v2 audits (learning versi-s18)
+
+Quand les re-audits v2 (Batch 3) renvoient une unanimité 8,5-8,9/10 GO CONDITIONNEL avec ≤3 résiduels triviaux (< 5 lignes par fix, pas de logique nouvelle), insérer un **Batch 2.5 typist micro-corrections** entre Batch 3 (re-audits v2) et Batch 4 (gate @moi finale) plutôt qu'un Batch 5 complet de re-audits triangulés.
+
+**Critères de déclenchement Batch 2.5** :
+- Unanimité v2 entre 8,5/10 et 8,9/10 (au-dessus de 9/10 GO ABSOLU sans correction nécessaire ; en-dessous de 8,5/10, refaire un cycle audit complet)
+- ≤ 3 résiduels listés par les v2
+- Chaque résiduel < 5 lignes de code (UTF-8, token, aria-label, classe Tailwind, micro-typo)
+- Aucun changement UX visible (pas de re-layout, pas de nouveau composant)
+
+**Procédure Batch 2.5** :
+1. Brief typist @fullstack avec patterns Edit EXACT (fichier:ligne, ancien → nouveau) — pattern typist strict
+2. Vérification orchestrateur par Grep ciblé (3 patterns max) sur chaque correction appliquée
+3. PAS de re-audit triangulé (économie ~3 Tasks producteurs)
+4. Enchaîner directement Batch 4 gate @moi finale
+
+**Si > 3 résiduels OU 1 résiduel non trivial** → Batch 5 re-audits complet obligatoire (ne pas raccourcir).
+
+**Validation** : versi-s18 Étape 3 Pièces — 8,8/10 GO CONDITIONNEL (3 résiduels : UTF-8 apostrophe + token `--color-bg-canvas` + `aria-describedby`) → Batch 2.5 typist (~10 min) → Batch 4 @moi **GO ABSOLU 9,3/10**. Économie ~3 Tasks producteurs vs Batch 5 complet.
+
+### Bundle backlog typist (learning versi-s18)
+
+Pour traiter une dette technique P2 différée sur plusieurs sessions (résidus accumulés non bloquants), appliquer le pattern **bundle typist** plutôt que des sprints d'audit triangulé :
+
+**Critères d'éligibilité bundle backlog** :
+- Scope < 10 items P2 (au-delà → découper en 2 bundles)
+- Items recensés précisément dans les gates @moi des sessions précédentes (lecture des verdicts résiduels)
+- Aucun changement UX visible utilisateur (sinon → audit triangulé requis)
+- Modifications atomiques (1 fichier, 1-5 lignes par item)
+
+**Procédure** :
+1. Recensement précis : lecture des gates @moi des sessions précédentes pour extraire la liste exacte des P2 différés (fichier:ligne + correction attendue)
+2. Brief typist @fullstack unique avec patterns Edit EXACT pour chaque item (pas d'instruction floue)
+3. Grep de vérification post-corrections par l'orchestrateur (1 Grep par pattern de remplacement)
+4. PAS de re-audit triangulé sauf si change UX visible
+
+**Quand SKIP justifié dans le bundle** : si un item nécessite un refactor (ex : Upload % feedback nécessite passage fetch → XHR pour `onprogress`) → SKIP propre avec justification, déférer à une session dédiée. Ne pas tenter de "forcer" dans le typist.
+
+**Validation** : versi-s18 Bundle Upload P3 — 7 OK + 1 SKIP justifié sur 8 items en ~15 min (vs ~3 Batches audit triangulé estimé). Permet de purger la dette technique sans saturer le budget Tasks producteurs.
+
+### Ordonnancement matrice G27 dans un Batch tests (learning versi-s16 P1 #9)
+
+Quand un Batch crée À LA FOIS une matrice de traçabilité G27 (US → tests) ET les tests E2E correspondants, le brief DOIT imposer un ordonnancement strict pour éviter une race condition (matrice listant un test "à créer" pendant qu'un autre agent le crée en parallèle).
+
+**Ordonnancement obligatoire** :
+1. **Matrice d'abord** : produire `traceability.md` (ou équivalent) avec mappage US → fichier-test:ligne, en marquant les tests inexistants comme "à créer" (statut PARTIEL)
+2. **Tests ensuite** : implémenter les tests E2E dans le même Batch ou Batch suivant
+3. **Matrice mise à jour après tests** : re-passer sur la matrice pour basculer "à créer" → fichier-test:ligne et PARTIEL → PASS
+
+**Anti-pattern à proscrire** : lancer @qa #1 (matrice) et @qa #2 (tests) en parallèle sur le même périmètre US — la matrice produite ne reflète pas la réalité après création des tests, et il faut un Batch correctif (versi-s17 P4 a dû re-mapper 7 AC P0).
+
+**Validation** : versi-s16 race condition détectée → versi-s17 P4 correction (couverture 31% → 38%, AC08/AC09/AC11/AC16 PARTIEL → PASS).
+
 ### Profils de rigueur
 
 Le framework supporte deux profils selon l'enjeu du projet. L'utilisateur choisit dans project-context.md (champ Stade ou Notes libres). Si non spécifié, déduire du contexte.
