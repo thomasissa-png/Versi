@@ -1,222 +1,92 @@
-# Plan d'orchestration — Versi (versi.fr + versi-immobilier.fr)
+# Plan d'orchestration — versi-s18 Versi Studio Étape 3 Pièces
 
-> Dernière mise à jour : 2026-04-11
-> Mode : Autopilot avec checkpoint après Phase 0
-> Profil : V1-Production (toutes les gates)
+<!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
 
-<!-- SESSION: phases=5 tasks_prod=15 tasks_consult=1 -->
+## Branche
+`claude/versi-s18-pieces-autopilot-Vlowg`
 
-## Phase 0 — COMPLETE
-- @creative-strategy : TERMINÉ (brand-platform.md, personas.md, competitive-benchmark.md)
-- @legal : TERMINÉ (legal-audit.md, mentions-legales-draft.md, privacy-policy.md, rgpd-checklist.md)
-- @product-manager : TERMINÉ (product-vision.md, functional-specs.md)
-- **Checkpoint validé** : tagline rejetée (trop corporate), ton recalibré (caractère + zéro bullshit), Sophie hors V1, reste confirmé
+## Date démarrage
+2026-04-16
 
-## Estimation de sessions
+## Mode détecté
+**Projet existant V1-Production en autopilote Express 4 batches**
+- Étape 3 Pièces (US-VS-13/14/15) déjà codée — finalisation/polish
+- Pattern Express applicable : scope Alpha/Beta découpable, persona gate finale = @moi
 
-Ce projet est de complexité **moyenne** (site vitrine one-page, pas de backend/auth/BDD).
-- Phases estimées : 5 (0, 1, 2, 3, 5 — Phase 4 allégée fusionnée avec Phase 3)
-- Agents estimés : ~12 agents distincts
-- Sessions estimées : **2-3 sessions** de travail
+## Profil utilisateur
+- Niveau technique : Expert (Thomas marchand de biens, fondateur, code lui-même)
+- Persona finale Versi Studio : **@moi** (outil interne, PAS Laurent/Sophie/Nicolas)
+- Mode d'interaction : Autopilote (compteur Task producteurs ≤ 18 cible)
 
-## Adaptations pour site vitrine institutionnel
+## Profil de rigueur
+**V1-Production** — toutes gates G1-G34 actives, gate G33 anglicismes BLOQUANT, gate G34 collisions @theme BLOQUANT
 
-Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
-- **Phase 0** : allégée — @creative-strategy + @product-manager (specs légères, pas de roadmap SaaS) + @legal
-- **Phase 1** : **coeur du projet** — @ux + @design + @copywriter (le contenu et le design SONT le produit)
-- **Phase 2** : @fullstack (React statique one-page) + @qa
-- **Phase 3** : @seo + @geo (SEO important pour visibilité institutionnelle)
-- **Phase 4** : allégée — @growth (stratégie organique LinkedIn/réseau, pas de paid) + @social (LinkedIn corporate)
-- **Phase 5** : @reviewer + revue finale page par page
+## Budget Task producteurs estimé
+~10-13 sur 18 max (marge confortable)
 
-## Plan d'exécution par dépendances
+## Décision boucle visuelle G26
+**DIFFÉRÉE** sur bundle Upload + Lots + Pièces (conforme learning versi-s17 P1 #3 — outil interne = baselines par bundle, pas par étape).
 
-### Phase 0 — Fondations stratégiques
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @creative-strategy | Brand platform + personas + benchmark | project-context.md | TERMINÉ |
-| @legal | Audit juridique (mentions légales, RGPD formulaire) | project-context.md | TERMINÉ |
-| @product-manager | Specs fonctionnelles one-page + user stories | Après @creative-strategy | TERMINÉ |
+## Priorités session ordonnées
 
-### Phase 0b — Agents testeurs (après checkpoint Phase 0)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @agent-factory | Créer testeur-persona (investisseur Laurent) | TERMINÉ |
-| @agent-factory | Créer testeur-client si applicable (à évaluer — B2B sans client du persona direct sur un site vitrine) | N/A — site vitrine sans client B2B direct |
+| # | Travail | Statut | Task producteurs estimés |
+|---|---|---|---|
+| P1 | Étape 3 Pièces autopilote Express (US-VS-13/14/15) | EN COURS | ~6 |
+| P2 | F05 surface m² overlay drag PlanCanvas (résidu Lots s17) | EN ATTENTE | 0 (intégré P3 backlog) |
+| P3 | Bundle P2 backlog Upload (7 items) | EN ATTENTE | ~1 |
+| P4 | Boucle visuelle G26 bundle Upload+Lots+Pièces | EN ATTENTE | ~1 |
+| P5 | Documenter exceptions canvas vs-design-system.md | EN ATTENTE | ~1 |
+| P6 | Investigation upload-p0.spec.ts (si budget) | EN ATTENTE | ~1-2 |
 
-### Phase 1 — Conception
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @ux | Parcours utilisateur + wireframes one-page | brand-platform.md + functional-specs.md | TERMINÉ |
-| @design | Direction artistique + design system + page compositions | brand-platform.md | TERMINÉ |
-| @copywriter | Brand voice + copy de la landing page complète | brand-platform.md + wireframes | TERMINÉ |
+## Phases d'exécution
 
-### Phase 2 — Développement
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @fullstack | Setup React + développement one-page complet | design-system + copy + wireframes | TERMINÉ |
-| @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
+### Phase P1 — Étape 3 Pièces (Express 4 batches)
 
-### Phase 3 — Visibilité
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | TERMINÉ |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | TERMINÉ |
+**Composants scope** :
+- `versi-studio/src/app/vs/projects/[id]/rooms/page.tsx` (page principale Étape 3)
+- `versi-studio/src/components/vs/RoomPanel.tsx` (panneau latéral, sélecteur lot, dropdown type)
+- `versi-studio/src/components/vs/RoomCanvas.tsx` (canvas overlays pièces, drag)
+- `versi-studio/src/app/globals.css` (tokens si ajustement)
 
-### Phase 4 — Acquisition (allégée)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | TERMINÉ |
-| @social | Stratégie LinkedIn corporate | brand-platform | TERMINÉ |
+**Composants HORS scope** :
+- `RoomGrid.tsx` (Étape 4 visuels)
+- `VisualRoom.tsx`, `VisualResult.tsx` (Étape 4)
 
-### Phase 5 — Audit & Validation
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | TERMINÉ — GO CONDITIONNEL |
-| @reviewer | Actions correctives G7 + G15 | Après revue | TERMINÉ |
-| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN COURS |
+#### Batch 1 — 3 audits v1 parallèles
+- @ux : audit parcours US-VS-13/14/15
+- @design : audit visuel + gates G21/G22/G23/G31/G32
+- @copywriter : audit copy + G33 anglicismes + registre "vous impératif neutre"
+- Statut : EN COURS
 
----
+#### Batch 2 — 2 @fullstack parallèles scope disjoint (typist)
+- Alpha : `page.tsx` + `globals.css`
+- Beta : `RoomPanel.tsx` + `RoomCanvas.tsx`
+- Bonus Beta : F05 surface m² overlay drag (résidu Lots s17 — fichier `PlanCanvas.tsx` mais composant Lots, à intégrer si scope permet OU décaler P3)
+- Statut : EN ATTENTE Batch 1
 
-## versi-immobilier.fr — Phases ajoutées (sessions s3-s5)
+#### Batch 3 — 3 re-audits v2 parallèles
+- @ux + @design + @copywriter sur livrables Batch 2
+- Statut : EN ATTENTE Batch 2
 
-### Phase VI-0 — Stratégie & Specs (session s3)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @creative-strategy | Personas VI + brand platform VI | TERMINÉ |
-| @legal | Audit juridique VI (Loi Hoguet, offre ferme 7j) | TERMINÉ |
-| @product-manager | Specs fonctionnelles 10 pages | TERMINÉ |
-| @copywriter | Copy complet 10 pages | TERMINÉ |
-| @seo | SEO strategy VI | TERMINÉ |
-| @geo | GEO strategy VI | TERMINÉ |
-| @growth | Growth strategy VI | TERMINÉ |
+#### Batch 4 — Gate finale @moi
+- Statut : EN ATTENTE Batch 3
 
-### Phase VI-1 — Développement (sessions s3-s4)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @fullstack | Site complet 10 pages + serveur Express | TERMINÉ |
-| @qa | 216 tests E2E Playwright | TERMINÉ |
+## Métriques live
 
-### Phase VI-2 — Back office admin (session s5)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @product-manager | Specs back office (vi-backoffice-specs.md) | TERMINÉ |
-| @fullstack | BDD PostgreSQL + API + frontend admin + migration | TERMINÉ |
-| @design | Audit design back office (3 itérations : 6.3→8.2→9.5) | TERMINÉ |
-| @qa | Audit QA back office (3 itérations : 5.5→7.4→9.2 GO) | TERMINÉ |
-| @reviewer | Audit reviewer back office (7.4→8.8 GO CONDITIONNEL) | TERMINÉ |
-| @moi | Audit fondateur back office (7.5 — "J'utilise après corrections") | TERMINÉ |
+| Phase | Agents | Parallèles | Relances | P0 | Statut |
+|---|---|---|---|---|---|
+| P1 Batch 1 | 3 | 3 | 0 | 0 | EN COURS |
 
-### Phase VI-3 — Blog (session s5)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @seo | Stratégie blog (vi-blog-strategy.md) | TERMINÉ |
-| @growth | Évaluation blog (GO conditionnel) | TERMINÉ |
-| @fullstack | Implémentation blog (BDD, API, admin, pages publiques) | TERMINÉ |
+## Feedbacks remontants
 
-### Phase VI-4 — SEO/GEO pré-lancement (session s5)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @seo | Audit SEO final (versi.fr 7.5, VI 8/10) | TERMINÉ |
-| @geo | Audit GEO final (versi.fr 8, VI 9/10) | TERMINÉ |
-| orchestrator | Corrections SEO/GEO (og:image, sitemap, Schema, FAQ visible, favicons) | TERMINÉ |
+(à compléter au fil des batches)
 
-### Phase VI-5 — Pré-déploiement (PARTIEL)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @qa | Tests E2E back office + blog | TERMINÉ (859 + 594 lignes, commit 6c44859) |
-| @infrastructure | Déploiement Replit + DNS versi-immobilier.fr | TERMINÉ (fondateur a déployé) |
+## Décisions d'arbitrage
 
-### Phase VI-6 — SEO/GEO post-déploiement (session s8)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @seo | Audit SEO complet post-pivot acquéreur (4 passes) | TERMINÉ — 5→10/10 |
-| @geo | Audit GEO complet post-pivot acquéreur (3 passes) | TERMINÉ — 6.5→8.5/10 (plafond off-site) |
-| @fullstack | react-helmet-async + prerender + BuyerFAQ + Schema | TERMINÉ |
-| orchestrator | Corrections code (6 retours fondateur + titles + favicon) | TERMINÉ |
-| orchestrator | versi.fr : react-helmet-async + PageHead 4 pages | TERMINÉ |
-
-### Versi Invest — Préparation (session s8)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| orchestrator | Brief + project-context.md | TERMINÉ |
+(à compléter au fil des batches)
 
 ---
 
-## Versi Invest (versi-invest.fr) — Autopilot Phases 0→5
+## Archive — versi-s17 et antérieurs
 
-> Lancé : 2026-04-14 (session s9)
-> Mode : Autopilot avec checkpoint après Phase 0
-> Profil : V1-Production (toutes les gates)
-> Complexité : Moyenne (site vitrine multi-pages, simulateur côté client, formulaire + BDD inscriptions)
-> Estimation : 5 phases, ~12 agents, 2-3 sessions
-
-<!-- SESSION_VI2: phases=5 tasks_prod=13 tasks_consult=0 -->
-
-### Phase VINV-0a — Fondations stratégiques (parallèle)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @creative-strategy | Personas Versi Invest + brand platform adaptation + benchmark concurrentiel (Masteos, Bevouac, Beanstock, CGPI) | versi-invest/project-context.md | TERMINÉ |
-| @legal | Audit juridique Versi Invest (carte T, investissement immo, offre d'accompagnement, RGPD formulaire qualification) | versi-invest/project-context.md | TERMINÉ |
-
-### Phase VINV-0b — Specs fonctionnelles (après creative-strategy)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @product-manager | Specs fonctionnelles multi-pages + user stories + simulateur rendement/cashflow | brand-platform VI2 + personas VI2 | TERMINÉ |
-
-### Phase VINV-0c — Agents testeurs
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @agent-factory | Créer testeur-persona investisseur Versi Invest (si distinct de Laurent versi.fr) | personas VI2 | TERMINÉ — testeur-persona-nicolas créé |
-
-### Phase VINV-1 — Conception
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @ux | Parcours utilisateur + wireframes multi-pages | specs + brand-platform VI2 | TERMINÉ (intégré dans specs + compositions) |
-| @design | Design system adaptation + page compositions | brand-platform VI2 + wireframes | TERMINÉ |
-| @copywriter | Brand voice adaptation + copy complet toutes pages | brand-platform VI2 + wireframes | TERMINÉ |
-
-### Phase VINV-2 — Développement
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @fullstack | Site complet multi-pages + simulateur + serveur Express + BDD inscriptions | design-system + copy + specs | TERMINÉ |
-| @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
-
-### Phase VINV-3 — Visibilité
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | TERMINÉ |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | TERMINÉ |
-
-### Phase VINV-4 — Acquisition (allégée)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | TERMINÉ |
-| @social | Stratégie LinkedIn corporate Versi Invest | brand-platform | TERMINÉ |
-
-### Phase VINV-5 — Audit & Validation
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | TERMINÉ — GO CONDITIONNEL (s10) |
-| Audit multi-agents pages | 5 agents × 9 pages, itéré 3 rounds | Site complet | TERMINÉ (s10) — HomePage 8.3→9+, toutes pages 8-9+ |
-| SEO/GEO implémentation | robots.txt, sitemap, llms.txt, Schema.org, OG tags | Site développé | TERMINÉ (s10) |
-| Blog complet | 4 articles + pipeline IA autonome + crons | Site développé | TERMINÉ (s10) |
-| Comparaison VI/VI2 | 9 écarts détectés, 6 corrigés | Sites déployés | TERMINÉ (s10) |
-| Référence réelle Nanterre | 8 studios, 7 photos, chiffres vrais | Données fondateur | TERMINÉ (s10) |
-
-### Phase VINV-6 — Blog autonome (session s10)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @creative-strategy + @seo | Mots-clés 25 termes + plan éditorial 4 articles | Brand platform | TERMINÉ — audité 5→9/10 |
-| @copywriter | 4 articles complets + corrections | Mots-clés + plan | TERMINÉ — audité 7→9/10 |
-| @ia | Pipeline génération autonome (9 gates, 4-dim audit, crons) | Articles + infra | TERMINÉ — audité 5.75→9.5/10 |
-
-## Décisions clés
-
-| # | Décision | Justification |
-|---|----------|---------------|
-| 1 | React (pas Next.js) | Demande explicite du fondateur. Site statique one-page — SSR non nécessaire |
-| 2 | Pas de @data-analyst en Phase 0 | Site vitrine = pas de KPI framework complexe. Analytics basique (formulaire contact) suffit |
-| 3 | Pas de @ia | Aucune feature IA sur le site |
-| 4 | Phase 4 allégée | Budget acquisition = 0€, site vitrine = pas de funnel AARRR |
-| 5 | Profil V1-Production | Demande explicite du fondateur : 100% gates PASS |
+(Ancien contenu archivé. Voir git history pour le détail des sessions précédentes.)
