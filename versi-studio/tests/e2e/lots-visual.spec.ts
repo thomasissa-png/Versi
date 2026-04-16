@@ -119,8 +119,11 @@ async function mockBase(
       const method = route.request().method();
       if (method === "GET") {
         if (lotsStatus >= 400) {
+          // Pattern API Versi Studio : status 200 + body {success: false, error}
+          // L'app lit `json.success` pour brancher l'état d'erreur (pas le status HTTP).
+          // Cf. /api/vs/projects/[id]/lots/route.ts.
           await route.fulfill({
-            status: lotsStatus,
+            status: 200,
             contentType: "application/json",
             body: JSON.stringify({
               success: false,
@@ -307,14 +310,19 @@ test.describe("Lots — baselines visuelles", () => {
         });
       });
 
-      test("error (GET /lots renvoie 500)", async ({ page }) => {
+      test("error (GET /lots échoue — fallback opération introuvable)", async ({
+        page,
+      }) => {
+        // Quand un fetch initial échoue côté API (success: false), la page
+        // courante retourne tôt sans set `project` → rend l'écran fallback
+        // "Opération introuvable" avec CTA "Retour aux opérations".
+        // C'est l'état d'erreur RÉEL produit par l'app pour cette page.
         await mockBase(page, { lots: [], lotsStatus: 500 });
         await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
-        // Attendre que le message d'erreur global soit visible
-        await expect(
-          page.getByRole("button", { name: /^réessayer$/i })
-        ).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText(/opération introuvable/i)).toBeVisible({
+          timeout: 10_000,
+        });
 
         await page.waitForTimeout(300);
 
