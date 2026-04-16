@@ -424,7 +424,7 @@ Pattern validé en versi-s13 : Étape 0 Dashboard Versi Studio passée de 7.1/10
 Le framework supporte deux profils selon l'enjeu du projet. L'utilisateur choisit dans project-context.md (champ Stade ou Notes libres). Si non spécifié, déduire du contexte.
 
 **Profil V1-Production** (défaut pour tout projet en V1/Production/Croissance) :
-- Toutes les 32 gates G1-G32 (BLOQUANT + REQUIS)
+- Toutes les 34 gates G1-G34 (BLOQUANT + REQUIS)
 - Gates testeur-persona GP1-GP10 et testeur-client GC1-GC10
 - Checkpoint validation specs obligatoire entre Phase 1 et Phase 2
 - Matrice de traçabilité US→tests obligatoire

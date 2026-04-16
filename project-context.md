@@ -379,7 +379,7 @@
 
 ### Mémo de reprise
 
-**Branche** : `claude/launch-upload-autopilot-Q4wiv`
+**Branche** : `claude/resume-versi-s16-upload-cK4ex`
 **Date de clôture** : 2026-04-16
 **Session** : versi-s15 — Autopilote Étape 1 Upload (US-VS-02)
 **Dernier commit** : voir `git log --oneline -1`

@@ -158,6 +158,8 @@ Classifier les features par niveau de risque :
 
 ### Matrice de traçabilité (obligatoire — Gate G27)
 
+**IMPORTANT — Batch 1 obligatoire (learning versi-s15)** : la matrice de traçabilité est un livrable @qa DÉDIÉ, produit en **Batch 1 de chaque étape** (avant l'audit qualité), jamais en Batch correction. Le brief doit imposer : format tableau strict « AC → Given-When-Then → fichier-test:ligne », liste exhaustive des AC à mapper, max 1 Read par fichier de test. Ne JAMAIS combiner traçabilité + audit qualité dans le même brief @qa — bottleneck validé s15 (2 timeouts consécutifs). Format de sortie fixe : `docs/qa/[feature]-traceability.md`.
+
 Chaque user story de `docs/product/functional-specs.md` DOIT avoir au moins 1 test E2E ou intégration correspondant. Documenter la traçabilité dans `docs/qa/TESTING.md` :
 
 ```

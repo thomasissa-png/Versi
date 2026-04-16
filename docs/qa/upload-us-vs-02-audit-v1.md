@@ -1,7 +1,7 @@
 # Audit QA v1 — US-VS-02 Uploader des plans (Étape 1 Upload autopilote)
 
 **Session** : versi-s15
-**Branche** : `claude/launch-upload-autopilot-Q4wiv`
+**Branche** : `claude/launch-upload-autopilot-Q4wiv` (renomm\u00e9e `claude/resume-versi-s16-upload-cK4ex` en versi-s16 \u2014 historique pr\u00e9serv\u00e9)
 **Auditeur** : @qa
 **Date** : 2026-04-16
 **Scope** : `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` (351 lignes) + `DropZone.tsx` + `PlanThumbnail.tsx` + `Stepper.tsx`

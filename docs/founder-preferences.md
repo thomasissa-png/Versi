@@ -2,7 +2,7 @@
 
 > Source de vérité pour l'agent @moi.
 > Mis à jour automatiquement depuis `docs/lessons-learned.md` (catégorie "préférence fondateur").
-> Dernière mise à jour : 2026-04-13
+> Dernière mise à jour : 2026-04-16 (versi-s16 — ajout section Langue française depuis learning versi-s15)
 
 ## Préférences validées
 
@@ -89,3 +89,15 @@
 - **H1 court** — pattern versi.fr "Quatre métiers. Un cycle maîtrisé." 2 lignes max.
 - **Description versi.fr sacrée** — ne pas modifier sans demande explicite.
 - **Délégation aux agents = principe non négociable** — Thomas veut que les agents spécialisés fassent le travail, même si c'est plus lent (3 relances plutôt qu'écriture manuelle par l'orchestrateur). La qualité de la délégation prime sur la vitesse. (versi-s12)
+
+### Langue française (session s15)
+- **Zéro anglicisme en copy client-facing = P0 bloquant.** Tout anglicisme visible en surface utilisateur est traité comme une typo majeure ou un contraste WCAG FAIL. Non négociable.
+- **Liste noire (remplacement obligatoire)** :
+  - `upload` / `uploader` / `uploadé` / `uploadez` → `déposer` / `déposé` / `déposez`
+  - `download` / `downloader` / `downloadé` → `télécharger` / `téléchargé`
+  - `feedback` → `retour` (utilisateur)
+  - `meeting` → `réunion` / `rendez-vous`
+  - `forwarder` → `transférer` / `transmettre`
+- **Exceptions tolérées** (usage FR courant sans équivalent idiomatique) : `scroll` / `scroller`, `clic` / `cliquer`, `email`, `site`, `login` / `logout`, `cookie`.
+- **Portée** : code frontend (`.tsx`, `.jsx`), specs user-facing, tests E2E (labels visuels `getByText`), micro-copy, ARIA labels. N'affecte PAS les commentaires code, identifiants techniques, noms de variables/fonctions, noms d'endpoints API.
+- **Gate associée** : G33 (BLOQUANT) dans CLAUDE.md. Contrôle par @copywriter, @ux, @seo, @fullstack à chaque livrable.
