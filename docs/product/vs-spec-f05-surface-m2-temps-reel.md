@@ -3,6 +3,7 @@
 **Date** : 2026-04-16
 **Session** : versi-s19 (résidu P1 UX Étape 2 Lots — reporté de s17 → s18 → s19)
 **Persona** : Thomas, marchand de biens (outil interne)
+**Composant cible** : `versi-studio/src/components/vs/PlanCanvas.tsx`
 **Statut** : SPEC — À valider par Thomas avant implémentation
 
 ---
