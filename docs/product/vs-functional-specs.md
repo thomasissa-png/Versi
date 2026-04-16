@@ -79,6 +79,112 @@ L'étape "dossier" (génération PDF) est explicitement hors scope V1.
 
 ---
 
+### US-VS-00 : Consulter la liste des opérations (Dashboard)
+
+**Persona** : Thomas
+**Epic** : Dashboard
+**Dépendances** : Aucune
+**Priorité RICE** : R=10 I=10 C=10 E=1 → Score=100
+
+#### Job-to-be-done
+En tant que Thomas, je veux consulter la liste de mes opérations en cours afin de reprendre une opération existante ou d'en démarrer une nouvelle depuis un point d'entrée unique.
+
+#### Contexte de navigation
+- **Page/écran d'origine** : Toute URL `/vs` — point d'entrée principal de Versi Studio
+- **Déclencheur** : Chargement de la page `/vs` (montage du composant, requête GET automatique)
+- **Page/écran de destination (succès — clic card)** : `/vs/projects/[id]/upload` — reprise de l'opération à l'étape courante
+- **Page/écran de destination (échec)** : Reste sur `/vs` avec message d'erreur inline + bouton "Réessayer"
+
+#### Données et champs
+| Champ | Type | Obligatoire | Validation | Limites | Exemple |
+|---|---|---|---|---|---|
+| adresse | string | Affiché | N/A (lecture seule) | 5–200 caractères | "12 rue des Lilas, 75011 Paris" |
+| type_bien | enum | Affiché | Valeurs : immeuble, maison, appartement | N/A | "immeuble" |
+| surface_totale | number\|null | Affiché si non null | N/A (lecture seule) | 10–9999 m² | 350 |
+| status | enum | Affiché (badge) | draft, step_1_complete, step_2_complete, step_3_complete, completed | N/A | "step_2_complete" |
+| created_at | ISO8601 | Affiché | N/A | N/A | "2026-04-15T10:30:00Z" |
+
+#### 5 états UI (Gate G21)
+| État | Comportement | Message/Affichage |
+|---|---|---|
+| Défaut (loading) | Requête GET /api/vs/projects en cours au montage | Spinner centré + "Chargement…" — spinner border-t-interactive-primary, 6×6 |
+| Vide | Requête réussie, tableau retourne `[]` | Icône immeuble + "Aucune opération pour l'instant. Créez votre première opération pour commencer." + bouton primaire "+ Nouvelle opération" |
+| Peuplé | Requête réussie, >= 1 opération | Grille de cards (gap-md), triées par created_at DESC — chaque card affiche adresse, type_bien, surface si non null, badge statut coloré, date de création formatée "DD MMMM YYYY" |
+| Erreur | Échec réseau ou réponse non-200 | Message inline rouge "Impossible de charger les opérations." + lien "Réessayer" (re-déclenche fetchProjects) |
+| Succès (navigation) | Clic sur une card | Redirection immédiate vers `/vs/projects/[id]/upload` |
+
+#### Critères d'acceptance
+
+**Happy path :**
+- [ ] GIVEN Thomas charge `/vs` et possède 3 opérations en base WHEN le composant monte THEN une requête GET /api/vs/projects est émise et 3 cards s'affichent triées par created_at DESC (la plus récente en premier)
+- [ ] GIVEN 3 cards sont affichées WHEN Thomas clique sur la 2e card THEN il est redirigé vers `/vs/projects/[id]/upload` avec l'id correct de cette opération
+- [ ] GIVEN une card a status="step_2_complete" WHEN la card s'affiche THEN le badge affiche "Lots découpés" avec fond warning/10 et texte warning
+- [ ] GIVEN une card a status="completed" WHEN la card s'affiche THEN le badge affiche "Terminé" avec fond success/10 et texte success
+- [ ] GIVEN une opération a surface_totale=null WHEN la card s'affiche THEN aucune mention de surface n'est affichée (champ absent, pas "null m²")
+
+**Cas d'erreur :**
+- [ ] GIVEN le réseau échoue lors du GET /api/vs/projects WHEN l'erreur est catchée THEN le spinner disparaît et le message "Impossible de charger les opérations." + lien "Réessayer" s'affichent
+- [ ] GIVEN Thomas clique "Réessayer" WHEN la requête repart THEN le spinner réapparaît et le flux reprend depuis l'état loading
+
+**Cas limites :**
+- [ ] GIVEN Thomas charge `/vs` et n'a aucune opération WHEN le GET retourne `[]` THEN l'état vide s'affiche avec le CTA "+ Nouvelle opération" (pas une liste vide sans message)
+- [ ] GIVEN Thomas quitte `/vs` avant la fin du chargement (navigation rapide) WHEN le composant est démonté THEN l'AbortController annule la requête (pas d'erreur setState sur composant démonté)
+- [ ] GIVEN Thomas a 20 opérations WHEN la liste s'affiche THEN toutes les 20 cards s'affichent (pas de pagination en V1 — pas de limite côté client)
+
+**Permissions :**
+- [ ] GIVEN V1 sans auth WHEN n'importe quel visiteur charge `/vs` THEN toutes les opérations de la base sont listées (pas de filtrage par utilisateur en V1)
+
+**Données existantes :**
+- [ ] GIVEN Thomas a des opérations avec des statuts variés (draft, step_1_complete, completed) WHEN la liste charge THEN chaque card affiche le badge correspondant au statut réel de l'opération
+
+#### Payload API
+- **Endpoint** : `GET /api/vs/projects`
+- **Authentification** : publique (V1 sans auth)
+- **Rate limit** : N/A (lecture seule)
+- **Request body** : GET uniquement — pas de body
+- **Response succès** : `{ "success": true, "data": [{ "id": uuid, "adresse": string, "type_bien": string, "surface_totale": number|null, "status": string, "created_at": ISO8601 }] }` — status 200, trié par created_at DESC
+- **Response erreur** : `{ "success": false, "error": string }` — status 500
+
+#### Events analytics
+| Event | Trigger | Propriétés | Funnel |
+|---|---|---|---|
+| `vs_dashboard_loaded` | GET /api/vs/projects 200 | projects_count, has_completed | activation |
+| `vs_project_opened` | Clic sur une card | project_id, project_status, position_in_list | retention |
+| `vs_new_project_cta_clicked` | Clic "+ Nouvelle opération" (état vide ou header) | source: "empty_state"\|"header" | activation |
+
+#### Scénarios persona concrets
+1. Thomas revient sur Versi Studio le lendemain d'avoir créé 2 opérations. Il charge `/vs`. La liste s'affiche avec 2 cards — la plus récente (rue des Lilas, créée hier soir) apparaît en premier. Il clique dessus pour reprendre l'upload des plans. Résultat attendu : redirection vers `/vs/projects/[id]/upload`.
+2. Thomas ouvre Versi Studio pour la première fois. Il n'a aucune opération. La page affiche l'état vide avec l'icône immeuble et le bouton "+ Nouvelle opération". Il clique. Le formulaire de création s'affiche. Résultat attendu : transition vers US-VS-01.
+3. Thomas a une opération "Terminé" (badge vert) et deux "Brouillon" (badge gris). Il consulte le dashboard pour vérifier l'avancement. Résultat attendu : 3 cards avec les bons badges colorés selon leur statut.
+4. Thomas est en déplacement avec une connexion 3G instable. Le chargement échoue. Il voit "Impossible de charger les opérations." et clique "Réessayer". La 2e tentative réussit. Résultat attendu : la liste s'affiche correctement sans rechargement de page.
+5. Thomas ferme l'onglet pendant le chargement initial. Résultat attendu : aucune erreur console "Can't perform a React state update on an unmounted component" — l'AbortController a annulé la requête proprement.
+
+#### Definition of Done
+- [ ] UI implémentée conforme aux 5 états (loading, vide, peuplé, erreur, succès-navigation)
+- [ ] API GET /api/vs/projects fonctionnelle (retour trié par created_at DESC)
+- [ ] Scénarios persona reproductibles
+- [ ] Test E2E écrit (référencé dans matrice traçabilité)
+- [ ] Screenshot conforme au design (3 états : vide, peuplé, erreur)
+
+#### Notes pour @qa
+- Tester le cas AbortController : naviguer rapidement hors de `/vs` pendant le chargement → vérifier absence d'erreur console
+- Tester le badge statut pour chacune des 5 valeurs possibles (draft, step_1_complete, step_2_complete, step_3_complete, completed) → badge couleur et libellé corrects
+- Tester le tri : créer 3 projets à quelques secondes d'intervalle → vérifier ordre DESC
+- Non-régression US-VS-01 : vérifier que le CTA "Nouvelle opération" du header et le CTA de l'état vide déclenchent bien le même showForm
+
+#### Notes pour @ux
+- L'état vide doit inciter à l'action : icône + message encourageant + CTA primaire bien visible
+- La card doit visuellement indiquer qu'elle est cliquable (hover border + shadow)
+- Le badge statut doit être lisible à 12px (contraste >= 4.5:1 sur fond coloré)
+- Focus-visible sur chaque card (outline-2 outline-offset-2)
+
+#### Notes pour @fullstack
+- L'AbortController est déjà implémenté dans `page.tsx` — s'assurer que la dépendance `useCallback` est stable pour éviter des re-fetches indésirables
+- Le tri created_at DESC doit être garanti par la query SQL (ORDER BY created_at DESC), pas par un sort côté client
+- STATUS_LABELS et STATUS_COLORS sont définis dans `page.tsx` — s'assurer que toute nouvelle valeur de statut a un fallback ("bg-bg-default text-text-muted border border-border-default")
+
+---
+
 ### US-VS-01 : Créer un nouveau projet Versi Studio
 
 **Persona** : Thomas
