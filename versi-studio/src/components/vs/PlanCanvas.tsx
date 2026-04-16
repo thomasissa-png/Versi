@@ -20,8 +20,16 @@ import {
   type WheelEvent as ReactWheelEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { VsLot, ZoneRect } from "@/lib/vs/types";
-import { getLotColor } from "@/lib/vs/types";
+import type { VsLot, ZoneRect, Zone, ZonePolygonPoint } from "@/lib/vs/types";
+import {
+  getLotColor,
+  isPolygon,
+  parseZone,
+  zoneBoundingBox,
+  zonesOverlap as zonesOverlapShared,
+  pointInPolygon,
+  polygonCentroid,
+} from "@/lib/vs/types";
 
 // ─── Types internes ───────────────────────────────────────────────
 
@@ -36,12 +44,13 @@ type HandlePosition =
   | "w";
 
 interface DragState {
-  type: "move" | "resize";
+  type: "move" | "resize" | "move-polygon" | "move-vertex";
   lotId: string;
   handle?: HandlePosition;
+  vertexIndex?: number; // pour move-vertex
   startMouseX: number;
   startMouseY: number;
-  startZone: ZoneRect;
+  startZone: Zone;
 }
 
 interface PanState {
@@ -62,10 +71,14 @@ interface PlanCanvasProps {
   lots: VsLot[];
   selectedLotId: string | null;
   onSelectLot: (lotId: string | null) => void;
-  onUpdateLotZone: (lotId: string, zone: ZoneRect) => void;
+  onUpdateLotZone: (lotId: string, zone: Zone) => void;
   onDeleteLot?: (lotId: string) => void;
   lotIndexMap: Map<string, number>;
   m2PerPixel: number | null;
+  // Mode dessin polygone (versi-s20 phase 2)
+  drawingPolygon?: boolean;
+  onPolygonComplete?: (points: ZonePolygonPoint[]) => void;
+  onCancelDrawingPolygon?: () => void;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -88,14 +101,10 @@ const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
-function parseZoneData(lot: VsLot): ZoneRect {
-  const zd = lot.zone_data as unknown as ZoneRect;
-  return {
-    x_percent: zd.x_percent ?? 10,
-    y_percent: zd.y_percent ?? 10,
-    width_percent: zd.width_percent ?? 20,
-    height_percent: zd.height_percent ?? 20,
-  };
+// parseZoneData : retourne un Zone (rect ou polygon) depuis le zone_data brut.
+// Backward compat : zones legacy sans champ "type" sont des rect.
+function parseZoneData(lot: VsLot): Zone {
+  return parseZone(lot.zone_data as Record<string, unknown>);
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -105,27 +114,13 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function zonesOverlap(a: ZoneRect, b: ZoneRect): boolean {
-  const aRight = a.x_percent + a.width_percent;
-  const aBottom = a.y_percent + a.height_percent;
-  const bRight = b.x_percent + b.width_percent;
-  const bBottom = b.y_percent + b.height_percent;
-
-  return (
-    a.x_percent < bRight &&
-    aRight > b.x_percent &&
-    a.y_percent < bBottom &&
-    aBottom > b.y_percent
-  );
-}
-
 function getOverlappingLotIds(lots: VsLot[]): Set<string> {
   const overlapping = new Set<string>();
   for (let i = 0; i < lots.length; i++) {
     for (let j = i + 1; j < lots.length; j++) {
       const zoneA = parseZoneData(lots[i]);
       const zoneB = parseZoneData(lots[j]);
-      if (lots[i].floor_number === lots[j].floor_number && zonesOverlap(zoneA, zoneB)) {
+      if (lots[i].floor_number === lots[j].floor_number && zonesOverlapShared(zoneA, zoneB)) {
         overlapping.add(lots[i].id);
         overlapping.add(lots[j].id);
       }
@@ -237,6 +232,9 @@ export default function PlanCanvas({
   onDeleteLot,
   lotIndexMap,
   m2PerPixel,
+  drawingPolygon = false,
+  onPolygonComplete,
+  onCancelDrawingPolygon,
 }: PlanCanvasProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lotId: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -257,6 +255,20 @@ export default function PlanCanvas({
   // ─── Viewport (zoom + pan) — versi-s20 ──────────────────────────
   const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const panRef = useRef<PanState | null>(null);
+
+  // ─── Dessin polygone — versi-s20 phase 2 ────────────────────────
+  const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<ZonePolygonPoint[]>([]);
+  const [drawingCursorPos, setDrawingCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Reset des points quand on quitte le mode dessin (cleanup déclenché par parent)
+  const [prevDrawingPolygon, setPrevDrawingPolygon] = useState(drawingPolygon);
+  if (drawingPolygon !== prevDrawingPolygon) {
+    setPrevDrawingPolygon(drawingPolygon);
+    if (!drawingPolygon) {
+      setDrawingPolygonPoints([]);
+      setDrawingCursorPos(null);
+    }
+  }
 
   // ─── Charger l'image du plan ──────────────────────────────────
   // Reset imageLoaded quand l'URL change — setState pendant render (pattern
@@ -376,7 +388,7 @@ export default function PlanCanvas({
       ctx.fillText("Aucun plan disponible", w / 2, h / 2);
     }
 
-    // Dessiner les lots
+    // Dessiner les lots (rect + polygon)
     for (const lot of lots) {
       const zone = parseZoneData(lot);
       const index = lotIndexMap.get(lot.id) ?? 0;
@@ -385,19 +397,9 @@ export default function PlanCanvas({
       const isHovered = lot.id === hoveredLotId;
       const isOverlapping = overlappingIds.has(lot.id);
 
-      const x = (zone.x_percent / 100) * w;
-      const y = (zone.y_percent / 100) * h;
-      const lw = (zone.width_percent / 100) * w;
-      const lh = (zone.height_percent / 100) * h;
-
-      // Remplissage semi-transparent
-      ctx.fillStyle = hexToRgba(color, LOT_OPACITY);
-      ctx.fillRect(x, y, lw, lh);
-
-      // Contour
+      // Couleurs et largeurs de bordure (mutualisé)
       let borderWidth = DEFAULT_BORDER_WIDTH;
       let borderColor = color;
-
       if (isOverlapping) {
         borderColor = tokenErrorStrong;
         borderWidth = HOVER_BORDER_WIDTH;
@@ -412,46 +414,160 @@ export default function PlanCanvas({
         }
       }
 
-      ctx.strokeStyle = borderColor;
-      ctx.lineWidth = borderWidth;
-      ctx.strokeRect(x, y, lw, lh);
+      let labelX: number;
+      let labelY: number;
+      let polygonHandlePoints: Array<{ x: number; y: number }> | null = null;
 
-      // Label du lot
+      if (isPolygon(zone)) {
+        // ─── Tracé polygone ──────────────────────────────────────
+        ctx.beginPath();
+        zone.points.forEach((p, i) => {
+          const px = (p.x_percent / 100) * w;
+          const py = (p.y_percent / 100) * h;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        ctx.fillStyle = hexToRgba(color, LOT_OPACITY);
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = borderWidth;
+        ctx.stroke();
+
+        // Label : centroïde du polygone
+        const centroid = polygonCentroid(zone.points);
+        labelX = (centroid.x_percent / 100) * w;
+        labelY = (centroid.y_percent / 100) * h;
+
+        // Poignées : un cercle sur chaque sommet si sélectionné
+        if (isSelected) {
+          polygonHandlePoints = zone.points.map((p) => ({
+            x: (p.x_percent / 100) * w,
+            y: (p.y_percent / 100) * h,
+          }));
+        }
+      } else {
+        // ─── Tracé rectangle (legacy) ────────────────────────────
+        const x = (zone.x_percent / 100) * w;
+        const y = (zone.y_percent / 100) * h;
+        const lw = (zone.width_percent / 100) * w;
+        const lh = (zone.height_percent / 100) * h;
+
+        ctx.fillStyle = hexToRgba(color, LOT_OPACITY);
+        ctx.fillRect(x, y, lw, lh);
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = borderWidth;
+        ctx.strokeRect(x, y, lw, lh);
+
+        labelX = x + 6;
+        labelY = y + 18;
+
+        // Poignées rect si sélectionné
+        if (isSelected) {
+          const handles = getHandlePositions(x, y, lw, lh);
+          for (const handle of handles) {
+            ctx.fillStyle = tokenTextInverse;
+            ctx.strokeStyle = tokenTextDefault;
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(
+              handle.x - HANDLE_SIZE / 2,
+              handle.y - HANDLE_SIZE / 2,
+              HANDLE_SIZE,
+              HANDLE_SIZE
+            );
+            ctx.strokeRect(
+              handle.x - HANDLE_SIZE / 2,
+              handle.y - HANDLE_SIZE / 2,
+              HANDLE_SIZE,
+              HANDLE_SIZE
+            );
+          }
+        }
+      }
+
+      // Label du lot (commun rect + polygon)
       ctx.fillStyle = tokenTextDefault;
       ctx.font = "bold 12px system-ui, sans-serif";
-      ctx.textAlign = "left";
-      const labelX = x + 6;
-      const labelY = y + 18;
-      // Fond du label (overlay translucide, pas un token)
+      ctx.textAlign = isPolygon(zone) ? "center" : "left";
       const textMetrics = ctx.measureText(lot.name);
+      const labelBgX = isPolygon(zone)
+        ? labelX - textMetrics.width / 2 - 2
+        : labelX - 2;
       ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-      ctx.fillRect(labelX - 2, labelY - 13, textMetrics.width + 4, 16);
+      ctx.fillRect(labelBgX, labelY - 13, textMetrics.width + 4, 16);
       ctx.fillStyle = tokenTextDefault;
       ctx.fillText(lot.name, labelX, labelY);
 
-      // Poignées de resize si sélectionné
-      if (isSelected) {
-        const handles = getHandlePositions(x, y, lw, lh);
-        for (const handle of handles) {
+      // Poignées polygon (cercles sur chaque sommet) après le label pour rester visibles
+      if (polygonHandlePoints) {
+        for (const pt of polygonHandlePoints) {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, HANDLE_SIZE / 2 + 1, 0, Math.PI * 2);
           ctx.fillStyle = tokenTextInverse;
+          ctx.fill();
           ctx.strokeStyle = tokenTextDefault;
           ctx.lineWidth = 1.5;
-          ctx.fillRect(
-            handle.x - HANDLE_SIZE / 2,
-            handle.y - HANDLE_SIZE / 2,
-            HANDLE_SIZE,
-            HANDLE_SIZE
-          );
-          ctx.strokeRect(
-            handle.x - HANDLE_SIZE / 2,
-            handle.y - HANDLE_SIZE / 2,
-            HANDLE_SIZE,
-            HANDLE_SIZE
-          );
+          ctx.stroke();
         }
       }
     }
-  }, [lots, selectedLotId, hoveredLotId, imageLoaded, planImageUrl, lotIndexMap, overlappingIds, viewport]);
+
+    // ─── Polygone en cours de tracé (mode dessin) ────────────────
+    if (drawingPolygonPoints.length > 0) {
+      ctx.strokeStyle = tokenInteractivePrimary;
+      ctx.lineWidth = 2;
+      ctx.fillStyle = hexToRgba(tokenInteractivePrimary, 0.15);
+
+      // Ligne brisée entre les points existants
+      ctx.beginPath();
+      drawingPolygonPoints.forEach((p, i) => {
+        const px = (p.x_percent / 100) * w;
+        const py = (p.y_percent / 100) * h;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+
+      // Ligne pointillée du dernier point au curseur
+      if (drawingCursorPos) {
+        const lastP = drawingPolygonPoints[drawingPolygonPoints.length - 1];
+        const lastX = (lastP.x_percent / 100) * w;
+        const lastY = (lastP.y_percent / 100) * h;
+        ctx.save();
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(drawingCursorPos.x, drawingCursorPos.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Cercles sur les points existants — premier mis en évidence (cercle plus gros)
+      drawingPolygonPoints.forEach((p, i) => {
+        const px = (p.x_percent / 100) * w;
+        const py = (p.y_percent / 100) * h;
+        const radius = i === 0 ? 7 : 4;
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fillStyle = i === 0 ? tokenInteractivePrimary : tokenTextInverse;
+        ctx.fill();
+        ctx.strokeStyle = tokenInteractivePrimary;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+  }, [
+    lots,
+    selectedLotId,
+    hoveredLotId,
+    imageLoaded,
+    planImageUrl,
+    lotIndexMap,
+    overlappingIds,
+    viewport,
+    drawingPolygonPoints,
+    drawingCursorPos,
+  ]);
 
   // ─── Redessiner à chaque changement ───────────────────────────
 
@@ -535,6 +651,7 @@ export default function PlanCanvas({
     };
   }
 
+  // hitTestHandle (rect uniquement) — pour les polygones, on utilise hitTestPolygonVertex
   function hitTestHandle(
     px: number,
     py: number,
@@ -542,8 +659,9 @@ export default function PlanCanvas({
   ): HandlePosition | null {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
     const zone = parseZoneData(lot);
+    if (isPolygon(zone)) return null; // les polygones ont leurs propres sommets
+    const rect = canvas.getBoundingClientRect();
     const x = (zone.x_percent / 100) * rect.width;
     const y = (zone.y_percent / 100) * rect.height;
     const w = (zone.width_percent / 100) * rect.width;
@@ -561,6 +679,30 @@ export default function PlanCanvas({
     return null;
   }
 
+  // hitTestPolygonVertex : retourne l'index du sommet sous le curseur, ou null
+  function hitTestPolygonVertex(
+    px: number,
+    py: number,
+    lot: VsLot
+  ): number | null {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const zone = parseZoneData(lot);
+    if (!isPolygon(zone)) return null;
+    const rect = canvas.getBoundingClientRect();
+    for (let i = 0; i < zone.points.length; i++) {
+      const vx = (zone.points[i].x_percent / 100) * rect.width;
+      const vy = (zone.points[i].y_percent / 100) * rect.height;
+      if (
+        Math.abs(px - vx) <= HANDLE_HIT_SIZE / 2 &&
+        Math.abs(py - vy) <= HANDLE_HIT_SIZE / 2
+      ) {
+        return i;
+      }
+    }
+    return null;
+  }
+
   function hitTestLot(px: number, py: number): string | null {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -570,13 +712,19 @@ export default function PlanCanvas({
     for (let i = lots.length - 1; i >= 0; i--) {
       const lot = lots[i];
       const zone = parseZoneData(lot);
-      const x = (zone.x_percent / 100) * rect.width;
-      const y = (zone.y_percent / 100) * rect.height;
-      const w = (zone.width_percent / 100) * rect.width;
-      const h = (zone.height_percent / 100) * rect.height;
-
-      if (px >= x && px <= x + w && py >= y && py <= y + h) {
-        return lot.id;
+      if (isPolygon(zone)) {
+        // Convertir px/py en % puis tester pointInPolygon
+        const xp = (px / rect.width) * 100;
+        const yp = (py / rect.height) * 100;
+        if (pointInPolygon(xp, yp, zone.points)) return lot.id;
+      } else {
+        const x = (zone.x_percent / 100) * rect.width;
+        const y = (zone.y_percent / 100) * rect.height;
+        const w = (zone.width_percent / 100) * rect.width;
+        const h = (zone.height_percent / 100) * rect.height;
+        if (px >= x && px <= x + w && py >= y && py <= y + h) {
+          return lot.id;
+        }
       }
     }
     return null;
@@ -629,21 +777,54 @@ export default function PlanCanvas({
 
     const { px, py } = getCanvasCoords(e);
 
+    // ─── MODE DESSIN POLYGONE — versi-s20 phase 2 ────────────────
+    // Clic gauche dans le mode dessin = ajouter un point au polygone en cours
+    if (drawingPolygon && e.button === 0) {
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
+      const rect = canvasEl.getBoundingClientRect();
+      const xp = (px / rect.width) * 100;
+      const yp = (py / rect.height) * 100;
+      // Clamp dans 0-100
+      const clampedX = clamp(xp, 0, 100);
+      const clampedY = clamp(yp, 0, 100);
+      setDrawingPolygonPoints((prev) => [...prev, { x_percent: clampedX, y_percent: clampedY }]);
+      return;
+    }
+
     // Vérifier d'abord les poignées du lot sélectionné
     if (selectedLotId) {
       const selectedLot = lots.find((l) => l.id === selectedLotId);
       if (selectedLot) {
-        const handle = hitTestHandle(px, py, selectedLot);
-        if (handle) {
-          dragRef.current = {
-            type: "resize",
-            lotId: selectedLotId,
-            handle,
-            startMouseX: px,
-            startMouseY: py,
-            startZone: parseZoneData(selectedLot),
-          };
-          return;
+        const selectedZone = parseZoneData(selectedLot);
+        // Polygon : test sommet
+        if (isPolygon(selectedZone)) {
+          const vertexIdx = hitTestPolygonVertex(px, py, selectedLot);
+          if (vertexIdx !== null) {
+            dragRef.current = {
+              type: "move-vertex",
+              lotId: selectedLotId,
+              vertexIndex: vertexIdx,
+              startMouseX: px,
+              startMouseY: py,
+              startZone: selectedZone,
+            };
+            return;
+          }
+        } else {
+          // Rect : test poignée resize
+          const handle = hitTestHandle(px, py, selectedLot);
+          if (handle) {
+            dragRef.current = {
+              type: "resize",
+              lotId: selectedLotId,
+              handle,
+              startMouseX: px,
+              startMouseY: py,
+              startZone: selectedZone,
+            };
+            return;
+          }
         }
       }
     }
@@ -654,12 +835,13 @@ export default function PlanCanvas({
       onSelectLot(hitLotId);
       const hitLot = lots.find((l) => l.id === hitLotId);
       if (hitLot) {
+        const hitZone = parseZoneData(hitLot);
         dragRef.current = {
-          type: "move",
+          type: isPolygon(hitZone) ? "move-polygon" : "move",
           lotId: hitLotId,
           startMouseX: px,
           startMouseY: py,
-          startZone: parseZoneData(hitLot),
+          startZone: hitZone,
         };
       }
     } else {
@@ -687,24 +869,64 @@ export default function PlanCanvas({
     const { px, py } = getCanvasCoords(e);
     const canvas = canvasEl;
 
+    // ─── MODE DESSIN POLYGONE — tracking curseur ──────────────────
+    if (drawingPolygon) {
+      // Stocker la position curseur en pixels logiques (canvas-relatif)
+      setDrawingCursorPos({ x: px, y: py });
+      if (canvas) canvas.style.cursor = "crosshair";
+      return;
+    }
+
     if (dragRef.current && canvas) {
-      const { type, lotId, handle, startMouseX, startMouseY, startZone } =
+      const { type, lotId, handle, vertexIndex, startMouseX, startMouseY, startZone } =
         dragRef.current;
       const rect = canvas.getBoundingClientRect();
       const dxPercent = ((px - startMouseX) / rect.width) * 100;
       const dyPercent = ((py - startMouseY) / rect.height) * 100;
 
-      let newZone: ZoneRect;
+      let newZone: Zone;
 
-      if (type === "move") {
+      if (type === "move-polygon" && isPolygon(startZone)) {
+        // Translation de tous les sommets
+        // Bornes : aucun sommet ne doit sortir [0,100]
+        const xs = startZone.points.map((p) => p.x_percent);
+        const ys = startZone.points.map((p) => p.y_percent);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const clampedDx = clamp(dxPercent, -minX, 100 - maxX);
+        const clampedDy = clamp(dyPercent, -minY, 100 - maxY);
         newZone = {
+          type: "polygon",
+          points: startZone.points.map((p) => ({
+            x_percent: p.x_percent + clampedDx,
+            y_percent: p.y_percent + clampedDy,
+          })),
+        };
+      } else if (type === "move-vertex" && isPolygon(startZone) && vertexIndex !== undefined) {
+        // Déplacer un sommet individuel
+        const original = startZone.points[vertexIndex];
+        const newPt = {
+          x_percent: clamp(original.x_percent + dxPercent, 0, 100),
+          y_percent: clamp(original.y_percent + dyPercent, 0, 100),
+        };
+        newZone = {
+          type: "polygon",
+          points: startZone.points.map((p, i) => (i === vertexIndex ? newPt : p)),
+        };
+      } else if (type === "move" && !isPolygon(startZone)) {
+        newZone = {
+          type: "rect",
           x_percent: clamp(startZone.x_percent + dxPercent, 0, 100 - startZone.width_percent),
           y_percent: clamp(startZone.y_percent + dyPercent, 0, 100 - startZone.height_percent),
           width_percent: startZone.width_percent,
           height_percent: startZone.height_percent,
         };
-      } else {
+      } else if (!isPolygon(startZone)) {
         newZone = computeResize(startZone, handle!, dxPercent, dyPercent);
+      } else {
+        return; // état drag invalide, ignorer
       }
 
       onUpdateLotZone(lotId, newZone);
@@ -717,19 +939,33 @@ export default function PlanCanvas({
         if (!canvasEl || !containerEl) return;
         const canvasRect = canvasEl.getBoundingClientRect();
         const containerRect = containerEl.getBoundingClientRect();
-        // Surface m² calculée en coords LOGIQUES (calibration faite à scale=1)
-        const widthPx = (newZone.width_percent / 100) * canvasRect.width;
-        const heightPx = (newZone.height_percent / 100) * canvasRect.height;
-        const label =
-          m2PerPixel != null && m2PerPixel > 0
-            ? `${(widthPx * heightPx * m2PerPixel).toFixed(1)} m²`
-            : "— m²";
+        // Bounding box pour calculer la position et la surface approchée
+        const bb = zoneBoundingBox(newZone);
+        const widthPx = (bb.w / 100) * canvasRect.width;
+        const heightPx = (bb.h / 100) * canvasRect.height;
+        let surfaceM2: number;
+        if (isPolygon(newZone)) {
+          // Surface réelle via shoelace (% carrés → pixels carrés → m²)
+          const areaPctSq = (() => {
+            const pts = newZone.points;
+            let sum = 0;
+            for (let i = 0; i < pts.length; i++) {
+              const j = (i + 1) % pts.length;
+              sum += pts[i].x_percent * pts[j].y_percent;
+              sum -= pts[j].x_percent * pts[i].y_percent;
+            }
+            return Math.abs(sum / 2);
+          })();
+          const areaPixelsSq = (areaPctSq / 10000) * canvasRect.width * canvasRect.height;
+          surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? areaPixelsSq * m2PerPixel : 0;
+        } else {
+          surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? widthPx * heightPx * m2PerPixel : 0;
+        }
+        const label = m2PerPixel != null && m2PerPixel > 0 ? `${surfaceM2.toFixed(1)} m²` : "— m²";
         // Position overlay : appliquer viewport (scale + offset) pour suivre le lot à l'écran
-        const lotRightLogicalPx =
-          ((newZone.x_percent + newZone.width_percent) / 100) * canvasRect.width;
-        const lotBottomLogicalPx =
-          ((newZone.y_percent + newZone.height_percent) / 100) * canvasRect.height;
-        const lotLeftLogicalPx = (newZone.x_percent / 100) * canvasRect.width;
+        const lotRightLogicalPx = ((bb.x + bb.w) / 100) * canvasRect.width;
+        const lotBottomLogicalPx = ((bb.y + bb.h) / 100) * canvasRect.height;
+        const lotLeftLogicalPx = (bb.x / 100) * canvasRect.width;
         const lotRightScreenPx = lotRightLogicalPx * viewport.scale + viewport.offsetX;
         const lotBottomScreenPx = lotBottomLogicalPx * viewport.scale + viewport.offsetY;
         const lotLeftScreenPx = lotLeftLogicalPx * viewport.scale + viewport.offsetX;
@@ -749,11 +985,21 @@ export default function PlanCanvas({
     if (selectedLotId) {
       const selectedLot = lots.find((l) => l.id === selectedLotId);
       if (selectedLot) {
-        const handle = hitTestHandle(px, py, selectedLot);
-        if (handle) {
-          if (canvas) canvas.style.cursor = getCursor(handle, false);
-          setHoveredLotId(null);
-          return;
+        const selectedZone = parseZoneData(selectedLot);
+        if (isPolygon(selectedZone)) {
+          const vIdx = hitTestPolygonVertex(px, py, selectedLot);
+          if (vIdx !== null) {
+            if (canvas) canvas.style.cursor = "move";
+            setHoveredLotId(null);
+            return;
+          }
+        } else {
+          const handle = hitTestHandle(px, py, selectedLot);
+          if (handle) {
+            if (canvas) canvas.style.cursor = getCursor(handle, false);
+            setHoveredLotId(null);
+            return;
+          }
         }
       }
     }
@@ -812,9 +1058,18 @@ export default function PlanCanvas({
     [viewport]
   );
 
-  // ─── Double-clic vide → reset viewport (versi-s20) ──────────
+  // ─── Double-clic — fermer polygone (mode dessin) OU reset viewport ──────
   const handleDoubleClick = useCallback(
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
+      // Mode dessin : double-clic = fermer le polygone (>= 3 points requis)
+      if (drawingPolygon) {
+        if (drawingPolygonPoints.length >= 3 && onPolygonComplete) {
+          onPolygonComplete(drawingPolygonPoints);
+          setDrawingPolygonPoints([]);
+          setDrawingCursorPos(null);
+        }
+        return;
+      }
       const { px, py } = getCanvasCoords(e);
       const hit = hitTestLot(px, py);
       if (!hit) {
@@ -822,7 +1077,7 @@ export default function PlanCanvas({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [viewport, lots]
+    [viewport, lots, drawingPolygon, drawingPolygonPoints, onPolygonComplete]
   );
 
   const resetViewport = useCallback(() => {
@@ -832,6 +1087,30 @@ export default function PlanCanvas({
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
 
   const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    // ─── MODE DESSIN POLYGONE ─────────────────────────────────────
+    if (drawingPolygon) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setDrawingPolygonPoints([]);
+        setDrawingCursorPos(null);
+        if (onCancelDrawingPolygon) onCancelDrawingPolygon();
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        setDrawingPolygonPoints((prev) => prev.slice(0, -1));
+        return;
+      }
+      if (e.key === "Enter" && drawingPolygonPoints.length >= 3 && onPolygonComplete) {
+        e.preventDefault();
+        onPolygonComplete(drawingPolygonPoints);
+        setDrawingPolygonPoints([]);
+        setDrawingCursorPos(null);
+        return;
+      }
+      return; // les autres touches sont ignorées en mode dessin
+    }
+
     // Escape : désélectionne (même sans lot sélectionné, ferme menu contextuel)
     if (e.key === "Escape") {
       setContextMenu(null);
@@ -849,18 +1128,45 @@ export default function PlanCanvas({
     if (!lot) return;
     const zone = parseZoneData(lot);
     const step = e.shiftKey ? 5 : 1;
-    let { x_percent, y_percent } = zone;
-    const { width_percent, height_percent } = zone;
+    let dx = 0;
+    let dy = 0;
     let changed = false;
-    if (e.key === "ArrowUp") { y_percent = Math.max(0, y_percent - step); changed = true; }
-    else if (e.key === "ArrowDown") { y_percent = Math.min(100 - height_percent, y_percent + step); changed = true; }
-    else if (e.key === "ArrowLeft") { x_percent = Math.max(0, x_percent - step); changed = true; }
-    else if (e.key === "ArrowRight") { x_percent = Math.min(100 - width_percent, x_percent + step); changed = true; }
+    if (e.key === "ArrowUp") { dy = -step; changed = true; }
+    else if (e.key === "ArrowDown") { dy = step; changed = true; }
+    else if (e.key === "ArrowLeft") { dx = -step; changed = true; }
+    else if (e.key === "ArrowRight") { dx = step; changed = true; }
     if (changed) {
       e.preventDefault();
-      onUpdateLotZone(lot.id, { x_percent, y_percent, width_percent, height_percent });
+      if (isPolygon(zone)) {
+        // Translation du polygone : clamp pour qu'aucun sommet ne sorte
+        const xs = zone.points.map((p) => p.x_percent);
+        const ys = zone.points.map((p) => p.y_percent);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const clampedDx = clamp(dx, -minX, 100 - maxX);
+        const clampedDy = clamp(dy, -minY, 100 - maxY);
+        onUpdateLotZone(lot.id, {
+          type: "polygon",
+          points: zone.points.map((p) => ({
+            x_percent: p.x_percent + clampedDx,
+            y_percent: p.y_percent + clampedDy,
+          })),
+        });
+      } else {
+        const newX = clamp(zone.x_percent + dx, 0, 100 - zone.width_percent);
+        const newY = clamp(zone.y_percent + dy, 0, 100 - zone.height_percent);
+        onUpdateLotZone(lot.id, {
+          type: "rect",
+          x_percent: newX,
+          y_percent: newY,
+          width_percent: zone.width_percent,
+          height_percent: zone.height_percent,
+        });
+      }
     }
-  }, [selectedLotId, lots, onUpdateLotZone, onSelectLot, onDeleteLot]);
+  }, [selectedLotId, lots, onUpdateLotZone, onSelectLot, onDeleteLot, drawingPolygon, drawingPolygonPoints, onPolygonComplete, onCancelDrawingPolygon]);
 
   // Clic droit sur un lot → menu contextuel "Supprimer".
   const handleContextMenu = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {

@@ -101,10 +101,180 @@ export interface VsVisual {
 // ─── Zone Data (coordonnées % pour le canvas) ────────────────────
 
 export interface ZoneRect {
+  type?: "rect"; // optional pour backward compat (zones legacy sans type sont des rect)
   x_percent: number;
   y_percent: number;
   width_percent: number;
   height_percent: number;
+}
+
+export interface ZonePolygonPoint {
+  x_percent: number;
+  y_percent: number;
+}
+
+export interface ZonePolygon {
+  type: "polygon";
+  points: ZonePolygonPoint[]; // au moins 3 points
+}
+
+export type Zone = ZoneRect | ZonePolygon;
+
+export function isPolygon(zone: Zone | Record<string, unknown>): zone is ZonePolygon {
+  return (zone as ZonePolygon).type === "polygon";
+}
+
+// Helper backward-compat : convertit un zone_data brut (rect ou polygon) en Zone typé.
+// Les zones sans champ "type" sont implicitement des rect (legacy).
+export function parseZone(raw: Record<string, unknown>): Zone {
+  if (raw.type === "polygon" && Array.isArray(raw.points)) {
+    return {
+      type: "polygon",
+      points: (raw.points as ZonePolygonPoint[]).map((p) => ({
+        x_percent: Number(p.x_percent ?? 0),
+        y_percent: Number(p.y_percent ?? 0),
+      })),
+    };
+  }
+  return {
+    type: "rect",
+    x_percent: Number(raw.x_percent ?? 10),
+    y_percent: Number(raw.y_percent ?? 10),
+    width_percent: Number(raw.width_percent ?? 20),
+    height_percent: Number(raw.height_percent ?? 20),
+  };
+}
+
+// Bounding box d'une zone (utile pour overlap detection rapide et label position)
+export function zoneBoundingBox(zone: Zone): { x: number; y: number; w: number; h: number } {
+  if (isPolygon(zone)) {
+    const xs = zone.points.map((p) => p.x_percent);
+    const ys = zone.points.map((p) => p.y_percent);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+  return {
+    x: zone.x_percent,
+    y: zone.y_percent,
+    w: zone.width_percent,
+    h: zone.height_percent,
+  };
+}
+
+// Surface d'un polygone (formule shoelace) en % carrés (0-10000)
+export function polygonAreaPercent(points: ZonePolygonPoint[]): number {
+  if (points.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    sum += points[i].x_percent * points[j].y_percent;
+    sum -= points[j].x_percent * points[i].y_percent;
+  }
+  return Math.abs(sum / 2);
+}
+
+// Centroïde d'un polygone (pour positionner le label) — moyenne des points
+export function polygonCentroid(points: ZonePolygonPoint[]): ZonePolygonPoint {
+  if (points.length === 0) return { x_percent: 50, y_percent: 50 };
+  const sumX = points.reduce((acc, p) => acc + p.x_percent, 0);
+  const sumY = points.reduce((acc, p) => acc + p.y_percent, 0);
+  return {
+    x_percent: sumX / points.length,
+    y_percent: sumY / points.length,
+  };
+}
+
+// Test point-in-polygon (algorithme ray casting)
+export function pointInPolygon(
+  px: number,
+  py: number,
+  points: ZonePolygonPoint[]
+): boolean {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = points[i].x_percent, yi = points[i].y_percent;
+    const xj = points[j].x_percent, yj = points[j].y_percent;
+    const intersect =
+      yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// Bounding boxes overlap (rapide)
+export function boundingBoxOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number }
+): boolean {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+// Test segment-segment intersection (pour polygon overlap V1)
+function segmentsIntersect(
+  p1: ZonePolygonPoint,
+  p2: ZonePolygonPoint,
+  p3: ZonePolygonPoint,
+  p4: ZonePolygonPoint
+): boolean {
+  const d1 = (p4.x_percent - p3.x_percent) * (p1.y_percent - p3.y_percent) -
+    (p4.y_percent - p3.y_percent) * (p1.x_percent - p3.x_percent);
+  const d2 = (p4.x_percent - p3.x_percent) * (p2.y_percent - p3.y_percent) -
+    (p4.y_percent - p3.y_percent) * (p2.x_percent - p3.x_percent);
+  const d3 = (p2.x_percent - p1.x_percent) * (p3.y_percent - p1.y_percent) -
+    (p2.y_percent - p1.y_percent) * (p3.x_percent - p1.x_percent);
+  const d4 = (p2.x_percent - p1.x_percent) * (p4.y_percent - p1.y_percent) -
+    (p2.y_percent - p1.y_percent) * (p4.x_percent - p1.x_percent);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+    ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+// Détection chevauchement entre deux zones (rect ou polygon)
+export function zonesOverlap(a: Zone, b: Zone): boolean {
+  // Optim : si bounding boxes ne se chevauchent pas, pas d'overlap.
+  const bbA = zoneBoundingBox(a);
+  const bbB = zoneBoundingBox(b);
+  if (!boundingBoxOverlap(bbA, bbB)) return false;
+  // Si les deux sont des rects, le bounding-box overlap suffit.
+  if (!isPolygon(a) && !isPolygon(b)) return true;
+  // Convertir rect → polygon pour usage uniforme
+  const polyA: ZonePolygonPoint[] = isPolygon(a)
+    ? a.points
+    : [
+        { x_percent: a.x_percent, y_percent: a.y_percent },
+        { x_percent: a.x_percent + a.width_percent, y_percent: a.y_percent },
+        { x_percent: a.x_percent + a.width_percent, y_percent: a.y_percent + a.height_percent },
+        { x_percent: a.x_percent, y_percent: a.y_percent + a.height_percent },
+      ];
+  const polyB: ZonePolygonPoint[] = isPolygon(b)
+    ? b.points
+    : [
+        { x_percent: b.x_percent, y_percent: b.y_percent },
+        { x_percent: b.x_percent + b.width_percent, y_percent: b.y_percent },
+        { x_percent: b.x_percent + b.width_percent, y_percent: b.y_percent + b.height_percent },
+        { x_percent: b.x_percent, y_percent: b.y_percent + b.height_percent },
+      ];
+  // Tester segment-segment intersection sur toutes les arêtes
+  for (let i = 0; i < polyA.length; i++) {
+    const a1 = polyA[i];
+    const a2 = polyA[(i + 1) % polyA.length];
+    for (let j = 0; j < polyB.length; j++) {
+      const b1 = polyB[j];
+      const b2 = polyB[(j + 1) % polyB.length];
+      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+  // Tester si un point de A est dans B (et inversement) — cas d'inclusion
+  if (pointInPolygon(polyA[0].x_percent, polyA[0].y_percent, polyB)) return true;
+  if (pointInPolygon(polyB[0].x_percent, polyB[0].y_percent, polyA)) return true;
+  return false;
 }
 
 // ─── Palette de couleurs lots (8 couleurs, cyclique) ──────────────
@@ -143,14 +313,14 @@ export interface CreateLotPayload {
   name: string;
   floor_number?: number;
   surface_m2?: number | null;
-  zone_data: ZoneRect;
+  zone_data: Zone;
 }
 
 export interface UpdateLotPayload {
   name?: string;
   floor_number?: number;
   surface_m2?: number | null;
-  zone_data?: ZoneRect;
+  zone_data?: Zone;
   status?: LotStatus;
 }
 

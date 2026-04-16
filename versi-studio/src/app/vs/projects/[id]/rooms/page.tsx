@@ -166,9 +166,28 @@ export default function RoomsPage({
     width_percent: 100,
     height_percent: 100,
   };
-  const lotZone: ZoneRect = currentLot?.zone_data
-    ? (currentLot.zone_data as unknown as ZoneRect)
-    : defaultZone;
+  // Si le lot est un polygon, on retombe sur sa bounding box pour le RoomCanvas
+  // (le découpe-pièces V1 ne supporte que les zones rectangulaires).
+  const lotZone: ZoneRect = (() => {
+    if (!currentLot?.zone_data) return defaultZone;
+    const raw = currentLot.zone_data as Record<string, unknown>;
+    if (raw.type === "polygon" && Array.isArray(raw.points)) {
+      const pts = raw.points as Array<{ x_percent: number; y_percent: number }>;
+      const xs = pts.map((p) => p.x_percent);
+      const ys = pts.map((p) => p.y_percent);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs);
+      const maxY = Math.max(...ys);
+      return {
+        x_percent: minX,
+        y_percent: minY,
+        width_percent: maxX - minX,
+        height_percent: maxY - minY,
+      };
+    }
+    return raw as unknown as ZoneRect;
+  })();
 
   // Étapes complétées pour le stepper
   const completedSteps: (1 | 2 | 3 | 4)[] = [];

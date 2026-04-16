@@ -12,7 +12,9 @@ import type {
   VsLot,
   CreateLotPayload,
   ApiResponse,
+  Zone,
   ZoneRect,
+  ZonePolygon,
 } from "@/lib/vs/types";
 
 function isValidUUID(str: string): boolean {
@@ -38,6 +40,28 @@ function isValidZoneRect(zone: unknown): zone is ZoneRect {
     z.height_percent > 0 &&
     z.height_percent <= 100
   );
+}
+
+function isValidZonePolygon(zone: unknown): zone is ZonePolygon {
+  if (!zone || typeof zone !== "object") return false;
+  const z = zone as Record<string, unknown>;
+  if (z.type !== "polygon") return false;
+  if (!Array.isArray(z.points) || z.points.length < 3) return false;
+  for (const p of z.points) {
+    if (!p || typeof p !== "object") return false;
+    const pt = p as Record<string, unknown>;
+    if (
+      typeof pt.x_percent !== "number" ||
+      typeof pt.y_percent !== "number" ||
+      pt.x_percent < 0 || pt.x_percent > 100 ||
+      pt.y_percent < 0 || pt.y_percent > 100
+    ) return false;
+  }
+  return true;
+}
+
+function isValidZone(zone: unknown): zone is Zone {
+  return isValidZoneRect(zone) || isValidZonePolygon(zone);
 }
 
 // ─── GET /api/vs/projects/[id]/lots ───────────────────────────────
@@ -124,7 +148,7 @@ export async function POST(
     }
 
     // Validation de la zone
-    if (!isValidZoneRect(body.zone_data)) {
+    if (!isValidZone(body.zone_data)) {
       return NextResponse.json(
         {
           success: false,

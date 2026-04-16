@@ -24,8 +24,11 @@ import type {
   VsPlan,
   VsLot,
   ZoneRect,
+  Zone,
+  ZonePolygonPoint,
   ApiResponse,
 } from "@/lib/vs/types";
+import { parseZone, zonesOverlap as zonesOverlapShared } from "@/lib/vs/types";
 
 // ─── Constantes ───────────────────────────────────────────────────
 
@@ -33,32 +36,14 @@ const DEBOUNCE_SAVE_MS = 1_000;
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
-function parseZoneData(lot: VsLot): ZoneRect {
-  const zd = lot.zone_data as unknown as ZoneRect;
-  return {
-    x_percent: zd.x_percent ?? 10,
-    y_percent: zd.y_percent ?? 10,
-    width_percent: zd.width_percent ?? 20,
-    height_percent: zd.height_percent ?? 20,
-  };
-}
-
-function zonesOverlap(a: ZoneRect, b: ZoneRect): boolean {
-  return (
-    a.x_percent < b.x_percent + b.width_percent &&
-    a.x_percent + a.width_percent > b.x_percent &&
-    a.y_percent < b.y_percent + b.height_percent &&
-    a.y_percent + a.height_percent > b.y_percent
-  );
-}
-
+// Détection chevauchement (rect + polygon) — mutualisé via zonesOverlapShared (types.ts)
 function hasAnyOverlap(lots: VsLot[]): boolean {
   for (let i = 0; i < lots.length; i++) {
     for (let j = i + 1; j < lots.length; j++) {
       if (lots[i].floor_number !== lots[j].floor_number) continue;
-      if (zonesOverlap(parseZoneData(lots[i]), parseZoneData(lots[j]))) {
-        return true;
-      }
+      const za = parseZone(lots[i].zone_data as Record<string, unknown>);
+      const zb = parseZone(lots[j].zone_data as Record<string, unknown>);
+      if (zonesOverlapShared(za, zb)) return true;
     }
   }
   return false;
@@ -88,6 +73,8 @@ export default function LotsPage({
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [validationSuccess, setValidationSuccess] = useState(false);
   const [calibrationOpen, setCalibrationOpen] = useState(false);
+  // Mode dessin polygone (versi-s20 phase 2)
+  const [drawingPolygon, setDrawingPolygon] = useState(false);
 
   // Debounce pour la sauvegarde auto
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -192,7 +179,7 @@ export default function LotsPage({
   // ─── Sauvegarde auto (debounce) ───────────────────────────────
 
   const saveLotZone = useCallback(
-    async (lotId: string, zone: ZoneRect) => {
+    async (lotId: string, zone: Zone) => {
       try {
         setSaving(true);
         const res = await fetch(`/api/vs/lots/${lotId}`, {
@@ -216,7 +203,7 @@ export default function LotsPage({
   );
 
   const handleUpdateLotZone = useCallback(
-    (lotId: string, zone: ZoneRect) => {
+    (lotId: string, zone: Zone) => {
       // Optimistic update
       setLots((prev) =>
         prev.map((lot) =>
@@ -310,6 +297,7 @@ export default function LotsPage({
     // Pas de 4% horizontal et 4% vertical par lot existant, modulo borné.
     const offset = (lotsOnFloor.length * 4) % 50;
     const zone: ZoneRect = {
+      type: "rect",
       x_percent: 10 + offset,
       y_percent: 10 + offset,
       width_percent: 25,
@@ -338,6 +326,54 @@ export default function LotsPage({
       setError("Le lot n'a pas pu être créé. Réessayez ou rechargez la page.");
     }
   }, [lots, selectedFloor, projectId]);
+
+  // ─── Mode dessin polygone (versi-s20 phase 2) ─────────────────
+
+  const handleStartDrawingPolygon = useCallback(() => {
+    setDrawingPolygon(true);
+    setSelectedLotId(null);
+  }, []);
+
+  const handleCancelDrawingPolygon = useCallback(() => {
+    setDrawingPolygon(false);
+  }, []);
+
+  const handlePolygonComplete = useCallback(
+    async (points: ZonePolygonPoint[]) => {
+      // Sortie immédiate du mode dessin
+      setDrawingPolygon(false);
+      if (points.length < 3) return;
+
+      const lotsOnFloor = lots.filter((l) => l.floor_number === selectedFloor);
+      const lotNumber = lotsOnFloor.length + 1;
+      const floorLabel = selectedFloor === 0 ? "RDC" : `R+${selectedFloor}`;
+      const name = `Lot ${lotNumber} — ${floorLabel}`;
+
+      const zone: Zone = { type: "polygon", points };
+
+      try {
+        const res = await fetch(`/api/vs/projects/${projectId}/lots`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            floor_number: selectedFloor,
+            zone_data: zone,
+          }),
+        });
+        const json = (await res.json()) as ApiResponse<VsLot>;
+        if (json.success) {
+          setLots((prev) => [...prev, json.data]);
+          setSelectedLotId(json.data.id);
+        } else {
+          setError(json.error);
+        }
+      } catch {
+        setError("Le polygone n'a pas pu être créé. Réessayez ou rechargez la page.");
+      }
+    },
+    [lots, selectedFloor, projectId]
+  );
 
   // ─── Valider les lots ─────────────────────────────────────────
 
@@ -577,6 +613,9 @@ export default function LotsPage({
               onDeleteLot={handleDeleteLot}
               lotIndexMap={lotIndexMap}
               m2PerPixel={m2PerPixel}
+              drawingPolygon={drawingPolygon}
+              onPolygonComplete={handlePolygonComplete}
+              onCancelDrawingPolygon={handleCancelDrawingPolygon}
             />
           </div>
 
@@ -593,6 +632,9 @@ export default function LotsPage({
             validating={validating}
             lotIndexMap={lotIndexMap}
             validationSuccess={validationSuccess}
+            onStartDrawingPolygon={handleStartDrawingPolygon}
+            drawingPolygon={drawingPolygon}
+            onCancelDrawingPolygon={handleCancelDrawingPolygon}
           />
         </div>
       </div>

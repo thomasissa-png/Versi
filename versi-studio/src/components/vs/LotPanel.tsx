@@ -27,6 +27,10 @@ interface LotPanelProps {
   validating: boolean;
   lotIndexMap: Map<string, number>;
   validationSuccess?: boolean;
+  // Mode dessin polygone (versi-s20 phase 2)
+  onStartDrawingPolygon?: () => void;
+  drawingPolygon?: boolean;
+  onCancelDrawingPolygon?: () => void;
 }
 
 // ─── Composant LotCard ──────────────────────────────────────────
@@ -197,6 +201,9 @@ export default function LotPanel({
   validating,
   lotIndexMap,
   validationSuccess = false,
+  onStartDrawingPolygon,
+  drawingPolygon = false,
+  onCancelDrawingPolygon,
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
 
@@ -236,15 +243,39 @@ export default function LotPanel({
 
       {/* Actions */}
       <div className="px-lg py-md border-t border-[var(--color-border-default)] flex flex-col gap-sm">
+        {/* Bandeau mode dessin actif (versi-s20) */}
+        {drawingPolygon && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-md bg-[var(--color-interactive-primary)]/10 border border-[var(--color-interactive-primary)] px-md py-sm text-xs text-[var(--color-text-default)] flex flex-col gap-xs"
+          >
+            <p className="font-medium">Mode dessin polygone actif</p>
+            <p className="text-[var(--color-text-muted)]">
+              Cliquez pour ajouter un sommet, double-cliquez pour fermer la forme,
+              Échap pour annuler, Retour arrière pour supprimer le dernier point.
+            </p>
+            <button
+              type="button"
+              onClick={onCancelDrawingPolygon}
+              className="self-start mt-xs px-sm py-2xs rounded text-xs font-medium underline text-[var(--color-text-default)] hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[44px]"
+            >
+              Annuler le tracé
+            </button>
+          </div>
+        )}
+
         {/* Bouton ajouter */}
         <button
           onClick={onAddLot}
+          disabled={drawingPolygon}
           className="
             w-full flex items-center justify-center gap-sm
             px-md py-sm rounded-md text-sm font-medium
             border border-dashed border-[var(--color-border-default)]
             text-[var(--color-text-muted)]
             hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-default)]
+            disabled:opacity-50 disabled:cursor-not-allowed
             transition-colors duration-150
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
           "
@@ -265,6 +296,41 @@ export default function LotPanel({
           </svg>
           Ajouter un lot
         </button>
+
+        {/* Bouton dessiner un polygone (versi-s20 phase 2) */}
+        {onStartDrawingPolygon && (
+          <button
+            onClick={onStartDrawingPolygon}
+            disabled={drawingPolygon}
+            className="
+              w-full flex items-center justify-center gap-sm
+              px-md py-sm rounded-md text-sm font-medium
+              border border-dashed border-[var(--color-border-default)]
+              text-[var(--color-text-muted)]
+              hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-default)]
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors duration-150
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
+              min-h-[44px]
+            "
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 4l7 5 7-5-3 9-4 7-4-7-3-9z"
+              />
+            </svg>
+            Dessiner un polygone
+          </button>
+        )}
 
         {/* Bouton valider */}
         <button
