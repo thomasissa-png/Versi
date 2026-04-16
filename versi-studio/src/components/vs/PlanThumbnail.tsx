@@ -110,6 +110,7 @@ export default function PlanThumbnail({
             disabled={deleting}
             className="
               p-xs rounded text-text-muted hover:text-error
+              min-h-[44px] min-w-[44px] inline-flex items-center justify-center
               transition-colors duration-200
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
               disabled:opacity-50 disabled:cursor-not-allowed

@@ -133,7 +133,7 @@ export default function DropZone({ onFilesSelected, disabled = false }: DropZone
           ${
             isDragOver
               ? "border-interactive-primary bg-interactive-primary/5"
-              : "border-border-default hover:border-gris-pierre/50 bg-bg-card"
+              : "border-border-default hover:border-border-hover bg-bg-card"
           }
         `}
       >

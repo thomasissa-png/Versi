@@ -37,35 +37,45 @@ export default function Stepper({
 
           return (
             <div key={step.id} className="flex items-center gap-xs flex-shrink-0">
-              <div
-                aria-current={isActive ? "step" : undefined}
-                aria-label={`Étape ${step.id} : ${step.label}${isCompleted ? " (complétée)" : isActive ? " (en cours)" : ""}`}
-                className={`
-                  flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                  text-sm font-medium transition-colors duration-200 motion-reduce:transition-none
-                  ${isCompleted ? "bg-interactive-primary text-text-inverse" : ""}
-                  ${isActive ? "bg-bg-dark text-text-inverse" : ""}
-                  ${isFuture ? "border border-border-default text-text-muted" : ""}
-                `}
-              >
-                {isCompleted ? (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                ) : (
-                  step.id
-                )}
+              <div className="flex flex-col items-center gap-2xs">
+                <div
+                  aria-current={isActive ? "step" : undefined}
+                  aria-label={`Étape ${step.id} : ${step.label}${isCompleted ? " (complétée)" : isActive ? " (en cours)" : ""}`}
+                  className={`
+                    flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                    text-sm font-medium transition-colors duration-200 motion-reduce:transition-none
+                    ${isCompleted ? "bg-interactive-primary text-text-inverse" : ""}
+                    ${isActive ? "bg-bg-dark text-text-inverse" : ""}
+                    ${isFuture ? "border border-border-default text-text-muted" : ""}
+                  `}
+                >
+                  {isCompleted ? (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  ) : (
+                    step.id
+                  )}
+                </div>
+                <span
+                  className={`
+                    text-xs text-center max-w-[60px] truncate
+                    ${isActive ? "text-text-default font-medium" : "text-text-muted"}
+                  `}
+                >
+                  {step.label}
+                </span>
               </div>
               {idx < STEPS.length - 1 && (
                 <div
@@ -89,6 +99,7 @@ export default function Stepper({
         const isFuture = !isActive && !isCompleted;
 
         return (
+          // Arbitrary value justifiée: token --border-width-thick à créer si réutilisé ailleurs (P2 design-system)
           <div
             key={step.id}
             className={`

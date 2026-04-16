@@ -293,7 +293,7 @@ export default function UploadPage({
       } catch {
         setPlans(previousPlans);
         setError(
-          "Impossible de mettre à jour l'étage — vérifiez votre connexion et réessayez."
+          "Impossible de mettre à jour l'étage — la valeur précédente a été restaurée. Vérifiez votre connexion et réessayez."
         );
       }
     },
@@ -465,6 +465,7 @@ export default function UploadPage({
         />
 
         {/* Progression d'upload (parallèle) */}
+        {/* TODO P2 versi-s19 : afficher progressPct (loaded/total) pour fichiers > 5 Mo via XHR onprogress (fetch ne supporte pas onprogress nativement) */}
         {uploading && uploadProgress.size > 0 && (
           <div className="mt-lg">
             {Array.from(uploadProgress).map((name) => (

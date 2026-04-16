@@ -514,12 +514,23 @@ export default function RoomsPage({
     return (
       <div className="text-center py-4xl">
         <p className="text-text-muted">Opération introuvable.</p>
-        <button
-          onClick={() => router.push("/vs")}
-          className="mt-md text-sm underline text-text-muted hover:text-text-default"
-        >
-          Retour aux opérations
-        </button>
+        {error && (
+          <p className="mt-sm text-sm text-error max-w-md mx-auto">{error}</p>
+        )}
+        <div className="mt-md flex flex-col sm:flex-row gap-sm items-center justify-center">
+          <button
+            onClick={() => { setError(null); fetchData(); }}
+            className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover active:opacity-80 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+          >
+            Réessayer
+          </button>
+          <button
+            onClick={() => router.push("/vs")}
+            className="text-sm underline text-text-muted hover:text-text-default"
+          >
+            Retour aux opérations
+          </button>
+        </div>
       </div>
     );
   }

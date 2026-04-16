@@ -119,7 +119,7 @@ export default function ConfirmModal({
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-noir-profond/60 motion-reduce:transition-none"
+        className="absolute inset-0 bg-bg-overlay motion-reduce:transition-none"
         onClick={onCancel}
         aria-hidden="true"
       />
