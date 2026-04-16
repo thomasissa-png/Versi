@@ -386,10 +386,103 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/versi-s19-visuels-autopilot-K7mQr`
-- Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
+- Branche de développement : `claude/resume-versi-s20-sAewb`
+- Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ### Mémo de reprise
+
+**Branche dernière clôturée** : `claude/resume-versi-s20-sAewb`
+**Date de clôture** : 2026-04-16
+**Statut s20** : CLÔTURÉE — Étape 2 Lots refondue avec polygones N côtés + zoom canvas + AppHeader/Footer Versi + 3 itérations d'audit jusqu'à 9.68/10 unanime (4/5 agents en GO 10/10)
+
+**Résumé session (versi-s20) — productivité massive : ~25 commits, 7+ phases majeures** :
+
+1. **3 hotfixes Replit** (Replit déploiement) :
+   - Hotfix #1 : import dynamique pdf-to-img + déclaration deps
+   - Hotfix #2 : openai v6→v5.23 + `detail: "auto"` sur input_image + type Response explicite
+   - Hotfix #3 : zod v4→v3.25 + allowedDevOrigins + dev port 5000
+
+2. **Phase 0 propagation** : 8 learnings P0/P1 versi-s19 propagés (Pattern Express, audits v1 priorisation, Waves parallélisables, brief typist, pattern @ia, limitation @moi, pré-vérif Grep, mindset IA)
+
+3. **Phase 1 audits P0** : E2E Playwright + cross-review 34 gates → GO CONDITIONNEL avec 5 P1 docs internes
+
+4. **Phase 2 corrections docs + ESLint** : 3 Tasks parallèles (@copywriter vs-ux-writing, @product-manager rename US-VS-19, @fullstack ESLint)
+
+5. **AppHeader + AppFooter Versi cohérents** :
+   - Logo VERSI STUDIO (medium + light, baseline-aligned, letter-spacing 0.18em / 0.12em)
+   - Header sombre #1A1A1A opaque (vs transparent qui était invisible sur fond clair)
+   - Footer sombre #0F0F0F + entités groupe (Versi Immobilier · Versi Invest · Versi Capital · Versi Finance) + mentions
+   - 12 favicons + manifest + robots.txt complets (alignés versi.fr / versi-immobilier / versi-invest)
+
+6. **Bug P0 Lots boucle infinie** (4 fix successifs, validés Playwright) :
+   - Fix #1 : `useMemo overlappingIds` + guard ResizeObserver <1px
+   - Fix #2 : `position: absolute; inset: 0` canvas (sort du flux flex)
+   - Fix #3 : circuit breaker ResizeObserver (>10/sec bloqué)
+   - Fix #4 (CRITIQUE) : `clearRect` + `setTransform` reset (mon guard sur canvas.width = X désactivait le clear automatique → accumulation rectangles)
+
+7. **Phase 1+2 ZOOM + POLYGONES** (le gros chantier s20) :
+   - **Zoom canvas** : molette centré curseur + Ctrl/middle-click drag pan + double-clic vide reset + bouton overlay "Réinitialiser le zoom (X.X×)"
+   - **Lots polygonaux N côtés** : data model union `Zone = ZoneRect | ZonePolygon` (backward compat), UI dessin (clic=sommet, snap fermeture sur 1er point + clic simple, double-clic fallback, Escape annule, Backspace supprime dernier), surface temps réel progressive (1pt=0m², 2pts=longueur, 3+pts=surface shoelace), détection chevauchement SAT rect↔polygon, validation API durcie (NaN reject, cap 100 points, aire min 0.5%)
+   - **Fonctions UX bonus** : suppression Delete clavier + clic droit menu contextuel + Escape désélection
+   - **PDF→PNG à la volée** : `/api/vs/files` convertit PDF en PNG page 1 via pdf-to-img (validé local sur plan "Rue des Muguets" 2381×1684)
+
+8. **3 itérations d'audit cross-agents (5 agents : @qa, @ux, @PM, @ia, Thomas marchand via @creative-strategy)** :
+   - Itération 1 : moy **7.34/10** (Thomas marchand 6.2 = blocage plan invisible)
+   - Itération 2 : moy **8.66/10** (+1.32 — bundle 7 corrections P0 unanimes)
+   - Itération 3 : moy **9.68/10** (+1.02 — snap polygone + memo getComputedStyle + clamp pan + 7 tests E2E + surface dès 1er sommet + dégénéré bloqué + curseur persistant)
+   - Notes finales : @qa 9.6 / @ia 10.0 / @PM 10.0 / @ux 9.4→10 (fix bouton polygone) / Thomas marchand 9.4 ("oui j'utilise au quotidien")
+
+9. **7 tests E2E assertifs** : `lots-edge-cases.spec.ts` (Delete, reset zoom, overlap rect+poly, Escape, backward compat, validation API NaN/<3 points)
+
+10. **Brief Replit 1er build** : `docs/infra/replit-first-build-guide.md` (728 lignes, 13 sections : import + secrets + DB + commands + .replit + ports + smoke tests + monitoring + dette + troubleshooting + checklist)
+
+11. **Suppression pré-définition lot générique** : `extract/route.ts` ne crée plus 1 lot bbox englobante par étage (était pollueur — Thomas devait supprimer-redessiner). État vide guidé ("Aucun lot — utilisez bouton Dessiner") = UX supérieure.
+
+**Compteur Tasks producteurs versi-s20** : ~25-30 (au-dessus du seuil 18 ALERTE ROUGE — débordement assumé sur 1 longue session avec 3 itérations d'audit)
+
+**Commits versi-s20** : ~25 commits sur branche `claude/resume-versi-s20-sAewb`
+
+**Travail restant — PROCHAINE SESSION (versi-s21)** :
+
+**PRIORITÉ 1 — CLUSTERING IA `unit_id` pour pré-définition lots intelligente** (audit @ia P0 #1)
+Actuellement : aucun lot pré-créé (suppression bug s20). Idéal s21 : extraction GPT-4.1 retourne aussi `unit_id` par pièce → backend groupe par `(floor, unit_id)` → 1 lot = 1 appartement (pas 1 étage entier).
+Estimation : modif schema + prompt STEP 7 + tests éval sur 5+ plans réels. ~2-3 sessions.
+
+**PRIORITÉ 2 — POLYGONES IA dans extraction**
+Étendre `PLAN_EXTRACTION_JSON_SCHEMA` avec `bounding_polygon` optionnel (4-8 points). Prompt STEP 5 : si pièce L/T (rect area > 1.4× actual) → polygon. Connecter `extract/route.ts` au type `ZonePolygon` déjà supporté. Combiné avec P1 `unit_id` = lots pré-tracés en polygones sur les vrais murs.
+
+**PRIORITÉ 3 — Test POC OCR auto-calibration en réel**
+Configurer `OPENAI_API_KEY` valide + tester sur 5-10 plans réels d'architecte. Mesurer accuracy GPT-4.1 Vision. Décision data-driven : promotion V1 / ajustement seuil 0.9 / suppression POC.
+
+**PRIORITÉ 4 — Backlog produit suivant** (à trancher avec Thomas)
+Le workflow Étapes 1→4 est COMPLET et VALIDÉ. Options post-Étape 4 :
+- **A** Auth / Onboarding (signin/signup + protection routes + session)
+- **B** Dashboard projet (multi-projets + KPI North Star visible)
+- **C** Export / partage acquéreur (PDF complet ou lien public read-only)
+- **D** Settings utilisateur (profil + facturation)
+- **E** Validation cross-étapes UI (≥1 pièce validée/lot)
+- **F** Polish + finitions s20 différées (voir P5)
+
+**PRIORITÉ 5 — Finitions s20 différées (cosmétique non-bloquant)**
+- Analytics events (`polygon_completed`, `lot_added`, `lot_validated`, `drawing_cancelled`) → @data-analyst
+- Snap dynamique adaptatif au zoom (Thomas marchand frustration mineure : 15px logique trop fin à scale=1)
+- Mid-snap entre sommets de polygones existants
+- Touch mobile (pinch-to-zoom + dessin polygone tactile)
+- Undo Ctrl+Z en cours de tracé polygone
+- Test unit Vitest `isValidZone` (12 cas)
+- Gate cohérence surface totale extraction (audit @ia P0 #3)
+
+**Propagation learnings versi-s20 (à propager au démarrage s21 — 6 learnings statut `à-faire`)** :
+1. **Pattern audit cross-agents 3 itérations** : 5 agents (qa+ux+pm+ia+persona) → bundle corrections P0 unanimes → re-audit → itération jusqu'à 10/10. Validé sur Étape 2 Lots (7.34→9.68/10). À documenter dans `orchestrator.md` comme protocole "Autopilote qualité multi-agents persona".
+2. **Pattern persona audit via @creative-strategy** : utiliser @creative-strategy en proxy persona métier (Thomas marchand de biens) si pas d'agent testeur dédié — efficace pour faire émerger frustrations utilisateur réelles. À documenter `orchestrator.md`.
+3. **Anti-pattern `canvas.width = X` guard désactive clear automatique** (bug P0 critique s20) : modifier `canvas.width` ou `canvas.height` réinitialise automatiquement le contexte. Si on ajoute un guard `if (canvas.width !== X) canvas.width = X`, le canvas n'est plus effacé entre 2 draws → accumulation visuelle. Toujours `clearRect` explicite + `setTransform` reset au début de draw(). À documenter `fullstack.md` règle Canvas.
+4. **Anti-pattern double-clic comme mécanisme fermeture polygone** : crée systématiquement un sommet parasite (1er clic ajoute point AVANT double-clic ferme). Convention CAO Figma/Photoshop = snap visuel sur 1er point + clic simple. À documenter `ux.md` pattern dessin polygone.
+5. **Pattern PDF→PNG à la volée pour affichage canvas** : un PDF natif n'est pas affichable via `<Image>`. Route serveur intercepte `.pdf` et convertit page 1 via pdf-to-img → Cache-Control 1h. À documenter `infrastructure.md` pattern fichiers.
+6. **Validation API factorisée dans types.ts (DRY)** : ne pas dupliquer `isValidZoneRect/Polygon` dans chaque route — factoriser dans un module unique avec `Number.isFinite` + cap + aire min. À documenter `qa.md` pattern validation.
+
+---
+
+### Mémo de reprise versi-s19 (archive)
 
 **Branche dernière clôturée** : `claude/versi-s19-visuels-autopilot-K7mQr`
 **Date de clôture** : 2026-04-16
