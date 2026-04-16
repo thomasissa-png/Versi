@@ -1319,6 +1319,39 @@ export default function PlanCanvas({
         className="absolute inset-0 block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
 
+      {/* Overlay surface temps réel pendant drag d'un lot existant */}
+      {surfaceOverlay && surfaceOverlay.visible && (
+        <div
+          aria-hidden="true"
+          className="absolute z-30 pointer-events-none px-sm py-2xs rounded bg-white border border-[var(--color-border-default)] text-xs font-medium text-[var(--color-text-default)] shadow-sm"
+          style={{ left: surfaceOverlay.x, top: surfaceOverlay.y }}
+        >
+          {surfaceOverlay.label}
+        </div>
+      )}
+
+      {/* Overlay surface temps réel pendant dessin polygone (versi-s20 P0) */}
+      {drawingSurface && (
+        <div
+          aria-hidden="true"
+          className="absolute z-30 pointer-events-none px-sm py-2xs rounded bg-[var(--color-interactive-primary)] text-xs font-medium text-[var(--color-text-inverse)] shadow-sm"
+          style={{ left: drawingSurface.x, top: drawingSurface.y }}
+        >
+          {drawingSurface.label}
+        </div>
+      )}
+
+      {/* Overlay erreur dessin polygone (auto-hide 2.5s) — versi-s20 P0 */}
+      {drawingError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 px-md py-sm rounded-md bg-[var(--color-error-bg)] border border-[var(--color-error-border)] text-sm text-[var(--color-error-strong)] shadow-md max-w-xs text-center"
+        >
+          {drawingError}
+        </div>
+      )}
+
       {/* Bouton « Réinitialiser le zoom » — visible si scale > seuil (versi-s20) */}
       {viewport.scale > ZOOM_RESET_THRESHOLD && (
         <button
