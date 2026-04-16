@@ -389,10 +389,83 @@
 
 ### Mémo de reprise
 
-**Branche** : `claude/versi-s19-visuels-autopilot-K7mQr`
-**Date d'ouverture** : 2026-04-16
-**Session** : versi-s19 — Étape 4 Visuels Versi Studio (US-VS-19/20/21/22) en autopilote Express 4 batches + Fix BUG-1 PlanThumbnail floorInput + Audit `route.continue()` 4 specs + résidus F05 surface m² / Upload % / G26 stricte
-**Statut** : EN COURS
+**Branche dernière clôturée** : `claude/versi-s19-visuels-autopilot-K7mQr`
+**Date de clôture** : 2026-04-16
+**Statut s19** : CLÔTURÉE — GO ABSOLU 9,2/10 @moi sur Étape 4 Visuels + 6 priorités complétées + POC OCR auto-calibration livré
+
+**Résumé session (versi-s19) — 6 priorités + F05 impl + POC OCR complétés en autopilote, compteur 18/18 Tasks producteurs** :
+
+1. **P1 Étape 4 Visuels (US-VS-19/20/21/22)** : Express 4 batches + Batch 2.5 → **GO ABSOLU 9,2/10 @moi**
+   - Trajectoire : v1 7,47 NO-GO → v2 8,57 GO CONDITIONNEL unanime → @moi 9,2 GO ABSOLU
+   - Pattern Express validé pour la 3e fois consécutive (Étape 2 Lots 9,1 / Étape 3 Pièces 9,3 / Étape 4 Visuels 9,2)
+   - Arbitrage Thomas via @moi : "Modifier" conservé (vocabulaire opérationnel marchand de biens > terme IA "Itérer")
+
+2. **P2 Fix BUG-1 PlanThumbnail floorInput resync** : useEffect ajouté + assertion T2 upload-p0.spec.ts renforcée
+
+3. **P3 Audit `route.continue()` 4 specs E2E** : 17 occurrences auditées, **4 corrections** (workflow:194/541/561 + pages:177), 12 conservées (else défensifs handler unique). Livrable `docs/qa/audit-route-continue-s19.md`
+
+4. **P4 Spec UX F05 surface m² + Implémentation** :
+   - Spec : `docs/product/vs-spec-f05-surface-m2-temps-reel.md` (316L)
+   - Décisions Thomas : Q1 = 1 décimal `.toFixed(1)` / Q2 = modal calibration V1 / Q3 = POC OCR LANCÉ (mindset IA)
+   - Implémentation manuelle 4/4 OK : PlanCalibration.tsx (~220L), PlanCanvas.tsx overlay rAF, API PATCH étendu, lots/page.tsx intégration
+
+5. **P5 Upload % refactor XHR** : `fetch()` → `XMLHttpRequest` avec `xhr.upload.onprogress`, state Set→Map, AbortController préservé, UI barre progressbar a11y
+
+6. **P6 Migration G26 stricte** : 3 specs visual DÉJÀ migrées vers `toHaveScreenshot maxDiffPixelRatio: 0.005`. Gate G26 stricte ACTIVÉE.
+
+7. **Q3 OCR/IA POC livré** (verdict initial NO-GO V2 RÉVISÉ après rappel règle n°5 mindset IA) :
+   - Recherche faisabilité : `docs/ia/recherche-faisabilite-ocr-plan-v2.md` (184L, 5 sources WebSearch)
+   - **POC implémenté** : `plan-scale-detector.ts` (GPT-4.1 Vision + Zod + self-correction calque `plan-extractor.ts`) + route `/api/vs/plans/[id]/auto-calibrate` + modif `PlanCalibration.tsx` (3 bannières conditionnelles : loading / suggestion auto / fallback manuel)
+   - Approche assistant (pas remplacement) : si confidence ≥ 0.9 → pré-remplit lengthMeters dans modale, Thomas valide d'1 clic au lieu de 30s
+   - Fallback manuel V1 préservé : zéro régression si OPENAI_API_KEY absent ou confidence < 0.9
+   - Correction règle n°13 UTF-8 appliquée : `&apos;` → `'` canonique dans bannière
+
+**Compteur Tasks producteurs versi-s19** : 18/18 (pile sur seuil ALERTE ROUGE — limite atteinte, pas de débordement)
+
+**Commits versi-s19** : 13 commits sur branche `claude/versi-s19-visuels-autopilot-K7mQr` (setup + propagation + Batches 1-2-2.5-3-4 + Wave 1 + Wave 2 + P4 spec + F05 impl + OCR Q3 + finalisation @ux + POC OCR + clôture)
+
+**Travail restant — PROCHAINE SESSION (versi-s20)** :
+
+**PRIORITÉ 1 — Backlog produit suivant à définir avec Thomas**
+Le workflow Versi Studio Étapes 1→4 est COMPLET (Upload → Lots → Pièces → Visuels). Backlog post-Étape 4 à définir :
+- Onboarding / auth (signin/signup) ?
+- Dashboard projet (vue d'ensemble multi-projets) ?
+- Export / partage avec acquéreur ?
+- Settings utilisateur ?
+- Validation cross-étapes UI (KPI North Star `vs_visuals.status = 'validated'` au moins 1 pièce par lot) ?
+
+**PRIORITÉ 2 — Test POC OCR auto-calibration en réel**
+- Configurer `OPENAI_API_KEY` valide en environnement de test
+- Tester sur 5-10 plans d'architecte réels (avec barres d'échelle 1:100, 1:200, dimensions cotées, et plans sans échelle)
+- Mesurer accuracy réelle de GPT-4.1 Vision sur ce use case
+- Décision data-driven : promotion en V1 / ajustement seuil confiance / suppression POC
+
+**PRIORITÉ 3 — Re-run E2E avant merge final s19**
+- `npx playwright test workflow.spec.ts pages.spec.ts` (P3 fixes route.continue → route.fallback)
+- `npx playwright test upload-visual lots-visual rooms-visual` (G26 stricte activée)
+- `npx playwright test vs-lots-*.spec.ts` (changement prop m2PerPixel sur PlanCanvas)
+- Si POC OCR test réel : ajouter `tests/e2e/plan-calibration.spec.ts` (mock OpenAI + assert pré-remplissage / fallback)
+
+**PRIORITÉ 4 — Cosmétique post-merge bundle backlog (P2 différés)**
+- F02 UX Étape 4 : sélecteur multi-photos manquant US-VS-19:935-942 (à confirmer usage Thomas)
+- F17 UX : bouton "Fermer le chat" `ChatAgent.tsx:88` sans `min-h-[44px]`
+- R-V2-04 Design : textarea ChatAgent `focus:` au lieu de `focus-visible:`
+- F09 Copy : triple "Décrivez les modifications souhaitées" dans ChatAgent
+- RoomGrid.tsx:124 : `text-[10px]` résiduel Étape 3 Pièces
+
+**Propagation learnings versi-s19 (à propager au démarrage s20 — 7 learnings statut `à-faire`)** :
+1. Pattern Express 4 batches = méthode canonique (validé 3x) → orchestrator.md
+2. Audits v1 : prioriser sections 1+2 (synthèse + 5 dimensions) AVANT sections 3-5 (recaps) → ux/design/copywriter.md
+3. Parallélisation Waves P2-P6 résiduels (scope disjoint) → orchestrator.md
+4. Spec UX/PM doit toujours inclure "Brief typist prêt à coller" (code EXACT) → ux.md + product-manager.md
+5. Pattern @ia recherche faisabilité V2 (3 approches + max 2 WebSearch + verdict pragmatique + alternative) → ia.md
+6. Limitation outil @moi (pas de Write) — pattern récurrent confirmé s17+s19 → orchestrator.md + moi.md frontmatter
+7. Pré-vérification état avant brief migration (Grep rapide évite Task gaspillée — leçon P6) → orchestrator.md
+8. **NOUVEAU LEARNING CRITIQUE** : @ia (et tous agents) doivent appliquer mindset IA règle n°5 par défaut. Verdict @ia OCR Q3 initial = NO-GO V2 basé sur arguments humains (ROI/payback/volume), corrigé après rappel Thomas. À documenter dans tous les agents stratégiques (@ia, @creative-strategy, @product-manager, @growth) : "Avant tout verdict GO/NO-GO sur une feature, vérifier qu'aucun argument humain (coût homme-jour, payback, volume seuil) n'est utilisé. Avec équipe IA, coût marginal quasi nul = seul critère = valeur persona."
+
+---
+
+### Mémo de reprise versi-s18 (archive)
 
 **Plan d'exécution versi-s19 — 6 priorités ordonnées (budget cible ~10-13 Tasks producteurs sur 18 max)**
 

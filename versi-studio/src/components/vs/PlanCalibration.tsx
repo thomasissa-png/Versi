@@ -10,7 +10,7 @@
 
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 interface Point {
   x: number;
@@ -36,6 +36,57 @@ export default function PlanCalibration({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const [autoSuggestion, setAutoSuggestion] = useState<{
+    scale_text: string | null;
+    scale_ratio: number | null;
+    confidence: number;
+    reasoning: string;
+  } | null>(null);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(true);
+  const [hasAutoSuggested, setHasAutoSuggested] = useState(false);
+
+  useEffect(() => {
+    // Au montage : tenter la détection automatique d'échelle
+    let cancelled = false;
+    async function autoDetect() {
+      try {
+        const res = await fetch(`/api/vs/plans/${planId}/auto-calibrate`, {
+          method: "POST",
+        });
+        if (!res.ok || cancelled) {
+          setIsAutoDetecting(false);
+          return;
+        }
+        const json = await res.json();
+        if (cancelled) return;
+
+        if (
+          json.success &&
+          json.scale &&
+          json.scale.confidence >= 0.9 &&
+          json.suggestion
+        ) {
+          // Pré-remplir le champ longueur (assistant, pas remplacement)
+          setAutoSuggestion({
+            scale_text: json.scale.scale_text,
+            scale_ratio: json.scale.scale_ratio,
+            confidence: json.scale.confidence,
+            reasoning: json.scale.reasoning,
+          });
+          setLengthMeters(String(json.suggestion.suggestedLengthMeters));
+          setHasAutoSuggested(true);
+        }
+      } catch {
+        // Silencieux : fallback manuel V1 (zéro régression)
+      } finally {
+        if (!cancelled) setIsAutoDetecting(false);
+      }
+    }
+    autoDetect();
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLImageElement>) => {
@@ -119,6 +170,28 @@ export default function PlanCalibration({
         <p className="text-sm text-[var(--color-text-muted)] mb-md">
           Tracez une ligne sur un mur dont vous connaissez la longueur (cliquez sur deux points), puis indiquez la longueur en mètres.
         </p>
+
+        {isAutoDetecting && (
+          <div className="mb-md p-sm rounded-md bg-[var(--color-bg-canvas)] border border-[var(--color-border-default)] text-sm text-[var(--color-text-muted)]">
+            Détection automatique de l'échelle en cours…
+          </div>
+        )}
+        {!isAutoDetecting && hasAutoSuggested && autoSuggestion && (
+          <div className="mb-md p-sm rounded-md bg-[var(--color-bg-canvas)] border border-[var(--color-interactive-primary)] text-sm text-[var(--color-text-default)]">
+            <strong>Échelle détectée automatiquement</strong>
+            {autoSuggestion.scale_text && (
+              <>
+                {" "}: <span className="font-mono">{autoSuggestion.scale_text}</span>
+              </>
+            )}
+            . Vérifiez la longueur pré-remplie ci-dessous puis tracez la ligne de référence.
+          </div>
+        )}
+        {!isAutoDetecting && !hasAutoSuggested && (
+          <div className="mb-md p-sm rounded-md bg-[var(--color-bg-canvas)] border border-[var(--color-border-default)] text-xs text-[var(--color-text-muted)]">
+            Détection automatique indisponible — calibrez manuellement en traçant une ligne de référence.
+          </div>
+        )}
 
         <div className="relative inline-block max-w-full border border-[var(--color-border-default)] rounded-md overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
