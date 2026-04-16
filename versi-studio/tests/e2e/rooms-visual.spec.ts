@@ -249,8 +249,10 @@ test.describe("Rooms — baselines visuelles", () => {
         await expect(
           page.getByRole("heading", { name: /identifiez les pièces/i })
         ).toBeVisible();
-        // Attendre qu'au moins une pièce du lot 1 apparaisse (salon)
-        await expect(page.getByText(/salon/i).first()).toBeVisible();
+        // Attendre qu'au moins une carte de pièce (RoomPanel) soit rendue
+        await expect(
+          page.getByRole("button", { name: /pièce \d+ : salon/i }).first()
+        ).toBeVisible();
 
         await page.waitForTimeout(400);
 
@@ -271,11 +273,14 @@ test.describe("Rooms — baselines visuelles", () => {
         });
         await page.goto(`/vs/projects/${PROJECT_ID}/rooms`);
 
-        await expect(page.getByText(/salon/i).first()).toBeVisible();
+        // Cibler la carte de pièce dans RoomPanel (aria-label exposé par le composant)
+        const roomCard = page.getByRole("button", {
+          name: /pièce \d+ : salon/i,
+        });
+        await expect(roomCard.first()).toBeVisible();
         await page.waitForTimeout(300);
 
-        // Cliquer sur la première pièce détectée (salon)
-        await page.getByText(/salon/i).first().click();
+        await roomCard.first().click();
         await page.waitForTimeout(300);
 
         await page.screenshot({
@@ -301,7 +306,9 @@ test.describe("Rooms — baselines visuelles", () => {
         await expect(
           page.getByRole("heading", { name: /identifiez les pièces/i })
         ).toBeVisible();
-        await expect(page.getByText(/salon/i).first()).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: /pièce \d+ : salon/i }).first()
+        ).toBeVisible();
 
         await page.waitForTimeout(400);
 
@@ -324,7 +331,9 @@ test.describe("Rooms — baselines visuelles", () => {
         });
         await page.goto(`/vs/projects/${PROJECT_ID}/rooms`);
 
-        await expect(page.getByText(/salon/i).first()).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: /pièce \d+ : salon/i }).first()
+        ).toBeVisible();
         await page.waitForTimeout(300);
 
         // Tenter de valider le lot — déclenche le mode validationBlocked
@@ -356,17 +365,21 @@ test.describe("Rooms — baselines visuelles", () => {
         });
         await page.goto(`/vs/projects/${PROJECT_ID}/rooms`);
 
-        await expect(page.getByText(/salon/i).first()).toBeVisible();
+        const roomCard = page.getByRole("button", {
+          name: /pièce \d+ : salon/i,
+        });
+        await expect(roomCard.first()).toBeVisible();
         await page.waitForTimeout(300);
 
-        // Sélectionner la pièce salon (nécessaire avant suppression dans certains UIs)
-        await page.getByText(/salon/i).first().click();
+        // Sélectionner la pièce avant de cliquer sur supprimer
+        await roomCard.first().click();
         await page.waitForTimeout(200);
 
-        const deleteButtons = page.getByRole("button", {
-          name: /supprimer/i,
+        // Bouton supprimer ciblé par aria-label exposé dans RoomPanel.tsx
+        const deleteBtn = page.getByRole("button", {
+          name: /supprimer la pièce/i,
         });
-        await deleteButtons.first().click();
+        await deleteBtn.first().click();
 
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeAttached();
