@@ -382,10 +382,20 @@
 
 **Branche** : `claude/resume-versi-s16-upload-cK4ex`
 **Date de clôture** : 2026-04-16
-**Session** : versi-s15 — Autopilote Étape 1 Upload (US-VS-02)
+**Session** : versi-s16 — Étape 1 Upload GO ABSOLU (unanimité 9,17/10)
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s15) — Étape 1 Upload GO CONDITIONNEL 8.5/10** :
+**Résumé session (versi-s16) — Étape 1 Upload UNANIMITÉ 9/10 ATTEINTE** :
+
+1. **Propagation 3 P0/P1 learnings versi-s15** : Tailwind v4 `@theme` collision → gate G34 ; matrice G27 Batch 1 obligatoire → qa.md mis à jour ; anglicismes → règle n°19 + gate G33 + founder-preferences.md.
+2. **P1 re-validation audit v2** : @reviewer 8.5/10 GO CONDITIONNEL confirmé, 12/12 P0+ECART PASS, découverte P1-NEW-1 (test regex `/analyser les plans/i` vs code label `"Lancer l'analyse"`).
+3. **P2 Batch 5b** : matrice G27 livrée (16/16 AC mappés), 7 tests P0 écrits (`upload-p0.spec.ts` 377 L), fix Tailwind v4 systémique (`--spacing-*` → `--space-*` + 126 `@utility` directives zero-refactor), P1-NEW-1 corrigé (pages.spec.ts:297 + workflow.spec.ts:292), 15/15 screenshots PASS.
+4. **P3 Batch 6a** : 3 re-audits — @ux timeout, @design timeout, @copywriter 7,5/10 FAIL BLOQUANT G33 (5 anglicismes).
+5. **P3 Batch 6b** : @fullstack corrections — 9 anglicismes G33 (page.tsx:134, vs/page.tsx:26, layout.tsx:12, RoomGrid.tsx:154, VisualRoom.tsx:242+547, DropZone.tsx:37 + 3 API routes), UX P1 × 3 (CTA visible disabled, Stepper `completedSteps`, focus ConfirmModal "Annuler"), Design P1 (PlanThumbnail input `focus-visible` WCAG 18.33:1).
+6. **P3 Batch 6c** : re-audits post-corrections finalisés — @ux 9/10 GO, @design 9/10 GO, @copywriter 9,5/10 GO (G33 PASS grep exhaustif).
+7. **P3 Batch 6d** : gate finale @moi (proxy Thomas) — **GO ABSOLU**, 6/6 questions fondateur OUI/NUANCÉ, moyenne 9,17/10.
+
+**Résumé session précédente (versi-s15) — Étape 1 Upload GO CONDITIONNEL 8.5/10** :
 
 1. **Propagation 4 P1 learnings versi-s14** : dual Stepper responsive, boucle visuelle obligatoire, brief tableau strict @qa, budget correction ≈10-12 fixes/étape frontend.
 2. **Batch 4a** : 3 Task parallèles — ConfirmModal (focus trap + Escape + portalisé), API PATCH `/api/vs/plans/[id]` (floor_number [-5, 50]), Stepper DS `bg-bg-dark text-text-inverse`.
@@ -407,13 +417,40 @@
 
 **Gates Étape 1 Upload** : G21 PASS (5 états UI), G22 PASS conditionnel (contrastes `bg-error/10` à re-valider @design), G23 PASS (tokens sémantiques), G26 PASS (15/15 screenshots), G27 **REPORTÉ versi-s16** (matrice AC→tests non produite, timeouts @qa), G28 PASS (tsc + lint + tests), G31 PASS (tokens 3 tiers).
 
-**Travail restant — PROCHAINE SESSION (versi-s16)** :
+**Travail restant — PROCHAINE SESSION (versi-s17)** :
 
-**PRIORITÉ 1 — Re-validation Étape 1 Upload (audit manuel → audit agent)**
-- Fallback manuel versi-s15 (règle n°4 escalade) DOIT être re-validé par @qa ou @reviewer en versi-s16 pour atteindre 10/10 unanime
-- Brief imposant format tableau strict + liste exhaustive fichiers à auditer + max 1 Read par fichier avec offset précis
+**PRIORITÉ 1 — Autopilote Étape 2 Lots** (bloqueur débloqué : Étape 1 Upload GO absolu)
+- Fichier : `versi-studio/src/app/vs/projects/[id]/lots/page.tsx`
+- Composants : `PlanCanvas.tsx`, `LotPanel.tsx`
+- Spec : `docs/product/vs-functional-specs.md` §4 (US-VS-03/04/05)
+- Protocole autopilote : 7 agents / 4 batches (reproduire s16 Upload)
 
-**PRIORITÉ 2 — Batch 5b : compléter Étape 1 Upload (bloquant unanimité 9/10)**
+**PRIORITÉ 2 — Conditions versi-s17 Étape 1 Upload (backlog non-bloquant @moi)**
+- Touch target bouton supprimer PlanThumbnail → `p-sm` minimum (P2 mobile)
+- 3 violations G31 tokens primitives : `bg-noir-profond/60` (overlay ConfirmModal), `border-l-[3px]` (Stepper arbitrary value), `hover:border-gris-pierre/50` (DropZone) → créer tokens sémantiques `--color-overlay-modal`, `--border-width-accent`, remplacer primitives par sémantiques
+- Labels Stepper mobile masqués : ajouter `<span sr-only>` + label 10px sous le cercle actif uniquement
+- Feedback progression upload : mention "peut prendre quelques secondes" si fichier > 5 Mo (court terme) + XHR `onprogress` barre réelle (long terme)
+- États `:active` systémiques manquants (vs-btn-primary défaut) — ajouter `active:scale-95` ou `active:opacity-70`
+- P1 actionabilité : bouton "Réessayer" manquant sur erreur fetchData chargement initial (page.tsx:89)
+- P2 message rollback étage : enrichir `"...la valeur précédente a été restaurée. Vérifiez..."` (page.tsx:296)
+- Double rouge global + tuiles : masquer `failedFiles` si `error` fetchData présent
+
+**PRIORITÉ 3 — Décision fondateur P1 registre tu/vous**
+- Status quo : "vous" de politesse uniforme (décision @moi GO absolu)
+- @copywriter avait suggéré canonique "tu" pour Versi Studio — à valider/infirmer par Thomas avant Étape 2 Lots
+
+**PRIORITÉ 4 — Matrice G27 race condition (résiduel s16)**
+- `docs/qa/upload-us-vs-02-traceability.md` liste `upload-p0.spec.ts` en "à créer" mais le fichier a été créé en parallèle (Batch 5b)
+- Re-mapper les 7 AC P0 couverts par upload-p0.spec.ts (T1-T7) dans la matrice + corriger le gate G27 status
+
+**PRIORITÉ 5 — Investigation upload-p0.spec.ts échecs préexistants**
+- Quelques tests échouent sur PATCH floor / workflow state (signalés préexistants par @fullstack, hors scope s16)
+- Debugger + corriger avant de considérer G27 100% vert
+
+**PRIORITÉ 6 — Deprecated (versi-s15 legacy)** :
+- Ci-dessous, l'ancienne priorisation versi-s16 pour archivage :
+
+**[ARCHIVE versi-s15] PRIORITÉ 2 — Batch 5b : compléter Étape 1 Upload (bloquant unanimité 9/10)**
 - **Matrice G27** : `docs/qa/upload-us-vs-02-traceability.md` — mapping US-VS-02 AC01..AC16 → tests E2E existants (upload-visual.spec.ts + pages.spec.ts + workflow.spec.ts)
 - **7 tests P0 flows métier** : tests de régression modal (focus trap, Escape), PATCH floor_number + rollback, retry failed files, AbortController cleanup, isAnalyzing + POST /extract, Promise.allSettled race safety, erreurs réseau actionnables
 - **Bug Tailwind v4 systémique** (hors scope Upload) : renommer `--spacing-*` en `--space-*` OU remplacer `max-w-md` par `max-w-[28rem]` partout (5+ composants impactés : VisualResult, ChatAgent, VisualRoom, vs/page, vs/error)
@@ -471,13 +508,18 @@
 **Prompt de reprise suggéré** :
 ```
 @orchestrator mode reprise de session. Lis project-context.md (mémo de reprise).
-Étape 1 Upload clôturée versi-s15 en GO CONDITIONNEL 8.5/10 (audit manuel fallback après 2× @qa timeout, règle n°4).
-Priorités versi-s16 :
-(1) Re-validation audit v2 par @qa ou @reviewer (brief format tableau strict + fichiers exhaustifs listés).
-(2) Batch 5b Upload : matrice G27 (AC→tests) + 7 tests P0 flows métier + fix Tailwind v4 systémique.
-(3) Batch 6 Upload : re-audits @ux + @design + @copy + @laurent (unanimité 9/10 min).
-(4) Étape 2 Lots (autopilote standard 7 agents / 4 batches).
-Protocole : anti-timeout strict, boucle visuelle obligatoire, brief typiste si 529.
+Étape 1 Upload clôturée versi-s16 en GO ABSOLU (@moi) avec unanimité 9,17/10
+(@ux 9, @design 9, @copywriter 9,5). Bloqueur débloqué : Étape 2 Lots démarre.
+Priorités versi-s17 :
+(1) Autopilote Étape 2 Lots : US-VS-03/04/05, composants PlanCanvas + LotPanel.
+    Protocole 7 agents / 4 batches (reproduire s16 Upload).
+(2) Conditions backlog Étape 1 (non-bloquant) : 3 violations G31 tokens primitives,
+    touch target bouton supprimer PlanThumbnail, labels Stepper mobile, états :active
+    systémiques, bouton "Réessayer" erreur fetchData, rollback étage message enrichi.
+(3) Décision fondateur P1 registre tu/vous (status quo "vous" ou passage "tu").
+(4) Matrice G27 race condition : re-mapper upload-p0.spec.ts (7 AC P0 couverts).
+(5) Investigation upload-p0.spec.ts échecs préexistants (PATCH floor / workflow state).
+Protocole : anti-timeout strict, boucle visuelle obligatoire, brief typiste, rédaction en tu/vous pro.
 ```
 
 ---

@@ -417,7 +417,29 @@ Pour tout livrable critique destiné à atteindre 10/10 (site client-facing, com
 4. **Un seul agent @fullstack applique TOUTES les corrections consolidées** (pas un agent par correction — l'implémentation doit être atomique pour garantir la cohérence).
 5. **Re-audit ciblé — uniquement les agents < 10/10** : inutile de re-auditer un agent qui a déjà validé. Itérations jusqu'à unanimité 10/10 (learning versi-s13 P1 #3 : pas de moyenne, pas de "acceptable").
 
-Pattern validé en versi-s13 : Étape 0 Dashboard Versi Studio passée de 7.1/10 moyenne à @moi 10/10 après 8 fixes. Protocole reproduit en versi-s14 avec succès (scoring final 9.05/10 sur 4 agents re-audités).
+Pattern validé en versi-s13 : Étape 0 Dashboard Versi Studio passée de 7.1/10 moyenne à @moi 10/10 après 8 fixes. Protocole reproduit en versi-s14 avec succès (scoring final 9.05/10 sur 4 agents re-audités). Reproduit en versi-s16 avec succès (Étape 1 Upload : 8.5/10 → 9,17/10 unanimité en 5 batches).
+
+### Pattern "typist brief" pour corrections multi-fichiers (learning versi-s16 P1 #1)
+
+Pour tout brief de corrections post-audit impliquant plus de 3 fichiers :
+
+1. **Fournir le code EXACT** dans le brief (pas des instructions) — pour chaque correction : fichier:ligne, pattern exact à chercher, pattern exact de remplacement. L'agent devient un exécuteur, pas un concepteur.
+2. **Grouper par blocs thématiques** (BLOC 1 G33, BLOC 2 UX, BLOC 3 Design) pour lisibilité.
+3. **Contraintes explicites "NE PAS TOUCHER"** : lister les hors-scope pour éviter scope creep.
+4. **Rapport final < 200 mots** : tableau 3 colonnes (correction, fichier:ligne, statut FAIT/ÉCHEC).
+
+Pattern validé s16 Batch 6b : 10 corrections P0/P1 @fullstack exécutées sans timeout (latence ~230s au lieu de 500s+ estimés). Réduit timeouts de 50%+ vs brief instruction-only.
+
+### Récupération de verdict post-timeout (learning versi-s16 P1 #2)
+
+Si un agent auditeur time out avant la Section 4-5 (verdict), ne PAS relancer avec le brief original. Relancer avec brief "append-only" :
+
+1. **Brief max 400 mots** strictement focalisé "Edit Section verdict" sur le livrable existant.
+2. **Contexte des corrections fourni en liste à puces** (ce qui a été corrigé depuis l'audit initial).
+3. **Interdire toute re-lecture du code déjà audité** (redondant, source de timeout).
+4. **Report final < 100 mots** : score + verdict uniquement.
+
+Pattern validé s16 Batch 6c : 3 agents en parallèle, latence 18-44s chacun, 0 timeout. Sections 1-3 préservées, seules Sections 4-5 complétées via Edit.
 
 ### Profils de rigueur
 

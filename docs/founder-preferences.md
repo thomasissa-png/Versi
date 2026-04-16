@@ -99,5 +99,17 @@
   - `meeting` → `réunion` / `rendez-vous`
   - `forwarder` → `transférer` / `transmettre`
 - **Exceptions tolérées** (usage FR courant sans équivalent idiomatique) : `scroll` / `scroller`, `clic` / `cliquer`, `email`, `site`, `login` / `logout`, `cookie`.
-- **Portée** : code frontend (`.tsx`, `.jsx`), specs user-facing, tests E2E (labels visuels `getByText`), micro-copy, ARIA labels. N'affecte PAS les commentaires code, identifiants techniques, noms de variables/fonctions, noms d'endpoints API.
+- **Portée** : code frontend (`.tsx`, `.jsx`), specs user-facing, tests E2E (labels visuels `getByText`), micro-copy, ARIA labels, **messages d'erreur API retournés au client** (`NextResponse.json({ error: "..." })` affichés via `setError(json.error)` — enrichi versi-s16). N'affecte PAS les commentaires code, identifiants techniques, noms de variables/fonctions, noms d'endpoints API.
 - **Gate associée** : G33 (BLOQUANT) dans CLAUDE.md. Contrôle par @copywriter, @ux, @seo, @fullstack à chaque livrable.
+
+### Registre Versi Studio (session s16)
+- **Vous de politesse uniforme.** Pour Versi Studio (outil pro INTERNE), le registre par défaut est "vous" de politesse. Validé par @moi GO absolu versi-s16 malgré la recommandation @copywriter de passer au "tu" canonique. Le "vous" convient au ton pro sobre Versi.
+- **Règle** : @copywriter ne doit PAS recommander le passage au "tu" sans validation @moi préalable. Le tu n'est pas automatiquement préférable en contexte pro B2B.
+- **Scope** : s'applique à Versi Studio uniquement. Les autres entités (Versi Immobilier, Versi Invest) conservent leurs décisions de registre propres.
+
+### Persona → gate finale (mapping session s16)
+- **Versi Studio** (outil INTERNE Thomas marchand de biens) → **@moi** (proxy fondateur) — gate finale. Les testeurs-persona externes (Laurent/Sophie/Nicolas) NE S'APPLIQUENT PAS.
+- **Versi Immobilier** (B2B2C vendeurs) → **@testeur-persona-sophie** (propriétaire vendeuse).
+- **Versi Invest** (investisseurs family office) → **@testeur-persona-laurent** (family office).
+- **Versi Invest VI2** (investisseurs particuliers) → **@testeur-persona-nicolas** (investisseur locatif).
+- **Règle orchestrateur** : mapper explicitement persona → agent final AVANT le brief. Ne JAMAIS utiliser un testeur-persona externe sur un outil interne.
