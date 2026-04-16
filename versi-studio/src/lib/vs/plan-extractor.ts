@@ -6,12 +6,14 @@
  * validation Zod, self-correction, sanitization post-extraction.
  */
 import OpenAI from "openai";
-import { pdf } from "pdf-to-img";
 import {
   PlanExtractionResultSchema,
   type PlanExtractionResult,
   type TypeBien,
 } from "@/lib/vs/schemas";
+
+// NOTE : `pdf-to-img` est importé dynamiquement à l'usage (voir extractPlanData).
+// Un import statique casse le build Next.js (bundling côté serveur) — cf. retour Replit s20.
 
 // ─── Singleton OpenAI ──────────────────────────────────────────────
 let _openaiClient: OpenAI | null = null;
@@ -445,6 +447,8 @@ export async function extractPlanData(
   if (isPdf(mimeType, planBase64)) {
     console.log("[plan-extractor] PDF detected — converting to PNG via pdf-to-img...");
     try {
+      // Import dynamique : pdf-to-img casse le build Next.js en import statique (cf. retour Replit s20).
+      const { pdf } = await import("pdf-to-img");
       const pdfBuffer = Buffer.from(planBase64, "base64");
       const pages = await pdf(pdfBuffer, { scale: 3 });
       for await (const page of pages) {
