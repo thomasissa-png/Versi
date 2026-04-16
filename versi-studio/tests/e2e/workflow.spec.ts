@@ -191,7 +191,8 @@ async function mockAllApiRoutes(page: Page, overrides?: {
   await page.route("**/api/vs/lots/*", async (route: Route) => {
     const url = route.request().url();
     if (url.includes("/rooms") || url.includes("/validate")) {
-      await route.continue();
+      // Déléguer aux handlers spécifiques (rooms/validate) enregistrés AVANT — learning s18
+      await route.fallback();
       return;
     }
     if (route.request().method() === "PATCH") {
@@ -558,7 +559,8 @@ test.describe("Workflow — Etats d'erreur", () => {
     await page.route("**/api/vs/lots/*", async (route: Route) => {
       const url = route.request().url();
       if (url.includes("/rooms") || url.includes("/validate")) {
-        await route.continue();
+        // Déléguer aux handlers spécifiques (rooms/validate) enregistrés AVANT — learning s18
+        await route.fallback();
         return;
       }
       if (route.request().method() === "PATCH") {

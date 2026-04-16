@@ -178,12 +178,10 @@ test.describe("Upload US-VS-02 — 7 tests P0 flows métier", () => {
       page.getByRole("alert").filter({ hasText: /mettre à jour l'étage|connexion/i })
     ).toBeVisible({ timeout: 5_000 });
 
-    // KNOWN BUG (signalé versi-s18 P6) : l'input visuel ne reflète pas le rollback
-    // car PlanThumbnail.tsx maintient un state LOCAL `floorInput` qui n'est pas
-    // resynced quand le prop `plan.floor_number` change après rollback parent.
-    // Fix attendu : useEffect dans PlanThumbnail pour sync floorInput sur prop change.
-    // À arbitrer Thomas. Le test vérifie le rollback du state parent via le toast,
-    // pas l'affichage visuel (qui restera "3" jusqu'au fix applicatif).
+    // BUG-1 fix (versi-s19) : vérifier que l'input visuel reflète aussi le rollback.
+    // Le useEffect de resync dans PlanThumbnail remet floorInput à "0" quand le
+    // parent restaure plan.floor_number après l'erreur PATCH 500.
+    await expect(floorInput).toHaveValue("0");
   });
 
   test("P0-T3 : Retry failed files via handleRetry", async ({ page }) => {

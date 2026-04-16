@@ -48,7 +48,10 @@ export default function UploadPage({
   const [plans, setPlans] = useState<VsPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<Set<string>>(new Set());
+  // Map<fileName, percent 0-100> — % d'upload réel via XHR onprogress
+  const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(
+    new Map()
+  );
   const [failedFiles, setFailedFiles] = useState<FailedUpload[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -107,36 +110,72 @@ export default function UploadPage({
   // ─── Upload d'un fichier unitaire (réutilisé pour retry) ───────
 
   const uploadSingleFile = useCallback(
-    async (
+    (
       file: File,
       targetFloor: number,
       signal: AbortSignal
     ): Promise<{ plan: VsPlan } | { error: string }> => {
-      try {
+      return new Promise((resolve) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("floor_number", String(targetFloor));
 
-        const res = await fetch(`/api/vs/projects/${projectId}/plans`, {
-          method: "POST",
-          body: formData,
-          signal,
+        const xhr = new XMLHttpRequest();
+
+        // Progression d'upload réelle (event lengthComputable)
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            setUploadProgress((prev) => {
+              const next = new Map(prev);
+              next.set(file.name, percent);
+              return next;
+            });
+          }
         });
 
-        const json = (await res.json()) as ApiResponse<VsPlan>;
+        // Réponse reçue
+        xhr.addEventListener("load", () => {
+          try {
+            const json = JSON.parse(xhr.responseText) as ApiResponse<VsPlan>;
+            if (xhr.status >= 200 && xhr.status < 300 && json.success) {
+              resolve({ plan: json.data });
+            } else if (!json.success) {
+              resolve({ error: json.error });
+            } else {
+              resolve({
+                error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
+              });
+            }
+          } catch {
+            resolve({
+              error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
+            });
+          }
+        });
 
-        if (json.success) {
-          return { plan: json.data };
+        // Erreur réseau
+        xhr.addEventListener("error", () => {
+          resolve({
+            error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
+          });
+        });
+
+        // Annulation (AbortController.abort() ou démontage)
+        xhr.addEventListener("abort", () => {
+          resolve({ error: "Dépôt annulé." });
+        });
+
+        // Branchement AbortController
+        if (signal.aborted) {
+          resolve({ error: "Dépôt annulé." });
+          return;
         }
-        return { error: json.error };
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return { error: "Dépôt annulé." };
-        }
-        return {
-          error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
-        };
-      }
+        signal.addEventListener("abort", () => xhr.abort());
+
+        xhr.open("POST", `/api/vs/projects/${projectId}/plans`);
+        xhr.send(formData);
+      });
     },
     [projectId]
   );
@@ -163,7 +202,8 @@ export default function UploadPage({
       }
 
       setUploading(true);
-      setUploadProgress(new Set(filesToUpload.map((f) => f.name)));
+      // Initialiser tous les fichiers à 0 % (sera mis à jour par xhr.upload.onprogress)
+      setUploadProgress(new Map(filesToUpload.map((f) => [f.name, 0])));
       setFailedFiles([]);
 
       const controller = new AbortController();
@@ -191,7 +231,7 @@ export default function UploadPage({
           newFailed.push({ file, targetFloor, error: result.error });
         }
         setUploadProgress((prev) => {
-          const next = new Set(prev);
+          const next = new Map(prev);
           next.delete(file.name);
           return next;
         });
@@ -212,13 +252,13 @@ export default function UploadPage({
       const { file, targetFloor } = failedUpload;
 
       setFailedFiles((prev) => prev.filter((f) => f.file !== file));
-      setUploadProgress((prev) => new Set(prev).add(file.name));
+      setUploadProgress((prev) => new Map(prev).set(file.name, 0));
 
       const controller = new AbortController();
       const result = await uploadSingleFile(file, targetFloor, controller.signal);
 
       setUploadProgress((prev) => {
-        const next = new Set(prev);
+        const next = new Map(prev);
         next.delete(file.name);
         return next;
       });
@@ -464,17 +504,37 @@ export default function UploadPage({
           disabled={uploading || plans.length >= MAX_FILES_PER_PROJECT}
         />
 
-        {/* Progression d'upload (parallèle) */}
-        {/* TODO P2 versi-s19 : afficher progressPct (loaded/total) pour fichiers > 5 Mo via XHR onprogress (fetch ne supporte pas onprogress nativement) */}
+        {/* Progression d'upload (parallèle, % réel via XHR onprogress) */}
         {uploading && uploadProgress.size > 0 && (
-          <div className="mt-lg">
-            {Array.from(uploadProgress).map((name) => (
-              <div
-                key={name}
-                className="flex items-center gap-sm py-sm text-sm text-text-muted"
-              >
-                <div className="w-4 h-4 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin motion-reduce:animate-none" />
-                <span>Dépôt de {name} en cours…</span>
+          <div className="mt-lg flex flex-col gap-sm">
+            {Array.from(uploadProgress.entries()).map(([name, percent]) => (
+              <div key={name} className="text-sm text-text-muted">
+                <div className="flex items-center gap-sm py-2xs">
+                  <div className="w-4 h-4 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin motion-reduce:animate-none" />
+                  <span className="flex-1 truncate">
+                    Dépôt de {name} en cours…
+                  </span>
+                  <span
+                    className="tabular-nums text-xs"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    {percent}&nbsp;%
+                  </span>
+                </div>
+                <div
+                  className="h-1 w-full bg-border-default rounded-full overflow-hidden"
+                  role="progressbar"
+                  aria-valuenow={percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Progression du dépôt de ${name}`}
+                >
+                  <div
+                    className="h-full bg-interactive-primary transition-[width] duration-200 motion-reduce:transition-none"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
               </div>
             ))}
           </div>

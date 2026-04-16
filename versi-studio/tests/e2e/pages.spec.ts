@@ -172,9 +172,9 @@ async function mockAllApiRoutes(page: Page, overrides?: {
   // Catch-all pour les lots individuels (GET/PATCH)
   await page.route("**/api/vs/lots/*", async (route: Route) => {
     const url = route.request().url();
-    // Ignorer les sous-routes deja traitees (rooms, validate)
+    // Ignorer les sous-routes deja traitees (rooms, validate) — déléguer aux handlers spécifiques (learning s18)
     if (url.includes("/rooms") || url.includes("/validate")) {
-      await route.continue();
+      await route.fallback();
       return;
     }
     const matchedLot = lots.find((l: any) => url.includes(l.id));
