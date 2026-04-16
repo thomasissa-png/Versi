@@ -112,59 +112,36 @@ Les 5 occurrences identifiées en P1 + 1 occurrence AbortError.
 
 ## Section 6 — Verdict
 
-### Score /10 : 8,5
+**Score : 9,5/10** (post-corrections Batch 6b)
 
-Décomposition honnête :
-- Copy structurellement solide : H1 direct et calibré secteur, erreurs actionnables (5/6), CTA canonique "Lancer l'analyse" conforme, registre "vous" cohérent sur tout le périmètre, hiérarchie H1/subhead/body/CTA propre.
-- 1 anglicisme bloquant en string visible utilisateur (page.tsx L134) — gate G33 FAIL.
-- 1 calque anglais P2 à corriger (DropZone.tsx L37 "non supporté").
-- 3 anglicismes hors périmètre détectés et signalés (vs/page.tsx, RoomGrid.tsx, VisualRoom.tsx).
+Décomposition :
+- Copy structurel (H1, CTA, modal, compteurs) : 9/10 — H1 impératif calibré secteur, CTA "Lancer l'analyse" canonique < 8 mots, hiérarchie propre, registre "vous" uniforme
+- Gate G33 (anglicismes) : **PASS** — Grep post-Batch 6b confirme zéro string visible utilisateur résiduelle. Toutes les occurrences résiduelles sont des identifiants techniques (noms de fonctions, variables d'état, noms de routes) et des commentaires de code — hors scope G33
+- Registre tu/vous : PASS périmètre upload — alternance résiduelle non résolue hors périmètre (décision fondateur requise — HORS SCOPE versi-s16)
+- Actionabilité erreurs : 5/6 PASS sur le périmètre — "Dépôt interrompu — réessayez." résout L134 (P0 + P1)
 
-**Unanimité 9/10 : FAIL** — le seuil de 9 n'est pas atteint tant que L134 n'est pas corrigé.
+**Unanimité 9/10 : PASS** — G33 PASS post-Batch 6b. Score 9,5/10 confirmé.
 
-**Gate G33 : FAIL — BLOQUANT**
-Occurrence dans le périmètre : `page.tsx:134` — `"Upload annulé."`
-Correction requise avant débloquage.
+**Gate G33 : PASS (post-corrections Batch 6b)**
+Grep exhaustif sur `versi-studio/src/**/*.{tsx,ts}` — zéro string visible utilisateur avec les patterns `Upload|uploadé|uploader|uploadez|download|feedback|meeting|forwarder`.
+Occurrences résiduelles : identifiants techniques uniquement (`handleUploadPhoto`, `isUploading`, `uploadProgress`, `UploadPage`, etc.) et commentaires JSDoc — exemptés par règle n°19 CLAUDE.md.
 
-**Conditions pour atteindre 9/10 :**
-1. P0 — `page.tsx:134` : `"Upload annulé."` → `"Dépôt interrompu — réessayez."`
-2. P2 — `DropZone.tsx:37` : `"format non supporté"` → `"format non pris en charge"`
-
-Après ces 2 corrections : score estimé **9,5/10**, unanimité 9/10 PASS attendue.
+**P1 résiduels reportés versi-s17** :
+- Registre tu/vous hors périmètre (décision fondateur requise)
+- Bouton "Réessayer" sur erreur fetchData — libellé acceptable, amélioration optionnelle
+- Message rollback étage — "vérifiez votre connexion et réessayez" correct, actionabilité P1 non bloquante
 
 ---
 
 ## Section 7 — Handoff
 
 ---
-**Handoff → @fullstack**
-
-Corrections requises dans le périmètre upload (2 fichiers, 2 lignes) :
-
-**Correction 1 — P0 BLOQUANT (gate G33)**
-- Fichier : `versi-studio/src/app/vs/projects/[id]/upload/page.tsx`
-- Ligne 134 : `return { error: "Upload annulé." };`
-- Remplacement : `return { error: "Dépôt interrompu — réessayez." };`
-
-**Correction 2 — P2**
-- Fichier : `versi-studio/src/components/vs/DropZone.tsx`
-- Ligne 37 : `errors.push(\`${file.name} : format non supporté. Utilisez PDF, PNG, JPG ou WEBP.\`);`
-- Remplacement : `` errors.push(`${file.name} : format non pris en charge. Utilisez PDF, PNG, JPG ou WEBP.`); ``
-
-Corrections hors périmètre à traiter en tickets séparés (P2 — gate G33) :
-- `versi-studio/src/app/vs/page.tsx:26` — `"Plans uploadés"` → `"Plans déposés"`
-- `versi-studio/src/components/vs/RoomGrid.tsx:154` — aria-label `"Photo uploadée"` → `"Photo déposée"`
-- `versi-studio/src/components/vs/VisualRoom.tsx:242` — `"Impossible d'uploader la photo."` → `"Impossible de déposer la photo."`
-
----
 **Handoff → @orchestrator**
 
-- Fichier produit : `docs/copy/upload-us-vs-02-copy-audit.md`
-- Gate G33 : **FAIL — BLOQUANT** — 1 occurrence dans le périmètre (page.tsx:134)
-- Score actuel : **8,5/10** — unanimité 9/10 non atteinte
-- 2 corrections copy requises par @fullstack (P0 L134 + P2 DropZone L37)
-- 3 corrections hors périmètre signalées (vs/page.tsx, RoomGrid.tsx, VisualRoom.tsx) — à planifier
-- Registre "vous" : PASS sur tout le périmètre, aucune correction copy supplémentaire
-- Hiérarchie copy et CTA canonique : PASS
-- Après corrections P0+P2 : score estimé 9,5/10, unanimité 9/10 PASS
+- Fichier produit : `docs/copy/upload-us-vs-02-copy-audit.md` (finalisé post-Batch 6b)
+- Score final post-corrections : **9,5/10**
+- Verdict : **GO — unanimité 9/10 PASS**
+- G33 : **PASS** — Grep post-Batch 6b, zéro anglicisme visible résiduel dans le périmètre
+- Corrections Batch 6b appliquées et validées : page.tsx L134 (`"Dépôt interrompu — réessayez."`), DropZone.tsx L37 (`"format non pris en charge"`), plus les 8 autres occurrences listées dans le brief
+- Reste versi-s17 : P1 registre tu/vous hors périmètre (décision fondateur), P1 actionabilité fetchData (amélioration optionnelle), P1 rollback étage (non bloquant)
 ---

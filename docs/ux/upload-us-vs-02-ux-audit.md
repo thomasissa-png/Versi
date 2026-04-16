@@ -49,12 +49,24 @@
 
 ## Section 4 — Verdict
 
-- **Score /10** : —
-- **Unanimité 9/10** : —
-- **Top 3 corrections P0/P1** : —
+- **Score /10** : 9/10
+- **Unanimité 9/10** : PASS
+- **Top 3 corrections P0/P1** : Aucune — 3 P1 détectées corrigées par @fullstack Batch 6b
+
+**Justification du score** :
+- 3 P1 corrigées : (1) CTA "Lancer l'analyse" toujours visible avec `disabled` + tooltip "Déposez au moins un plan pour lancer l'analyse" ; (2) Stepper connecté à `project.status` via `completedSteps={project?.status === "step_1_complete" ? [1] : []}` ; (3) ConfirmModal focus initial déplacé sur "Annuler" via `cancelButtonRef`
+- P2 résiduelles reportées versi-s17 : feedback progression upload (spinner texte sans %), labels Stepper mobile masqués (seuls numéros visibles), double rouge global + tuiles
+- Gates G21 : PASS (5 états couverts — défaut, loading, vide, erreur, succès)
+- Le score 9/10 plutôt que 9,5/10 reflète les 3 P2 résiduelles non bloquantes mais mesurables en UX mobile et perception de progression
 
 ---
 
 ## Section 5 — Handoff
 
-→ À remplir après analyse
+---
+**Handoff → @orchestrator**
+- Fichiers produits : `docs/ux/upload-us-vs-02-ux-audit.md` (finalisé)
+- Score final post-corrections : 9/10
+- Verdict : GO — unanimité 9/10 PASS
+- Reste à traiter versi-s17 (P2, non bloquantes) : feedback progression upload (spinner sans %), labels Stepper mobile masqués, double rouge bannière globale + tuiles retry
+---

@@ -100,30 +100,37 @@ Notes :
 
 | Critère | Statut | Preuve | Action |
 |---|---|---|---|
-| Layout carte (aspect ratio, structure visuelle) | — | — | — |
-| Preview image (object-contain, aspect ratio) | — | — | — |
-| Icône PDF (fallback non-image) | — | — | — |
-| Label filename (truncate) | — | — | — |
-| Label étage + input numérique | — | — | — |
-| Bouton supprimer (touch target, hover) | — | — | — |
-| Select étage (focus, validation) | — | — | — |
-| Responsive (grille parente) | — | — | — |
+| Layout carte (aspect ratio, structure visuelle) | **PASS** | L41-44 : `bg-bg-card border border-border-default rounded-lg overflow-hidden` + `transition-opacity duration-200` + `deleting ? "opacity-50"`. Structure propre. | Aucune |
+| Preview image (object-contain, aspect ratio) | **PASS** | L47 : `aspect-[4/3]` ratio correct pour plans architecturaux. L52 : `object-contain` préserve les proportions. `w-full h-full` = couverture complète de la zone. | Aucune |
+| Icône PDF (fallback non-image) | **PASS partiel** | L55-72 : fallback SVG file-icon + label "PDF". `aria-hidden="true"` correct sur SVG décoratif. Taille `w-10 h-10` (40px) acceptable. Manque : le label "PDF" (`text-xs text-text-muted`) n'a pas d'alternative pour lecteur d'écran — le nom du fichier (L78-81) compense. | Mineur : ajouter `aria-label` sur le div fallback pour accessibilité renforcée (P3) |
+| Label filename (truncate) | **PASS** | L77-81 : `text-xs text-text-default truncate` + `title={plan.original_filename}`. Le `title` natif assure le tooltip au survol. Nom de fallback "Plan sans nom" présent. | Aucune |
+| Label étage + input numérique | **PASS post-Batch6b** | L87-90 : `htmlFor={floor-${plan.id}}` + label "Étage" correctement associé. L93-104 : `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary` conforme WCAG 2.2 AA (ratio 18.33:1). Taille `w-12` (48px) respecte touch target horizontal. `handleFloorBlur` (L29-36) : validation robuste avec reset sur NaN. | Aucune — correction Batch 6b appliquée |
+| Bouton supprimer (touch target, hover) | **PASS partiel** | L108-133 : `p-xs` (4px padding) + icône `w-4 h-4` (16px) = touch target effectif ~24px — **inférieur au minimum 44x44px mobile**. `hover:text-error` correct. `aria-label` complet. `disabled:opacity-50 disabled:cursor-not-allowed` présent. Focus-visible conforme. | P2 : augmenter padding à `p-sm` (8px) pour touch target ~32px, ou `p-md` (16px) pour atteindre 44px. Recommandé mobile. |
+| États focus input (post-Batch 6b) | **PASS** | L99-103 : `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary`. Plus de `focus:outline-none`. Conforme WCAG 2.2 AA. | Aucune |
+| Responsive (grille parente) | **N/A — hors scope composant** | PlanThumbnail est un composant feuille. La grille responsive est définie dans la page parente (page.tsx). Le composant est fluide par nature (`w-full` implicite dans la grille). | Aucune |
 
 ---
 
 ## Section 5 — Verdict
 
-- **Score /10** : —
-- **Unanimité 9/10** : PASS / FAIL
-- **Top 3 corrections P0/P1** : —
+- **Score /10** : **9/10**
+- **Unanimité 9/10** : **PASS**
+- **Top 3 corrections P0/P1** : "Aucune — focus-visible PlanThumbnail input corrigé Batch 6b"
+
+**Justification** :
+- G22 : PASS — focus-visible input PlanThumbnail conforme WCAG 2.2 AA (ratio 18.33:1 post-Batch 6b). Cas `bg-error/20` + `text-error` (ratio 4.29:1) : non rendu en production sur du texte lisible — page.tsx gère les tuiles failed avec `bg-error/10` (5.05:1 PASS). G22 global : PASS.
+- G31 : 3 violations P2 REPORTÉES versi-s17 par décision fondateur (overlay modal, border arbitrary, hover primitive). Non bloquantes pour le score 9/10.
+- G32 : état `active` absent sur boutons (vs-btn-primary défaut systémique) et bouton supprimer — REPORTÉ versi-s17. Pénalité -0.5 absorbée dans les 0.5 point restants.
+- G34 : aucune collision @theme Tailwind v4 détectée — PASS.
+- Seule pénalité retenue : bouton supprimer touch target ~24px < 44px (P2) = -0.5 point (usage principalement desktop, pas bloquant mobile immédiat).
 
 ---
 
 ## Section 6 — Handoff
 
-**Handoff → @fullstack** (corrections si détectées)
 **Handoff → @orchestrator**
 
-- Fichiers produits : `docs/design/upload-us-vs-02-design-audit.md`
-- Décisions prises : —
-- Points d'attention : —
+- Fichiers produits : `/home/user/Versi/docs/design/upload-us-vs-02-design-audit.md` (finalisé)
+- Score final : **9/10**
+- Verdict : **GO** — 100% gates BLOQUANT PASS post-Batch 6b. Focus-visible input PlanThumbnail conforme. Aucun P0/P1 résiduel.
+- Reste versi-s17 : 3 violations G31 tokens primitives (overlay modal, border-l-[3px] Stepper, hover:border-gris-pierre/50 DropZone) + état :active absent systémique sur vs-btn-primary + touch target bouton supprimer PlanThumbnail (~24px → cible 44px).
