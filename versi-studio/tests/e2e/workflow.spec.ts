@@ -362,7 +362,7 @@ test.describe("Workflow — Step 2 Lots interactions", () => {
     });
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
-    const validateBtn = page.getByRole("button", { name: /valider les lots|étape suivante/i });
+    const validateBtn = page.getByRole("button", { name: /continuer vers les pièces|valider les lots|étape suivante/i });
     await expect(validateBtn).toBeVisible({ timeout: 15_000 });
   });
 

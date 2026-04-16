@@ -41,7 +41,7 @@
 | US-VS-13 : Visualiser les pieces | workflow.spec.ts | "les pieces du premier lot sont affichees dans le panneau" | Interaction |
 | US-VS-14 : Modifier le type d'une piece | workflow.spec.ts | "on peut naviguer entre les lots" | Interaction |
 | US-VS-15 : Valider les pieces | workflow.spec.ts | "le bouton Valider les pieces est visible" | Interaction |
-| US-VS-19 : Uploader photo brute | workflow.spec.ts | "cliquer sur une piece ouvre le panneau de generation" | Interaction |
+| US-VS-19 : Déposer photo brute | workflow.spec.ts | "cliquer sur une piece ouvre le panneau de generation" | Interaction |
 | US-VS-20 : Choisir un style | workflow.spec.ts | "cliquer sur une piece ouvre le panneau de generation" | Interaction |
 | US-VS-21 : Iterer via agent architecte | — | ChatAgent complexe, necessite mock conversation IA | A couvrir V2 |
 | US-VS-22 : Valider un visuel | pages.spec.ts | "affiche la page visuels avec le stepper" | Rendu |

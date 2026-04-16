@@ -268,7 +268,7 @@ En tant que Thomas, je veux créer un nouveau projet en renseignant l'adresse du
 
 ---
 
-### US-VS-02 : Uploader des plans (PDF ou images)
+### US-VS-02 : Déposer des plans (PDF ou images)
 
 **Persona** : Thomas
 **Epic** : Upload des plans
@@ -280,8 +280,8 @@ En tant que Thomas, je veux déposer les plans de mon bien (PDF ou images) afin 
 
 #### Contexte de navigation
 - **Page/écran d'origine** : `/vs/projects/[id]/upload` — arrivée depuis US-VS-01
-- **Déclencheur** : Drag-and-drop ou clic sur zone d'upload
-- **Page/écran de destination (succès)** : Même page, zone d'upload remplacée par grille de miniatures + bouton "Analyser les plans"
+- **Déclencheur** : Drag-and-drop ou clic sur zone de dépôt
+- **Page/écran de destination (succès)** : Même page, zone de dépôt remplacée par grille de miniatures + bouton "Analyser les plans"
 - **Page/écran de destination (échec)** : Même page, toast d'erreur par fichier rejeté
 
 #### Données et champs
@@ -296,8 +296,8 @@ Voir tableau section 3 en-tête.
 #### Critères d'acceptance
 
 **Happy path :**
-- [ ] GIVEN Thomas est sur `/vs/projects/[id]/upload` WHEN il dépose `plan_rdc.pdf` (8 Mo) THEN le fichier est uploadé, converti en PNG, et une miniature s'affiche avec le libellé "Étage 0 — RDC"
-- [ ] GIVEN Thomas dépose 3 PDFs successivement WHEN l'upload est terminé THEN 3 miniatures s'affichent, chacune avec son numéro d'étage (0, 1, 2) et son nom de fichier original
+- [ ] GIVEN Thomas est sur `/vs/projects/[id]/upload` WHEN il dépose `plan_rdc.pdf` (8 Mo) THEN le fichier est déposé, converti en PNG, et une miniature s'affiche avec le libellé "Étage 0 — RDC"
+- [ ] GIVEN Thomas dépose 3 PDFs successivement WHEN le dépôt est terminé THEN 3 miniatures s'affichent, chacune avec son numéro d'étage (0, 1, 2) et son nom de fichier original
 - [ ] GIVEN Thomas dépose un PDF 3 pages WHEN la conversion est terminée THEN 3 images PNG s'affichent (1 par page) avec floors 0, 1, 2
 
 **Cas d'erreur :**
@@ -306,15 +306,15 @@ Voir tableau section 3 en-tête.
 - [ ] GIVEN la conversion PDF échoue (PDF corrompu) WHEN l'erreur est détectée THEN toast rouge "Impossible de lire ce PDF — vérifiez qu'il n'est pas corrompu ou protégé par un mot de passe"
 
 **Cas limites :**
-- [ ] GIVEN Thomas a déjà 10 fichiers uploadés WHEN il tente d'en ajouter un 11e THEN la zone d'upload affiche "Limite atteinte (10 fichiers max)" et le dépôt est refusé
-- [ ] GIVEN Thomas dépose simultanément 5 fichiers WHEN les uploads partent en parallèle THEN chaque fichier a sa propre barre de progression, les erreurs sont par fichier (pas globales)
-- [ ] GIVEN un timeout réseau pendant l'upload WHEN la connexion est rétablie THEN le fichier incomplètement uploadé est marqué "Échec — réessayer" avec un bouton de retry par fichier
+- [ ] GIVEN Thomas a déjà 10 fichiers déposés WHEN il tente d'en ajouter un 11e THEN la zone de dépôt affiche "Limite atteinte (10 fichiers max)" et le dépôt est refusé
+- [ ] GIVEN Thomas dépose simultanément 5 fichiers WHEN les dépôts partent en parallèle THEN chaque fichier a sa propre barre de progression, les erreurs sont par fichier (pas globales)
+- [ ] GIVEN un timeout réseau pendant le dépôt WHEN la connexion est rétablie THEN le fichier incomplètement déposé est marqué "Échec — réessayer" avec un bouton de retry par fichier
 
 **Permissions :**
-- [ ] GIVEN V1 sans auth WHEN n'importe quel visiteur dépose des fichiers THEN l'upload est accepté (pas de vérification d'identité)
+- [ ] GIVEN V1 sans auth WHEN n'importe quel visiteur dépose des fichiers THEN le dépôt est accepté (pas de vérification d'identité)
 
 **Données existantes :**
-- [ ] GIVEN Thomas a déjà uploadé 2 plans WHEN il ajoute un 3e THEN les 2 plans existants ne sont pas supprimés, le 3e s'ajoute avec floor_number = 2
+- [ ] GIVEN Thomas a déjà déposé 2 plans WHEN il ajoute un 3e THEN les 2 plans existants ne sont pas supprimés, le 3e s'ajoute avec floor_number = 2
 
 #### Payload API
 - **Endpoint** : `POST /api/vs/projects/[id]/plans` (multipart/form-data)
@@ -956,16 +956,16 @@ En tant que Thomas, je veux déposer une photo de la pièce dans son état brut 
 
 #### Scénarios persona concrets
 1. Thomas photographie la chambre brute avec son iPhone. Il envoie le HEIC depuis son téléphone. Résultat attendu : photo acceptée et convertie, aperçu visible.
-2. Thomas uploade une photo trop petite (640x480). Résultat attendu : toast orange de warning non bloquant, il peut continuer.
-3. Thomas a 3 photos de la même chambre (angles différents). Il uploade les 3. Résultat attendu : 3 photos listées, il sélectionne la meilleure.
-4. Thomas uploade une photo de 12 Mo. Résultat attendu : rejetée avec toast rouge.
-5. Thomas revient sur une pièce déjà photo-uploadée. Résultat attendu : la photo existante s'affiche, option d'en uploader une nouvelle.
+2. Thomas dépose une photo trop petite (640x480). Résultat attendu : toast orange de warning non bloquant, il peut continuer.
+3. Thomas a 3 photos de la même chambre (angles différents). Il dépose les 3. Résultat attendu : 3 photos listées, il sélectionne la meilleure.
+4. Thomas dépose une photo de 12 Mo. Résultat attendu : rejetée avec toast rouge.
+5. Thomas revient sur une pièce déjà alimentée en photo. Résultat attendu : la photo existante s'affiche, option d'en déposer une nouvelle.
 
 #### Definition of Done
-- [ ] Upload photo avec preview immédiat
+- [ ] Dépôt photo avec preview immédiat
 - [ ] Conversion HEIC acceptée
 - [ ] Warning résolution basse (non bloquant)
-- [ ] Test E2E : upload photo → vérifier preview
+- [ ] Test E2E : dépôt photo → vérifier preview
 - [ ] Screenshot conforme
 
 ---
@@ -981,7 +981,7 @@ En tant que Thomas, je veux déposer une photo de la pièce dans son état brut 
 En tant que Thomas, je veux choisir un style de décoration et lancer la génération du visuel post-travaux afin d'obtenir une projection réaliste du logement rénové.
 
 #### Contexte de navigation
-- **Page/écran d'origine** : `/vs/projects/[id]/visuals` — photo uploadée
+- **Page/écran d'origine** : `/vs/projects/[id]/visuals` — photo déposée
 - **Déclencheur** : Clic sur un style dans la grille des 12 styles + clic "Générer"
 - **Page/écran de destination (succès)** : Même page, état "loading" puis affichage du visuel généré
 - **Page/écran de destination (échec)** : Toast d'erreur, état "erreur" avec bouton retry
@@ -1451,7 +1451,7 @@ api/
 | Visualisation pièces proposées | US-VS-13 | OK |
 | Modification type de pièce | US-VS-14 | OK |
 | Validation pièces → étape 4 | US-VS-15 | OK |
-| Upload photo brute | US-VS-19 | OK |
+| Dépôt photo brute | US-VS-19 | OK |
 | Sélection style + génération | US-VS-20 | OK |
 | Itération agent architecte | US-VS-21 | OK |
 | Validation visuel final | US-VS-22 | OK |

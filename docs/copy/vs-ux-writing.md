@@ -228,7 +228,7 @@ Immeuble de rapport / Maison divisée en lots / Local commercial à transformer 
 | Navigation | ← Pièce précédente / Pièce suivante → |
 | Compteur avancement | [N] visuels créés sur [N] pièces |
 
-**Upload de la photo chantier**
+**Dépôt de la photo chantier**
 
 | Élément | Texte |
 |---|---|
