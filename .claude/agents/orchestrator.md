@@ -441,6 +441,71 @@ Si un agent auditeur time out avant la Section 4-5 (verdict), ne PAS relancer av
 
 Pattern validé s16 Batch 6c : 3 agents en parallèle, latence 18-44s chacun, 0 timeout. Sections 1-3 préservées, seules Sections 4-5 complétées via Edit.
 
+## Learnings versi-s17 (propagation)
+
+### Budget autopilote étape frontend — révisé versi-s17
+
+Le budget d'une étape frontend complexe (page + 2-3 composants) dépend de la concentration des corrections P0/P1 :
+
+| Configuration | Batches | Conditions |
+|---|---|---|
+| **Express (4 batches)** | Batch 1 audits v1 → Batch 2 fullstack Alpha+Beta → Batch 3a re-audits v2 → Batch 4 gate @moi | Corrections P0/P1 concentrées ET scope fullstack découpable en 2 agents disjoints |
+| **Standard (7 batches)** | Batch 1 audits v1 → Batch 2 fullstack → Batch 3 boucle visuelle → Batch 4 analyse ECARTs → Batch 5 fullstack fix → Batch 6 re-audits → Batch 7 gate finale | Corrections nécessitent itérations cosmétiques OU timeouts verdict OU baselines par étape requises |
+
+**Validation pattern Express** : versi-s17 Étape 2 Lots — 6,33/10 → 9,0/10 unanimité + @moi 9,1/10 en 4 batches, 0 timeout.
+
+**Règle** : annoncer au fondateur le budget visé dès Phase 1 : "Étape complexe → 4 batches Express si corrections concentrées, 7 batches Standard sinon."
+
+### Vérification Glob post-agent décisionnel (learning versi-s17)
+
+Certains agents décisionnels (@moi, @reviewer, testeurs-persona Laurent/Sophie/Nicolas) peuvent afficher le contenu markdown complet d'un livrable dans leur réponse ("Je rédige maintenant...") SANS effectivement émettre l'appel Write. Le fichier attendu reste absent du filesystem.
+
+**Symptôme** : agent termine avec un handoff détaillé, contenu livrable affiché en code block dans la réponse, mais `Glob` sur le chemin cible retourne "No files found".
+
+**Protocole obligatoire** : après CHAQUE agent décisionnel, l'orchestrateur DOIT :
+1. `Glob` sur le chemin du livrable attendu (donné dans le brief)
+2. Si fichier ABSENT → créer le fichier via `Write` avec le contenu produit par l'agent dans sa réponse. C'est une exception AUTORISÉE à la règle n°4 (sauvegarde de contenu déjà produit par l'agent, pas reproduction du livrable).
+3. Si fichier PRÉSENT → OK, continuer.
+
+**Cas validé versi-s17** : @moi gate Étape 2 Lots — contenu complet affiché dans réponse, fichier `docs/reviews/moi-lots-us-vs-06-08-gate-v1.md` absent, orchestrateur a créé via Write manuel à partir du contenu agent.
+
+**Règle à ajouter au brief de tout agent décisionnel** : "À la FIN de ta réponse, confirme le chemin exact du fichier créé pour que l'orchestrateur puisse vérifier."
+
+### Batch boucle visuelle Playwright — conditionnelle (learning versi-s17)
+
+La boucle visuelle Playwright (gate G26) n'est PAS systématique par étape. Elle devient un goulot qui bloque la vélocité autopilote si exécutée à chaque étape.
+
+**Règle révisée** :
+| Contexte | Boucle visuelle | Justification |
+|---|---|---|
+| Landing page commerciale (marketing, acquisition) | **OBLIGATOIRE par étape** | Haute visibilité, régression visuelle = perte revenus |
+| Outil interne (Versi Studio, admin) | **DIFFÉRÉE en fin de session sur bundle complet** | Desktop-first, audit triangulé + code review suffit par étape |
+| Application client-facing récurrente (dashboard utilisateur SaaS) | **Par bundle de 2-3 étapes liées** | Compromis |
+
+**Décision versi-s17** : Étape 2 Lots validée GO ABSOLU sans baselines. Baselines à produire en fin de versi-s17 sur bundle Upload + Lots + Étape 3 mergées.
+
+**Règle** : l'orchestrateur annonce dès Phase 1 si la boucle visuelle sera faite par étape ou par bundle, selon le contexte du livrable.
+
+### Pattern fullstack Alpha/Beta parallèle (learning versi-s17)
+
+Pour scope fullstack multi-fichiers (>3 fichiers modifiés), découper en 2 agents @fullstack parallèles avec scope disjoint :
+
+| Agent | Scope | Exemples |
+|---|---|---|
+| **Alpha (racine/tokens)** | Page principale + tokens globaux + layout | `page.tsx`, `globals.css`, `layout.tsx` |
+| **Beta (composants feuilles)** | Composants enfants + utils | `LotPanel.tsx`, `PlanCanvas.tsx`, `ConfirmModal.tsx` |
+
+**Communication via props partagées** : si une interface doit être modifiée dans un composant (Beta) ET utilisée dans la page parent (Alpha) :
+1. Alpha déclare l'interface avec prop optionnelle typée : `validationSuccess?: boolean`
+2. Alpha ajoute un `void validationSuccess;` temporaire pour éviter warning unused
+3. Beta implémente le rendu et retire le `void`
+
+**Zéro conflit git** : Alpha et Beta écrivent dans des fichiers différents. Seule exception = l'interface TypeScript du composant Beta (modifiée par Alpha pour anticiper la signature).
+
+**Gain** : latence / 2 (deux agents en parallèle ~15-20 min chacun vs séquentiel 30-40 min, 2× risque timeout).
+
+**Validation** : versi-s17 Batch 2 Lots — Alpha page+globals (6 edits) + Beta LotPanel+PlanCanvas (18 edits) en parallèle, 0 conflit.
+
 ### Profils de rigueur
 
 Le framework supporte deux profils selon l'enjeu du projet. L'utilisateur choisit dans project-context.md (champ Stade ou Notes libres). Si non spécifié, déduire du contexte.
