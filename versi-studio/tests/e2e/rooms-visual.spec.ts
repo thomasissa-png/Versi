@@ -293,6 +293,9 @@ test.describe("Rooms — baselines visuelles", () => {
       test("lot-validated (lot 1 validé, lot 2 en attente)", async ({
         page,
       }) => {
+        // Comportement page (rooms/page.tsx ligne 125-126) : l'app sélectionne
+        // automatiquement le PREMIER lot non-validé. Donc avec lot 1 validated
+        // + lot 2 suggested → lot 2 actif → on voit les pièces de lot 2 (cuisine).
         const lot1Validated = { ...MOCK_LOTS[0], status: "validated" as const };
         await mockBase(page, {
           lots: [lot1Validated, MOCK_LOTS[1]],
@@ -306,8 +309,9 @@ test.describe("Rooms — baselines visuelles", () => {
         await expect(
           page.getByRole("heading", { name: /identifiez les pièces/i })
         ).toBeVisible();
+        // Lot 2 sélectionné par défaut → pièce cuisine visible dans RoomPanel
         await expect(
-          page.getByRole("button", { name: /pièce \d+ : salon/i }).first()
+          page.getByRole("button", { name: /pièce \d+ : cuisine/i }).first()
         ).toBeVisible();
 
         await page.waitForTimeout(400);

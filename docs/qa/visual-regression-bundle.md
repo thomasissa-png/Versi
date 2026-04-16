@@ -32,29 +32,39 @@ Les specs visuels suivent le pattern unifié de `tests/e2e/upload-visual.spec.ts
 ### Pré-requis
 
 - Node ≥ 20, npm installé
-- Navigateurs Playwright installés : `npx playwright install chromium`
+- Dépendances installées : `cd versi-studio && npm install`
+- Navigateurs Playwright installés au chemin attendu :
+  `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright install chromium`
 - Port 3000 libre (sinon kill le process : `lsof -ti:3000 | xargs kill -9`)
 
-### Commandes
+### Commandes (pipeline complet validé versi-s18)
 
 ```bash
 cd versi-studio
 
-# Démarrer le serveur Next.js en arrière-plan
-npm run dev > /tmp/versi-dev.log 2>&1 &
-sleep 10
+# 1. Installation (une seule fois)
+npm install
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright install chromium
 
-# Générer les baselines pour les 3 étapes (séquentiel, fullyParallel: false)
-npx playwright test tests/e2e/upload-visual.spec.ts --update-snapshots
-npx playwright test tests/e2e/lots-visual.spec.ts --update-snapshots
-npx playwright test tests/e2e/rooms-visual.spec.ts --update-snapshots
+# 2. Démarrer le serveur Next.js en arrière-plan
+nohup npm run dev > /tmp/versi-dev.log 2>&1 < /dev/null &
+disown
+# Attendre que le serveur soit prêt (3-5s en dev mode)
+until curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep -qE "200|307|404"; do sleep 2; done
 
-# Ou en une seule commande (plus long)
-npx playwright test tests/e2e/upload-visual.spec.ts \
-                    tests/e2e/lots-visual.spec.ts \
-                    tests/e2e/rooms-visual.spec.ts \
-                    --update-snapshots
+# 3. Générer les baselines (séquentiel, fullyParallel: false)
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test tests/e2e/upload-visual.spec.ts
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test tests/e2e/lots-visual.spec.ts
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test tests/e2e/rooms-visual.spec.ts
+
+# 4. Cleanup
+pkill -f "next dev"
 ```
+
+**Durée mesurée versi-s18** :
+- lots-visual : ~80s (18 tests)
+- rooms-visual : ~6 min (21 tests, dont validation-blocked plus lent)
+- Total bundle 3 étapes : ~10 min
 
 ### Note importante
 
@@ -124,7 +134,9 @@ git commit -m "feat(ui): refresh baselines lots après [description du changemen
 | Date | Étape | Action | Auteur |
 |---|---|---|---|
 | versi-s14 | Upload | Création 15 baselines | @qa |
-| versi-s18 | Lots + Pièces | Création specs + procédure refresh | @qa |
+| versi-s18 | Lots | Création spec + 18 baselines générées (3 viewports × 6 états) | @qa |
+| versi-s18 | Pièces | Création spec + 21 baselines générées (3 viewports × 7 états) | @qa |
+| versi-s18 | Bundle | Procédure refresh + pipeline reproductible documenté | @qa |
 | (à venir) | Visuels (étape 4) | À créer après livraison @fullstack étape 4 | @qa |
 
 ---

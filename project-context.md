@@ -409,12 +409,14 @@
    - 2 nouveaux tokens sémantiques : `--color-bg-overlay`, `--color-border-hover`
    - SKIP justifié : Upload % feedback (fetch sans `onprogress`, refactor XHR hors scope versi-s19)
 
-4. **P4 Boucle visuelle Playwright G26 — bundle Upload+Lots+Pièces** : 43 baselines générées
-   - Upload : 10 baselines (existantes versi-s16)
-   - Lots : 18 baselines (NOUVEAU)
-   - Pièces : 15 baselines (NOUVEAU)
-   - 3 specs : `upload-visual.spec.ts` (existant), `lots-visual.spec.ts` (NOUVEAU), `rooms-visual.spec.ts` (NOUVEAU)
+4. **P4 Boucle visuelle Playwright G26 — bundle Upload+Lots+Pièces** : 54 baselines générées
+   - Upload : 15 baselines (existantes)
+   - Lots : 18 baselines (NOUVEAU — 6 états × 3 viewports)
+   - Pièces : 21 baselines (NOUVEAU — 7 états × 3 viewports)
+   - 3 specs : `upload-visual.spec.ts` (existant), `lots-visual.spec.ts` (NOUVEAU 333L), `rooms-visual.spec.ts` (NOUVEAU 415L)
    - Procédure refresh documentée : `docs/qa/visual-regression-bundle.md`
+   - **Pré-requis CI à intégrer** : `npm install` + `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright install chromium` doivent être dans le pipeline (étaient absents en local, installés pendant la session)
+   - **Prochaine étape G26** : migrer `page.screenshot({ path })` vers `toHaveScreenshot({ maxDiffPixelRatio: 0.005 })` pour activer la gate G26 stricte (hors scope versi-s18, à faire versi-s19)
 
 5. **P5 Documenter exceptions canvas** : section 2.4 ajoutée à `docs/design/vs-design-system.md`
    - R02 : `ctx.fillStyle/strokeStyle` canvas API native
