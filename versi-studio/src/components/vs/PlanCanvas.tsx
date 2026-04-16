@@ -284,9 +284,18 @@ export default function PlanCanvas({
     const dpr = window.devicePixelRatio || 1;
     const targetW = Math.round(rect.width * dpr);
     const targetH = Math.round(rect.height * dpr);
-    if (canvas.width !== targetW) canvas.width = targetW;
-    if (canvas.height !== targetH) canvas.height = targetH;
+    const dimensionsChanged = canvas.width !== targetW || canvas.height !== targetH;
+    if (dimensionsChanged) {
+      // Modifier canvas.width/height efface AUTOMATIQUEMENT le canvas.
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform pour éviter accumulation de scale
     ctx.scale(dpr, dpr);
+    // Clear explicite si dimensions inchangées (sinon canvas.width l'a fait pour nous)
+    if (!dimensionsChanged) {
+      ctx.clearRect(0, 0, rect.width, rect.height);
+    }
 
     const w = rect.width;
     const h = rect.height;
