@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { VsLot, VsRoom } from "@/lib/vs/types";
 import {
   getRoomColor,
@@ -37,6 +37,7 @@ interface RoomPanelProps {
   allLotsValidated: boolean;
   isValidating: boolean;
   currentLotValidated: boolean;
+  validationBlocked?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -67,12 +68,24 @@ export default function RoomPanel({
   allLotsValidated,
   isValidating,
   currentLotValidated,
+  validationBlocked = false,
 }: RoomPanelProps) {
   const [expandedCustom, setExpandedCustom] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const hasUntypedRooms = rooms.some(
     (r) => r.room_type === "non_identifie"
   );
+
+  // Scroll vers la card sélectionnée quand selectedRoomId change (CORR-B5)
+  useEffect(() => {
+    if (selectedRoomId && cardRefs.current[selectedRoomId]) {
+      cardRefs.current[selectedRoomId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [selectedRoomId]);
 
   // ─── Selecteur de lot ───────────────────────────────────────────
 
@@ -92,11 +105,11 @@ export default function RoomPanel({
                 onClick={() => onSelectLot(lot.id)}
                 className={`
                   flex items-center gap-xs px-md py-sm rounded-md text-sm font-medium
-                  whitespace-nowrap transition-colors duration-200
+                  whitespace-nowrap transition-colors duration-200 active:opacity-80
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                   ${isActive
                     ? "bg-interactive-primary text-text-inverse"
-                    : "bg-white text-text-default border border-border-default hover:bg-bg-default"
+                    : "bg-bg-card text-text-default border border-border-default hover:bg-bg-default"
                   }
                 `}
               >
@@ -132,7 +145,7 @@ export default function RoomPanel({
           onChange={(e) => onSelectLot(e.target.value)}
           className="
             w-full px-md py-sm rounded-md text-sm border border-border-default
-            bg-white text-text-default
+            bg-bg-card text-text-default
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
           "
         >
@@ -154,14 +167,22 @@ export default function RoomPanel({
       const color = getRoomColor(room.room_type);
       const isCustomExpanded = expandedCustom === room.id;
 
+      const isBlockedRoom =
+        validationBlocked && room.room_type === "non_identifie";
+
       return (
         <div
           key={room.id}
+          ref={(el) => {
+            cardRefs.current[room.id] = el;
+          }}
           className={`
-            p-md rounded-md border transition-all duration-200 cursor-pointer
-            ${isSelected
+            p-md rounded-md border transition-all duration-200 cursor-pointer active:opacity-80
+            ${isBlockedRoom
+              ? "border-error border-2 bg-bg-card"
+              : isSelected
               ? "border-interactive-primary bg-bg-default shadow-sm"
-              : "border-border-default bg-white hover:border-interactive-primary/50"
+              : "border-border-default bg-bg-card hover:border-interactive-primary/50"
             }
           `}
           onClick={() => onSelectRoom(room.id)}
@@ -218,7 +239,7 @@ export default function RoomPanel({
               onClick={(e) => e.stopPropagation()}
               className="
                 w-full px-sm py-xs rounded-md text-sm border border-border-default
-                bg-white text-text-default
+                bg-bg-card text-text-default
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
               "
             >
@@ -254,7 +275,7 @@ export default function RoomPanel({
                 onClick={(e) => e.stopPropagation()}
                 className="
                   w-full px-sm py-xs rounded-md text-sm border border-border-default
-                  bg-white text-text-default placeholder:text-text-muted
+                  bg-bg-card text-text-default placeholder:text-text-muted
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                 "
               />
@@ -269,9 +290,9 @@ export default function RoomPanel({
                 onDeleteRoom(room.id);
               }}
               className="
-                text-xs text-text-muted hover:text-error transition-colors duration-200
+                text-xs text-text-muted hover:text-error active:opacity-80 transition-colors duration-200
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error
-                px-xs py-2xs rounded
+                px-xs py-2xs rounded min-h-[44px] min-w-[44px]
               "
               aria-label={`Supprimer la pièce ${getDropdownLabel(room.room_type)}`}
             >
@@ -281,13 +302,13 @@ export default function RoomPanel({
         </div>
       );
     },
-    [selectedRoomId, expandedCustom, onSelectRoom, onUpdateRoom, onDeleteRoom]
+    [selectedRoomId, expandedCustom, onSelectRoom, onUpdateRoom, onDeleteRoom, validationBlocked]
   );
 
   // ─── Rendu principal ────────────────────────────────────────────
 
   return (
-    <aside className="w-full sm:w-80 flex-shrink-0 flex flex-col sm:h-full bg-white sm:border-l border-t sm:border-t-0 border-border-default">
+    <aside className="w-full sm:w-80 flex-shrink-0 flex flex-col sm:h-full bg-bg-card sm:border-l border-t sm:border-t-0 border-border-default">
       {/* Header : selecteur de lot */}
       <div className="p-md border-b border-border-default">
         <p className="vs-label mb-sm">Lot</p>
@@ -318,8 +339,15 @@ export default function RoomPanel({
         {rooms.length === 0 ? (
           <div className="text-center py-2xl">
             <p className="text-sm text-text-muted">
-              Aucune pièce détectée — ajoutez-en manuellement
+              L&apos;IA n&apos;a pas détecté de pièces — ajoutez-en manuellement
             </p>
+            <button
+              type="button"
+              onClick={onAddRoom}
+              className="mt-md min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover active:opacity-80 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              Ajouter une pièce
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-sm">
@@ -334,9 +362,9 @@ export default function RoomPanel({
         <button
           onClick={onAddRoom}
           className="
-            w-full px-md py-sm rounded-md text-sm font-medium
+            w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
             border border-dashed border-border-default
-            text-text-muted hover:text-text-default hover:border-interactive-primary
+            text-text-muted hover:text-text-default hover:border-interactive-primary active:opacity-80
             transition-colors duration-200
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
           "
@@ -350,9 +378,9 @@ export default function RoomPanel({
             onClick={onValidateLot}
             disabled={isValidating || hasUntypedRooms || rooms.length === 0}
             className="
-              w-full px-md py-sm rounded-md text-sm font-medium
+              w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
               bg-interactive-primary text-text-inverse
-              hover:bg-interactive-hover
+              hover:bg-interactive-hover active:opacity-80
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors duration-200
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
@@ -386,9 +414,9 @@ export default function RoomPanel({
           <button
             onClick={onContinue}
             className="
-              w-full px-md py-sm rounded-md text-sm font-medium
-              bg-success text-white
-              hover:bg-success/90
+              w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+              bg-success text-text-inverse
+              hover:bg-success/90 active:opacity-80
               transition-colors duration-200
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success
             "

@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
 import RoomCanvas from "@/components/vs/RoomCanvas";
 import RoomPanel from "@/components/vs/RoomPanel";
+import ConfirmModal from "@/components/vs/ConfirmModal";
 import type {
   VsProject,
   VsLot,
@@ -57,6 +58,12 @@ export default function RoomsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<{
+    id: string;
+    name?: string;
+  } | null>(null);
+  const [validationBlocked, setValidationBlocked] = useState(false);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   // Debounce timers pour les PATCH individuels
   const patchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -215,6 +222,33 @@ export default function RoomsPage({
     []
   );
 
+  // ─── PATCH immédiat (sans debounce) — utilisé pour room_type (UX-P1-1)
+  const patchRoomImmediate = useCallback(
+    async (roomId: string, updates: Record<string, unknown>) => {
+      // Annuler tout debounce en attente sur cette pièce pour éviter les écrasements
+      if (patchTimers.current[roomId]) {
+        clearTimeout(patchTimers.current[roomId]);
+        delete patchTimers.current[roomId];
+      }
+
+      try {
+        const res = await fetch(`/api/vs/rooms/${roomId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
+        const json = (await res.json()) as ApiResponse<VsRoom>;
+
+        if (!json.success) {
+          setError(json.error);
+        }
+      } catch {
+        setError("Impossible de sauvegarder la modification.");
+      }
+    },
+    []
+  );
+
   // ─── Handlers ─────────────────────────────────────────────────
 
   const handleSelectLot = useCallback((lotId: string) => {
@@ -230,6 +264,10 @@ export default function RoomsPage({
     (roomId: string, updates: Partial<VsRoom>) => {
       if (!selectedLotId) return;
 
+      const isRoomTypeChange = updates.room_type !== undefined;
+      const lotWasValidated =
+        lots.find((l) => l.id === selectedLotId)?.status === "validated";
+
       // Optimistic update
       setRoomsByLot((prev) => {
         const lotRooms = prev[selectedLotId] ?? [];
@@ -240,6 +278,19 @@ export default function RoomsPage({
           ),
         };
       });
+
+      // UX-P1-3 : si changement de type sur un lot déjà validé,
+      // rebascule optimistement le lot en "à valider" + warning utilisateur
+      if (isRoomTypeChange && lotWasValidated) {
+        setLots((prev) =>
+          prev.map((l) =>
+            l.id === selectedLotId ? { ...l, status: "suggested" } : l
+          )
+        );
+        setWarningMessage(
+          "Le lot a été invalidé — validez-le à nouveau avant de continuer"
+        );
+      }
 
       // Préparer le payload API (ne pas envoyer les champs non-API)
       const apiUpdates: Record<string, unknown> = {};
@@ -254,10 +305,15 @@ export default function RoomsPage({
         apiUpdates.position = updates.position;
 
       if (Object.keys(apiUpdates).length > 0) {
-        patchRoom(roomId, apiUpdates);
+        // UX-P1-1 : PATCH room_type immédiat (pas de debounce)
+        if (isRoomTypeChange) {
+          patchRoomImmediate(roomId, apiUpdates);
+        } else {
+          patchRoom(roomId, apiUpdates);
+        }
       }
     },
-    [selectedLotId, patchRoom]
+    [selectedLotId, lots, patchRoom, patchRoomImmediate]
   );
 
   const handleMoveRoom = useCallback(
@@ -312,9 +368,16 @@ export default function RoomsPage({
   }, [selectedLotId]);
 
   const handleDeleteRoom = useCallback(
+    (roomId: string) => {
+      const room = currentRooms.find((r) => r.id === roomId);
+      setRoomToDelete({ id: roomId, name: room?.name ?? undefined });
+    },
+    [currentRooms]
+  );
+
+  const handleConfirmDelete = useCallback(
     async (roomId: string) => {
       if (!selectedLotId) return;
-      if (!confirm("Supprimer cette piece ? Cette action est irreversible.")) return;
 
       // Optimistic delete
       setRoomsByLot((prev) => ({
@@ -357,6 +420,19 @@ export default function RoomsPage({
   const handleValidateLot = useCallback(async () => {
     if (!selectedLotId) return;
 
+    // Pré-check : toutes les pièces doivent être typées avant validation
+    const untypedRooms = currentRooms.filter(
+      (r) => r.room_type === "non_identifie"
+    );
+    if (untypedRooms.length > 0) {
+      setValidationBlocked(true);
+      setError(
+        "Définissez le type de toutes les pièces avant de valider"
+      );
+      return;
+    }
+    setValidationBlocked(false);
+
     setIsValidating(true);
     setError(null);
 
@@ -397,7 +473,7 @@ export default function RoomsPage({
     } finally {
       setIsValidating(false);
     }
-  }, [selectedLotId, lots]);
+  }, [selectedLotId, lots, currentRooms]);
 
   const handleContinue = useCallback(async () => {
     try {
@@ -424,7 +500,7 @@ export default function RoomsPage({
           <div className="text-center">
             <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin mb-md" />
             <p className="text-sm text-text-muted">
-              Identification des pièces en cours...
+              {`L'IA identifie les pièces du ${currentLot?.name ?? "lot"}…`}
             </p>
           </div>
         </div>
@@ -545,6 +621,42 @@ export default function RoomsPage({
           </div>
         )}
 
+        {/* Warning — lot invalidé après changement de type (UX-P1-3) */}
+        {warningMessage && (
+          <div
+            className="mb-md bg-warning/10 border border-warning/20 rounded-md p-md text-sm text-warning flex items-start gap-sm"
+            role="status"
+          >
+            <span className="flex-1">{warningMessage}</span>
+            <button
+              onClick={() => setWarningMessage(null)}
+              className="ml-auto text-warning hover:text-warning/80"
+              aria-label="Fermer l'avertissement"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Message succès — tous les lots validés */}
+        {allLotsValidated && (
+          <p className="text-success mb-md" role="status">
+            Tous les lots sont validés — vous pouvez générer les visuels
+          </p>
+        )}
+
         {/* Canvas + Panel */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
           {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
@@ -556,6 +668,7 @@ export default function RoomsPage({
               selectedRoomId={selectedRoomId}
               onSelectRoom={handleSelectRoom}
               onMoveRoom={handleMoveRoom}
+              validationBlocked={validationBlocked}
             />
           </div>
 
@@ -575,9 +688,25 @@ export default function RoomsPage({
             allLotsValidated={allLotsValidated}
             isValidating={isValidating}
             currentLotValidated={currentLotValidated}
+            validationBlocked={validationBlocked}
           />
         </div>
       </div>
+      <ConfirmModal
+        isOpen={roomToDelete !== null}
+        title="Supprimer cette pièce ?"
+        message="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onConfirm={() => {
+          if (roomToDelete) {
+            handleConfirmDelete(roomToDelete.id);
+            setRoomToDelete(null);
+          }
+        }}
+        onCancel={() => setRoomToDelete(null)}
+      />
     </div>
   );
 }

@@ -46,6 +46,8 @@ interface RoomCanvasProps {
   onSelectRoom: (roomId: string | null) => void;
   /** Callback quand une piece est deplacee (debounce gere par le parent) */
   onMoveRoom: (roomId: string, position: RoomPosition) => void;
+  /** Si true et une pièce est non_identifie, overlay rouge (CORR-C3) */
+  validationBlocked?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ export default function RoomCanvas({
   selectedRoomId,
   onSelectRoom,
   onMoveRoom,
+  validationBlocked = false,
 }: RoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -221,21 +224,30 @@ export default function RoomCanvas({
       if (!pos) continue;
 
       const { x, y, w, h } = toCanvasCoords(pos);
-      const color = getRoomColor(room.room_type);
+      const baseColor = getRoomColor(room.room_type);
       const isSelected = room.id === selectedRoomId;
+      const isBlockedRoom =
+        validationBlocked && room.room_type === "non_identifie";
 
-      // Fill avec transparence
-      ctx.fillStyle = hexToRgba(color, 0.4);
+      // Fill avec transparence (rouge si validation bloquée — CORR-C3)
+      ctx.fillStyle = isBlockedRoom
+        ? "rgba(220, 38, 38, 0.5)"
+        : hexToRgba(baseColor, 0.4);
       ctx.fillRect(x, y, w, h);
 
-      // Bordure
-      ctx.strokeStyle = isSelected ? color : hexToRgba(color, 0.7);
-      ctx.lineWidth = isSelected ? 3 : 1.5;
+      // Bordure (rouge plus épaisse si bloqué)
+      if (isBlockedRoom) {
+        ctx.strokeStyle = "#DC2626";
+        ctx.lineWidth = 3;
+      } else {
+        ctx.strokeStyle = isSelected ? baseColor : hexToRgba(baseColor, 0.7);
+        ctx.lineWidth = isSelected ? 3 : 1.5;
+      }
       ctx.strokeRect(x, y, w, h);
 
       // Halo de selection
       if (isSelected) {
-        ctx.strokeStyle = hexToRgba(color, 0.3);
+        ctx.strokeStyle = hexToRgba(baseColor, 0.3);
         ctx.lineWidth = 6;
         ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
       }
@@ -267,7 +279,7 @@ export default function RoomCanvas({
       ctx.fillStyle = "#0B0B0B";
       ctx.fillText(label + surfaceText, centerX, centerY);
     }
-  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords]);
+  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked]);
 
   useEffect(() => {
     draw();
@@ -384,6 +396,7 @@ export default function RoomCanvas({
   return (
     <div
       ref={containerRef}
+      // JUSTIFIÉ: token bg-bg-canvas absent, à créer dans globals.css scope Alpha
       className="relative w-full h-full min-h-[200px] sm:min-h-[400px] bg-[#F0EDE8] rounded-lg overflow-hidden"
     >
       <canvas
@@ -400,10 +413,36 @@ export default function RoomCanvas({
         role="img"
       />
 
+      {/* Liste SR-only pour navigation clavier (CORR-C2 — WCAG 2.1.1) */}
+      <ul className="sr-only" aria-label="Liste des pièces du lot">
+        {rooms.map((room) => {
+          const label = room.name || getDropdownLabel(room.room_type);
+          const surface = room.surface_m2
+            ? ` — ${Number(room.surface_m2).toFixed(0)} m²`
+            : "";
+          return (
+            <li key={room.id}>
+              <button
+                type="button"
+                onClick={() => onSelectRoom(room.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectRoom(room.id);
+                  }
+                }}
+              >
+                {label}{surface}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
       {/* Indicateur quand pas d'image */}
       {!planImageUrl && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-sm text-text-muted bg-white/80 px-md py-sm rounded-md">
+          <p className="text-sm text-text-muted bg-bg-card/80 px-md py-sm rounded-md">
             Aperçu du plan non disponible
           </p>
         </div>
