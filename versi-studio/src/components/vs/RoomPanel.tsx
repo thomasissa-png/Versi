@@ -339,7 +339,7 @@ export default function RoomPanel({
         {rooms.length === 0 ? (
           <div className="text-center py-2xl">
             <p className="text-sm text-text-muted">
-              L&apos;IA n&apos;a pas détecté de pièces — ajoutez-en manuellement
+              L'IA n'a pas détecté de pièces — ajoutez-en manuellement
             </p>
             <button
               type="button"
@@ -377,6 +377,7 @@ export default function RoomPanel({
           <button
             onClick={onValidateLot}
             disabled={isValidating || hasUntypedRooms || rooms.length === 0}
+            aria-describedby={hasUntypedRooms ? "validate-lot-warning" : undefined}
             className="
               w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
               bg-interactive-primary text-text-inverse
@@ -404,7 +405,7 @@ export default function RoomPanel({
 
         {/* Avertissement si pieces non typees */}
         {hasUntypedRooms && !currentLotValidated && (
-          <p className="text-xs text-warning text-center">
+          <p id="validate-lot-warning" className="text-xs text-warning text-center">
             Définissez le type de toutes les pièces avant de valider
           </p>
         )}

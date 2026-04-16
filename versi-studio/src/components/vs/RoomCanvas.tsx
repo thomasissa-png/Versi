@@ -396,8 +396,7 @@ export default function RoomCanvas({
   return (
     <div
       ref={containerRef}
-      // JUSTIFIÉ: token bg-bg-canvas absent, à créer dans globals.css scope Alpha
-      className="relative w-full h-full min-h-[200px] sm:min-h-[400px] bg-[#F0EDE8] rounded-lg overflow-hidden"
+      className="relative w-full h-full min-h-[200px] sm:min-h-[400px] bg-bg-canvas rounded-lg overflow-hidden"
     >
       <canvas
         ref={canvasRef}
