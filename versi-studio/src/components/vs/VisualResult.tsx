@@ -217,7 +217,7 @@ export default function VisualResult({
                   </svg>
                   <p className="text-sm text-text-muted">Visuel de démonstration</p>
                   <p className="text-xs text-text-muted mt-2xs">
-                    La clé de génération n'est pas configurée.
+                    La clé de génération n&apos;est pas configurée.
                   </p>
                 </div>
               </div>

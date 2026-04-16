@@ -577,7 +577,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
                     Déposez ou sélectionnez une photo
                   </p>
                   <p className="text-xs text-text-muted">
-                    JPG, PNG — jusqu'à 10 Mo
+                    JPG, PNG — jusqu&apos;à 10 Mo
                   </p>
                 </>
               )}

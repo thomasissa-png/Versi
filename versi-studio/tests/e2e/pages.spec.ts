@@ -177,7 +177,9 @@ async function mockAllApiRoutes(page: Page, overrides?: {
       await route.fallback();
       return;
     }
-    const matchedLot = lots.find((l: any) => url.includes(l.id));
+    const matchedLot = lots.find((l): l is { id: string } => {
+      return typeof l === "object" && l !== null && "id" in l && typeof (l as { id: unknown }).id === "string" && url.includes((l as { id: string }).id);
+    });
     if (matchedLot) {
       await route.fulfill({
         status: 200,

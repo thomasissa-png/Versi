@@ -893,13 +893,13 @@ En tant que Thomas, je veux valider les pièces d'un lot afin de confirmer que l
 |---|---|---|
 | Défaut | Grille des pièces du projet (miniatures + nom + statut), invitation à sélectionner une pièce | "Sélectionnez une pièce pour générer son visuel post-travaux" |
 | Loading | Génération en cours (~90s) | Barre de progression avec compte à rebours indicatif "Génération en cours — environ 90 secondes", aperçu flou/skeleton de la future image |
-| Vide | Pièce sélectionnée, aucune photo uploadée | "Uploadez une photo de cette pièce pour démarrer la génération" |
+| Vide | Pièce sélectionnée, aucune photo déposée | "Déposez une photo de cette pièce pour démarrer la génération" |
 | Erreur | Génération échouée (timeout OpenAI, image rejetée par les filtres) | "La génération a échoué — réessayez. Si le problème persiste, essayez une autre photo." + bouton "Réessayer" |
 | Succès | Visuel généré affiché | Visuel pleine largeur, boutons "Itérer" (chat agent), "Valider ce visuel", "Générer un autre style" |
 
 ---
 
-### US-VS-19 : Uploader la photo brute d'une pièce
+### US-VS-19 : Déposer la photo brute d'une pièce
 
 **Persona** : Thomas
 **Epic** : Visuels post-travaux
@@ -907,12 +907,12 @@ En tant que Thomas, je veux valider les pièces d'un lot afin de confirmer que l
 **Priorité RICE** : R=10 I=10 C=10 E=1 → Score=100
 
 #### Job-to-be-done
-En tant que Thomas, je veux uploader une photo de la pièce dans son état brut afin que l'IA génère un visuel réaliste de l'état post-travaux.
+En tant que Thomas, je veux déposer une photo de la pièce dans son état brut afin que l'IA génère un visuel réaliste de l'état post-travaux.
 
 #### Contexte de navigation
 - **Page/écran d'origine** : `/vs/projects/[id]/visuals` — pièce sélectionnée, état "vide"
-- **Déclencheur** : Clic sur "Ajouter une photo" ou drag-and-drop sur la zone d'upload
-- **Page/écran de destination (succès)** : Même page, photo uploadée avec aperçu + formulaire de configuration (angle, style)
+- **Déclencheur** : Clic sur "Ajouter une photo" ou drag-and-drop sur la zone de dépôt
+- **Page/écran de destination (succès)** : Même page, photo déposée avec aperçu + formulaire de configuration (angle, style)
 - **Page/écran de destination (échec)** : Toast d'erreur, pas de changement d'écran
 
 #### Données et champs
@@ -925,21 +925,21 @@ En tant que Thomas, je veux uploader une photo de la pièce dans son état brut 
 
 **Happy path :**
 - [ ] GIVEN Thomas est sur une pièce sans photo WHEN il dépose `chambre_brute.jpg` (3 Mo) THEN la photo s'affiche en aperçu, un champ "Angle de prise de vue" apparaît (optionnel), le bouton "Choisir un style" devient actif
-- [ ] GIVEN Thomas uploade depuis mobile (appareil photo) WHEN la photo HEIC est chargée THEN elle est acceptée et convertie en JPEG côté serveur (HEIC = format iOS)
+- [ ] GIVEN Thomas dépose depuis mobile (appareil photo) WHEN la photo HEIC est chargée THEN elle est acceptée et convertie en JPEG côté serveur (HEIC = format iOS)
 
 **Cas d'erreur :**
-- [ ] GIVEN Thomas uploade une photo de < 400x300px WHEN la résolution est trop basse THEN toast orange "Cette photo est de faible résolution — le visuel généré sera moins précis. Continuer quand même ?" (pas bloquant)
+- [ ] GIVEN Thomas dépose une photo de < 400x300px WHEN la résolution est trop basse THEN toast orange "Cette photo est de faible résolution — le visuel généré sera moins précis. Continuer quand même ?" (pas bloquant)
 - [ ] GIVEN la photo fait 15 Mo WHEN elle est rejetée THEN toast rouge "Photo trop lourde — maximum 10 Mo"
 
 **Cas limites :**
-- [ ] GIVEN Thomas uploade plusieurs photos pour la même pièce WHEN il uploade la 2e THEN elle s'ajoute (jusqu'à 3 photos par pièce), la génération utilisera la plus récente par défaut
-- [ ] GIVEN Thomas uploade une photo paysage ET une portrait WHEN les deux sont là THEN il peut sélectionner celle à utiliser pour la génération
+- [ ] GIVEN Thomas dépose plusieurs photos pour la même pièce WHEN il dépose la 2e THEN elle s'ajoute (jusqu'à 3 photos par pièce), la génération utilisera la plus récente par défaut
+- [ ] GIVEN Thomas dépose une photo paysage ET une portrait WHEN les deux sont là THEN il peut sélectionner celle à utiliser pour la génération
 
 **Permissions :**
-- [ ] GIVEN V1 sans auth THEN upload accepté
+- [ ] GIVEN V1 sans auth THEN dépôt accepté
 
 **Données existantes :**
-- [ ] GIVEN une photo existe déjà pour cette pièce WHEN Thomas en uploade une nouvelle THEN l'ancienne est conservée (pas remplacée automatiquement), Thomas choisit laquelle utiliser
+- [ ] GIVEN une photo existe déjà pour cette pièce WHEN Thomas en dépose une nouvelle THEN l'ancienne est conservée (pas remplacée automatiquement), Thomas choisit laquelle utiliser
 
 #### Payload API
 - **Endpoint** : `POST /api/vs/rooms/[id]/photos` (multipart/form-data)

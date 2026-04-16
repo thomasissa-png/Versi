@@ -339,7 +339,7 @@ export default function RoomPanel({
         {rooms.length === 0 ? (
           <div className="text-center py-2xl">
             <p className="text-sm text-text-muted">
-              L'IA n'a pas détecté de pièces — ajoutez-en manuellement
+              L&apos;IA n&apos;a pas détecté de pièces — ajoutez-en manuellement
             </p>
             <button
               type="button"

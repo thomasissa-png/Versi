@@ -173,7 +173,7 @@ export default function PlanCalibration({
 
         {isAutoDetecting && (
           <div className="mb-md p-sm rounded-md bg-[var(--color-bg-canvas)] border border-[var(--color-border-default)] text-sm text-[var(--color-text-muted)]">
-            Détection automatique de l'échelle en cours…
+            Détection automatique de l&apos;échelle en cours…
           </div>
         )}
         {!isAutoDetecting && hasAutoSuggested && autoSuggestion && (

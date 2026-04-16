@@ -12,7 +12,7 @@
 Quatre règles non négociables. Chaque texte d'interface Versi Studio les respecte toutes.
 
 **1 — Terrain avant technique**
-Le marchand de biens travaille avec des plans, des lots, des pièces, des dossiers. Il ne "génère" rien, il ne "soumet" rien, il ne "traite" aucun "fichier". Il uploade un plan. Il découpe ses lots. Il crée un visuel. L'interface parle comme lui, pas comme le développeur qui l'a codée.
+Le marchand de biens travaille avec des plans, des lots, des pièces, des dossiers. Il ne "génère" rien, il ne "soumet" rien, il ne "traite" aucun "fichier". Il dépose un plan. Il découpe ses lots. Il crée un visuel. L'interface parle comme lui, pas comme le développeur qui l'a codée.
 
 **2 — Une phrase, une action**
 Chaque écran a un seul objectif. Chaque texte dit une seule chose. Pas de paragraphes d'explication. Si Thomas a besoin de lire deux fois, le texte est raté.
@@ -38,7 +38,7 @@ Les mots "IA", "algorithme", "machine learning", "génération" n'apparaissent j
 
 | # | Label affiché | Sous-label (optionnel, si espace) |
 |---|---|---|
-| 1 | Plans | Uploadez vos plans |
+| 1 | Plans | Déposez vos plans |
 | 2 | Lots | Découpez vos lots |
 | 3 | Pièces | Identifiez les pièces |
 | 4 | Visuels | Créez vos visuels |
@@ -54,10 +54,10 @@ Le stepper est visible à chaque étape. L'étape active est mise en valeur. Les
 | État vide | Aucune opération. Créez-en une pour commencer. |
 | Colonne état | En cours / Dossier prêt |
 
-## 3. Étape 1 — Upload des plans
+## 3. Étape 1 — Dépôt des plans
 
 **Titre de page**
-> Uploadez vos plans
+> Déposez vos plans
 
 **Instruction principale** (sous le titre)
 > Un plan par lot, ou un plan d'ensemble — les deux formats fonctionnent. PDF ou image, résolution minimum 150 dpi.
@@ -67,7 +67,7 @@ Le stepper est visible à chaque étape. L'étape active est mise en valeur. Les
 > PDF, JPG, PNG — jusqu'à 50 Mo par fichier
 
 **Zone de dépôt — survol actif**
-> Relâchez pour uploader
+> Relâchez pour déposer
 
 **Labels des champs du formulaire**
 
@@ -89,7 +89,7 @@ Immeuble de rapport / Maison divisée en lots / Local commercial à transformer 
 | État | Texte |
 |---|---|
 | Analyse en cours (< 30s) | Analyse du plan en cours… Quelques secondes. |
-| Upload réussi (avant analyse) | Plan uploadé. Lancer l'analyse quand vous êtes prêt. |
+| Dépôt réussi (avant analyse) | Plan déposé. Lancer l'analyse quand vous êtes prêt. |
 | Analyse réussie | Plan analysé. Passez à la découpe des lots. |
 | Bouton passage étape suivante | Découper les lots → |
 
@@ -97,7 +97,7 @@ Immeuble de rapport / Maison divisée en lots / Local commercial à transformer 
 
 | Erreur | Message affiché |
 |---|---|
-| Format non supporté | Ce format n'est pas pris en charge. Uploadez un PDF, JPG ou PNG. |
+| Format non supporté | Ce format n'est pas pris en charge. Déposez un PDF, JPG ou PNG. |
 | Fichier trop lourd | Ce fichier dépasse 50 Mo. Compressez-le et réessayez. |
 | Résolution insuffisante | Ce plan est trop basse résolution. Utilisez la version PDF originale ou exportez à 300 dpi minimum. |
 | Extraction impossible | L'analyse n'a pas pu lire ce plan. Vérifiez que le fichier n'est pas protégé par un mot de passe. Si le problème persiste, contactez le support avec ce plan. |
@@ -218,7 +218,7 @@ Immeuble de rapport / Maison divisée en lots / Local commercial à transformer 
 > Créez vos visuels post-travaux
 
 **Instruction principale**
-> Pour chaque pièce, uploadez une photo du chantier. Choisissez un style de finition. Le visuel est prêt en moins de 90 secondes.
+> Pour chaque pièce, déposez une photo du chantier. Choisissez un style de finition. Le visuel est prêt en moins de 90 secondes.
 
 **Navigation inter-pièces**
 
@@ -361,12 +361,12 @@ Chaque empty state a trois éléments : une phrase d'état, une instruction, un 
 >
 > [Nouvelle opération]
 
-### Aucun plan uploadé (Étape 1)
+### Aucun plan déposé (Étape 1)
 
-> Aucun plan uploadé.
+> Aucun plan déposé.
 > Déposez vos plans PDF ou images pour commencer l'analyse.
 >
-> [Uploader un plan]
+> [Déposer un plan]
 
 ### Aucun lot créé (Étape 2 — après analyse sans résultat)
 
@@ -382,16 +382,16 @@ Chaque empty state a trois éléments : une phrase d'état, une instruction, un 
 >
 > [Ajouter une pièce]
 
-### Aucune photo uploadée pour une pièce (Étape 4)
+### Aucune photo déposée pour une pièce (Étape 4)
 
 > Aucune photo pour cette pièce.
-> Uploadez une photo du chantier pour créer le visuel post-travaux.
+> Déposez une photo du chantier pour créer le visuel post-travaux.
 >
-> [Uploader une photo]
+> [Déposer une photo]
 
-### Aucun visuel créé pour une pièce (Étape 4 — après upload photo, avant création)
+### Aucun visuel créé pour une pièce (Étape 4 — après dépôt photo, avant création)
 
-> Photo uploadée. Choisissez un style et lancez la création.
+> Photo déposée. Choisissez un style et lancez la création.
 >
 > [Créer le visuel]
 
@@ -450,6 +450,37 @@ L'agent architecte n'est pas un chatbot de support. C'est un architecte d'intér
 | "Je vais faire de mon mieux" | Sous-entend une possible insuffisance — éviter |
 | "N'hésitez pas à me poser d'autres questions" | Registre support. L'agent répond, il n'invite pas |
 | Réponses de plus de 4 phrases | Trop long. Couper. |
+
+## 11. Calibration plan / Overlay m² (F05)
+
+Feature livrée s19 : surface m² temps réel sur le plan après calibration manuelle (ou auto-calibration via POC OCR).
+
+### Copy exacts
+
+| Contexte UI | Copy |
+|---|---|
+| Titre modale calibration | `Calibrez ce plan pour afficher les surfaces m²` |
+| Sous-titre modale | `Tracez une ligne de référence sur le plan, puis entrez sa longueur réelle.` |
+| Label input longueur | `Cette ligne mesure X mètres` |
+| Bouton valider calibration | `Valider la calibration` |
+| Bouton annuler | `Annuler` |
+| Overlay m² (plan calibré) | `X,X m²` (format 1 décimale, ex : `12,5 m²`) |
+| Overlay m² (plan non calibré) | `— m²` (placeholder) |
+| Bannière suggestion OCR (confidence ≥ 0.9) | `Une échelle a été détectée automatiquement : X mètres. Validez ou ajustez.` |
+| Bannière fallback OCR (confidence < 0.9) | `Calibrez manuellement ce plan pour afficher les surfaces.` |
+| Bannière loading OCR | `Détection de l'échelle en cours…` |
+| Tooltip survol ligne calibration | `Ligne de référence : X mètres` |
+
+### Règles
+
+- **Unité** : toujours `m²` (pas `m2` ni `mètres carrés`)
+- **Séparateur décimal** : virgule française (ex: `12,5` pas `12.5`)
+- **Placeholder non calibré** : `— m²` (tiret cadratin `—` U+2014, pas `-`)
+- **Arrondi** : 1 décimale max (ex: `12,5 m²` pas `12,55 m²`)
+- **Registre** : vouvoiement systématique (`Calibrez`, `Validez`, pas `Calibre`)
+- **Anglicismes interdits** (règle n°19 G33 BLOQUANT) : `upload`, `download`, `feedback`, `meeting`, `forwarder`
+
+---
 
 ## Handoff
 

@@ -302,7 +302,7 @@ export default function VisualsPage({
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="text-center">
             <p className="text-sm text-text-muted mb-md">
-              Aucune pièce définie — retournez à l'étape précédente pour
+              Aucune pièce définie — retournez à l&apos;étape précédente pour
               identifier vos pièces.
             </p>
             <button

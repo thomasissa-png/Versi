@@ -550,7 +550,7 @@ export default function RoomsPage({
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="text-center">
             <p className="text-sm text-text-muted mb-md">
-              Aucun lot défini. Retournez à l'étape précédente pour découper
+              Aucun lot défini. Retournez à l&apos;étape précédente pour découper
               vos lots.
             </p>
             <button

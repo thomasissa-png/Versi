@@ -169,7 +169,7 @@ export default function DropZone({ onFilesSelected, disabled = false }: DropZone
               : "Déposez vos plans ici"}
           </p>
           <p className="text-xs text-text-muted mt-xs">
-            PDF, PNG, JPG, WEBP — jusqu'à 20 Mo par fichier
+            PDF, PNG, JPG, WEBP — jusqu&apos;à 20 Mo par fichier
           </p>
         </div>
 

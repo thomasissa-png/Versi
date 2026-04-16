@@ -12,7 +12,7 @@ export default function VsNotFound() {
         Page introuvable
       </h2>
       <p className="text-sm text-text-muted mb-xl">
-        Cette page n'existe pas ou a été déplacée.
+        Cette page n&apos;existe pas ou a été déplacée.
       </p>
       <Link
         href="/vs"

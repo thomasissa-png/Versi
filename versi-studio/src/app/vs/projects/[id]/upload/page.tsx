@@ -447,7 +447,7 @@ export default function UploadPage({
           <p className="vs-label mb-xs">{project.adresse}</p>
           <h1 className="vs-h3">Déposez vos plans</h1>
           <p className="text-sm text-text-muted mt-sm">
-            Un plan par lot, ou un plan d'ensemble — les deux formats
+            Un plan par lot, ou un plan d&apos;ensemble — les deux formats
             fonctionnent.
             <br />
             Formats acceptés : PDF, PNG, JPG, WEBP — résolution minimum 150 dpi,
