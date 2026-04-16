@@ -71,6 +71,11 @@
 ### Délégation aux agents (session s12)
 - **Délégation = principe non négociable.** Thomas veut que les agents spécialisés fassent le travail, même si c'est plus lent. Il préfère relancer 3 fois un agent @ia plutôt que l'orchestrateur écrive le code lui-même. L'orchestrateur ne doit écrire du code que si 3+ tentatives d'agents ont échoué ET qu'un audit agent suit immédiatement. Citation : insistance 3 fois dans la même session.
 
+### Autopilote qualité (session s13)
+- **Unanimité 10/10 — pas de moyenne pondérée.** Thomas veut que CHAQUE agent auditeur note 10/10 avant de passer à l'étape suivante. Pas de "moyenne 8/10 acceptable". Citation : "Chaque agent doit noter chaque étape sur 10. Puis fais corriger et itère jusqu'a ce que chacun soit a 10/10. Une fois la cible atteinte, passe a l'étape suivante. Ne manque rien."
+- **Agents les plus sévères = @moi et testeurs-persona.** Leur verdict GO/NO-GO est bloquant. Un 8/10 chez @moi = NO-GO.
+- **Itérations tant qu'au moins 1 agent < 10/10.** Pas de "bon assez", pas de "on verra plus tard".
+
 ### Session s10 — 2026-04-15
 - **Bleu #1B3A5C rejeté** — palette unique pour l'écosystème Versi (charcoal + stone). Pas de couleur d'accent par entité.
 - **Off-market pas systématique** — ne jamais présenter comme promesse principale.

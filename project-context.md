@@ -351,39 +351,77 @@
 ### Mémo de reprise
 
 **Branche** : `claude/extract-project-context-ZVB40`
-**Date de clôture** : 2026-04-15
+**Date de clôture** : 2026-04-16
+**Session** : versi-s13 — Versi Studio QA complet + autopilote Etape 0
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s11)** : Session de maintenance et QA. (1) Propagation gate bloquante : 9 learnings P0/P1 de session s10 propagés dans CLAUDE.md (+3 règles : n°16 anti-complaisance, n°17 promesse non-systématique, n°18 process métier), orchestrator.md (+1 règle anti-complaisance briefs), fullstack.md (+1 section Express 5). (2) QA E2E versi-invest.fr — tests Playwright. (3) QA E2E versi.fr — tests Playwright.
+**Résumé session (versi-s13)** :
+1. **Propagation 4 P0/P1 learnings de s12** (gate bloquante) : CLAUDE.md (règles n°3, n°4), orchestrator.md, fullstack.md, founder-preferences.md
+2. **VINV-0c** : création testeur-persona-nicolas (investisseur VI2)
+3. **VS-2d QA Versi Studio** : 32 tests E2E Playwright (984 lignes), docs/qa/vs-qa-strategy.md
+4. **VS-3 SEO/GEO** : noindex/nofollow (outil interne), GEO N/A documenté
+5. **VS-5 Reviewer audit** : NO-GO initial (4 BLOQUANT FAIL) → G7+G5 corrigés → GO
+6. **Audit UX rapide** Versi Studio : 6.5/10 → 4 P1 mobile corrigés (whitespace-nowrap, vs-h1, canvas mobile readonly)
+7. **Audit UX avancé** : 5.5/10 → 4 P1 avancés déjà corrigés (DB 503, localStorage chat, AbortController, confirm DELETE)
+8. **Tests manquants** (5 tests avancés) : 8.5/10, 0 FAIL réel
+9. **Autopilote Etape 0 Dashboard** — 7 agents audités :
+   - v1 : @qa 7.6 | @copy 8 | @creative 6 | @pm 7.2 | @ia 8.8 | @moi 5.5 | @persona 6.4 (moyenne 7.1)
+   - 8 fixes appliqués (UTF-8 m²/…, type_bien FR, vs-h1, sous-titre, empty state CTA, validation surface, messages erreur)
+   - v2 (3 agents re-audités) : @moi **10/10 GO** | @persona 8/10 GO | @creative 7/10 **NO-GO**
 
-**Résumé session précédente (versi-s10)** : Session majeure Versi Invest. (1) Audits multi-agents 3 rounds : HomePage 6/10→9+/10, toutes pages 8-9+/10. (2) Blog complet pipeline IA autonome (9 gates, 4-dim audit, crons). (3) Référence réelle Nanterre 8 studios, 7 photos. (4) SEO/GEO implémentation (robots.txt, sitemap, llms.txt, Schema.org, OG tags). (5) Comparaison VI/VI2 : 9 écarts détectés, 6 corrigés. (6) Corrections fondateur : stats 7 immeubles/3,2M€, bleu rejeté, off-market pas en H1, "thèse" rejeté, process 8 étapes fondateur.
+**Travail restant — PROCHAINE SESSION (versi-s14)** :
 
-**Décisions fondateur cumulées (s4→s10)** :
-- contact@versi.fr = adresse unique PARTOUT
-- Pas de faux témoignages → cas d'étude anonymisés uniquement
-- Aucun bien affiché publiquement sur versi-invest.fr (off-market, liste d'attente)
-- SEO dans les meta tags invisibles, UX dans les H1 visibles
-- FAQ acquéreur en bas de homepage (pas au milieu)
-- Pivot : acquéreur = persona principal VI, vendeur = secondaire
-- Hero validé VI : "Peu de biens. Pas d'approximation."
-- Régions : Hauts-de-France ET Île-de-France
-- Prix : toujours net vendeur
-- Ordre fondateurs : Maxime → Thomas → Carl
-- Back office : admin custom avec mdp PostgreSQL Replit
-- Palette unique écosystème Versi (charcoal + stone), pas de couleur d'accent par entité
-- Stats track record volatiles : 7 immeubles, 3,2M€ (au 2026-04-15)
-- Blog = "Le regard Versi" (pas "thèse")
-- Blog autonome = IA end-to-end (génération + audit + publication)
-- Process métier = 8 étapes validées par le fondateur
+**PRIORITÉ 1 — Finaliser Etape 0 Dashboard avant de passer à l'étape 1**
+- **@creative-strategy** reste à 7/10. 4 corrections précises documentées dans `docs/reviews/autopilot/vs-step0-creative-v2.md` :
+  1. Tutoyement cohérent (ligne 146 "Lance ta première" vs registre neutre ailleurs)
+  2. Form `h2` ligne XX utilise `text-lg font-medium` au lieu d'un token typo du design system (`vs-h3`)
+  3. Badge status sans couleur sémantique (Brouillon/Terminé/En cours tous identiques)
+  4. Sous-titre H1 purement fonctionnel, manque signal valeur business
+- Action : @fullstack applique les 4 fixes, puis re-audit @creative-strategy + @qa + @copywriter + @pm (ceux < 10/10 en v1)
+- Cible : 100% des 7 agents à 10/10 sur Etape 0
 
-**Travail restant — PROCHAINE SESSION** :
+**PRIORITÉ 2 — Autopilote Etape 1 Upload**
+- Fichier : `versi-studio/src/app/vs/projects/[id]/upload/page.tsx`
+- Composants : `DropZone.tsx`, `PlanThumbnail.tsx`, `Stepper.tsx`
+- Spec : `docs/product/vs-functional-specs.md` §3
+- Même protocole : 7 agents en 4 batches (A @qa+@copy / B @creative+@pm / C @ia+@moi / D @persona)
+- Itérations @fullstack jusqu'à 10/10 pour chaque agent
 
-1. **Versi Immobilier — GEO off-site (action Thomas)** — Créer fiches Crunchbase + Pappers.fr + LinkedIn entreprise Versi Immobilier pour atteindre 10/10 GEO.
+**PRIORITÉ 3 — Autopilote Etapes 2, 3, 4** (même protocole)
+- Etape 2 Lots : `lots/page.tsx` + `PlanCanvas.tsx`, `LotPanel.tsx` — spec §4
+- Etape 3 Rooms : `rooms/page.tsx` + `RoomCanvas.tsx`, `RoomPanel.tsx` — spec §5
+- Etape 4 Visuals : `visuals/page.tsx` + `StyleGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx`, `ChatAgent.tsx` — spec §6
 
-2. **Versi Immobilier — Photos biens Muguets** — `photos: []` toujours. Ajouter via back office admin.
+**PRIORITÉ 4 — Créer testeur-persona-thomas-marchand** (optionnel)
+- Actuellement, @testeur-persona-laurent est utilisé par substitution pour Thomas (marchand de biens Versi Studio)
+- Laurent = investisseur holding, pas marchand de biens. Le profil diverge.
+- Action : @agent-factory crée `.claude/agents/testeur-persona-thomas-marchand.md` calqué sur le modèle Nicolas
 
-3. **Versi Immobilier — 5 références Nanterre photos** — Script `update-nanterre-photos.js` prêt, autoSeed intégré. Les photos seront en production au prochain redéploiement.
+**Actions Thomas hors-agent** (inchangées depuis s11) :
+- Versi Immobilier — GEO off-site (Crunchbase + Pappers.fr + LinkedIn entreprise)
+- Versi Immobilier — Photos biens Muguets via back office
+- Versi Immobilier — 5 références Nanterre photos (script prêt)
+- versi-capital.fr + versi-finance.fr (scope futur)
 
-4. **versi-capital.fr + versi-finance.fr** — Les 2 dernières entités de l'écosystème (scope futur).
+**Protocole autopilote — règles anti-timeout validées** :
+- Max 2 agents par message (batch) — 3 possible mais marge réduite
+- Brief < 800 mots par agent
+- Format de sortie imposé (tableau 5 lignes, pas de prose)
+- Write squelette IMMÉDIATEMENT, puis Edit
+- Max 1 Read par fichier, max 50 lignes
+- Seuil session : max 2 étapes par session (16 Task producteurs, sous ALERTE ROUGE 18)
 
-**Prompt de reprise** : `@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise).`
+**Décisions cumulées Versi Studio (s12-s13)** :
+- Stack Next.js 16 (version réelle, specs ont été alignées)
+- Persona = Thomas marchand de biens (à distinguer de Thomas fondateur = @moi)
+- Outil INTERNE : noindex/nofollow, pas de SEO public
+- Design = endorsed brand (charcoal + stone Versi, pas de couleur d'accent)
+- V1 = sans auth, sans paiement, sans PDF
+- Workflow 4 étapes : Upload → Lots → Rooms → Visuels
+
+**Prompt de reprise suggéré** :
+```
+@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise).
+Priorité absolue : finaliser Etape 0 Dashboard (4 corrections @creative-strategy docs/reviews/autopilot/vs-step0-creative-v2.md),
+puis reprendre autopilote à Etape 1 Upload avec le protocole validé en s13.
+```
