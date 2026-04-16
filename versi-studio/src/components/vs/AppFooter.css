@@ -29,10 +29,24 @@
 }
 
 .vs-footer__logo {
-  font-size: 0.9375rem;
-  font-weight: 200;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.vs-footer__logo-name {
+  font-size: 1.125rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.18em;
+  color: #F7F5F2;
+}
+
+.vs-footer__logo-label {
+  font-size: 1.125rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: #F7F5F2;
 }
 

@@ -46,8 +46,9 @@ export default function AppHeader() {
   return (
     <nav className={`vs-nav ${scrolled ? 'vs-nav--scrolled' : ''}`} aria-label="Navigation principale">
       <div className="vs-nav__inner">
-        <Link href="/vs" className="vs-nav__logo">
-          VERSI
+        <Link href="/vs" className="vs-nav__logo" aria-label="Versi Studio — Accueil">
+          <span className="vs-nav__logo-name">VERSI</span>
+          <span className="vs-nav__logo-label">STUDIO</span>
         </Link>
 
         <ul className="vs-nav__items">

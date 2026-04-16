@@ -17,7 +17,10 @@ export default function AppFooter() {
       <div className="vs-footer__separator" />
       <div className="vs-footer__inner">
         <div className="vs-footer__left">
-          <span className="vs-footer__logo">VERSI</span>
+          <span className="vs-footer__logo">
+            <span className="vs-footer__logo-name">VERSI</span>
+            <span className="vs-footer__logo-label">STUDIO</span>
+          </span>
           <span className="vs-footer__baseline">Holding immobilière intégrée</span>
         </div>
         <div className="vs-footer__right">
