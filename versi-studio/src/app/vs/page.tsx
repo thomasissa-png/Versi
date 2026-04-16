@@ -22,7 +22,7 @@ import { TYPE_BIEN_OPTIONS } from "@/lib/vs/types";
 // ─── Status labels ─────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
+  draft: "En cours",
   step_1_complete: "Plans uploadés",
   step_2_complete: "Lots découpés",
   step_3_complete: "Pièces identifiées",
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="vs-h1">Mes opérations</h1>
           <p className="vs-body-sm text-text-muted mt-1">
-            Découpez vos plans, identifiez les lots et générez des visuels vendeurs — prêts à intégrer dans vos dossiers d&apos;acquisition.
+            Découpez vos plans, identifiez les lots et créez des visuels vendeurs — prêts à intégrer dans vos dossiers d&apos;acquisition.
           </p>
         </div>
         <button
@@ -115,7 +115,7 @@ export default function DashboardPage() {
       {loading && (
         <div className="text-center py-4xl">
           <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin" />
-          <p className="mt-md text-sm text-text-muted">Chargement…</p>
+          <p className="mt-md text-sm text-text-muted">Chargement de vos opérations…</p>
         </div>
       )}
 
@@ -195,7 +195,7 @@ function CreateProjectForm({
     setError(null);
 
     if (adresse.trim().length < 5) {
-      setError("Saisis une adresse complète pour continuer.");
+      setError("L'adresse est obligatoire (minimum 5 caractères).");
       return;
     }
 
@@ -387,7 +387,7 @@ function ProjectCard({ project }: { project: VsProject }) {
     >
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-base font-medium text-text-default">
+          <h3 className="text-base font-medium text-text-default truncate max-w-sm">
             {project.adresse}
           </h3>
           <div className="flex items-center gap-md mt-sm">
