@@ -41,9 +41,10 @@ export default function StyleGrid({
               ${
                 isSelected
                   ? "border-2 border-interactive-primary bg-bg-card shadow-sm"
-                  : "border border-border-default bg-bg-card hover:border-gris-pierre hover:shadow-sm"
+                  : "border border-border-default bg-bg-card hover:border-interactive-primary hover:shadow-sm"
               }
               ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80
             `}
           >
             {/* Icône décorative placeholder */}

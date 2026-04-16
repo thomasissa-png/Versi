@@ -232,7 +232,14 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         const json = (await res.json()) as ApiResponse<VsPhoto>;
 
         if (!json.success) {
-          setError(json.error);
+          const errorMessages: Record<string, string> = {
+            FILE_TOO_LARGE: "Le fichier dépasse 10 Mo. Compressez la photo et réessayez.",
+            INVALID_FORMAT: "Format non supporté. Utilisez JPG ou PNG.",
+            ROOM_NOT_FOUND: "Pièce introuvable. Rechargez la page.",
+            RATE_LIMIT_EXCEEDED: "Limite de génération atteinte. Réessayez dans une heure.",
+          };
+          const friendlyMessage = errorMessages[json.error] || json.error || "Une erreur inattendue s'est produite.";
+          setError(friendlyMessage);
           return;
         }
 
@@ -405,7 +412,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         const agentMsg: ChatMessage = {
           id: `agent-${Date.now()}`,
           role: "agent",
-          content: "Modification en cours...",
+          content: "Modification en cours…",
           visual_id: json.data.visual_id,
           timestamp: new Date().toISOString(),
         };
@@ -519,7 +526,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         {subState === "upload" && (
           <div>
             <p className="text-sm text-text-muted mb-md">
-              Ajoutez une photo de cette pièce
+              Déposez une photo de cette pièce pour démarrer la génération
             </p>
             <div
               onDrop={handleDrop}
@@ -528,7 +535,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
               className={`
                 border-2 border-dashed border-border-default rounded-lg
                 p-4xl flex flex-col items-center justify-center
-                cursor-pointer hover:border-gris-pierre transition-colors duration-200
+                cursor-pointer hover:border-interactive-primary transition-colors duration-200
                 ${isUploading ? "opacity-50 pointer-events-none" : ""}
               `}
               role="button"
@@ -563,7 +570,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
                     />
                   </svg>
                   <p className="text-sm text-text-default mb-2xs">
-                    Déposez une photo ici
+                    Déposez ou sélectionnez une photo
                   </p>
                   <p className="text-xs text-text-muted">
                     JPG, PNG — jusqu'à 10 Mo
@@ -610,23 +617,23 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
               onSelect={(styleId) => setSelectedStyleId(styleId)}
             />
 
-            {/* Bouton générer */}
-            {selectedStyleId && (
-              <div className="mt-lg">
-                <button
-                  onClick={handleGenerate}
-                  disabled={isGenerating}
-                  className="
-                    w-full px-xl py-md rounded-md text-sm font-medium
-                    bg-interactive-primary text-text-inverse
-                    hover:bg-interactive-hover transition-colors duration-200
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  "
-                >
-                  {isGenerating ? "Création en cours..." : "Créer le visuel"}
-                </button>
-              </div>
-            )}
+            {/* Bouton générer (rendu inconditionnel, disabled si pas de style) */}
+            <div className="mt-lg">
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={!selectedStyleId || isGenerating}
+                className="
+                  w-full px-xl py-md rounded-md text-sm font-medium
+                  bg-interactive-primary text-text-inverse
+                  hover:bg-interactive-hover transition-colors duration-200
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80 min-h-[44px]
+                "
+              >
+                {isGenerating ? "Création en cours…" : "Créer le visuel"}
+              </button>
+            </div>
           </div>
         )}
 

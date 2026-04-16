@@ -302,7 +302,7 @@ export default function VisualsPage({
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="text-center">
             <p className="text-sm text-text-muted mb-md">
-              Aucune pièce définie. Retournez à l'étape précédente pour
+              Aucune pièce définie — retournez à l'étape précédente pour
               identifier vos pièces.
             </p>
             <button
@@ -310,7 +310,7 @@ export default function VisualsPage({
                 router.push(`/vs/projects/${projectId}/rooms`)
               }
               className="
-                px-xl py-sm rounded-md text-sm font-medium
+                min-h-[44px] px-xl py-sm rounded-md text-sm font-medium
                 bg-interactive-primary text-text-inverse
                 hover:bg-interactive-hover transition-colors duration-200
               "
@@ -361,10 +361,17 @@ export default function VisualsPage({
                 d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
               />
             </svg>
-            <span>{error}</span>
+            <span className="flex-1">{error}</span>
+            <button
+              type="button"
+              onClick={() => fetchData()}
+              className="px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
+            >
+              Réessayer
+            </button>
             <button
               onClick={() => setError(null)}
-              className="ml-auto text-error hover:text-error/80"
+              className="ml-sm text-error hover:text-error/80"
               aria-label="Fermer le message d'erreur"
             >
               <svg
@@ -408,7 +415,7 @@ export default function VisualsPage({
                   onClick={handleCompleteProject}
                   className="
                     px-lg py-xs rounded-md text-sm font-medium
-                    bg-success text-white
+                    bg-success text-text-inverse
                     hover:bg-success/90 transition-colors duration-200
                   "
                 >
@@ -447,7 +454,7 @@ export default function VisualsPage({
                     />
                   </svg>
                   <p className="text-sm text-text-muted">
-                    Sélectionnez une pièce pour créer son visuel
+                    Sélectionnez une pièce pour générer son visuel post-travaux
                   </p>
                 </div>
               </div>

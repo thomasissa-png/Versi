@@ -150,7 +150,7 @@ export default function ChatAgent({
               <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               <p
                 className={`
-                  text-[10px] mt-2xs
+                  text-xs mt-2xs
                   ${msg.role === "user" ? "text-text-inverse/60" : "text-text-muted"}
                 `}
               >
@@ -173,7 +173,7 @@ export default function ChatAgent({
                   <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                   <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
-                <span className="text-xs text-text-muted">Modification en cours...</span>
+                <span className="text-xs text-text-muted">Modification en cours…</span>
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function ChatAgent({
             />
             <span
               className={`
-                absolute bottom-sm right-sm text-[10px]
+                absolute bottom-sm right-sm text-xs
                 ${charsRemaining < 50 ? "text-warning" : "text-text-muted"}
                 ${charsRemaining < 10 ? "text-error" : ""}
               `}
@@ -224,6 +224,7 @@ export default function ChatAgent({
               bg-interactive-primary text-text-inverse
               hover:bg-interactive-hover transition-colors duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
+              active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]
             "
             aria-label="Envoyer"
           >

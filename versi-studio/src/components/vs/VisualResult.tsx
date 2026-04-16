@@ -96,6 +96,8 @@ export default function VisualResult({
       {/* ─── État Processing ─────────────────────────────────────── */}
       {isProcessing && (
         <div className="flex flex-col items-center justify-center py-4xl">
+          {/* Skeleton aperçu pendant la génération */}
+          <div className="w-full h-64 bg-bg-canvas animate-pulse rounded-lg mb-md" aria-hidden="true" />
           {/* Barre de progression */}
           <div className="w-full max-w-sm mb-lg">
             <div className="h-2 bg-border-default rounded-full overflow-hidden">
@@ -107,9 +109,6 @@ export default function VisualResult({
           </div>
           <p className="text-sm text-text-muted">
             Création en cours — environ 90 secondes
-          </p>
-          <p className="text-xs text-text-muted mt-xs">
-            {elapsed}s écoulées
           </p>
         </div>
       )}
@@ -188,7 +187,7 @@ export default function VisualResult({
                 className="w-full h-auto max-h-[500px] object-contain"
               />
             ) : (
-              <div className="w-full h-64 bg-gris-chaud/20 flex items-center justify-center">
+              <div className="w-full h-64 bg-bg-canvas flex items-center justify-center">
                 <div className="text-center">
                   <svg
                     className="w-12 h-12 text-text-muted mx-auto mb-sm"
@@ -206,7 +205,7 @@ export default function VisualResult({
                   </svg>
                   <p className="text-sm text-text-muted">Visuel de démonstration</p>
                   <p className="text-xs text-text-muted mt-2xs">
-                    Mode simulation — configurez OPENAI_API_KEY pour la génération réelle
+                    La clé de génération n'est pas configurée.
                   </p>
                 </div>
               </div>
@@ -225,9 +224,10 @@ export default function VisualResult({
                     bg-interactive-primary text-text-inverse
                     hover:bg-interactive-hover transition-colors duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed
+                    active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]
                   "
                 >
-                  {isValidating ? "Validation..." : "Valider ce visuel"}
+                  {isValidating ? "Validation…" : "Valider ce visuel"}
                 </button>
                 <button
                   onClick={onIterate}
@@ -235,6 +235,7 @@ export default function VisualResult({
                     px-lg py-sm rounded-md text-sm font-medium
                     border border-border-default text-text-default
                     hover:bg-bg-card transition-colors duration-200
+                    active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]
                   "
                 >
                   Modifier
@@ -245,6 +246,7 @@ export default function VisualResult({
                     px-lg py-sm rounded-md text-sm font-medium
                     border border-border-default text-text-muted
                     hover:bg-bg-card hover:text-text-default transition-colors duration-200
+                    active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]
                   "
                 >
                   Essayer un autre style
@@ -309,7 +311,7 @@ export default function VisualResult({
                       className="w-full h-16 object-cover"
                     />
                   ) : (
-                    <div className="w-full h-16 bg-gris-chaud/20 flex items-center justify-center">
+                    <div className="w-full h-16 bg-bg-canvas flex items-center justify-center">
                       <svg
                         className="w-4 h-4 text-text-muted"
                         fill="none"
@@ -327,9 +329,9 @@ export default function VisualResult({
                     </div>
                   )}
                   <div className="p-2xs">
-                    <p className="text-[10px] text-text-muted truncate">{vStyleName}</p>
+                    <p className="text-xs text-text-muted truncate">{vStyleName}</p>
                     {visual.status === "validated" && (
-                      <span className="text-[10px] text-success font-medium">Validé</span>
+                      <span className="text-xs text-success font-medium">Validé</span>
                     )}
                   </div>
                 </button>
