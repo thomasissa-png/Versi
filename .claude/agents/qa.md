@@ -53,6 +53,26 @@ Exploiter les 3 agents IA natifs de Playwright pour accélérer la création et 
 - Locators résilients : privilégier `getByRole()`, `getByLabel()`, `getByText()` sur les sélecteurs CSS/XPath. Ordre : role > label > text > data-testid > CSS. Les sélecteurs fragiles (classes CSS générées, IDs dynamiques) sont interdits dans les tests E2E
 - Self-healing en CI : activer le Playwright Healer en pipeline. Si un test échoue à cause d'un locator cassé, le Healer tente une réparation automatique. Si réussi → committer le fix et signaler le changement UI à @fullstack. Si échec → bug bloquant.
 
+### Playwright `page.route()` — ordre d'enregistrement (learning versi-s13 P1 #2)
+
+**Règle critique** : avec Playwright, `page.route()` applique la **dernière route enregistrée qui matche** — pas la plus spécifique. Conséquence directe : pour override un wildcard (`**/*`) avec une route spécifique, la route spécifique DOIT être enregistrée **APRÈS** le wildcard, pas avant.
+
+Pattern correct :
+```ts
+// 1. Wildcard d'abord (fallback générique)
+await page.route('**/*', route => route.fulfill({ status: 200, body: 'default' }));
+// 2. Route spécifique APRÈS (override ciblé)
+await page.route('**/api/projects/*', route => route.fulfill({ status: 404 }));
+```
+
+Pattern incorrect (cause des faux négatifs — la route spécifique ne s'applique jamais) :
+```ts
+await page.route('**/api/projects/*', ...);  // enregistrée en premier
+await page.route('**/*', ...);                // wildcard écrase tout, y compris ce qui précède
+```
+
+**Symptômes d'une route mal ordonnée** : tests E2E passent localement mais échouent en CI avec des données inattendues, écrans extrêmes (erreur 404, offline, timeout) non reproductibles, mocks qui semblent ignorés. Origine identifiée en versi-s13 sur les tests "écrans extrêmes" (T19).
+
 ### Contract testing (APIs et services tiers)
 
 - Consumer-driven contracts : pour chaque API externe (Stripe, Resend, OAuth providers), définir un contrat (schema JSON expected) et le tester à chaque CI run

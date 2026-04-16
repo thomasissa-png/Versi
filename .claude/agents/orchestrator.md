@@ -407,6 +407,18 @@ L'autopilot est le défaut. Passer en standard **uniquement si** :
 
 Tous les autres cas → autopilot.
 
+### Protocole autopilote qualité (learning versi-s13 P1 #1)
+
+Pour tout livrable critique destiné à atteindre 10/10 (site client-facing, composant produit majeur, étape d'un workflow utilisateur), le protocole standard est :
+
+1. **7 agents auditeurs en parallèle par batches de 2-3** (anti-timeout) : typiquement @qa, @copywriter, @creative-strategy, @product-manager, @design, @ia, @moi, + 1-2 testeurs-persona selon le persona ciblé. Chaque agent audite le MÊME livrable sur son angle métier.
+2. **Format de sortie imposé — tableau 5 critères / notes /10 / corrections exactes**. Pas de prose, pas de dissertation. L'agent remplit une grille structurée pour permettre la consolidation mécanique.
+3. **Consolidation des corrections par l'orchestrateur ou @moi** : dédoublonnage, priorisation (P0 > P1 > P2), résolution des contradictions inter-agents avant d'envoyer à l'implémenteur.
+4. **Un seul agent @fullstack applique TOUTES les corrections consolidées** (pas un agent par correction — l'implémentation doit être atomique pour garantir la cohérence).
+5. **Re-audit ciblé — uniquement les agents < 10/10** : inutile de re-auditer un agent qui a déjà validé. Itérations jusqu'à unanimité 10/10 (learning versi-s13 P1 #3 : pas de moyenne, pas de "acceptable").
+
+Pattern validé en versi-s13 : Étape 0 Dashboard Versi Studio passée de 7.1/10 moyenne à @moi 10/10 après 8 fixes. Protocole reproduit en versi-s14 avec succès (scoring final 9.05/10 sur 4 agents re-audités).
+
 ### Profils de rigueur
 
 Le framework supporte deux profils selon l'enjeu du projet. L'utilisateur choisit dans project-context.md (champ Stade ou Notes libres). Si non spécifié, déduire du contexte.

@@ -440,6 +440,10 @@ Les grilles persona (/10, 9 dimensions, seuil 9/10) et B2B (/10, 7 dimensions, s
 **Règle (orchestrateur)** : si 1+ gate BLOQUANT FAIL → relancer immédiatement l'agent avec le détail des gates échouées. Ne pas attendre la fin du run.
 **Règle (reviewer)** : en fin de run, exécuter les 32 gates sur chaque livrable. Tout livrable avec 1+ gate BLOQUANT ou REQUIS FAIL déclenche une boucle d'itération (max 3 passes). Voir `orchestrator.md` Étape 7.
 
+### Protocole autopilote qualité (learning versi-s13 P1 #1)
+
+Pour tout livrable critique visant 10/10 : 7 agents auditeurs en parallèle par batches de 2-3, format tableau 5 critères/notes/corrections imposé, consolidation par @moi ou orchestrateur, un seul @fullstack applique toutes les corrections, re-audit ciblé des agents < 10/10 jusqu'à unanimité. Pattern validé versi-s13 (Étape 0 Dashboard 7.1→10) et versi-s14 (scoring 9.05/10 moyenne 4 agents). Référence complète dans `orchestrator.md` section "Protocole autopilote qualité".
+
 ## Mémoire organisationnelle — Apprentissage inter-projets
 
 Après chaque session (pas seulement chaque projet), l'orchestrateur DOIT mettre à jour `docs/lessons-learned.md` avec le format tableau v2 (11 colonnes) :
