@@ -69,15 +69,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       const errName = (err as Error).name;
-      const errMsg = (err as Error).message;
       if (errName === "AbortError") return;
-      if (errMsg === "404") {
-        setError("Ressource introuvable.");
-      } else if (errMsg === "503") {
-        setError("Service temporairement indisponible. Réessayez dans un instant.");
-      } else {
-        setError("Une erreur inattendue est survenue. Vérifiez votre connexion et réessayez.");
-      }
+      setError("Impossible de charger les opérations.");
     } finally {
       clearTimeout(timeoutId);
       if (!signal.aborted) setLoading(false);
