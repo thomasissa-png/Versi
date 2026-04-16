@@ -71,7 +71,7 @@ L'étape "dossier" (génération PDF) est explicitement hors scope V1.
 
 | État | Comportement | Message/Affichage |
 |---|---|---|
-| Défaut | Zone de dépôt vide, drag-and-drop actif | "Déposez vos plans ici ou cliquez pour sélectionner — PDF, PNG, JPG — Max 20 Mo par fichier" |
+| Défaut | Zone de dépôt vide, drag-and-drop actif | "Déposez vos plans ici ou cliquez pour sélectionner — PDF, PNG, JPG, WEBP — Max 20 Mo par fichier" |
 | Loading | Conversion PDF en cours, barre de progression par fichier | "Conversion en cours... [nom_fichier.pdf] — [X]%" avec spinner par fichier |
 | Vide | Identique au défaut (pas d'état vide distinct — la zone vide est l'état initial) | N/A |
 | Erreur | Fichier trop gros, format invalide, échec conversion | "Fichier refusé : [raison exacte]. [nom_fichier] dépasse 20 Mo" ou "Format non supporté" — toast rouge, fichier retiré de la liste |
@@ -301,7 +301,7 @@ Voir tableau section 3 en-tête.
 - [ ] GIVEN Thomas dépose un PDF 3 pages WHEN la conversion est terminée THEN 3 images PNG s'affichent (1 par page) avec floors 0, 1, 2
 
 **Cas d'erreur :**
-- [ ] GIVEN Thomas dépose un fichier .docx WHEN le fichier est rejeté THEN un toast rouge "Format non supporté — utilisez PDF, PNG ou JPG" s'affiche, le fichier n'apparaît pas dans la liste
+- [ ] GIVEN Thomas dépose un fichier .docx WHEN le fichier est rejeté THEN un toast rouge "Format non supporté — utilisez PDF, PNG, JPG ou WEBP" s'affiche, le fichier n'apparaît pas dans la liste
 - [ ] GIVEN Thomas dépose un fichier de 25 Mo WHEN le fichier est rejeté THEN un toast rouge "plan_lourd.pdf dépasse la limite de 20 Mo" s'affiche
 - [ ] GIVEN la conversion PDF échoue (PDF corrompu) WHEN l'erreur est détectée THEN toast rouge "Impossible de lire ce PDF — vérifiez qu'il n'est pas corrompu ou protégé par un mot de passe"
 
@@ -323,6 +323,16 @@ Voir tableau section 3 en-tête.
 - **Request body** : FormData — `file: File`, `floor_number?: number`
 - **Response succès** : `{ "plan_id": uuid, "floor_number": number, "preview_url": string, "pages_count": number }` — status 201
 - **Response erreur** : `{ "error": "FILE_TOO_LARGE"|"INVALID_FORMAT"|"CONVERSION_FAILED"|"PROJECT_NOT_FOUND"|"MAX_FILES_REACHED", "message": string }` — status 400/404/422/500
+
+---
+
+- **Endpoint** : `PATCH /api/vs/plans/[id]`
+- **Authentification** : publique
+- **Rate limit** : N/A
+- **Request body** : `{ "floor_number": number }` (entier obligatoire, borné -5 à 50)
+- **Response succès** : `{ "success": true, "data": { "id": string, "floor_number": number } }` — status 200
+- **Response erreur** : `{ "error": string }` — status 400 (UUID invalide ou floor_number hors bornes), 404 (plan introuvable), 500 (erreur serveur)
+- **Usage** : persiste le numéro d'étage modifié par Thomas sur une miniature de plan (correction manuelle post-upload).
 
 #### Events analytics
 | Event | Trigger | Propriétés | Funnel |

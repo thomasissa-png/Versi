@@ -4,21 +4,35 @@
  *
  * 5 états UI :
  * - Défaut : zone de dépôt vide
- * - Loading : upload en cours (indicateur par fichier)
+ * - Loading : upload en cours (progression parallèle par fichier)
  * - Vide : = défaut (aucun plan)
- * - Erreur : toast rouge
- * - Succès : grille de miniatures + bouton "Analyser les plans"
+ * - Erreur : toast rouge + tuiles "Réessayer" par fichier échoué
+ * - Succès : grille de miniatures + bouton "Lancer l'analyse"
+ *
+ * P0 corrigés Batch 4 versi-s15 :
+ * - P0.1 Modal de confirmation suppression (ConfirmModal — remplace confirm() natif)
+ * - P0.2 floor_number calculé côté client + persistance via PATCH /api/vs/plans/[id]
+ * - P0.3 Bouton "Lancer l'analyse" avec état loading + POST /extract avant redirection
+ * - P0.4 Message erreur réseau actionnable ("vérifiez votre connexion et réessayez")
+ * - P0.5 Upload parallèle via Promise.allSettled + AbortController (race condition safe)
+ * - P0.6 Retry par fichier (tuile "Réessayer" pour chaque upload échoué)
+ * - Anglicismes : "uploader/uploadé" → "déposer/déposé"
  */
 
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import DropZone from "@/components/vs/DropZone";
 import PlanThumbnail from "@/components/vs/PlanThumbnail";
 import Stepper from "@/components/vs/Stepper";
+import ConfirmModal from "@/components/vs/ConfirmModal";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { MAX_FILES_PER_PROJECT } from "@/lib/vs/types";
+
+// ─── Types locaux ──────────────────────────────────────────────────
+
+type FailedUpload = { file: File; error: string; targetFloor: number };
 
 // ─── Composant principal ───────────────────────────────────────────
 
@@ -34,9 +48,15 @@ export default function UploadPage({
   const [plans, setPlans] = useState<VsPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Set<string>>(new Set());
+  const [failedFiles, setFailedFiles] = useState<FailedUpload[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // AbortController pour annuler les uploads en cours au démontage
+  const uploadAbortRef = useRef<AbortController | null>(null);
 
   // ─── Chargement initial ────────────────────────────────────────
 
@@ -65,7 +85,9 @@ export default function UploadPage({
       setProject(projectJson.data);
       setPlans(plansJson.data);
     } catch {
-      setError("Impossible de charger les données du projet.");
+      setError(
+        "Impossible de charger les données du projet — vérifiez votre connexion et réessayez."
+      );
     } finally {
       setLoading(false);
     }
@@ -75,70 +97,151 @@ export default function UploadPage({
     fetchData();
   }, [fetchData]);
 
-  // ─── Upload de fichiers ────────────────────────────────────────
+  // Cleanup : annuler les uploads en cours si l'utilisateur quitte la page
+  useEffect(() => {
+    return () => {
+      uploadAbortRef.current?.abort();
+    };
+  }, []);
+
+  // ─── Upload d'un fichier unitaire (réutilisé pour retry) ───────
+
+  const uploadSingleFile = useCallback(
+    async (
+      file: File,
+      targetFloor: number,
+      signal: AbortSignal
+    ): Promise<{ plan: VsPlan } | { error: string }> => {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("floor_number", String(targetFloor));
+
+        const res = await fetch(`/api/vs/projects/${projectId}/plans`, {
+          method: "POST",
+          body: formData,
+          signal,
+        });
+
+        const json = (await res.json()) as ApiResponse<VsPlan>;
+
+        if (json.success) {
+          return { plan: json.data };
+        }
+        return { error: json.error };
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return { error: "Upload annulé." };
+        }
+        return {
+          error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
+        };
+      }
+    },
+    [projectId]
+  );
+
+  // ─── Upload de fichiers (parallèle) ────────────────────────────
 
   const handleFilesSelected = useCallback(
     async (files: File[]) => {
       const remainingSlots = MAX_FILES_PER_PROJECT - plans.length;
       if (remainingSlots <= 0) {
-        setError(`Maximum ${MAX_FILES_PER_PROJECT} plans par opération.`);
+        setError(
+          `Vous avez atteint la limite de ${MAX_FILES_PER_PROJECT} plans par opération. Supprimez un plan existant pour en ajouter un nouveau.`
+        );
         return;
       }
 
       const filesToUpload = files.slice(0, remainingSlots);
       if (filesToUpload.length < files.length) {
         setError(
-          `Seuls ${filesToUpload.length} fichiers seront uploadés (limite de ${MAX_FILES_PER_PROJECT} plans).`
+          `${filesToUpload.length} fichier${filesToUpload.length > 1 ? "s" : ""} ajouté${filesToUpload.length > 1 ? "s" : ""} — limite de ${MAX_FILES_PER_PROJECT} plans par opération atteinte.`
         );
+      } else {
+        setError(null);
       }
 
       setUploading(true);
-      setUploadProgress(filesToUpload.map((f) => f.name));
-      setError(null);
+      setUploadProgress(new Set(filesToUpload.map((f) => f.name)));
+      setFailedFiles([]);
+
+      const controller = new AbortController();
+      uploadAbortRef.current = controller;
+
+      const baseOffset = plans.length;
+
+      const results = await Promise.allSettled(
+        filesToUpload.map((file, index) =>
+          uploadSingleFile(file, baseOffset + index, controller.signal).then(
+            (result) => ({ file, targetFloor: baseOffset + index, result })
+          )
+        )
+      );
 
       const newPlans: VsPlan[] = [];
-      const errors: string[] = [];
+      const newFailed: FailedUpload[] = [];
 
-      for (const file of filesToUpload) {
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("floor_number", "0");
-
-          const res = await fetch(`/api/vs/projects/${projectId}/plans`, {
-            method: "POST",
-            body: formData,
-          });
-
-          const json = (await res.json()) as ApiResponse<VsPlan>;
-
-          if (json.success) {
-            newPlans.push(json.data);
-          } else {
-            errors.push(`${file.name} : ${json.error}`);
-          }
-        } catch {
-          errors.push(`${file.name} : erreur réseau.`);
+      for (const settled of results) {
+        if (settled.status !== "fulfilled") continue;
+        const { file, targetFloor, result } = settled.value;
+        if ("plan" in result) {
+          newPlans.push(result.plan);
+        } else {
+          newFailed.push({ file, targetFloor, error: result.error });
         }
-
-        // Retirer de la progression
-        setUploadProgress((prev) => prev.filter((name) => name !== file.name));
+        setUploadProgress((prev) => {
+          const next = new Set(prev);
+          next.delete(file.name);
+          return next;
+        });
       }
 
       setPlans((prev) => [...prev, ...newPlans]);
+      setFailedFiles(newFailed);
       setUploading(false);
-
-      if (errors.length > 0) {
-        setError(errors.join(" "));
-      }
+      uploadAbortRef.current = null;
     },
-    [plans.length, projectId]
+    [plans.length, uploadSingleFile]
   );
 
-  // ─── Suppression d'un plan ─────────────────────────────────────
+  // ─── Retry d'un fichier échoué ─────────────────────────────────
 
-  const handleDelete = useCallback(async (planId: string) => {
-    if (!confirm("Supprimer ce plan ? Cette action est irreversible.")) return;
+  const handleRetry = useCallback(
+    async (failedUpload: FailedUpload) => {
+      const { file, targetFloor } = failedUpload;
+
+      setFailedFiles((prev) => prev.filter((f) => f.file !== file));
+      setUploadProgress((prev) => new Set(prev).add(file.name));
+
+      const controller = new AbortController();
+      const result = await uploadSingleFile(file, targetFloor, controller.signal);
+
+      setUploadProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(file.name);
+        return next;
+      });
+
+      if ("plan" in result) {
+        setPlans((prev) => [...prev, result.plan]);
+      } else {
+        setFailedFiles((prev) => [...prev, { file, targetFloor, error: result.error }]);
+      }
+    },
+    [uploadSingleFile]
+  );
+
+  // ─── Suppression d'un plan (avec modal de confirmation) ────────
+
+  const askDeleteConfirm = useCallback((planId: string) => {
+    setConfirmDeleteId(planId);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const planId = confirmDeleteId;
+    if (!planId) return;
+    setConfirmDeleteId(null);
     setDeletingId(planId);
     try {
       const res = await fetch(`/api/vs/plans/${planId}`, {
@@ -152,40 +255,95 @@ export default function UploadPage({
         setError(json.error);
       }
     } catch {
-      setError("Impossible de supprimer le plan.");
+      setError(
+        "Impossible de supprimer le plan — vérifiez votre connexion et réessayez."
+      );
     } finally {
       setDeletingId(null);
     }
-  }, []);
+  }, [confirmDeleteId]);
 
-  // ─── Modification du numéro d'étage ────────────────────────────
+  // ─── Modification du numéro d'étage (avec persistance PATCH) ───
 
   const handleFloorChange = useCallback(
     async (planId: string, floor: number) => {
+      const previousPlans = plans;
+
       // Optimistic update
       setPlans((prev) =>
         prev.map((p) => (p.id === planId ? { ...p, floor_number: floor } : p))
       );
 
-      // Note : l'API PATCH plans n'est pas implémentée dans cette passe.
-      // Le floor_number sera persisté quand l'API PATCH plan sera ajoutée.
+      try {
+        const res = await fetch(`/api/vs/plans/${planId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ floor_number: floor }),
+        });
+        const json = (await res.json()) as ApiResponse<{
+          id: string;
+          floor_number: number;
+        }>;
+
+        if (!json.success) {
+          // Rollback
+          setPlans(previousPlans);
+          setError(json.error);
+        }
+      } catch {
+        setPlans(previousPlans);
+        setError(
+          "Impossible de mettre à jour l'étage — vérifiez votre connexion et réessayez."
+        );
+      }
     },
-    []
+    [plans]
   );
 
   // ─── Analyser les plans ────────────────────────────────────────
 
   const handleAnalyze = useCallback(async () => {
-    // Stub : passer le projet en step_1_complete et naviguer vers step 2
+    setIsAnalyzing(true);
+    setError(null);
+
     try {
-      await fetch(`/api/vs/projects/${projectId}`, {
+      // 1. Passer le projet en step_1_complete
+      const patchRes = await fetch(`/api/vs/projects/${projectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "step_1_complete" }),
       });
+      const patchJson = (await patchRes.json()) as ApiResponse<VsProject>;
+      if (!patchJson.success) {
+        setError(patchJson.error);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // 2. Lancer l'extraction IA
+      const extractRes = await fetch(
+        `/api/vs/projects/${projectId}/extract`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const extractJson = (await extractRes.json()) as ApiResponse<{
+        lots_created: number;
+      }>;
+      if (!extractJson.success) {
+        setError(extractJson.error);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // 3. Rediriger vers l'étape 2
       router.push(`/vs/projects/${projectId}/lots`);
     } catch {
-      setError("Impossible de lancer l'analyse.");
+      setError(
+        "Impossible de lancer l'analyse — vérifiez votre connexion et réessayez."
+      );
+      setIsAnalyzing(false);
     }
   }, [projectId, router]);
 
@@ -198,7 +356,7 @@ export default function UploadPage({
           <Stepper currentStep={1} projectId={projectId} />
         </aside>
         <div className="flex-1 flex items-center justify-center py-4xl">
-          <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin" />
+          <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin motion-reduce:animate-none" />
         </div>
       </div>
     );
@@ -230,16 +388,22 @@ export default function UploadPage({
         {/* En-tête */}
         <div className="mb-xl">
           <p className="vs-label mb-xs">{project.adresse}</p>
-          <h1 className="vs-h3">Uploadez vos plans</h1>
+          <h1 className="vs-h3">Déposez vos plans</h1>
           <p className="text-sm text-text-muted mt-sm">
             Un plan par lot, ou un plan d'ensemble — les deux formats
-            fonctionnent. PDF ou image, résolution minimum 150 dpi.
+            fonctionnent.
+            <br />
+            Formats acceptés : PDF, PNG, JPG, WEBP — résolution minimum 150 dpi,
+            20 Mo max par fichier.
           </p>
         </div>
 
         {/* Erreur globale */}
         {error && (
-          <div className="mb-lg bg-error/10 border border-error/20 rounded-md p-md text-sm text-error flex items-start gap-sm">
+          <div
+            role="alert"
+            className="mb-lg bg-error/10 border border-error/20 rounded-md p-md text-sm text-error flex items-start gap-sm"
+          >
             <svg
               className="w-4 h-4 mt-0.5 flex-shrink-0"
               fill="none"
@@ -257,7 +421,7 @@ export default function UploadPage({
             <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="ml-auto text-error hover:text-error/80"
+              className="ml-auto min-h-[44px] min-w-[44px] flex items-center justify-center text-error hover:text-error/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error rounded-sm"
               aria-label="Fermer le message d'erreur"
             >
               <svg
@@ -283,33 +447,76 @@ export default function UploadPage({
           disabled={uploading || plans.length >= MAX_FILES_PER_PROJECT}
         />
 
-        {/* Progression d'upload */}
-        {uploading && uploadProgress.length > 0 && (
+        {/* Progression d'upload (parallèle) */}
+        {uploading && uploadProgress.size > 0 && (
           <div className="mt-lg">
-            {uploadProgress.map((name) => (
+            {Array.from(uploadProgress).map((name) => (
               <div
                 key={name}
                 className="flex items-center gap-sm py-sm text-sm text-text-muted"
               >
-                <div className="w-4 h-4 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin" />
-                <span>Upload de {name}...</span>
+                <div className="w-4 h-4 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin motion-reduce:animate-none" />
+                <span>Dépôt de {name} en cours…</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Grille de plans uploadés */}
+        {/* Uploads échoués — tuiles retry */}
+        {failedFiles.length > 0 && (
+          <div className="mt-lg flex flex-col gap-sm">
+            {failedFiles.map((failed) => (
+              <div
+                key={failed.file.name}
+                className="flex items-center gap-sm p-md bg-error/10 border border-error/20 rounded-md text-sm"
+              >
+                <svg
+                  className="w-4 h-4 text-error flex-shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <p className="font-medium text-text-default">
+                    {failed.file.name}
+                  </p>
+                  <p className="text-xs text-text-muted mt-2xs">
+                    {failed.error}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRetry(failed)}
+                  className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+                >
+                  Réessayer
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Grille de plans déposés */}
         {plans.length > 0 && (
           <div className="mt-2xl">
             <div className="flex items-center justify-between mb-md">
               <h2 className="text-sm font-medium text-text-default">
-                {plans.length} plan{plans.length > 1 ? "s" : ""} uploadé
+                {plans.length} plan{plans.length > 1 ? "s" : ""} déposé
                 {plans.length > 1 ? "s" : ""}
               </h2>
               <span className="text-xs text-text-muted">
                 {MAX_FILES_PER_PROJECT - plans.length} emplacement
                 {MAX_FILES_PER_PROJECT - plans.length > 1 ? "s" : ""} restant
-                {MAX_FILES_PER_PROJECT - plans.length > 1 ? "s" : ""}
+                {MAX_FILES_PER_PROJECT - plans.length > 1 ? "s" : ""} sur{" "}
+                {MAX_FILES_PER_PROJECT}
               </span>
             </div>
 
@@ -318,7 +525,7 @@ export default function UploadPage({
                 <PlanThumbnail
                   key={plan.id}
                   plan={plan}
-                  onDelete={handleDelete}
+                  onDelete={askDeleteConfirm}
                   onFloorChange={handleFloorChange}
                   deleting={deletingId === plan.id}
                 />
@@ -329,21 +536,41 @@ export default function UploadPage({
             <div className="mt-2xl flex justify-end">
               <button
                 onClick={handleAnalyze}
-                disabled={plans.length === 0}
+                disabled={plans.length === 0 || isAnalyzing}
+                aria-busy={isAnalyzing}
                 className="
-                  px-2xl py-md rounded-md text-sm font-medium
+                  inline-flex items-center gap-sm
+                  min-h-[44px] px-2xl py-md rounded-md text-sm font-medium
                   bg-interactive-primary text-text-inverse
                   hover:bg-interactive-hover
                   disabled:opacity-50 disabled:cursor-not-allowed
-                  transition-colors duration-200
+                  transition-colors duration-200 motion-reduce:transition-none
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                 "
               >
-                Analyser les plans
+                {isAnalyzing && (
+                  <span
+                    className="inline-block w-4 h-4 border-2 border-text-inverse/40 border-t-text-inverse rounded-full animate-spin motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                )}
+                {isAnalyzing ? "Analyse en cours…" : "Lancer l'analyse"}
               </button>
             </div>
           </div>
         )}
+
+        {/* Modal de confirmation suppression */}
+        <ConfirmModal
+          isOpen={confirmDeleteId !== null}
+          title="Supprimer ce plan ?"
+          message="Cette action est irréversible. Le fichier sera supprimé définitivement."
+          confirmLabel="Supprimer"
+          cancelLabel="Annuler"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       </div>
     </div>
   );
