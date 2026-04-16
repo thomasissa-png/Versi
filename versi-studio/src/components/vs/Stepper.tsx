@@ -31,8 +31,8 @@ export default function Stepper({
           <div
             key={step.id}
             className={`
-              flex items-start gap-md p-md rounded-md transition-colors duration-200
-              ${isActive ? "bg-bg-card border border-border-default" : ""}
+              flex items-start gap-md p-md rounded-md transition-colors duration-200 motion-reduce:transition-none
+              ${isActive ? "bg-bg-dark text-text-inverse border-l-[3px] border-text-default" : ""}
               ${isFuture ? "opacity-50" : ""}
             `}
           >
@@ -40,9 +40,9 @@ export default function Stepper({
             <div
               className={`
                 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                text-sm font-medium transition-colors duration-200
+                text-sm font-medium transition-colors duration-200 motion-reduce:transition-none
                 ${isCompleted ? "bg-interactive-primary text-text-inverse" : ""}
-                ${isActive ? "border-2 border-interactive-primary text-text-default" : ""}
+                ${isActive ? "bg-text-default text-bg-dark" : ""}
                 ${isFuture ? "border border-border-default text-text-muted" : ""}
               `}
             >
@@ -71,7 +71,7 @@ export default function Stepper({
               <span
                 className={`
                   text-xs uppercase tracking-widest
-                  ${isActive || isCompleted ? "text-text-default" : "text-text-muted"}
+                  ${isActive ? "text-text-inverse" : isCompleted ? "text-text-default" : "text-text-muted"}
                 `}
               >
                 {step.label}
@@ -79,7 +79,7 @@ export default function Stepper({
               <span
                 className={`
                   text-sm mt-2xs
-                  ${isActive ? "text-text-default" : "text-text-muted"}
+                  ${isActive ? "text-text-inverse/80" : "text-text-muted"}
                 `}
               >
                 {step.description}
