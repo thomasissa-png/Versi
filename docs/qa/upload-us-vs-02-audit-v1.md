@@ -139,8 +139,203 @@ Fichiers de test à créer dans `versi-studio/tests/fixtures/files/` :
 
 ## 6. Limitations code identifiées à tester
 
+### L141 — `confirm()` natif navigateur dans `handleDelete`
+
+```tsx
+if (!confirm("Supprimer ce plan ? Cette action est irreversible.")) return;
+```
+
+**Impact test** :
+- `window.confirm()` n'est pas automatiquement géré par Playwright — il faut écouter l'événement `dialog` : `page.on('dialog', async d => { await d.accept(); })`.
+- Sans ce handler, le test bloque sur la dialog box et timeout.
+- **Divergence UX** : la spec (section "Cas limites" scénario 5) attend un comportement fluide "supprimer miniature et redéposer". Un `confirm()` natif casse ce flux. **Recommandation @fullstack** : remplacer par un modal custom (composant `<ConfirmModal>` réutilisable) pour :
+  1. Avoir un look conforme au design system (le `confirm()` natif ne respecte pas les tokens).
+  2. Permettre des tests plus propres via `getByRole('dialog')` et boutons nommés.
+  3. Supporter l'accessibilité (focus trap, escape key, ARIA labels).
+
+**Test à écrire** : T-P1-01 avec `page.on('dialog', d => d.accept())` en attendant le refactor.
+
+### L170 — PATCH `floor_number` non implémenté (optimistic update sans persistance)
+
+```tsx
+// Optimistic update
+setPlans((prev) =>
+  prev.map((p) => (p.id === planId ? { ...p, floor_number: floor } : p))
+);
+// Note : l'API PATCH plans n'est pas implémentée dans cette passe.
+```
+
+**Impact test** :
+- Le changement de floor_number est visible à l'écran mais **perdu au rechargement de la page** (rollback silencieux).
+- Violation AC02 (numérotation persistée) et AC11 (préservation données).
+- **Divergence spec↔code** : la spec AC11 dit "le 3e s'ajoute avec floor_number = 2" — le code actuel envoie `floor_number: 0` en dur dans le POST (page.tsx:106), **ignorant le calcul auto-incrémenté spec**.
+
+**Tests à écrire** :
+- **T-P1-02** : vérifier l'affichage optimistic (code fonctionne visuellement).
+- **Nouveau test P0 à ajouter** : intercepter le POST /plans et **asserter que `floor_number` dans FormData vaut la longueur actuelle de plans.length** (0, 1, 2... auto-incrémenté). Actuellement le code envoie `"0"` en dur → bug critique à signaler à @fullstack.
+- **Test de non-régression après fix** : une fois PATCH implémenté, tester le round-trip : change floor → reload page → valeur persistée.
+
+**Recommandation @fullstack** : implémenter `PATCH /api/vs/plans/[id]` avec body `{ floor_number: number }` OU retirer l'input étage de l'UI tant que la persistance n'est pas là (éviter l'illusion de fonctionnement).
+
+### L186 — Redirection `/lots` après step 2 (stub `handleAnalyze`)
+
+```tsx
+await fetch(`/api/vs/projects/${projectId}`, {
+  method: "PATCH",
+  body: JSON.stringify({ status: "step_1_complete" }),
+});
+router.push(`/vs/projects/${projectId}/lots`);
+```
+
+**Impact test** :
+- Le code ne lance **aucune extraction IA** (pas d'appel à `POST /api/vs/projects/[id]/extract`) — la spec US-VS-03 "Lancer l'analyse IA" n'est pas déclenchée par ce bouton.
+- La redirection vers `/lots` se fait SANS attendre la complétion de l'extraction → l'écran `/lots` va charger un état vide ou "processing" sans que l'utilisateur comprenne.
+- **Divergence spec↔code** : le test `workflow.spec.ts:284-300` assert l'affichage d'un indicateur "analyse en cours|extraction|traitement" — **ce texte n'existe nulle part dans le code actuel**. Le test va FAIL dès qu'il sera exécuté sur le vrai code (actuellement il passe probablement grâce au timeout d'expect ou faux positif).
+
+**Tests à écrire** :
+- **T-P1-05** : intercepter PATCH /projects/[id] + assert redirection URL `/lots`.
+- **Nouveau test P0** : assert que `POST /api/vs/projects/[id]/extract` est appelé au click sur "Analyser" (actuellement il ne l'est pas → bug à signaler à @fullstack pour US-VS-03).
+- **Fix test `workflow.spec.ts:284-300`** : actuellement l'assertion attend un texte qui n'existe pas dans le code → faux positif. À corriger après implémentation du loader d'extraction.
+
+### L106 — `floor_number: "0"` hardcodé dans FormData
+
+```tsx
+formData.append("floor_number", "0");
+```
+
+**Bug critique** : tous les plans sont envoyés avec `floor_number=0` quelle que soit leur position. L'auto-incrémentation est faite UNIQUEMENT côté serveur (à confirmer avec l'API `/api/vs/projects/[id]/plans`). Si le serveur n'auto-incrémente pas non plus, tous les plans auront le même floor_number → violation AC02.
+
+**Recommandation @fullstack** : calculer `floor_number = plans.length + index` dans la boucle, ou laisser le serveur auto-incrémenter et ne PAS envoyer ce champ depuis le client. À clarifier.
+
+### Absence de `AbortController`
+
+Les fetches dans `fetchData()`, `handleFilesSelected()`, `handleDelete()` ne sont pas annulables. Si l'utilisateur navigue pendant un upload en cours, le state update sur un composant démonté générera un warning React. **Référence** : lessons-learned.md versi-s12 race conditions (critère 10 `vs-advanced-audit.md` déjà identifié en P1).
+
+### Absence de retry par fichier (AC09)
+
+Le code L120-122 catch l'erreur réseau et ajoute un message dans `errors[]` global, mais ne maintient aucune liste de fichiers "en échec" avec bouton retry. Le test T-P2-04 est bloqué tant que la feature n'est pas implémentée.
+
 ## 7. Screenshots CI baseline (Gate G26)
+
+### État actuel
+
+- `versi-studio/tests/screenshots/` : **dossier absent**. Glob négatif.
+- `tests/screenshots/` (racine repo) : contient les screenshots du site Versi institutionnel (holding), **aucun pour Versi Studio**. Fichiers `desktop-hero.png`, `mobile-activites.png`, etc. — hors scope US-VS-02.
+- Aucune baseline existante pour la page `/vs/projects/[id]/upload`.
+- Aucune baseline pour les 3 devices (iPhone 13, iPad, Desktop Chrome) requis par G26.
+- Aucune référence à `docs/design/page-compositions.md` pour comparer le layout attendu.
+
+### Verdict Gate G26 : **FAIL** (boucle visuelle non exécutée pour Versi Studio)
+
+Conformément au protocole QA (section "Tests visuels et régression") : si `tests/screenshots/` est vide pour le scope audité, c'est à @fullstack d'exécuter la boucle visuelle (screenshot page par page, comparaison avec les specs design, correction avant page suivante).
+
+### Actions requises avant merge Étape 1
+
+1. **@fullstack** : exécuter la boucle visuelle sur `/vs/projects/[id]/upload` sur 3 devices (iPhone 13 375px, iPad 768px, Desktop Chrome 1280px). Produire 3 screenshots × 3 états clés = 9 baselines minimum :
+   - État défaut (0 plans)
+   - État succès (2 plans uploadés + bouton Analyser)
+   - État erreur (toast rouge visible)
+   - (bonus P1) État loading upload (spinner + "Upload de {name}...")
+2. **@design** : valider que les screenshots correspondent à `docs/design/page-compositions.md` (ou créer la spec si absente pour Versi Studio).
+3. **@qa** (cette passe de tests P2-05) : configurer Playwright `toHaveScreenshot()` avec seuil `maxDiffPixelRatio: 0.005` (0.5% selon G26) sur les baselines approuvées.
+4. **Emplacement cible** : `versi-studio/tests/screenshots/upload/` (créer le dossier). Pattern de nommage : `upload-[device]-[state].png` (ex: `upload-iphone13-default.png`, `upload-desktop-success.png`).
+
+### Hors scope de cet audit
+
+La création des baselines EST la responsabilité de @fullstack (boucle visuelle pendant le dev). Ce rapport @qa **signale l'absence** sans créer de baselines indépendantes (conformément au protocole QA section "Tests visuels — baselines source").
 
 ## 8. Verdict global et priorités correctives
 
+### Note globale : **6/10** (honnête — premier jet, pas gonflé)
+
+| Dimension | Note | Commentaire |
+|---|---|---|
+| Implémentation UI (page.tsx + DropZone + PlanThumbnail) | 7.5/10 | 5 états UI partiellement présents, validation MIME/taille côté client, accessibilité clavier sur DropZone. Manque : retry par fichier, modal custom (pas `confirm()`), persistance floor_number |
+| Couverture test E2E | 3/10 | 2/13 AC partiellement couverts. Aucun test `setInputFiles()`. Le happy path n'est testé nulle part |
+| Conformité spec US-VS-02 | 5/10 | 3 divergences spec↔code identifiées (AC08, AC09, AC12). `floor_number: "0"` hardcodé en bug |
+| Gates bloquantes | 2/10 | G21 FAIL (loading/erreur non observés), G26 FAIL (baselines absentes), G27 FAIL (11/13 AC sans test), G28 à vérifier (tsc + lint + tests) |
+| Qualité code (structure, types, erreurs) | 8/10 | Typage strict, `ApiResponse<T>` discriminé, useCallback correctement utilisé, error boundaries. Manque AbortController |
+
+### Gates vs framework Versi (CLAUDE.md)
+
+- **G21 (5 états UI)** : FAIL — loading initial + loading upload non testés, erreur partiellement testée.
+- **G26 (conformité visuelle)** : FAIL — aucune baseline Playwright pour Versi Studio.
+- **G27 (matrice traçabilité)** : FAIL — 11/13 user stories sans test correspondant.
+- **G28 (pipeline pre-deploy)** : à vérifier par @fullstack — faire tourner `tsc --noEmit`, `npm run lint`, `npm test` et documenter le résultat. Non vérifié dans cet audit (scope QA, pas infra).
+
+### Priorités correctives (ordre d'exécution)
+
+**P0 — Bloquant merge Étape 1** (à faire AVANT tout autre développement)
+
+1. **@fullstack corriger 3 bugs** :
+   - L106 `floor_number: "0"` hardcodé → calculer `plans.length + index` ou laisser le serveur incrémenter (ne pas envoyer le champ).
+   - L186 `handleAnalyze` n'appelle PAS `POST /extract` → ajouter l'appel extraction IA avant la redirection `/lots` (ou documenter que c'est le job de `/lots` au chargement).
+   - L141 `confirm()` natif → créer un composant `<ConfirmModal>` dans `versi-studio/src/components/vs/` (réutilisable pour lots/rooms plus tard).
+
+2. **@fullstack exécuter la boucle visuelle** sur `/vs/projects/[id]/upload` (3 devices × 3 états minimum) → créer `versi-studio/tests/screenshots/upload/` avec baselines approuvées.
+
+3. **@qa écrire les 7 tests P0** (T-P0-01 à T-P0-07) dans `versi-studio/tests/e2e/upload.spec.ts` (nouveau fichier dédié, ne pas polluer `workflow.spec.ts`) + créer les fichiers fixtures adversariaux dans `versi-studio/tests/fixtures/files/`.
+
+4. **@qa corriger le bug route ordering** dans `workflow.spec.ts:302-335` (inverser l'ordre mockAllApiRoutes / overrides).
+
+5. **@qa mettre à jour `fixtures.ts`** : ajouter `preview_url` et `pages_count` dans `MOCK_PLANS` pour conformer au contrat API spec ligne 324.
+
+**P1 — Avant clôture US-VS-02** (après merge P0)
+
+6. **@qa écrire les 9 tests P1** (T-P1-01 à T-P1-09) incluant accessibilité clavier, analytics Umami, préservation plans, loadings, redirection.
+7. **@fullstack implémenter PATCH /api/vs/plans/[id]** pour persister floor_number → débloquer T-P1-02.
+8. **@fullstack implémenter retry par fichier** (AC09) → débloquer T-P2-04.
+9. **@product-manager arbitrer** : WEBP accepté par `DropZone` mais spec dit PDF/PNG/JPG seulement → contradiction à trancher.
+10. **@product-manager arbitrer** : upload séquentiel (code) vs parallèle (spec AC08) → décision à prendre.
+
+**P2 — Backlog**
+
+11. **@qa écrire les 7 tests P2** (screenshot régression, drag-over visuel, rate limit middleware test, etc.).
+12. **@infrastructure** : configurer axe-core dans les tests E2E Playwright (accessibilité automatisée intégrée).
+13. **@fullstack** : ajouter `AbortController` sur tous les fetches de `upload/page.tsx`.
+
+### Condition de déblocage Batch 4
+
+Merge Étape 1 autorisé SI :
+- [x] Les 3 bugs P0 corrigés (floor_number, handleAnalyze, confirm modal).
+- [x] Les 7 tests P0 écrits, PASS en CI.
+- [x] Baselines screenshots créées et review @design.
+- [x] Gate G28 (tsc + lint + tests) PASS.
+- [x] Matrice G27 mise à jour dans `docs/qa/TESTING.md` avec les 13 AC mappés aux tests.
+
+Sans ces 5 points, NO-GO merge Batch 4.
+
 ## Handoff
+
+---
+**Handoff → @fullstack (corrections P0 bloquantes)**
+
+- **Fichiers à corriger** :
+  - `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` lignes 106, 141, 186
+  - Nouveau composant : `versi-studio/src/components/vs/ConfirmModal.tsx`
+  - Nouveau endpoint : `versi-studio/src/app/api/vs/plans/[id]/route.ts` (PATCH handler pour `floor_number`)
+- **Décisions prises** :
+  - 3 bugs critiques identifiés sur `upload/page.tsx` (floor_number hardcodé, extraction IA non déclenchée, `confirm()` natif).
+  - 3 AC ont des divergences spec↔code à arbitrer avec @product-manager (AC08, AC09, AC12, WEBP).
+- **Points d'attention** :
+  - Le bug L106 `floor_number: "0"` est silencieux — tous les plans ont le même étage, l'UI optimistic masque le problème côté client.
+  - `handleAnalyze` ne lance pas l'extraction IA — la page `/lots` doit être auditée pour comprendre comment l'extraction est actuellement déclenchée (si elle l'est).
+  - Exécuter la boucle visuelle AVANT que @qa écrive les tests P0 (sinon les baselines seront créées par les tests en premier run, sans review humaine → non conforme G26).
+
+---
+**Handoff → @orchestrator (Batch 4 planning)**
+
+- **Fichier produit** : `/home/user/Versi/docs/qa/upload-us-vs-02-audit-v1.md` (complet, 8 sections + handoff)
+- **Décisions prises** :
+  - Verdict 6/10 honnête (pas gonflé — cf. learning versi-s10 anti-complaisance).
+  - 3 gates BLOQUANT FAIL identifiées : G21, G26, G27.
+  - 7 tests P0 + 9 tests P1 + 7 tests P2 priorisés avec AC mapping.
+  - 3 bugs code critiques à corriger par @fullstack avant que @qa écrive les tests.
+- **Points d'attention** :
+  - **Ne PAS écrire les tests P0 dans `workflow.spec.ts`** — créer `versi-studio/tests/e2e/upload.spec.ts` dédié pour garder la traçabilité US-VS-02 claire.
+  - **Dépendance stricte** : @fullstack doit corriger les 3 bugs AVANT que @qa écrive les tests (sinon les tests vont valider le comportement buggé).
+  - **Parallélisation possible** : @fullstack boucle visuelle + @fullstack bugfixes peuvent se faire en parallèle (fichiers différents).
+  - **Escalade @product-manager requise** : 3 arbitrages spec↔code (upload séquentiel vs parallèle, retry par fichier, WEBP accepté).
+  - Compteur session : cet audit = Task producteur #1/15 (reste 14 slots avant ALERTE ROUGE).
+
+---
