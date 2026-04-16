@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { VsPlan } from "@/lib/vs/types";
 
 interface PlanThumbnailProps {
@@ -24,13 +24,16 @@ export default function PlanThumbnail({
   deleting = false,
 }: PlanThumbnailProps) {
   const [floorInput, setFloorInput] = useState(String(plan.floor_number));
+  const [prevFloor, setPrevFloor] = useState(plan.floor_number);
 
   // BUG-1 fix (versi-s19) : resync floorInput quand le parent rollback floor_number
-  // après un PATCH /plans/:id en erreur. Sans cet effect, l'input visuel reste
+  // après un PATCH /plans/:id en erreur. Sans ce resync, l'input visuel reste
   // sur la valeur saisie alors que la valeur métier est revenue à l'origine.
-  useEffect(() => {
+  // Pattern React docs "Storing info from previous renders" (compliant React Compiler).
+  if (plan.floor_number !== prevFloor) {
+    setPrevFloor(plan.floor_number);
     setFloorInput(String(plan.floor_number));
-  }, [plan.floor_number]);
+  }
 
   const isImage = plan.mime_type.startsWith("image/");
 

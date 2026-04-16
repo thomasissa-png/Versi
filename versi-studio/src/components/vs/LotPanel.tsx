@@ -48,12 +48,17 @@ function LotCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(lot.name);
+  const [prevLotName, setPrevLotName] = useState(lot.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const color = getLotColor(index);
 
-  useEffect(() => {
+  // Resync editValue quand le nom du lot change côté parent (optimistic update rollback).
+  // Pattern React docs "Storing info from previous renders" — setState pendant render
+  // (accepté par React Compiler, pas de cascading renders).
+  if (lot.name !== prevLotName) {
+    setPrevLotName(lot.name);
     setEditValue(lot.name);
-  }, [lot.name]);
+  }
 
   useEffect(() => {
     if (editing && inputRef.current) {

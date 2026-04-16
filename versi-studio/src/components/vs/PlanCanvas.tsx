@@ -111,6 +111,98 @@ function getOverlappingLotIds(lots: VsLot[]): Set<string> {
   return overlapping;
 }
 
+function clamp(val: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, val));
+}
+
+function getHandlePositions(
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): { position: HandlePosition; x: number; y: number }[] {
+  return [
+    { position: "nw", x, y },
+    { position: "n", x: x + w / 2, y },
+    { position: "ne", x: x + w, y },
+    { position: "e", x: x + w, y: y + h / 2 },
+    { position: "se", x: x + w, y: y + h },
+    { position: "s", x: x + w / 2, y: y + h },
+    { position: "sw", x, y: y + h },
+    { position: "w", x, y: y + h / 2 },
+  ];
+}
+
+function computeResize(
+  start: ZoneRect,
+  handle: HandlePosition,
+  dxPercent: number,
+  dyPercent: number
+): ZoneRect {
+  let { x_percent, y_percent, width_percent, height_percent } = start;
+
+  switch (handle) {
+    case "e":
+      width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
+      break;
+    case "w":
+      {
+        const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
+        x_percent = start.x_percent + (start.width_percent - newW);
+        width_percent = newW;
+      }
+      break;
+    case "s":
+      height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
+      break;
+    case "n":
+      {
+        const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
+        y_percent = start.y_percent + (start.height_percent - newH);
+        height_percent = newH;
+      }
+      break;
+    case "se":
+      width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
+      height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
+      break;
+    case "nw":
+      {
+        const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
+        const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
+        x_percent = start.x_percent + (start.width_percent - newW);
+        y_percent = start.y_percent + (start.height_percent - newH);
+        width_percent = newW;
+        height_percent = newH;
+      }
+      break;
+    case "ne":
+      {
+        width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
+        const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
+        y_percent = start.y_percent + (start.height_percent - newH);
+        height_percent = newH;
+      }
+      break;
+    case "sw":
+      {
+        const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
+        x_percent = start.x_percent + (start.width_percent - newW);
+        width_percent = newW;
+        height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
+      }
+      break;
+  }
+
+  // Clamper dans les limites du canvas
+  x_percent = clamp(x_percent, 0, 100 - MIN_LOT_SIZE_PERCENT);
+  y_percent = clamp(y_percent, 0, 100 - MIN_LOT_SIZE_PERCENT);
+  width_percent = clamp(width_percent, MIN_LOT_SIZE_PERCENT, 100 - x_percent);
+  height_percent = clamp(height_percent, MIN_LOT_SIZE_PERCENT, 100 - y_percent);
+
+  return { x_percent, y_percent, width_percent, height_percent };
+}
+
 // ─── Composant ────────────────────────────────────────────────────
 
 export default function PlanCanvas({
@@ -321,26 +413,6 @@ export default function PlanCanvas({
     observer.observe(container);
     return () => observer.disconnect();
   }, [draw]);
-
-  // ─── Positions des poignées ───────────────────────────────────
-
-  function getHandlePositions(
-    x: number,
-    y: number,
-    w: number,
-    h: number
-  ): { position: HandlePosition; x: number; y: number }[] {
-    return [
-      { position: "nw", x, y },
-      { position: "n", x: x + w / 2, y },
-      { position: "ne", x: x + w, y },
-      { position: "e", x: x + w, y: y + h / 2 },
-      { position: "se", x: x + w, y: y + h },
-      { position: "s", x: x + w / 2, y: y + h },
-      { position: "sw", x, y: y + h },
-      { position: "w", x, y: y + h / 2 },
-    ];
-  }
 
   // ─── Hit testing ──────────────────────────────────────────────
 
@@ -564,82 +636,6 @@ export default function PlanCanvas({
     setHoveredLotId(null);
     setSurfaceOverlay(null);
   }, []);
-
-  // ─── Resize logic ─────────────────────────────────────────────
-
-  function computeResize(
-    start: ZoneRect,
-    handle: HandlePosition,
-    dxPercent: number,
-    dyPercent: number
-  ): ZoneRect {
-    let { x_percent, y_percent, width_percent, height_percent } = start;
-
-    switch (handle) {
-      case "e":
-        width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
-        break;
-      case "w":
-        {
-          const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
-          x_percent = start.x_percent + (start.width_percent - newW);
-          width_percent = newW;
-        }
-        break;
-      case "s":
-        height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
-        break;
-      case "n":
-        {
-          const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
-          y_percent = start.y_percent + (start.height_percent - newH);
-          height_percent = newH;
-        }
-        break;
-      case "se":
-        width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
-        height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
-        break;
-      case "nw":
-        {
-          const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
-          const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
-          x_percent = start.x_percent + (start.width_percent - newW);
-          y_percent = start.y_percent + (start.height_percent - newH);
-          width_percent = newW;
-          height_percent = newH;
-        }
-        break;
-      case "ne":
-        {
-          width_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent + dxPercent);
-          const newH = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent - dyPercent);
-          y_percent = start.y_percent + (start.height_percent - newH);
-          height_percent = newH;
-        }
-        break;
-      case "sw":
-        {
-          const newW = Math.max(MIN_LOT_SIZE_PERCENT, start.width_percent - dxPercent);
-          x_percent = start.x_percent + (start.width_percent - newW);
-          width_percent = newW;
-          height_percent = Math.max(MIN_LOT_SIZE_PERCENT, start.height_percent + dyPercent);
-        }
-        break;
-    }
-
-    // Clamper dans les limites du canvas
-    x_percent = clamp(x_percent, 0, 100 - MIN_LOT_SIZE_PERCENT);
-    y_percent = clamp(y_percent, 0, 100 - MIN_LOT_SIZE_PERCENT);
-    width_percent = clamp(width_percent, MIN_LOT_SIZE_PERCENT, 100 - x_percent);
-    height_percent = clamp(height_percent, MIN_LOT_SIZE_PERCENT, 100 - y_percent);
-
-    return { x_percent, y_percent, width_percent, height_percent };
-  }
-
-  function clamp(val: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, val));
-  }
 
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
 
