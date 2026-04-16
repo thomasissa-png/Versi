@@ -9,7 +9,23 @@
 
 ## 1. Résumé exécutif
 
-[à remplir]
+**Scope audité :** page `/vs/projects/[id]/upload/page.tsx` + composants `DropZone.tsx`, `PlanThumbnail.tsx`, `Stepper.tsx`.
+**Référence :** `docs/design/vs-design-system.md`. Fichier `vs-step0-dashboard-composition.md` absent — cohérence évaluée contre le DS uniquement.
+
+**Score global : 6.5/10** — premier jet fonctionnel mais incomplet sur l'accessibilité et la conformité au DS.
+
+**Synthèse par gate :**
+| Gate | Verdict | Findings critiques |
+|---|---|---|
+| G21 — 5 états par écran | GO CONDITIONNEL | F1 (skeleton loading absent), F2 (feedback succès absent) |
+| G22 — Accessibilité WCAG 2.2 AA | FAIL | F3 (contraste muted/blanc), F5 (outline:none input), F6 (focus + touch cible toast), F11 (prefers-reduced-motion absent) |
+| G23 — Zéro valeur hardcodée | FAIL partiel | F4 (token error non défini), F12 (primitive directe), F13 (min-h arbitraire) |
+| G31 — Architecture tokens 3 tiers | FAIL partiel | F4, F12 |
+| G32 — 6 états composants | FAIL | F14 (DropZone loading), F17 (bouton Analyser loading/active), F18 (Stepper actif incohérent DS) |
+
+**Finding P0 unique :** F18 — Le Stepper ne distingue pas visuellement l'étape active des autres. Le DS spécifie fond noir + texte blanc pour l'étape en cours. L'implémentation utilise fond blanc + contour léger — l'étape 1 ne saute pas aux yeux. Correction en 5 minutes, impact UX immédiat.
+
+**Bonne nouvelle :** la palette, les tokens sémantiques de couleur, la typographie principale et les focus-visible sur 3 éléments clés sont conformes. La base est saine. Les corrections P0+P1 représentent 60-90 minutes de travail @fullstack pour atteindre un niveau 8/10.
 
 ## 2. Gate G21 — 5 états par écran
 
@@ -236,12 +252,98 @@ Le bouton "Analyser les plans" est correctement stylisé (`bg-interactive-primar
 
 | # | Point | Composant | Problème | Correction proposée | Priorité |
 |---|---|---|---|---|---|
+| F1 | G21 — Loading state | page.tsx | État loading initial : spinner seul affiché dans flex-1 centré, sans le Stepper latéral. L'utilisateur perd le contexte de navigation pendant le chargement. | Afficher le Stepper dans l'état loading (déjà fait partiellement — le code affiche `aside + Stepper` en loading). À enrichir avec un skeleton du contenu principal (bloc 3 lignes) plutôt que spinner isolé. | P2 |
+| F2 | G21 — Succès état | page.tsx | Aucun retour visuel positif après upload réussi d'un fichier. La miniature apparaît silencieusement dans la grille. | Ajouter un toast vert temporaire (2s) "X plan(s) uploadé(s)" utilisant les tokens `color-status-success-background` / `color-status-success-foreground` définis dans le DS. | P2 |
+| F3 | G22 — Contraste WCAG | PlanThumbnail.tsx | `text-text-muted` (#6B6560) sur `bg-bg-card` (#FFFFFF) : ratio 4.35:1, sous le seuil AA 4.5:1. Utilisé pour le label "Étage" et les métadonnées des miniatures. | Remplacer `text-text-muted` (#6B6560) par une valeur légèrement plus sombre dans les contextes fond blanc. Option : créer un token `color-text-muted-on-white: #636058` (ratio ~4.6:1 sur blanc). Ou utiliser `text-text-default` sur fond blanc pour les éléments de contenu. | P1 |
+| F4 | G22 / G31 — Token error non défini | page.tsx, DropZone.tsx | Le token `error` (`text-error`, `bg-error/10`, `border-error/20`) n'est pas défini dans `vs-design-system.md`. La valeur hex réelle dépend de `tailwind.config.ts` — non vérifiable pour WCAG. | (1) Définir le token `error` dans le design system ou le mapper sur les tokens existants : `color-status-error-background` (#EDE8E6) et `color-status-error-foreground` (#4A2828). (2) Remplacer les classes `text-error`/`bg-error/10` par `text-[#4A2828] bg-[#EDE8E6]` via tokens CSS sémantiques. | P1 |
+| F5 | G22 — Focus input étage | PlanThumbnail.tsx | `focus:outline-none focus:ring-1 focus:ring-interactive-primary/20` — `outline: none` sans alternative WCAG valide. Un ring à 20% d'opacité sur fond blanc peut produire un contraste insuffisant (< 3:1 requis pour les focus interactifs WCAG 2.2). | Remplacer par `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary` (cohérent avec les autres éléments de la page). Supprimer `focus:outline-none`. | P1 |
+| F6 | G22 — Focus + touch target bouton fermer toast | page.tsx | Bouton de fermeture du toast erreur : icône `w-4 h-4` (16×16px) sans padding. (1) Aucun `focus-visible` défini. (2) Touch target 16×16px très en dessous du minimum 44px. | (1) Ajouter `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary`. (2) Ajouter `p-sm` (8px) au bouton pour porter la zone de clic à 32px minimum (ou `p-md` pour 44px). | P1 |
+| F7 | G22 — Focus bouton "Retour aux opérations" | page.tsx | Le bouton `<button>` dans l'état "projet introuvable" n'a pas de `focus-visible` défini. Il a `underline` mais l'indicateur de focus clavier est manquant. | Ajouter `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary rounded-sm` | P2 |
+| F8 | G22 — Touch target bouton "Analyser les plans" | page.tsx | `py-md` = 16px × 2 + `text-sm` (~20px) = ~52px total. Recalcul correct : PASS en réalité. L'audit initial sous-estimait — `py-md = 16px padding top + 16px bottom + 20px text = 52px`. Correction : retirer F8 comme FAIL. | Aucune correction nécessaire. | — |
+| F9 | G22 — Touch target bouton supprimer PlanThumbnail | PlanThumbnail.tsx | Bouton de suppression : `p-xs` = 4px padding + icône 16px = 24px × 24px. Très en dessous de 44px minimum mobile. | En contexte desktop-first, le target 24px est acceptable à la souris. Mais ajouter `p-sm` (8px) pour atteindre 32px minimum, et documenter l'exception desktop explicitement dans le DS. | P2 |
+| F10 | G22 — Touch target input étage | PlanThumbnail.tsx | `py-2xs` (2px) × 2 + `text-xs` (~16px) = ~20px hauteur. Acceptable en usage desktop (souris/keyboard), mais insuffisant en mobile. | Ajouter `py-xs` (4px) pour atteindre ~24px. Note : context desktop-first, donc non bloquant. | P3 |
+| F11 | G22 — prefers-reduced-motion | Tous | Aucun support `prefers-reduced-motion` dans les 4 fichiers. `animate-spin`, `transition-all`, `transition-colors`, `transition-opacity` s'exécutent sans condition. | Ajouter `motion-reduce:animate-none` sur tous les `animate-spin`. Ajouter `motion-reduce:transition-none` sur les éléments avec transitions. Pattern Tailwind : `transition-colors motion-reduce:transition-none`. | P1 |
+| F12 | G31 — Primitive dans composant | DropZone.tsx L137 | `hover:border-gris-pierre/50` référence directement la primitive `gris-pierre` (tier 1) dans un composant. Violation architecture 3 tiers. | Créer un token sémantique `color-border-interactive-hover` dans le DS pointant vers `gris-pierre` → utiliser `hover:border-border-interactive-hover`. Ou utiliser `hover:border-border-subtle` si défini. | P1 |
+| F13 | G23 — Valeur hardcodée | DropZone.tsx | `min-h-[200px]` — valeur arbitraire hors spacing scale (max de la scale = 96px = `4xl`). | Définir un token component `upload-zone-min-height: 160px` (déjà spécifié dans DS §5.6 à 160px, pas 200px). Utiliser ce token ou une classe CSS custom. Note : la valeur 200px dans le code diverge aussi de la spec DS (160px). | P1 |
+| F14 | G32 — État loading DropZone | DropZone.tsx | Aucun état loading sur la DropZone pendant l'upload. La zone reste active et cliquable. Le DS §5.6 spécifie "progress bar linéaire sous la zone, % affiché, spinner dans la zone" pour l'état loading. | Quand `uploading=true` (prop depuis page), désactiver la zone (prop `disabled` déjà supportée ✓) et afficher un spinner ou progress bar inline dans la zone. La prop `disabled` est passée à `true` quand `uploading` — la zone devient opaque 50% mais sans indicateur visuel de progression. Enrichir avec un slot de contenu conditionnel. | P2 |
+| F15 | G32 — État hover PlanThumbnail | PlanThumbnail.tsx | Aucun état hover défini sur la carte. Les cartes sont des conteneurs informatifs sans interaction directe (sauf les contrôles internes), donc l'absence de hover sur la carte entière est discutable. | Ajouter un subtil hover : `hover:shadow-card hover:border-border-strong transition-shadow duration-150`. Cohérent avec le pattern Style Picker Card (DS §5.5). | P2 |
+| F16 | G32 — État loading PlanThumbnail | PlanThumbnail.tsx | En état `deleting`, la carte passe à opacity 50% mais n'affiche pas de spinner de suppression. L'utilisateur ne sait pas si l'action est en cours ou terminée. | Superposer un spinner centré sur l'area preview quand `deleting=true` : `<div className="absolute inset-0 flex items-center justify-center bg-bg-card/80"><spinner/></div>`. | P2 |
+| F17 | G32 — États active + loading bouton "Analyser" | page.tsx | (1) Pas d'état `active:` sur le bouton CTA. (2) Pas de spinner pendant `handleAnalyze` — si la requête PATCH échoue ou prend du temps, le bouton ne donne aucun retour visuel. | (1) Ajouter `active:bg-interactive-primary/90 active:scale-[0.98]`. (2) Ajouter un state local `analyzing` (boolean), désactiver le bouton et afficher un spinner inline pendant le PATCH. | P1 |
+| F18 | G32 / DS cohérence — Stepper état active | Stepper.tsx | Le DS §4.5 + §5.1 spécifie : étape active = fond `color-background-dark` (#0B0B0B), texte `color-text-inverse` (#F7F5F2), indicateur bordure gauche 3px `color-text-default`. L'implémentation utilise : fond `bg-bg-card` (#FFFFFF), border 1px, texte default. L'étape active et les étapes inactives sont visuellement trop proches — Thomas doit chercher où il en est. | Remplacer le style de l'étape active : `bg-bg-dark text-text-inverse border-0` avec un indicateur gauche `border-l-[3px] border-text-default`. Supprimer `border border-border-default` sur l'étape active. | P0 |
 
 ## 9. Verdict
 
-Score design : [X/10 — HONNÊTE]
+### Score design honnête : 6.5/10
+
+**Justification :**
+
+Ce qui fonctionne bien (tire le score vers le haut) :
+- Palette et tokens couleur : conformes au design system, aucune couleur hex brute dans les composants
+- Hiérarchie typographique : `vs-h3`, `vs-label` utilisés correctement dans la page principale
+- Focus-visible : 3 éléments sur 6 correctement implémentés — meilleur que la moyenne des apps SaaS
+- Les 5 états de page (G21) sont conceptuellement couverts, même si l'implémentation est incomplète
+- L'accessibilité de base (rôles ARIA, `aria-label`, `aria-hidden`) est présente sur la DropZone
+
+Ce qui plombe le score :
+- **F18 (P0) — Stepper actif visuellement illisible** : l'étape en cours ne se distingue pas visuellement des autres étapes. C'est la navigation principale de l'outil — si Thomas ne sait pas où il en est, l'UX échoue.
+- **F12 (P1) — Token primitif dans composant** : violation directe de l'architecture 3 tiers (gate G31)
+- **F3 (P1) — Contraste WCAG insuffisant** sur fond blanc dans PlanThumbnail
+- **F5 (P1) — `outline: none` sans alternative** sur l'input étage
+- **F11 (P1) — `prefers-reduced-motion` absent** sur tous les fichiers
+- **F17 (P1) — Bouton "Analyser" sans état loading/active** : risque UX réel (double-clic, pas de feedback)
+
+Ce n'est pas un site publié à partir de zéro — c'est un premier jet de composants SaaS fonctionnels. Un 6.5/10 est honnête pour ce stade. Le fondement est solide (palette, architecture token tier 2 respectée à 90%), les lacunes sont ciblées et corrigeables en une session @fullstack.
+
+### Résumé des priorités
+
+| Priorité | Nb de findings | Effort de correction |
+|---|---|---|
+| P0 | 1 (F18 — Stepper actif) | 5 min, changement de 3 classes Tailwind |
+| P1 | 6 (F3, F4, F5, F6, F11, F12, F13, F17) | 30-60 min total |
+| P2 | 4 (F1, F2, F9, F14, F15, F16) | 60-90 min total |
+| P3 | 1 (F10) | 5 min |
+
+**Verdict gates CLAUDE.md :**
+- G21 : GO CONDITIONNEL (états couverts, implémentation à enrichir)
+- G22 : FAIL (F3, F5, F6, F11 — 4 violations réelles)
+- G23 : FAIL partiel (F4, F12, F13 — token non défini + primitive directe + valeur hors scale)
+- G31 : FAIL partiel (F4, F12)
+- G32 : FAIL (F14, F15, F17, F18 — états manquants critiques)
 
 ## 10. Handoff
 
-- Destinataire : @fullstack + @orchestrator
-- [à remplir]
+**Handoff → @fullstack + @orchestrator**
+
+**Fichiers produits :**
+- `/home/user/Versi/docs/design/upload-us-vs-02-composition-audit-v1.md` (ce document)
+
+**Décisions prises :**
+- Palette et architecture tokens sémantiques : conformes, pas de refonte nécessaire
+- Layout flex (vs fixed sidebar) : acceptable pour l'étape 1, à unifier pour les étapes canvas
+- Stepper actif : l'implémentation doit être corrigée pour correspondre au DS (fond noir, texte blanc)
+
+**Corrections à implémenter — par ordre de priorité :**
+
+P0 (avant tout déploiement) :
+- **F18** — `Stepper.tsx` : changer l'état `isActive` → `bg-bg-dark text-text-inverse border-l-[3px] border-text-default` (supprimer `bg-bg-card border border-border-default`)
+
+P1 (dans la même session) :
+- **F17** — `page.tsx` : ajouter state `analyzing`, désactiver le bouton + spinner inline pendant `handleAnalyze`. Ajouter `active:bg-interactive-primary/90`.
+- **F11** — Tous les fichiers : `motion-reduce:animate-none` sur `animate-spin`, `motion-reduce:transition-none` sur `transition-*`.
+- **F12** — `DropZone.tsx` L137 : remplacer `hover:border-gris-pierre/50` par token sémantique (créer `border-border-interactive-hover` dans le DS ou utiliser `hover:border-border-default/60`).
+- **F5** — `PlanThumbnail.tsx` input étage : remplacer `focus:outline-none focus:ring-1 focus:ring-interactive-primary/20` par `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary`.
+- **F6** — `page.tsx` bouton fermer toast : ajouter `p-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary`.
+- **F4** — `page.tsx` + `DropZone.tsx` : documenter le token `error` dans le DS ou mapper sur `color-status-error-*`. Aligner les classes d'erreur.
+- **F3** — `PlanThumbnail.tsx` : vérifier la valeur hex configurée pour `text-text-muted` sur fond `bg-bg-card` (blanc). Si < 4.5:1, ajuster le token ou utiliser `text-text-default` sur fond blanc.
+- **F13** — `DropZone.tsx` : remplacer `min-h-[200px]` par une classe CSS token ou constante (la spec DS indique 160px — aligner).
+
+P2 (itération suivante) :
+- **F2** — `page.tsx` : toast succès temporaire après upload.
+- **F14** — `DropZone.tsx` : enrichir l'état `disabled` pendant l'upload avec un indicateur de progression.
+- **F15** — `PlanThumbnail.tsx` : `hover:shadow-card hover:border-border-strong`.
+- **F16** — `PlanThumbnail.tsx` : spinner overlay centré quand `deleting=true`.
+
+**Points d'attention :**
+- Le token `error` doit être défini dans `tailwind.config.ts` et synchronisé avec les tokens de statut du DS (`color-status-error-background: #EDE8E6`, `color-status-error-foreground: #4A2828`)
+- L'absence de `vs-step0-dashboard-composition.md` signifie qu'il n'y a pas de référence de composition Step 0 validée à ce jour — les corrections sont faites par rapport au DS seul
+- F8 est retiré comme finding : recalcul confirme que le bouton "Analyser" a une hauteur correcte (~52px)
