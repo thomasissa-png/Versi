@@ -9,7 +9,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type {
   VsProject,
@@ -46,11 +46,20 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const fetchProjects = useCallback(async (signal?: AbortSignal) => {
+  const fetchProjects = useCallback(async (externalSignal?: AbortSignal) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const signal = externalSignal ?? controller.signal;
+
     try {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/vs/projects", { signal });
+
+      if (!res.ok) {
+        throw new Error(String(res.status));
+      }
+
       const json = (await res.json()) as ApiResponse<VsProject[]>;
 
       if (json.success) {
@@ -59,14 +68,24 @@ export default function DashboardPage() {
         setError(json.error);
       }
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
-      setError("Impossible de charger les opérations.");
+      const errName = (err as Error).name;
+      const errMsg = (err as Error).message;
+      if (errName === "AbortError") return;
+      if (errMsg === "404") {
+        setError("Ressource introuvable.");
+      } else if (errMsg === "503") {
+        setError("Service temporairement indisponible. Réessayez dans un instant.");
+      } else {
+        setError("Une erreur inattendue est survenue. Vérifiez votre connexion et réessayez.");
+      }
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      clearTimeout(timeoutId);
+      if (!signal.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    console.log("[analytics] vs_dashboard_loaded", {});
     const controller = new AbortController();
     fetchProjects(controller.signal);
     return () => controller.abort();
@@ -78,7 +97,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div>
+    <div aria-busy={loading}>
       {/* Header section */}
       <div className="flex items-start justify-between mb-2xl">
         <div>
@@ -88,7 +107,12 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (!showForm) {
+              console.log("[analytics] vs_new_project_cta_clicked", { source: "header" });
+            }
+            setShowForm(!showForm);
+          }}
           className="
             px-lg py-sm rounded-md text-sm font-medium
             bg-interactive-primary text-text-inverse
@@ -121,7 +145,11 @@ export default function DashboardPage() {
 
       {/* Erreur */}
       {error && !loading && (
-        <div className="bg-error/10 border border-error/20 rounded-md p-lg text-sm text-error">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="bg-error/10 border border-error/20 rounded-md p-lg text-sm text-error"
+        >
           {error}
           <button
             onClick={() => fetchProjects()}
@@ -155,7 +183,10 @@ export default function DashboardPage() {
             Aucune opération pour l&apos;instant. Créez votre première opération pour commencer.
           </p>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              console.log("[analytics] vs_new_project_cta_clicked", { source: "empty_state" });
+              setShowForm(true);
+            }}
             className="vs-btn-primary"
           >
             + Nouvelle opération
@@ -166,8 +197,8 @@ export default function DashboardPage() {
       {/* Liste des projets */}
       {!loading && !error && projects.length > 0 && (
         <div className="grid gap-md">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {projects.map((project, index) => (
+            <ProjectCard key={project.id} project={project} position={index} />
           ))}
         </div>
       )}
@@ -189,6 +220,37 @@ function CreateProjectForm({
   const [surfaceTotale, setSurfaceTotale] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const adresseRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    adresseRef.current?.focus();
+  }, []);
+
+  const postProject = async (payload: CreateProjectPayload, attempt = 0): Promise<ApiResponse<VsProject>> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch("/api/vs/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        if (res.status === 503 && attempt === 0) {
+          clearTimeout(timeoutId);
+          await new Promise((r) => setTimeout(r, 1000));
+          return postProject(payload, attempt + 1);
+        }
+        throw new Error(String(res.status));
+      }
+
+      return (await res.json()) as ApiResponse<VsProject>;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,8 +267,8 @@ function CreateProjectForm({
       surfaceParsed = Number.isFinite(parsed) ? parsed : null;
     }
 
-    if (surfaceParsed !== null && (surfaceParsed < 0 || surfaceParsed > 100000)) {
-      setError("Surface invalide (0 à 100 000 m²).");
+    if (surfaceParsed !== null && (surfaceParsed < 9 || surfaceParsed > 5000)) {
+      setError("La surface doit être comprise entre 9 et 5000 m².");
       return;
     }
 
@@ -218,21 +280,23 @@ function CreateProjectForm({
         surface_totale: surfaceParsed,
       };
 
-      const res = await fetch("/api/vs/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const json = (await res.json()) as ApiResponse<VsProject>;
+      const json = await postProject(payload);
 
       if (json.success) {
+        console.log("[toast] Opération créée."); // TODO: remplacer par useToast() une fois la lib ajoutée
         onCreated(json.data);
       } else {
         setError(json.error);
       }
-    } catch {
-      setError("La création a échoué. Vérifiez votre connexion et réessayez.");
+    } catch (err) {
+      const errMsg = (err as Error).message;
+      if (errMsg === "404") {
+        setError("Ressource introuvable.");
+      } else if (errMsg === "503") {
+        setError("Service temporairement indisponible. Réessayez dans un instant.");
+      } else {
+        setError("Une erreur inattendue est survenue. Vérifiez votre connexion et réessayez.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -247,7 +311,11 @@ function CreateProjectForm({
       <p className="vs-body-sm text-text-muted mb-lg">Renseignez les informations de base pour initialiser l&apos;opération.</p>
 
       {error && (
-        <div className="mb-lg bg-error/10 border border-error/20 rounded-md p-md text-sm text-error">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-lg bg-error/10 border border-error/20 rounded-md p-md text-sm text-error"
+        >
           {error}
         </div>
       )}
@@ -262,6 +330,7 @@ function CreateProjectForm({
             Adresse
           </label>
           <input
+            ref={adresseRef}
             id="adresse"
             type="text"
             value={adresse}
@@ -269,6 +338,7 @@ function CreateProjectForm({
             placeholder="12 rue de la République, 69001 Lyon"
             required
             minLength={5}
+            maxLength={200}
             className="
               w-full px-md py-sm rounded-md text-sm
               border border-border-default bg-bg-card
@@ -320,7 +390,9 @@ function CreateProjectForm({
             value={surfaceTotale}
             onChange={(e) => setSurfaceTotale(e.target.value)}
             placeholder="350"
-            min={1}
+            min={9}
+            max={5000}
+            step={1}
             className="
               w-full px-md py-sm rounded-md text-sm
               border border-border-default bg-bg-card
@@ -366,7 +438,7 @@ function CreateProjectForm({
 
 // ─── Carte projet ──────────────────────────────────────────────────
 
-function ProjectCard({ project }: { project: VsProject }) {
+function ProjectCard({ project, position }: { project: VsProject; position: number }) {
   const router = useRouter();
 
   const createdDate = new Date(project.created_at).toLocaleDateString("fr-FR", {
@@ -377,7 +449,13 @@ function ProjectCard({ project }: { project: VsProject }) {
 
   return (
     <button
-      onClick={() => router.push(`/vs/projects/${project.id}/upload`)}
+      onClick={() => {
+        console.log("[analytics] vs_project_opened", {
+          project_id: project.id,
+          position_in_list: position,
+        });
+        router.push(`/vs/projects/${project.id}/upload`);
+      }}
       className="
         w-full text-left bg-bg-card border border-border-default rounded-lg p-xl
         hover:border-interactive-primary/30 hover:shadow-sm
