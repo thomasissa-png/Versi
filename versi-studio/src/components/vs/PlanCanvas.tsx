@@ -428,6 +428,9 @@ export default function PlanCanvas({
 
     let lastWidth = 0;
     let lastHeight = 0;
+    let resizeCount = 0;
+    let resizeBudget = 0; // throttle si resize en rafale > 5/sec
+    const RESIZE_BUDGET_RESET_MS = 1000;
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -435,6 +438,17 @@ export default function PlanCanvas({
       const { width, height } = entry.contentRect;
       // Seuil 1px pour absorber les sub-pixel fluctuations du layout
       if (Math.abs(width - lastWidth) < 1 && Math.abs(height - lastHeight) < 1) {
+        return;
+      }
+      // Circuit breaker : si > 10 resize en < 1s, on bloque (loop détectée)
+      const now = Date.now();
+      if (now - resizeBudget > RESIZE_BUDGET_RESET_MS) {
+        resizeBudget = now;
+        resizeCount = 0;
+      }
+      resizeCount++;
+      if (resizeCount > 10) {
+        console.warn("[PlanCanvas] Boucle resize détectée, draw bloqué");
         return;
       }
       lastWidth = width;
