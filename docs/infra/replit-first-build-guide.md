@@ -1,9 +1,19 @@
 # Guide Replit 1er Build — Versi Studio
 
-**Date** : 2026-04-16
+**Date** : 2026-04-16 (màj commit `893340d`)
 **Branche à déployer** : `claude/resume-versi-s20-sAewb`
-**Commit build-ready** : `5990c68`
+**Commit build-ready** : `893340d` (post-retour Replit : zod v3 + allowedDevOrigins + dev port 5000)
 **Pré-requis** : compte Replit (plan Core recommandé pour PostgreSQL persistant) + accès repo GitHub `thomasissa-png/Versi`
+
+## Adaptations Replit intégrées dans le repo (commit `893340d`)
+
+Les 3 adaptations suivantes sont désormais dans le code, plus besoin de les appliquer manuellement à chaque déploiement :
+
+| Adaptation | Fichier | Effet |
+|---|---|---|
+| `zod ^3.25.0` (downgrade depuis ^4) | `versi-studio/package.json` | Supprime le conflit peer-dep avec openai v5 → `npm install` sans `--legacy-peer-deps` |
+| `allowedDevOrigins: ["*.replit.dev", "*.repl.co", "*.picard.replit.dev"]` + `serverExternalPackages: ["pdf-to-img"]` | `versi-studio/next.config.ts` | Dev server accepte le proxy Replit + pdf-to-img reste externe au bundle |
+| Script dev : `next dev -H 0.0.0.0 -p 5000` | `versi-studio/package.json` | Replit attend le port 5000 et 0.0.0.0 pour exposer le dev server |
 
 ---
 
@@ -154,7 +164,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "cd versi-studio && npm install --legacy-peer-deps && npm run build"]
+build = ["sh", "-c", "cd versi-studio && npm install && npm run build"]
 run = ["sh", "-c", "cd versi-studio && npm start"]
 ```
 
@@ -193,15 +203,12 @@ Après modification :
 Dans l'onglet **Shell** du Repl :
 ```sh
 cd versi-studio
-npm install --legacy-peer-deps
+npm install
 ```
 
-**Pourquoi `--legacy-peer-deps` est OBLIGATOIRE** :
-- `openai@^5.23.0` déclare une peer-dep `zod@^3`
-- `eslint-plugin-react-hooks` (via `eslint-config-next@16.2.3`) déclare une peer-dep `zod@^4`
-- `zod@^4.0.0` est installée dans le projet (requis par Next.js 16)
-- `npm install` seul échoue avec `ERESOLVE could not resolve`
-- `--legacy-peer-deps` force npm à ignorer le conflit de peer-deps (safe car le runtime d'OpenAI SDK 5 fonctionne correctement avec zod 4 pour nos usages).
+**Note** : depuis le commit `893340d` (2026-04-16), `zod` a été aligné sur `^3.25.0` pour résoudre le conflit avec `openai@^5.23.0` qui veut `zod@^3`. **`--legacy-peer-deps` n'est donc plus nécessaire**. Le code a été vérifié compatible zod v3 (usage limité à `z.object/enum/number/infer/safeParse`, aucune feature v4-only).
+
+Si jamais un conflit réapparaît (après bump d'une dep), fallback : `npm install --legacy-peer-deps`.
 
 Durée attendue : **~60-90 s** (250+ packages sur cold install Replit).
 
@@ -236,7 +243,7 @@ Les routes `ƒ` sont dynamiques (SSR) — normal car elles lisent `DATABASE_URL`
 ### Si le build échoue
 
 Cas connus :
-1. **`Cannot find module 'openai'`** ou erreur de résolution → `rm -rf node_modules package-lock.json && npm install --legacy-peer-deps`
+1. **`Cannot find module 'openai'`** ou erreur de résolution → `rm -rf node_modules package-lock.json && npm install` (fallback : `npm install --legacy-peer-deps`)
 2. **`OOM` (Out of Memory)** → le plan Replit Free a 512 MB RAM, le build Next.js peut dépasser. Upgrade plan Core (2 GB RAM). Cas rare sur Next.js 16 + Turbopack.
 3. **Erreur TypeScript non vue en local** → vérifier la version Node (Replit utilise Node 20 via Nix stable-24_05, local peut différer). Sur Shell : `node -v` doit renvoyer `v20.x`.
 
@@ -527,8 +534,8 @@ Dette connue au commit `5990c68` (build-ready s20). Aucune n'empêche le 1er dé
 ### Build / install
 
 **Symptôme** : `npm install` échoue avec `ERESOLVE could not resolve`
-**Cause** : conflit zod 3 vs zod 4 entre peer-deps
-**Solution** : `npm install --legacy-peer-deps` (flag obligatoire, voir §5)
+**Cause** : conflit zod 3 vs zod 4 entre peer-deps (corrigé depuis commit `893340d` — zod aligné sur ^3.25)
+**Solution** : si le conflit réapparaît après bump de dep, fallback `npm install --legacy-peer-deps`.
 
 **Symptôme** : `Cannot find module 'openai'` au build
 **Cause** : node_modules corrompu ou install incomplet
@@ -536,7 +543,7 @@ Dette connue au commit `5990c68` (build-ready s20). Aucune n'empêche le 1er dé
 ```sh
 cd versi-studio
 rm -rf node_modules package-lock.json
-npm install --legacy-peer-deps
+npm install
 ```
 
 **Symptôme** : build échoue avec `Type error: ...`
@@ -634,7 +641,7 @@ Puis commit les nouvelles baselines dans `tests/screenshots/`. Reviewer humain a
 
 ### Phase C — Build
 
-- [ ] `cd versi-studio && npm install --legacy-peer-deps` PASS (60-90 s)
+- [ ] `cd versi-studio && npm install` PASS (60-90 s)
 - [ ] `cd versi-studio && npm run build` PASS (0 erreur, 20 routes)
 - [ ] `cd versi-studio && npm run dev` démarre sans erreur
 
