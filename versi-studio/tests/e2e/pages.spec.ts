@@ -293,8 +293,8 @@ test.describe("Step 1 — Upload", () => {
     // Compteur de plans
     await expect(page.getByText(/2 plans déposés/i)).toBeVisible();
 
-    // Bouton analyser visible
-    await expect(page.getByRole("button", { name: /analyser les plans/i })).toBeVisible();
+    // Bouton analyser visible (label canonique : "Lancer l'analyse" — décision Thomas versi-s16)
+    await expect(page.getByRole("button", { name: /lancer l'analyse/i })).toBeVisible();
   });
 
   test("affiche Operation introuvable si le projet n'existe pas", async ({ page }) => {

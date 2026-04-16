@@ -288,11 +288,11 @@ test.describe("Workflow — Step 1 Upload interactions", () => {
     });
     await page.goto(`/vs/projects/${PROJECT_ID}/upload`);
 
-    // Le bouton analyser devrait etre visible
-    const analyzeBtn = page.getByRole("button", { name: /analyser les plans/i });
+    // Le bouton d'analyse devrait être visible (label canonique : "Lancer l'analyse")
+    const analyzeBtn = page.getByRole("button", { name: /lancer l'analyse/i });
     await expect(analyzeBtn).toBeVisible();
 
-    // Cliquer sur analyser
+    // Cliquer sur le bouton d'analyse
     await analyzeBtn.click();
 
     // Un indicateur de chargement devrait apparaitre

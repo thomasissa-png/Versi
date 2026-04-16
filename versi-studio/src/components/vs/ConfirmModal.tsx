@@ -127,8 +127,7 @@ export default function ConfirmModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        style={{ maxWidth: "28rem" }}
-        className="relative bg-bg-card rounded-lg shadow-xl w-full p-lg border border-border-default"
+        className="relative bg-bg-card rounded-lg shadow-xl w-full max-w-md p-lg border border-border-default"
       >
         <h2
           id="confirm-modal-title"
