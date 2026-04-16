@@ -17,6 +17,7 @@ import {
   useMemo,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type WheelEvent as ReactWheelEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { VsLot, ZoneRect } from "@/lib/vs/types";
@@ -43,6 +44,19 @@ interface DragState {
   startZone: ZoneRect;
 }
 
+interface PanState {
+  startMouseX: number;
+  startMouseY: number;
+  originOffsetX: number;
+  originOffsetY: number;
+}
+
+interface Viewport {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}
+
 interface PlanCanvasProps {
   planImageUrl: string | null;
   lots: VsLot[];
@@ -64,6 +78,13 @@ const LOT_OPACITY = 0.4;
 const HOVER_BORDER_WIDTH = 3;
 const SELECTED_BORDER_WIDTH = 3;
 const DEFAULT_BORDER_WIDTH = 1.5;
+
+// Zoom + pan (versi-s20)
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 10;
+const ZOOM_FACTOR = 1.1;
+const ZOOM_RESET_THRESHOLD = 1.05; // bouton reset visible si scale > seuil
+const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -233,6 +254,10 @@ export default function PlanCanvas({
   } | null>(null);
   const rafOverlayRef = useRef<number>(0);
 
+  // ─── Viewport (zoom + pan) — versi-s20 ──────────────────────────
+  const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
+  const panRef = useRef<PanState | null>(null);
+
   // ─── Charger l'image du plan ──────────────────────────────────
   // Reset imageLoaded quand l'URL change — setState pendant render (pattern
   // React docs compliant React Compiler).
@@ -302,6 +327,15 @@ export default function PlanCanvas({
 
     const w = rect.width;
     const h = rect.height;
+
+    // Fond hors viewport (couleur de remplissage en cas de zoom-out qui révèle des bords)
+    ctx.fillStyle = "#F7F5F2";
+    ctx.fillRect(0, 0, w, h);
+
+    // Appliquer le viewport (zoom + pan) — versi-s20
+    // Tout ce qui est dessiné après est en coordonnées logiques (avant zoom).
+    ctx.translate(viewport.offsetX, viewport.offsetY);
+    ctx.scale(viewport.scale, viewport.scale);
 
     // DESIGN-F06 à F09 : lecture des tokens CSS (fallback hex si non définis par Alpha)
     const styles = getComputedStyle(document.documentElement);
@@ -417,7 +451,7 @@ export default function PlanCanvas({
         }
       }
     }
-  }, [lots, selectedLotId, hoveredLotId, imageLoaded, planImageUrl, lotIndexMap, overlappingIds]);
+  }, [lots, selectedLotId, hoveredLotId, imageLoaded, planImageUrl, lotIndexMap, overlappingIds, viewport]);
 
   // ─── Redessiner à chaque changement ───────────────────────────
 
@@ -474,23 +508,30 @@ export default function PlanCanvas({
 
   // ─── Hit testing ──────────────────────────────────────────────
 
+  // getCanvasCoords retourne les coordonnées LOGIQUES (avant zoom/pan), donc directement
+  // utilisables pour le hit testing des lots qui sont dessinés en coords logiques.
+  // Conversion : (clientPos - canvasOrigin - viewportOffset) / viewportScale
   function getCanvasCoords(e: ReactMouseEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return { px: 0, py: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const rawX = e.clientX - rect.left;
+    const rawY = e.clientY - rect.top;
+    return {
+      px: (rawX - viewport.offsetX) / viewport.scale,
+      py: (rawY - viewport.offsetY) / viewport.scale,
+    };
+  }
+
+  // getCanvasCoordsRaw retourne les coords écran (sans correction viewport),
+  // utile pour positionner des overlays HTML par-dessus le canvas.
+  function getCanvasCoordsRaw(e: ReactMouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return { px: 0, py: 0 };
     const rect = canvas.getBoundingClientRect();
     return {
       px: e.clientX - rect.left,
       py: e.clientY - rect.top,
-    };
-  }
-
-  function toPercent(px: number, py: number): { xp: number; yp: number } {
-    const canvas = canvasRef.current;
-    if (!canvas) return { xp: 0, yp: 0 };
-    const rect = canvas.getBoundingClientRect();
-    return {
-      xp: (px / rect.width) * 100,
-      yp: (py / rect.height) * 100,
     };
   }
 
@@ -568,6 +609,24 @@ export default function PlanCanvas({
   // un mismatch de dépendances inférées.
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLCanvasElement>) => {
+    // ─── PAN — versi-s20 ─────────────────────────────────────────
+    // Middle-click (button === 1) OU Ctrl/Cmd + left-click = activer le pan
+    const isPanTrigger =
+      e.button === 1 || (e.button === 0 && (e.ctrlKey || e.metaKey));
+    if (isPanTrigger) {
+      e.preventDefault();
+      const raw = getCanvasCoordsRaw(e);
+      panRef.current = {
+        startMouseX: raw.px,
+        startMouseY: raw.py,
+        originOffsetX: viewport.offsetX,
+        originOffsetY: viewport.offsetY,
+      };
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "grabbing";
+      return;
+    }
+
     const { px, py } = getCanvasCoords(e);
 
     // Vérifier d'abord les poignées du lot sélectionné
@@ -609,8 +668,24 @@ export default function PlanCanvas({
   };
 
   const handleMouseMove = (e: ReactMouseEvent<HTMLCanvasElement>) => {
+    const canvasEl = canvasRef.current;
+
+    // ─── PAN move — versi-s20 ───────────────────────────────────
+    if (panRef.current) {
+      const raw = getCanvasCoordsRaw(e);
+      const dx = raw.px - panRef.current.startMouseX;
+      const dy = raw.py - panRef.current.startMouseY;
+      setViewport((prev) => ({
+        ...prev,
+        offsetX: panRef.current!.originOffsetX + dx,
+        offsetY: panRef.current!.originOffsetY + dy,
+      }));
+      if (canvasEl) canvasEl.style.cursor = "grabbing";
+      return;
+    }
+
     const { px, py } = getCanvasCoords(e);
-    const canvas = canvasRef.current;
+    const canvas = canvasEl;
 
     if (dragRef.current && canvas) {
       const { type, lotId, handle, startMouseX, startMouseY, startZone } =
@@ -642,22 +717,28 @@ export default function PlanCanvas({
         if (!canvasEl || !containerEl) return;
         const canvasRect = canvasEl.getBoundingClientRect();
         const containerRect = containerEl.getBoundingClientRect();
+        // Surface m² calculée en coords LOGIQUES (calibration faite à scale=1)
         const widthPx = (newZone.width_percent / 100) * canvasRect.width;
         const heightPx = (newZone.height_percent / 100) * canvasRect.height;
         const label =
           m2PerPixel != null && m2PerPixel > 0
             ? `${(widthPx * heightPx * m2PerPixel).toFixed(1)} m²`
             : "— m²";
-        const lotRightPx =
+        // Position overlay : appliquer viewport (scale + offset) pour suivre le lot à l'écran
+        const lotRightLogicalPx =
           ((newZone.x_percent + newZone.width_percent) / 100) * canvasRect.width;
-        const lotBottomPx =
+        const lotBottomLogicalPx =
           ((newZone.y_percent + newZone.height_percent) / 100) * canvasRect.height;
+        const lotLeftLogicalPx = (newZone.x_percent / 100) * canvasRect.width;
+        const lotRightScreenPx = lotRightLogicalPx * viewport.scale + viewport.offsetX;
+        const lotBottomScreenPx = lotBottomLogicalPx * viewport.scale + viewport.offsetY;
+        const lotLeftScreenPx = lotLeftLogicalPx * viewport.scale + viewport.offsetX;
         const offsetX = canvasRect.left - containerRect.left;
         const offsetY = canvasRect.top - containerRect.top;
-        let overlayX = offsetX + lotRightPx + 12;
-        const overlayY = offsetY + lotBottomPx - 28;
+        let overlayX = offsetX + lotRightScreenPx + 12;
+        const overlayY = offsetY + lotBottomScreenPx - 28;
         if (overlayX + 80 > containerRect.width) {
-          overlayX = offsetX + (newZone.x_percent / 100) * canvasRect.width - 84;
+          overlayX = offsetX + lotLeftScreenPx - 84;
         }
         setSurfaceOverlay({ x: overlayX, y: overlayY, label, visible: true });
       });
@@ -685,12 +766,67 @@ export default function PlanCanvas({
   const handleMouseUp = useCallback(() => {
     dragRef.current = null;
     setSurfaceOverlay(null);
+    if (panRef.current) {
+      panRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "default";
+    }
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     dragRef.current = null;
     setHoveredLotId(null);
     setSurfaceOverlay(null);
+    if (panRef.current) {
+      panRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "default";
+    }
+  }, []);
+
+  // ─── Wheel — zoom centré curseur (versi-s20) ────────────────
+  const handleWheel = useCallback(
+    (e: ReactWheelEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+      const currentScale = viewport.scale;
+      const newScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, currentScale * factor));
+      if (newScale === currentScale) return;
+      // Zoom centré curseur : la position sous le curseur reste fixe.
+      // formule : newOffset = cursor - (cursor - oldOffset) * (newScale / oldScale)
+      const ratio = newScale / currentScale;
+      const newOffsetX = cx - (cx - viewport.offsetX) * ratio;
+      const newOffsetY = cy - (cy - viewport.offsetY) * ratio;
+      // Si on revient à scale=1, on remet aussi offset à 0 pour éviter les dérives.
+      if (newScale === ZOOM_MIN) {
+        setViewport(INITIAL_VIEWPORT);
+      } else {
+        setViewport({ scale: newScale, offsetX: newOffsetX, offsetY: newOffsetY });
+      }
+    },
+    [viewport]
+  );
+
+  // ─── Double-clic vide → reset viewport (versi-s20) ──────────
+  const handleDoubleClick = useCallback(
+    (e: ReactMouseEvent<HTMLCanvasElement>) => {
+      const { px, py } = getCanvasCoords(e);
+      const hit = hitTestLot(px, py);
+      if (!hit) {
+        setViewport(INITIAL_VIEWPORT);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [viewport, lots]
+  );
+
+  const resetViewport = useCallback(() => {
+    setViewport(INITIAL_VIEWPORT);
   }, []);
 
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
@@ -759,11 +895,39 @@ export default function PlanCanvas({
         onMouseLeave={handleMouseLeave}
         onContextMenu={handleContextMenu}
         onKeyDown={handleCanvasKeyDown}
+        onWheel={handleWheel}
+        onDoubleClick={handleDoubleClick}
         tabIndex={0}
         role="application"
-        aria-label="Éditeur de plan — flèches pour déplacer, Delete pour supprimer, clic droit pour menu, Échap pour désélectionner"
+        aria-label="Éditeur de plan — molette pour zoomer, Ctrl + glisser pour déplacer, double-clic pour réinitialiser le zoom, flèches pour déplacer un lot, Delete pour supprimer, Échap pour désélectionner"
         className="absolute inset-0 block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
+
+      {/* Bouton « Réinitialiser le zoom » — visible si scale > seuil (versi-s20) */}
+      {viewport.scale > ZOOM_RESET_THRESHOLD && (
+        <button
+          type="button"
+          onClick={resetViewport}
+          aria-label="Réinitialiser le zoom"
+          className="absolute top-sm right-sm z-20 inline-flex items-center gap-xs px-md py-xs rounded-md bg-white border border-[var(--color-border-default)] text-xs font-medium text-[var(--color-text-default)] shadow-sm hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[44px]"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+            />
+          </svg>
+          Réinitialiser le zoom ({viewport.scale.toFixed(1)}×)
+        </button>
+      )}
       {/* Menu contextuel clic droit */}
       {contextMenu && onDeleteLot && (
         <>
