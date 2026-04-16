@@ -72,8 +72,13 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Header section */}
-      <div className="flex items-center justify-between mb-2xl">
-        <h1 className="vs-h3">Mes opérations</h1>
+      <div className="flex items-start justify-between mb-2xl">
+        <div>
+          <h1 className="vs-h1">Mes opérations</h1>
+          <p className="vs-body-sm text-text-muted mt-1">
+            Découpe de plans, identification des lots et génération de visuels post-travaux.
+          </p>
+        </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="
@@ -102,7 +107,7 @@ export default function DashboardPage() {
       {loading && (
         <div className="text-center py-4xl">
           <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin" />
-          <p className="mt-md text-sm text-text-muted">Chargement...</p>
+          <p className="mt-md text-sm text-text-muted">Chargement…</p>
         </div>
       )}
 
@@ -138,9 +143,15 @@ export default function DashboardPage() {
               />
             </svg>
           </div>
-          <p className="text-text-muted">
-            Aucune opération. Créez-en une pour commencer.
+          <p className="vs-body mb-lg text-text-muted">
+            Aucune opération pour l&apos;instant. Lance ta première opération.
           </p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="vs-btn-primary"
+          >
+            + Nouvelle opération
+          </button>
         </div>
       )}
 
@@ -176,7 +187,18 @@ function CreateProjectForm({
     setError(null);
 
     if (adresse.trim().length < 5) {
-      setError("L'adresse doit contenir au moins 5 caractères.");
+      setError("Saisis une adresse complète pour continuer.");
+      return;
+    }
+
+    let surfaceParsed: number | null = null;
+    if (surfaceTotale.trim() !== "") {
+      const parsed = parseInt(surfaceTotale, 10);
+      surfaceParsed = Number.isFinite(parsed) ? parsed : null;
+    }
+
+    if (surfaceParsed !== null && (surfaceParsed < 0 || surfaceParsed > 100000)) {
+      setError("Surface invalide (0 à 100 000 m²).");
       return;
     }
 
@@ -185,7 +207,7 @@ function CreateProjectForm({
       const payload: CreateProjectPayload = {
         adresse: adresse.trim(),
         type_bien: typeBien,
-        surface_totale: surfaceTotale ? parseInt(surfaceTotale, 10) : null,
+        surface_totale: surfaceParsed,
       };
 
       const res = await fetch("/api/vs/projects", {
@@ -202,7 +224,7 @@ function CreateProjectForm({
         setError(json.error);
       }
     } catch {
-      setError("Impossible de créer l'opération.");
+      setError("La création a échoué. Vérifie ta connexion et réessaie.");
     } finally {
       setSubmitting(false);
     }
@@ -281,7 +303,7 @@ function CreateProjectForm({
             htmlFor="surface_totale"
             className="vs-label block mb-xs"
           >
-            Surface totale (m2, optionnel)
+            Surface totale (m², optionnel)
           </label>
           <input
             id="surface_totale"
@@ -315,7 +337,7 @@ function CreateProjectForm({
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
           "
         >
-          {submitting ? "Création..." : "Créer l'opération"}
+          {submitting ? "Création…" : "Créer l'opération"}
         </button>
         <button
           type="button"
@@ -361,11 +383,11 @@ function ProjectCard({ project }: { project: VsProject }) {
           </h3>
           <div className="flex items-center gap-md mt-sm">
             <span className="vs-label">
-              {project.type_bien}
+              {TYPE_BIEN_OPTIONS.find((o) => o.value === project.type_bien)?.label ?? project.type_bien}
             </span>
             {project.surface_totale && (
               <span className="vs-label">
-                {project.surface_totale} m2
+                {project.surface_totale} m²
               </span>
             )}
           </div>
