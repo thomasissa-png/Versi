@@ -9,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Versi Studio",
   description:
-    "Pré-commercialisation simplifiée pour marchands de biens. Uploadez vos plans, découpez vos lots, créez vos visuels.",
+    "Pré-commercialisation simplifiée pour marchands de biens. Déposez vos plans, découpez vos lots, créez vos visuels.",
 };
 
 export default function RootLayout({

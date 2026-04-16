@@ -34,7 +34,7 @@ export default function DropZone({ onFilesSelected, disabled = false }: DropZone
         )
       ) {
         errors.push(
-          `${file.name} : format non supporté. Utilisez PDF, PNG, JPG ou WEBP.`
+          `${file.name} : format non pris en charge. Utilisez PDF, PNG, JPG ou WEBP.`
         );
         continue;
       }

@@ -151,7 +151,7 @@ export default function RoomGrid({
 
                 {status?.hasPhoto && !status.hasVisual && (
                   <div className="absolute top-xs right-xs">
-                    <div className="w-2.5 h-2.5 rounded-full bg-border-default" aria-label="Photo uploadée" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-border-default" aria-label="Photo déposée" />
                   </div>
                 )}
               </button>

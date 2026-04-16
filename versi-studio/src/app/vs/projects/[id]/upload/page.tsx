@@ -131,7 +131,7 @@ export default function UploadPage({
         return { error: json.error };
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
-          return { error: "Upload annulé." };
+          return { error: "Dépôt annulé." };
         }
         return {
           error: `${file.name} n'a pas pu être déposé — vérifiez votre connexion et réessayez.`,
@@ -383,12 +383,21 @@ export default function UploadPage({
     <div className="flex flex-col md:flex-row gap-lg md:gap-2xl">
       {/* Stepper latéral (desktop/tablet) */}
       <aside className="hidden md:block md:w-64 md:flex-shrink-0">
-        <Stepper currentStep={1} projectId={projectId} />
+        <Stepper
+          currentStep={1}
+          projectId={projectId}
+          completedSteps={project?.status === "step_1_complete" ? [1] : []}
+        />
       </aside>
 
       {/* Stepper horizontal (mobile) */}
       <div className="md:hidden mb-lg">
-        <Stepper currentStep={1} projectId={projectId} variant="horizontal" />
+        <Stepper
+          currentStep={1}
+          projectId={projectId}
+          variant="horizontal"
+          completedSteps={project?.status === "step_1_complete" ? [1] : []}
+        />
       </div>
 
       {/* Contenu principal */}
@@ -539,34 +548,40 @@ export default function UploadPage({
                 />
               ))}
             </div>
-
-            {/* Bouton Analyser */}
-            <div className="mt-2xl flex justify-end">
-              <button
-                onClick={handleAnalyze}
-                disabled={plans.length === 0 || isAnalyzing}
-                aria-busy={isAnalyzing}
-                className="
-                  inline-flex items-center gap-sm
-                  min-h-[44px] px-2xl py-md rounded-md text-sm font-medium
-                  bg-interactive-primary text-text-inverse
-                  hover:bg-interactive-hover
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  transition-colors duration-200 motion-reduce:transition-none
-                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
-                "
-              >
-                {isAnalyzing && (
-                  <span
-                    className="inline-block w-4 h-4 border-2 border-text-inverse/40 border-t-text-inverse rounded-full animate-spin motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
-                )}
-                {isAnalyzing ? "Analyse en cours…" : "Lancer l'analyse"}
-              </button>
-            </div>
           </div>
         )}
+
+        {/* Bouton Analyser — toujours rendu, disabled si 0 plan */}
+        <div className="mt-2xl flex justify-end">
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={plans.length === 0 || isAnalyzing}
+            aria-busy={isAnalyzing}
+            title={
+              plans.length === 0
+                ? "Déposez au moins un plan pour lancer l'analyse"
+                : undefined
+            }
+            className="
+              inline-flex items-center gap-sm
+              min-h-[44px] px-2xl py-md rounded-md text-sm font-medium
+              bg-interactive-primary text-text-inverse
+              hover:bg-interactive-hover
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors duration-200 motion-reduce:transition-none
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+            "
+          >
+            {isAnalyzing && (
+              <span
+                className="inline-block w-4 h-4 border-2 border-text-inverse/40 border-t-text-inverse rounded-full animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            )}
+            {isAnalyzing ? "Analyse en cours…" : "Lancer l'analyse"}
+          </button>
+        </div>
 
         {/* Modal de confirmation suppression */}
         <ConfirmModal

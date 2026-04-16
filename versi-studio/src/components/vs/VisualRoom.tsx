@@ -239,7 +239,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         setPhotos((prev) => [json.data, ...prev]);
         setSubState("select-style");
       } catch {
-        setError("Impossible d'uploader la photo.");
+        setError("Impossible de déposer la photo.");
       } finally {
         setIsUploading(false);
       }
@@ -544,7 +544,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
               {isUploading ? (
                 <div className="flex flex-col items-center">
                   <div className="inline-block w-8 h-8 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin mb-md" />
-                  <p className="text-sm text-text-muted">Upload en cours...</p>
+                  <p className="text-sm text-text-muted">Dépôt en cours…</p>
                 </div>
               ) : (
                 <>

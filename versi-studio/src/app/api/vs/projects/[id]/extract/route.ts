@@ -58,7 +58,7 @@ export async function POST(
     );
     if (plansResult.rows.length === 0) {
       return NextResponse.json(
-        { success: false, error: "Aucun plan uploadé pour cette opération." },
+        { success: false, error: "Aucun plan déposé pour cette opération." },
         { status: 400 }
       );
     }

@@ -23,7 +23,7 @@ import { TYPE_BIEN_OPTIONS } from "@/lib/vs/types";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "En cours",
-  step_1_complete: "Plans uploadés",
+  step_1_complete: "Plans déposés",
   step_2_complete: "Lots découpés",
   step_3_complete: "Pièces identifiées",
   completed: "Terminé",

@@ -99,7 +99,7 @@ export default function PlanThumbnail({
               className="
                 w-12 px-xs py-2xs rounded text-xs text-center
                 border border-border-default bg-bg-default
-                focus:outline-none focus:ring-1 focus:ring-interactive-primary/20
+                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
               "
             />
           </div>

@@ -8,7 +8,7 @@
  * - role="dialog", aria-modal, aria-labelledby, aria-describedby
  * - Focus trap sur [Tab] à l'intérieur du modal
  * - Escape ferme le modal (onCancel)
- * - Focus initial sur le bouton d'action
+ * - Focus initial sur le bouton "Annuler" (safer default, évite action destructive sur Enter)
  */
 
 "use client";
@@ -40,7 +40,7 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -53,9 +53,9 @@ export default function ConfirmModal({
   useEffect(() => {
     if (isOpen) {
       previouslyFocusedRef.current = document.activeElement as HTMLElement;
-      // Focus le bouton de confirmation au montage
+      // Focus le bouton "Annuler" au montage (safer default — évite action destructive sur Enter)
       requestAnimationFrame(() => {
-        confirmButtonRef.current?.focus();
+        cancelButtonRef.current?.focus();
       });
     } else if (previouslyFocusedRef.current) {
       previouslyFocusedRef.current.focus();
@@ -143,6 +143,7 @@ export default function ConfirmModal({
         </p>
         <div className="flex items-center justify-end gap-sm">
           <button
+            ref={cancelButtonRef}
             type="button"
             onClick={onCancel}
             className="min-h-[44px] px-md py-sm rounded-md border border-border-default text-text-default hover:bg-bg-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary transition-colors motion-reduce:transition-none"
@@ -150,7 +151,6 @@ export default function ConfirmModal({
             {cancelLabel}
           </button>
           <button
-            ref={confirmButtonRef}
             type="button"
             onClick={onConfirm}
             className={`min-h-[44px] px-md py-sm rounded-md font-medium focus-visible:outline-2 focus-visible:outline-offset-2 transition-colors motion-reduce:transition-none ${confirmButtonClasses}`}

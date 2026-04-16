@@ -119,7 +119,7 @@ export async function POST(
   } catch (err) {
     console.error("[API] POST /api/vs/rooms/[id]/photos erreur :", err);
     return NextResponse.json(
-      { success: false, error: "Impossible d'uploader la photo." },
+      { success: false, error: "Impossible de déposer la photo." },
       { status: 500 }
     );
   }

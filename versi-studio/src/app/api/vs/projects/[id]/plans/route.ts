@@ -196,7 +196,7 @@ export async function POST(
   } catch (err) {
     console.error("[API] POST /api/vs/projects/[id]/plans erreur :", err);
     return NextResponse.json(
-      { success: false, error: "Impossible d'uploader le plan." },
+      { success: false, error: "Impossible de déposer le plan." },
       { status: 500 }
     );
   }
