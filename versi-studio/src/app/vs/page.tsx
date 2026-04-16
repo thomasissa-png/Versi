@@ -232,7 +232,7 @@ function CreateProjectForm({
         setError(json.error);
       }
     } catch {
-      setError("La création a échoué. Vérifie ta connexion et réessaie.");
+      setError("La création a échoué. Vérifiez votre connexion et réessayez.");
     } finally {
       setSubmitting(false);
     }
