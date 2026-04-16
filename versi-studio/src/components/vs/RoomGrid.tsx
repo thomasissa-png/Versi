@@ -121,7 +121,7 @@ export default function RoomGrid({
                 />
 
                 {/* Nom de la pièce */}
-                <span className="text-[10px] text-text-default text-center leading-tight line-clamp-2">
+                <span className="text-xs text-text-default text-center leading-tight line-clamp-2">
                   {roomLabel}
                 </span>
 

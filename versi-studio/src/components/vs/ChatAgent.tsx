@@ -80,12 +80,12 @@ export default function ChatAgent({
             Agent architecte
           </h3>
           <p className="text-xs text-text-muted">
-            Décrivez les modifications souhaitées
+            Modifier ce visuel
           </p>
         </div>
         <button
           onClick={onClose}
-          className="p-xs rounded-md hover:bg-bg-default transition-colors duration-200"
+          className="p-xs rounded-md hover:bg-bg-default transition-colors duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Fermer le chat"
         >
           <svg
@@ -123,7 +123,7 @@ export default function ChatAgent({
                 />
               </svg>
               <p className="text-sm text-text-muted">
-                Décrivez les modifications souhaitées
+                Lancez une conversation avec l&apos;agent
               </p>
               <p className="text-xs text-text-muted mt-2xs">
                 Exemple : « Ajoutez un tapis beige et des rideaux en lin »
@@ -200,7 +200,7 @@ export default function ChatAgent({
                 w-full px-md py-sm rounded-md text-sm
                 border border-border-default bg-bg-default
                 text-text-default placeholder:text-text-muted
-                focus:outline-none focus:border-interactive-primary
+                focus-visible:outline-none focus-visible:border-interactive-primary
                 resize-none disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors duration-200
               "
