@@ -120,7 +120,7 @@ async function callImageGeneration(
       {
         role: "user",
         content: [
-          { type: "input_image", image_url: imageDataUrl },
+          { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
           { type: "input_text", text: prompt },
         ],
       },

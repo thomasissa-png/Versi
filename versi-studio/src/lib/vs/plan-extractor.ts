@@ -64,7 +64,7 @@ function isMessageItem(o: { type: string }): o is ResponseMessageItem {
 }
 
 function extractTextFromResponse(
-  response: Awaited<ReturnType<OpenAI["responses"]["create"]>>
+  response: OpenAI.Responses.Response
 ): string {
   const messageItem = response.output.find(
     (o: { type: string }) => isMessageItem(o)
@@ -365,7 +365,7 @@ async function callVisionExtraction(
       {
         role: "user",
         content: [
-          { type: "input_image", image_url: imageDataUrl },
+          { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
           {
             type: "input_text",
             text:
@@ -401,7 +401,7 @@ async function callSelfCorrection(
       {
         role: "user",
         content: [
-          { type: "input_image", image_url: imageDataUrl },
+          { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
           { type: "input_text", text: "Extract all rooms from this floor plan." },
         ],
       },
