@@ -331,7 +331,7 @@ test.describe("Workflow — Step 1 Upload interactions", () => {
     await page.goto(`/vs/projects/${PROJECT_ID}/upload`);
 
     // Verifier que 2 plans sont affiches
-    await expect(page.getByText(/2 plans uploadés/i)).toBeVisible();
+    await expect(page.getByText(/2 plans déposés/i)).toBeVisible();
   });
 });
 
@@ -544,7 +544,7 @@ test.describe("Workflow — Etats d'erreur", () => {
     await page.goto(`/vs/projects/${PROJECT_ID}/upload`);
 
     // La page devrait s'afficher sans crash
-    await expect(page.getByRole("heading", { name: /uploadez vos plans/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /déposez vos plans/i })).toBeVisible();
   });
 
   test("Step 2 — erreur 500 sur la sauvegarde d'un lot affiche un toast", async ({ page }) => {

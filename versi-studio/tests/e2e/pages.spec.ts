@@ -280,18 +280,18 @@ test.describe("Step 1 — Upload", () => {
     await expect(page.getByRole("navigation", { name: /étapes/i })).toBeVisible();
 
     // Titre de la page
-    await expect(page.getByRole("heading", { name: /uploadez vos plans/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /déposez vos plans/i })).toBeVisible();
 
     // Adresse du projet affichee
     await expect(page.getByText("10 rue des Muguets, 59000 Lille")).toBeVisible();
   });
 
-  test("affiche les plans deja uploades", async ({ page }) => {
+  test("affiche les plans deja deposes", async ({ page }) => {
     await mockAllApiRoutes(page, { project: MOCK_PROJECT, plans: MOCK_PLANS });
     await page.goto(`/vs/projects/${PROJECT_ID}/upload`);
 
     // Compteur de plans
-    await expect(page.getByText(/2 plans uploadés/i)).toBeVisible();
+    await expect(page.getByText(/2 plans déposés/i)).toBeVisible();
 
     // Bouton analyser visible
     await expect(page.getByRole("button", { name: /analyser les plans/i })).toBeVisible();
