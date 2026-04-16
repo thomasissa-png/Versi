@@ -389,14 +389,14 @@
 
 **Branche** : `claude/versi-s19-visuels-autopilot-K7mQr`
 **Date d'ouverture** : 2026-04-16
-**Session** : versi-s19 — Étape 4 Visuels Versi Studio (US-VS-16/17/18) en autopilote Express 4 batches + Fix BUG-1 PlanThumbnail floorInput + Audit `route.continue()` 4 specs + résidus F05 surface m² / Upload % / G26 stricte
+**Session** : versi-s19 — Étape 4 Visuels Versi Studio (US-VS-19/20/21/22) en autopilote Express 4 batches + Fix BUG-1 PlanThumbnail floorInput + Audit `route.continue()` 4 specs + résidus F05 surface m² / Upload % / G26 stricte
 **Statut** : EN COURS
 
 **Plan d'exécution versi-s19 — 6 priorités ordonnées (budget cible ~10-13 Tasks producteurs sur 18 max)**
 
 | # | Priorité | Mode | Estimation Tasks |
 |---|---|---|---|
-| P1 | **Étape 4 Visuels (US-VS-16/17/18)** — composants `RoomGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx` + page `/visuals/page.tsx`. Pattern Express 4 batches validé sur Étape 2 Lots (s17, 9,1/10) ET Étape 3 Pièces (s18, 9,3/10). Persona gate finale = @moi (outil INTERNE, mapping persona→gate s16). | Express 4 batches | ~6-8 |
+| P1 | **Étape 4 Visuels (US-VS-19/20/21/22)** — composants `StyleGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx`, `ChatAgent.tsx` + page `vs/projects/[id]/visuals/page.tsx`. Note : RoomGrid/RoomCanvas/RoomPanel sont composants Étape 3 Pièces (s18, hors scope). Pattern Express 4 batches validé sur Étape 2 Lots (s17, 9,1/10) ET Étape 3 Pièces (s18, 9,3/10). Persona gate finale = @moi (outil INTERNE, mapping persona→gate s16). | Express 4 batches | ~6-8 |
 | P2 | **Fix BUG-1 PlanThumbnail floorInput resync** — `versi-studio/src/components/vs/PlanThumbnail.tsx:26` ajouter `useEffect(() => setFloorInput(plan.floor_number ?? ""), [plan.floor_number])` (3 lignes) + renforcer T2 dans `upload-p0.spec.ts` pour vérifier l'input visuel après rollback. Réf : `docs/qa/upload-p0-investigation.md` BUG-1. | Typist + test | 1 |
 | P3 | **Audit pattern `route.continue()` sur 4 specs E2E restantes** — Grep `await route.continue()` dans `versi-studio/tests/e2e/` (lots-visual, rooms-visual, workflow, pages). Remplacer par `route.fallback()` si même pattern incorrect que upload-p0. Learning versi-s18 P6. | @qa | 1 |
 | P4 | **F05 surface m² temps réel pendant drag** — résidu versi-s17→s18. Brief dédié spec UX (calibration pixel→m² + UI overlay) + DB (champ projet `m2_per_pixel`?). À chiffrer après spec validée. | @ux + @fullstack | 1-2 |
@@ -481,7 +481,7 @@
 
 **Travail restant — PROCHAINE SESSION (versi-s19)** :
 
-**PRIORITÉ 1 — Étape 4 Visuels Versi Studio (US-VS-16/17/18)**
+**PRIORITÉ 1 — Étape 4 Visuels Versi Studio (US-VS-19/20/21/22)**
 - Composants : `RoomGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx` + page `/visuals/page.tsx`
 - Pattern Express 4 batches (validé sur Étape 3) attendu : ~10-13 Tasks producteurs
 

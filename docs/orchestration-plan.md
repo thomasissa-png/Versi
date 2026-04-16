@@ -1,92 +1,81 @@
-# Plan d'orchestration — versi-s18 Versi Studio Étape 3 Pièces
+# Plan d'orchestration — versi-s19 Versi Studio Étape 4 Visuels
 
 <!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
 
 ## Branche
-`claude/versi-s18-pieces-autopilot-Vlowg`
+`claude/versi-s19-visuels-autopilot-K7mQr`
 
 ## Date démarrage
 2026-04-16
 
 ## Mode détecté
 **Projet existant V1-Production en autopilote Express 4 batches**
-- Étape 3 Pièces (US-VS-13/14/15) déjà codée — finalisation/polish
-- Pattern Express applicable : scope Alpha/Beta découpable, persona gate finale = @moi
+- Étape 4 Visuels (US-VS-19/20/21/22) **déjà codée** — finalisation/polish (composants existants : `RoomGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx`, `StyleGrid.tsx`, `ChatAgent.tsx`, page `/visuals/page.tsx`)
+- Pattern Express applicable : scope Alpha (page + tokens) / Beta (composants feuilles RoomGrid + VisualRoom + VisualResult) découpable, persona gate finale = @moi
+- **Note** : le mémo s19 indique "US-VS-16/17/18" mais les vraies US Visuels dans `vs-functional-specs.md` sont **US-VS-19/20/21/22** (Upload photo / Génération style / Itération chat / Validation visuel). Typo du mémo signalée au fondateur. Audit aligné sur les 4 US réelles.
 
 ## Profil utilisateur
 - Niveau technique : Expert (Thomas marchand de biens, fondateur, code lui-même)
-- Persona finale Versi Studio : **@moi** (outil interne, PAS Laurent/Sophie/Nicolas)
-- Mode d'interaction : Autopilote (compteur Task producteurs ≤ 18 cible)
+- Persona finale Versi Studio : **@moi** (outil INTERNE, PAS Laurent/Sophie/Nicolas — mapping persona→gate s16)
+- Mode d'interaction : Autopilote Express (compteur Task producteurs ≤ 18 cible, ALERTE ROUGE > 18)
 
 ## Profil de rigueur
-**V1-Production** — toutes gates G1-G34 actives, gate G33 anglicismes BLOQUANT, gate G34 collisions @theme BLOQUANT
+**V1-Production** — toutes gates G1-G34 actives, gate G33 anglicismes BLOQUANT, gate G34 collisions @theme BLOQUANT, exceptions canvas R02/R03/R04 documentées dans `docs/design/vs-design-system.md` §2.4 (à respecter par @design/@reviewer)
 
 ## Budget Task producteurs estimé
-~10-13 sur 18 max (marge confortable)
+~10-13 sur 18 max — marge pour P2 BUG-1 + P3 audit `route.continue()` + P4-P6 résiduels
 
 ## Décision boucle visuelle G26
-**DIFFÉRÉE** sur bundle Upload + Lots + Pièces (conforme learning versi-s17 P1 #3 — outil interne = baselines par bundle, pas par étape).
+**DIFFÉRÉE** par défaut (outil interne — baselines par bundle, pas par étape). Migration `toHaveScreenshot()` strict envisagée fin de session si budget (P6).
 
-## Priorités session ordonnées
+## Estimation de coût
+~6-8 Tasks Opus producteurs × ~$4 + ~4-5 Tasks Sonnet × ~$1 = ~$28-37 estimés
+
+## Priorités session ordonnées (mémo s19)
 
 | # | Travail | Statut | Task producteurs estimés |
 |---|---|---|---|
-| P1 | Étape 3 Pièces autopilote Express (US-VS-13/14/15) | EN COURS | ~6 |
-| P2 | F05 surface m² overlay drag PlanCanvas (résidu Lots s17) | EN ATTENTE | 0 (intégré P3 backlog) |
-| P3 | Bundle P2 backlog Upload (7 items) | EN ATTENTE | ~1 |
-| P4 | Boucle visuelle G26 bundle Upload+Lots+Pièces | EN ATTENTE | ~1 |
-| P5 | Documenter exceptions canvas vs-design-system.md | EN ATTENTE | ~1 |
-| P6 | Investigation upload-p0.spec.ts (si budget) | EN ATTENTE | ~1-2 |
+| P1 | Étape 4 Visuels autopilote Express (US-VS-19/20/21/22) | EN COURS | ~6-8 |
+| P2 | Fix BUG-1 PlanThumbnail floorInput resync | EN ATTENTE | 1 |
+| P3 | Audit `route.continue()` 4 specs E2E | EN ATTENTE | 1 |
+| P4 | F05 surface m² temps réel pendant drag | EN ATTENTE | 1-2 |
+| P5 | Upload % feedback fichiers > 5 Mo | EN ATTENTE | 1 |
+| P6 | Migration G26 stricte `toHaveScreenshot()` | EN ATTENTE | 1 |
 
-## Phases d'exécution
+## Pattern Express attendu pour P1 Étape 4 Visuels
 
-### Phase P1 — Étape 3 Pièces (Express 4 batches)
+| Batch | Contenu | Tasks producteurs |
+|---|---|---|
+| Batch 1 | 3 audits v1 parallèles (UX + Design + Copy) sur 4 composants + page | 3 |
+| Batch 2 | 2 @fullstack scope disjoint Alpha (page + tokens globaux) + Beta (composants feuilles) | 2 |
+| Batch 3 | 3 re-audits v2 parallèles | 3 |
+| Batch 2.5 (conditionnel) | Typist micro-corrections si unanimité 8,5-8,9/10 GO CONDITIONNEL avec ≤3 résiduels triviaux | 0-1 |
+| Batch 4 | Gate finale @moi (proxy Thomas) | 1 |
 
-**Composants scope** :
-- `versi-studio/src/app/vs/projects/[id]/rooms/page.tsx` (page principale Étape 3)
-- `versi-studio/src/components/vs/RoomPanel.tsx` (panneau latéral, sélecteur lot, dropdown type)
-- `versi-studio/src/components/vs/RoomCanvas.tsx` (canvas overlays pièces, drag)
-- `versi-studio/src/app/globals.css` (tokens si ajustement)
+**Total P1 estimé** : 9-10 Task producteurs.
 
-**Composants HORS scope** :
-- `RoomGrid.tsx` (Étape 4 visuels)
-- `VisualRoom.tsx`, `VisualResult.tsx` (Étape 4)
+## Étape 0 — Propagation P0/P1 versi-s18 + résiduels s16
 
-#### Batch 1 — 3 audits v1 parallèles
-- @ux : audit parcours US-VS-13/14/15
-- @design : audit visuel + gates G21/G22/G23/G31/G32
-- @copywriter : audit copy + G33 anglicismes + registre "vous impératif neutre"
-- Statut : EN COURS
+**Statut** : COMPLÈTE — 9 learnings propagés (7 s18 + 2 s16) sur 5 fichiers (orchestrator.md, moi.md, qa.md, design.md, reviewer.md). Gate bloquante de reprise levée.
 
-#### Batch 2 — 2 @fullstack parallèles scope disjoint (typist)
-- Alpha : `page.tsx` + `globals.css`
-- Beta : `RoomPanel.tsx` + `RoomCanvas.tsx`
-- Bonus Beta : F05 surface m² overlay drag (résidu Lots s17 — fichier `PlanCanvas.tsx` mais composant Lots, à intégrer si scope permet OU décaler P3)
-- Statut : EN ATTENTE Batch 1
-
-#### Batch 3 — 3 re-audits v2 parallèles
-- @ux + @design + @copywriter sur livrables Batch 2
-- Statut : EN ATTENTE Batch 2
-
-#### Batch 4 — Gate finale @moi
-- Statut : EN ATTENTE Batch 3
+| # | Learning | Cible | Action | Statut |
+|---|---|---|---|---|
+| L1 (s18 P1) | Pattern Batch 2.5 micro-corrections | orchestrator.md | Ajout section dédiée | propagé |
+| L2 (s18 P1) | @moi gate finale post-Batch 2.5 re-vérifie en code | moi.md | Ajout sous-section "Gate finale post-Batch 2.5" | propagé |
+| L3 (s18 P1) | @qa boucle visuelle bundle tier 1/2/3 | qa.md ligne 190 | Déjà présent | propagé |
+| L4 (s18 P1) | Playwright `route.fallback()` vs `route.continue()` | qa.md ligne 76 | Déjà présent | propagé |
+| L5 (s18 P2) | @qa frontière investigation vs implémentation | qa.md ligne 95 | Déjà présent | propagé |
+| L6 (s18 P2) | Exceptions G23 documentées au design-system | design.md + reviewer.md | Ajout sous-sections dédiées | propagé |
+| L7 (s18 P2) | Bundle backlog typist | orchestrator.md | Ajout section dédiée | propagé |
+| L8 (s16 P2) | G33 messages d'erreur API | CLAUDE.md ligne 267 | Déjà présent | propagé |
+| L9 (s16 P1) | Race condition matrice G27 | qa.md + orchestrator.md | Ajout sections dédiées | propagé |
 
 ## Métriques live
 
-| Phase | Agents | Parallèles | Relances | P0 | Statut |
-|---|---|---|---|---|---|
-| P1 Batch 1 | 3 | 3 | 0 | 0 | EN COURS |
+| Phase | Agents | Parallèles | Relances | P0 | Coût estimé | Statut |
+|---|---|---|---|---|---|---|
+| Étape 0 propagation | 0 (édits framework directs) | — | 0 | 0 | $0 | COMPLETE |
+| Batch 1 P1 (audits v1) | 3 (@ux + @design + @copywriter) | OUI (3 parallèles) | — | — | ~$3 | EN COURS |
 
-## Feedbacks remontants
-
-(à compléter au fil des batches)
-
-## Décisions d'arbitrage
-
-(à compléter au fil des batches)
-
----
-
-## Archive — versi-s17 et antérieurs
-
-(Ancien contenu archivé. Voir git history pour le détail des sessions précédentes.)
+## Compteur Tasks producteurs
+**0/18** — ALERTE ROUGE > 18. Budget cible : 10-13 sur la session.
