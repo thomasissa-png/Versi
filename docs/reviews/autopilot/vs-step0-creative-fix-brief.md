@@ -180,4 +180,31 @@ Découpez vos plans, identifiez les lots et générez des visuels vendeurs — p
 Note technique : `&apos;` pour l'apostrophe dans JSX (cohérent avec le pattern ligne 147 existant dans le fichier).
 
 ## Récap pour @fullstack
-[À remplir par @creative-strategy — tableau condensé fichier / ligne / avant / après]
+
+Fichier unique à modifier : `versi-studio/src/app/vs/page.tsx`
+
+| Fix | Ligne(s) | Avant | Après |
+|---|---|---|---|
+| P1 — Registre empty state | 147 | `Aucune opération pour l&apos;instant. Lance ta première opération.` | `Aucune opération pour l&apos;instant. Créez votre première opération pour commencer.` |
+| P2 — Token typo h2 + sous-titre | 238 | `<h2 className="text-lg font-medium mb-lg">Nouvelle opération</h2>` | `<h2 className="vs-h3 mb-xs">Nouvelle opération</h2>` + ajouter la ligne suivante : `<p className="vs-body-sm text-text-muted mb-lg">Renseignez les informations de base pour initialiser l&apos;opération.</p>` |
+| P3 — Déclaration STATUS_COLORS | Après ligne 30 (après la fermeture de STATUS_LABELS) | *(absent)* | `const STATUS_COLORS: Record<string, string> = { draft: "bg-bg-default text-text-muted border border-border-default", step_1_complete: "bg-warning/10 text-warning", step_2_complete: "bg-warning/10 text-warning", step_3_complete: "bg-warning/10 text-warning", completed: "bg-success/10 text-success", };` |
+| P3 — Utilisation du badge | 396 | `<span className="inline-block px-sm py-2xs rounded text-xs bg-bg-default text-text-muted">` | `<span className={\`inline-block px-sm py-2xs rounded text-xs ${STATUS_COLORS[project.status] ?? "bg-bg-default text-text-muted border border-border-default"}\`}>` |
+| P4 — Sous-titre H1 | 79 | `Découpe de plans, identification des lots et génération de visuels post-travaux.` | `Découpez vos plans, identifiez les lots et générez des visuels vendeurs — prêts à intégrer dans vos dossiers d&apos;acquisition.` |
+
+**Notes d'implémentation pour @fullstack :**
+- P2 : `mb-xs` sur le h2 + `mb-lg` sur le paragraphe — ne pas inverser l'espacement
+- P3 : insérer `STATUS_COLORS` immédiatement après la fermeture de `STATUS_LABELS` (ligne 30 actuelle), avant le commentaire `// ─── Composant principal ───`
+- P3 : la syntaxe `bg-warning/10` et `bg-success/10` est déjà validée dans ce projet via `bg-error/10` ligne 116 — aucun risque de régression Tailwind v4
+- P4 : `&apos;` pour l'apostrophe dans "d&apos;acquisition" — cohérent avec le pattern ligne 147 existant
+- Aucun autre fichier à modifier — tous les tokens référencés existent dans `globals.css`
+
+---
+
+**Handoff → @fullstack**
+
+- Fichier produit : `docs/reviews/autopilot/vs-step0-creative-fix-brief.md`
+- Input : ce brief (5 sections — P1 à P4 + Récap)
+- Output attendu : 4 fixes appliqués sur `versi-studio/src/app/vs/page.tsx`, couvrant lignes 79, 147, 238, et 396 (+ insertion de `STATUS_COLORS` après ligne 30)
+- Critère de done : le Dashboard passe de 7/10 à 9-10/10 sur les critères C3 (ton), C2 (hiérarchie typo), C1 (badges statut), C5 (différenciateur valeur business)
+- Aucune invention de token CSS — tous vérifiés dans `globals.css`
+- Les variantes B et C du sous-titre H1 (P4) contiennent des chiffres marqués `[HYPOTHÈSE à valider par Thomas]` — ne pas les intégrer sans validation fondateur
