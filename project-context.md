@@ -234,6 +234,11 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
+| Claude principal (fallback @qa) | 2026-04-16 | `docs/qa/upload-us-vs-02-audit-v2.md` | Audit v2 Upload US-VS-02 écrit manuellement après 2× timeouts consécutifs @qa (324s/40 tool_uses puis 99s/4 tool_uses sur scope réduit 200 lignes). Score 8.5/10 vs 6/10 v1. 12/12 P0+ECART PASS (vérification code ligne par ligne). Gates : G21 PASS (5 états UI), G22 PASS conditionnel (contrastes `bg-error/10` à re-vérifier @design), G23 PASS (tokens sémantiques), G26 PASS (15/15 Playwright baselines), G27 **REPORTÉ versi-s16** (matrice AC→tests non produite), G28 PASS (tsc + 15/15 tests PASS), G31 PASS. Verdict GO CONDITIONNEL — re-validation @qa/@reviewer versi-s16 obligatoire (règle n°4 escalade versi-s12 : écriture manuelle suivie d'audit agent 10/10). | Règle n°4 escalade versi-s12 respectée : 2+ tentatives agent avant fallback manuel. Fidélité : HAUTE section 1 (code lu ligne par ligne), MOYENNE section 2 (gates), LIMITÉE section 3 (findings). Alternative écartée : 3e tentative @qa avec scope encore plus réduit — risque timeout identique car bottleneck = ambiguïté brief, pas volume. Alternative écartée : passer à Batch 6 sans audit v2 — violerait le protocole d'unanimité 9/10. Résiduels P1 documentés pour versi-s16 : bug Tailwind v4 systémique (5+ composants), matrice G27 (AC01..AC16), 7 tests P0 flows métier, PlanThumbnail non re-audité. |
+| @qa | 2026-04-16 | `versi-studio/tests/e2e/pages.spec.ts` + `versi-studio/tests/e2e/workflow.spec.ts` (ECART-VS-3 fix pré-timeout) | Rename "uploadés/uploadez" → "déposés/déposez" dans 2 fichiers tests E2E pour alignement avec rebranding copy anglicismes P0. 15/15 Playwright PASS post-fix. Fix appliqué avant le timeout complet (40 tool_uses / 324s). | Tests E2E synchronisés avec copy client-facing = gate G28 critique. Alternative écartée : skip des tests concernés — perdrait la couverture de régression sur le workflow principal. Learning : les renames de copy client-facing doivent toujours déclencher un Grep exhaustif sur les suites tests E2E avant commit. |
+| @fullstack (Batch 4d) | 2026-04-16 | `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` + `versi-studio/src/components/vs/ConfirmModal.tsx` + `versi-studio/src/components/vs/Stepper.tsx` | Fix 3 ECARTs détectés par boucle visuelle : (1) dual Stepper responsive — sidebar desktop `hidden md:block md:w-64` + sibling horizontal `md:hidden mb-lg` avec variant prop `"vertical" | "horizontal"` dans Stepper.tsx, (2) ConfirmModal portalisé avec `createPortal(modalContent, document.body)` + `mounted` state SSR safety + `style={{ maxWidth: "28rem" }}` inline (contournement Tailwind v4), (3) 6 baselines screenshots régénérées dans `tests/screenshots/upload/`. | Dual render Tailwind pur retenu vs mediaQuery JS : plus simple, SSR-safe, pas de flash de contenu, aligné pattern design system. createPortal obligatoire pour ConfirmModal car conteneur parent compressait le modal à 70-90px (bug Tailwind v4 `--spacing-md: 16px` écrase `max-w-md`). Inline style `maxWidth` contournement ciblé — fix systémique (`--space-*` rename ou `max-w-[28rem]` partout) reporté versi-s16 hors scope Upload. |
+| @fullstack (Batch 4c) | 2026-04-16 | `versi-studio/tests/e2e/upload-visual.spec.ts` (NEW 291L) + 15 baselines screenshots | Boucle visuelle Playwright : 15 tests = 3 devices (iPhone 13 375px, iPad 768px, Desktop Chrome 1280px) × 5 états (vide, 1 plan, 5 plans, modal suppression, analyse en cours). `setInputFiles` direct + `route.fulfill()` pour mocker API. 15/15 PASS en 18s. Détection de 3 ECARTs (Stepper mobile compressé 256px, ConfirmModal compressé 70-90px, tests E2E cassés par rename anglicisme). | Boucle visuelle = gate bloquante avant commit principal sur tout livrable front responsive OU portalisé. Pattern validé dans versi-s14 (Dashboard) et re-validé s15 (Upload). Alternative écartée : audits statiques seuls — n'auraient pas détecté les 3 ECARTs (layout compression + SSR bug Tailwind). |
+| @fullstack (Batch 4a-4b) | 2026-04-16 | `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` (351→577 lignes) + `versi-studio/src/components/vs/ConfirmModal.tsx` (NEW) + `versi-studio/src/app/api/vs/plans/[id]/route.ts` (PATCH handler) + `docs/product/vs-functional-specs.md` (WEBP + PATCH) | 12 corrections P0+ECART appliquées suite @moi review v1 (6/10) : P0.1 ConfirmModal (focus trap + Escape) remplace `confirm()` natif, P0.2 `floor_number` client-calculé + PATCH persistance avec rollback, P0.3 `isAnalyzing` + POST `/api/vs/projects/[id]/extract`, P0.4 erreurs réseau actionnables ("vérifiez votre connexion"), P0.5 `Promise.allSettled` + `AbortController` race-safe, P0.6 `failedFiles` state + tuiles Réessayer par fichier, P0.7 Stepper DS conforme `bg-bg-dark text-text-inverse border-l-[3px]`, P0.8 spec WEBP alignée. Anglicismes déposer/déposé corrigés (P0 fondateur). ConfirmModal typo "irréversible" corrigée par refactor. | Pattern "typiste" appliqué pour tenir anti-timeout (code exact fourni dans briefs). `Promise.allSettled` retenu vs `Promise.all` : tolère 1 échec sans annuler les autres uploads. `AbortController` via ref pour cleanup au unmount. PATCH validation [-5, 50] côté API pour gérer sous-sols et tours. Refactor page.tsx 351→577 lignes accepté car regroupe 12 corrections critiques en une passe (mieux que 5 passes partielles). |
 | @design | 2026-04-16 | `docs/design/upload-us-vs-02-composition-audit-v1.md` | Score 6.5/10. 1 finding P0 (F18 — Stepper actif fond blanc vs DS fond noir). 6 findings P1 (contrastes, tokens, prefers-reduced-motion, focus). Gates G22/G31/G32 FAIL partiel, G21 GO conditionnel. 18 findings total (P0→P3). | F18 P0 : Stepper actif implémenté avec `bg-bg-card border` (blanc/contour) au lieu de `bg-bg-dark text-text-inverse` (noir/blanc) spécifié DS §4.5. Priorité P0 car guide de progression principal. Base palette/tokens sémantiques saine — corrections ciblées, pas de refonte. Durée estimée correction : 60-90 min @fullstack. |
 | @geo | 2026-04-14 | `docs/reviews/geo-audit-s8.md` | (1) Score global : 6.5/10 — régression vs 9/10 (audit s4) justifiée par le prisme persona post-pivot. (2) Lacune bloquante : llms.txt et FAQPage Schema.org 100% orientés vendeur/Sophie — 0/6 éléments acquéreur présents dans llms.txt, 0/5 questions Schema couvrant Kévin. (3) Fondateurs absents du nœud Organization Schema (non-corrigé depuis s4). (4) Fiches biens sans Schema RealEstateListing. (5) 8 recommandations priorisées : R1 llms.txt, R2 FAQ HTML acquéreur, R3 FAQPage Schema, R4 founders Schema, R5 areaServed, R6 fiches biens Schema, R7 blog, R8 timestamps. (6) Blog infrastructure solide (7/10) mais contenu absent. | Régression volontairement documentée : l'audit s4 notait le site sans tenir compte du pivot persona du 2026-04-10. La note 6.5/10 reflète l'alignement GEO avec le persona acquéreur (Kévin), pas la qualité technique générale. Prisme retenu : un site GEO-optimisé pour Sophie ne génère pas de prises de contact acquéreur (KPI North Star). R1-R3 priorisées car impact immédiat maximal pour un effort minimal (< 2h). R2 (composant BuyerFAQ) est la seule nouvelle feature — les autres sont des modifications de fichiers existants. |
 | @copywriter | 2026-04-16 | `docs/reviews/autopilot/vs-step0-copy-v2.md` | (1) Score v2 : 7.5/10 — pas d'amélioration vs v1 (8/10), régression sur C2 et C3. (2) Violation bloquante introduite par correction 4 : "générez" interdit (vs-ux-writing.md §1 et §3) introduit ligne 87. (3) Tutoiement résiduel : "Saisis" ligne 197 — correction v1 incomplète. (4) `draft: "Brouillon"` et `"Chargement…"` non corrigés depuis v1. Verdict : PAS GO, 4 corrections à appliquer. | Re-audit v2 demandé après application de 6 corrections post-audit v1. Les corrections 1, 2, 3, 5 sont conformes. La correction 4 (sous-titre H1) a introduit une violation du guide en utilisant "générez" — la correction v1 elle-même proposait "Aucune opération pour l'instant. Lance ta première opération." avec tutoiement. La correction v1 du message d'adresse "Saisis" a été appliquée mais reste en tutoiement, ne résolvant pas la violation §4. Priorité : corriger R1 (tutoiement) et R2 ("générez") avant validation copy. |
@@ -374,12 +379,113 @@
 
 ### Mémo de reprise
 
-**Branche** : `claude/dashboard-autopilot-resume-ZYi9s`
+**Branche** : `claude/launch-upload-autopilot-Q4wiv`
 **Date de clôture** : 2026-04-16
-**Session** : versi-s14 — Finalisation autopilote Étape 0 Dashboard
+**Session** : versi-s15 — Autopilote Étape 1 Upload (US-VS-02)
 **Dernier commit** : voir `git log --oneline -1`
 
-**Résumé session (versi-s14) — Étape 0 Dashboard CLÔTURÉE** :
+**Résumé session (versi-s15) — Étape 1 Upload GO CONDITIONNEL 8.5/10** :
+
+1. **Propagation 4 P1 learnings versi-s14** : dual Stepper responsive, boucle visuelle obligatoire, brief tableau strict @qa, budget correction ≈10-12 fixes/étape frontend.
+2. **Batch 4a** : 3 Task parallèles — ConfirmModal (focus trap + Escape + portalisé), API PATCH `/api/vs/plans/[id]` (floor_number [-5, 50]), Stepper DS `bg-bg-dark text-text-inverse`.
+3. **Batch 4b** : refactor `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` 351→577 lignes (P0.1-P0.7) + spec WEBP alignée par @pm (docs/product/vs-functional-specs.md).
+4. **Batch 4c** : boucle visuelle Playwright — 15 baselines screenshots (3 devices × 5 états), 3 ECARTs détectés (VS-1 Stepper mobile compression, VS-2 ConfirmModal Tailwind v4, VS-3 tests cassés par rename "uploadés→déposés").
+5. **Batch 4d** : fix 3 ECARTs — dual Stepper (`hidden md:block` sidebar + `md:hidden` horizontal variant), ConfirmModal portalisé (`createPortal(modalContent, document.body)` + `style={{ maxWidth: "28rem" }}` inline contournement Tailwind v4), tests E2E alignés (pages.spec.ts:294, workflow.spec.ts:334).
+6. **Batch 5 re-audit @qa** : 2× timeouts consécutifs (complet 324s/40 tool_uses, puis réduit 200 lignes 99s/4 tool_uses). Règle n°4 escalade versi-s12 déclenchée → fallback Claude principal avec audit manuel `docs/qa/upload-us-vs-02-audit-v2.md` (score 8.5/10, 12/12 P0+ECART PASS, verdict GO CONDITIONNEL).
+
+**Scoring final Étape 1 Upload** :
+| Agent | v1 | v2 |
+|---|---|---|
+| @creative-strategy | 7 | — |
+| @copywriter | 7.5 | — |
+| @product-manager | 8 | — |
+| @qa | 6 | **8.5** (audit manuel fallback) |
+| @ia | 8 | — |
+| @moi | 6.5 | — |
+| @persona Laurent | 7 | — |
+
+**Gates Étape 1 Upload** : G21 PASS (5 états UI), G22 PASS conditionnel (contrastes `bg-error/10` à re-valider @design), G23 PASS (tokens sémantiques), G26 PASS (15/15 screenshots), G27 **REPORTÉ versi-s16** (matrice AC→tests non produite, timeouts @qa), G28 PASS (tsc + lint + tests), G31 PASS (tokens 3 tiers).
+
+**Travail restant — PROCHAINE SESSION (versi-s16)** :
+
+**PRIORITÉ 1 — Re-validation Étape 1 Upload (audit manuel → audit agent)**
+- Fallback manuel versi-s15 (règle n°4 escalade) DOIT être re-validé par @qa ou @reviewer en versi-s16 pour atteindre 10/10 unanime
+- Brief imposant format tableau strict + liste exhaustive fichiers à auditer + max 1 Read par fichier avec offset précis
+
+**PRIORITÉ 2 — Batch 5b : compléter Étape 1 Upload (bloquant unanimité 9/10)**
+- **Matrice G27** : `docs/qa/upload-us-vs-02-traceability.md` — mapping US-VS-02 AC01..AC16 → tests E2E existants (upload-visual.spec.ts + pages.spec.ts + workflow.spec.ts)
+- **7 tests P0 flows métier** : tests de régression modal (focus trap, Escape), PATCH floor_number + rollback, retry failed files, AbortController cleanup, isAnalyzing + POST /extract, Promise.allSettled race safety, erreurs réseau actionnables
+- **Bug Tailwind v4 systémique** (hors scope Upload) : renommer `--spacing-*` en `--space-*` OU remplacer `max-w-md` par `max-w-[28rem]` partout (5+ composants impactés : VisualResult, ChatAgent, VisualRoom, vs/page, vs/error)
+
+**PRIORITÉ 3 — Batch 6 : re-audits Étape 1 Upload (4 agents, unanimité 9/10 min)**
+- @ux re-audit (parcours + frictions + 5 états visibles)
+- @design re-audit (contrastes `bg-error/10`, PlanThumbnail non audité v1, dark mode si applicable)
+- @copywriter re-audit (anglicismes "déposer", micro-copy erreurs, compteur "emplacements restants")
+- @testeur-persona-laurent re-audit (GP1-GP10)
+
+**PRIORITÉ 4 — Autopilote Étape 2 Lots**
+- Fichier : `versi-studio/src/app/vs/projects/[id]/lots/page.tsx`
+- Composants : `PlanCanvas.tsx`, `LotPanel.tsx`
+- Spec : `docs/product/vs-functional-specs.md` §4 (US-VS-03/04/05)
+- Même protocole 7 agents / 4 batches
+
+**PRIORITÉ 5 — Résiduels Étape 0 (non-traités s15)** :
+- R1/R4 PM (aria-busy `<form>` + focus-visible Annuler)
+- R2 PM (bornes surface 9-5000 propagées specs)
+- R6 qa (useToast réel vs stub)
+- R7 qa (tests Vitest validation CreateProjectForm)
+
+**PRIORITÉ 6 — Créer testeur-persona-thomas-marchand** (optionnel, reporté depuis s14)
+- Laurent utilisé par substitution pour Thomas MDB — profils divergents
+- Action : @agent-factory crée `.claude/agents/testeur-persona-thomas-marchand.md` calqué sur Nicolas
+
+**Actions Thomas hors-agent** (inchangées depuis s11) :
+- Versi Immobilier — GEO off-site (Crunchbase + Pappers.fr + LinkedIn entreprise)
+- Versi Immobilier — Photos biens Muguets via back office
+- Versi Immobilier — 5 références Nanterre photos (script prêt)
+- versi-capital.fr + versi-finance.fr (scope futur)
+
+**Protocole autopilote — règles anti-timeout (enrichies s15)** :
+- Max 2 agents par message (batch) — 3 possible mais marge réduite
+- Brief < 800 mots par agent
+- Format de sortie imposé (tableau strict, colonnes fixes, pas de prose)
+- Write squelette IMMÉDIATEMENT, puis Edit
+- Max 1 Read par fichier, max 50 lignes
+- **NOUVEAU s15** : pour audit-only, lister exhaustivement les fichiers à auditer dans le brief + offset précis par fichier
+- **NOUVEAU s15** : boucle visuelle Playwright obligatoire AVANT commit principal sur tout livrable front responsive OU portalisé
+- Seuil session : max 2 étapes par session (16 Task producteurs, sous ALERTE ROUGE 18)
+- **Escalade règle n°4** : après 2 timeouts agent → fallback manuel Claude principal + audit agent 10/10 obligatoire en session suivante
+
+**Décisions cumulées Versi Studio (s12-s15)** :
+- Stack Next.js 16 (version réelle, specs alignées)
+- Persona = Thomas marchand de biens (à distinguer de Thomas fondateur = @moi)
+- Outil INTERNE : noindex/nofollow, pas de SEO public
+- Design = endorsed brand (charcoal + stone Versi, pas de couleur d'accent)
+- V1 = sans auth, sans paiement, sans PDF
+- Workflow 4 étapes : Upload → Lots → Rooms → Visuels
+- **NOUVEAU s15** : extraction IA déclenchée sur clic "Lancer l'analyse" (option A), pas auto-upload
+- **NOUVEAU s15** : anglicismes ("upload/uploader/uploadé") = P0 bloquant → "déposer/déposé/déposez" obligatoire
+- **NOUVEAU s15** : bug Tailwind v4 systémique latent — renommer `--spacing-*` en `--space-*` dans une passe dédiée
+
+**Prompt de reprise suggéré** :
+```
+@orchestrator mode reprise de session. Lis project-context.md (mémo de reprise).
+Étape 1 Upload clôturée versi-s15 en GO CONDITIONNEL 8.5/10 (audit manuel fallback après 2× @qa timeout, règle n°4).
+Priorités versi-s16 :
+(1) Re-validation audit v2 par @qa ou @reviewer (brief format tableau strict + fichiers exhaustifs listés).
+(2) Batch 5b Upload : matrice G27 (AC→tests) + 7 tests P0 flows métier + fix Tailwind v4 systémique.
+(3) Batch 6 Upload : re-audits @ux + @design + @copy + @laurent (unanimité 9/10 min).
+(4) Étape 2 Lots (autopilote standard 7 agents / 4 batches).
+Protocole : anti-timeout strict, boucle visuelle obligatoire, brief typiste si 529.
+```
+
+---
+
+### Mémo de reprise (archive)
+
+#### versi-s14 — Finalisation autopilote Étape 0 Dashboard (clôturée 2026-04-16)
+
+**Résumé session versi-s14 — Étape 0 Dashboard CLÔTURÉE** :
 
 1. **Correction @creative-strategy v2→v3** : brief `docs/reviews/autopilot/vs-step0-creative-fix-brief.md` (P1-P4) + 5 fixes appliqués par @fullstack sur `page.tsx`. Re-audit @creative v3 : **GO 9/10** (6→7→9).
 2. **Décision D2 bornes surface** arbitrée par persona Laurent : min=9 / max=5000 / step=1 (`docs/reviews/autopilot/vs-step0-d2-arbitrage-surface-laurent.md`).
