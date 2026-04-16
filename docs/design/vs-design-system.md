@@ -257,6 +257,49 @@ Les overlays sont des aplats semi-transparents (opacity 0.35 par défaut, 0.55 a
 
 ---
 
+## 2.4 Exceptions canvas — hex JavaScript justifiés
+
+Le Canvas 2D Context API (`CanvasRenderingContext2D`) n'accepte pas les variables CSS (`var(--color-...)`) ni les classes Tailwind. Les valeurs `fillStyle` et `strokeStyle` doivent être des CSSColor strings JavaScript (hex, rgb, rgba). Les exceptions G23 documentées ci-dessous sont **justifiées** et ne doivent **pas** être signalées en audit.
+
+### R02 — Canvas API native (fillStyle / strokeStyle)
+
+- **Fichiers** : `versi-studio/src/components/vs/RoomCanvas.tsx`, `versi-studio/src/components/vs/PlanCanvas.tsx`
+- **Pattern** : `ctx.fillStyle = "#XXXXXX"` ou `ctx.strokeStyle = "#XXXXXX"`
+- **Justification** : la Canvas 2D Context API est une API native du navigateur qui n'interprète pas les custom properties CSS. Toute valeur passée à `fillStyle` / `strokeStyle` / `strokeStyle` doit être une string CSSColor valide résolue au moment du paint — pas une variable CSS, pas une classe utilitaire. Il est impossible de passer `var(--color-bg-canvas)` à `ctx.fillStyle`.
+- **Règle audit** : tout hex dans un contexte `ctx.*Style` (canvas 2D) est une exception G23 justifiée R02. Ne pas signaler.
+
+### R03 — Palette métier `ROOM_TYPE_STYLES`
+
+- **Fichier** : `versi-studio/src/lib/vs/styles.ts`
+- **Pattern** : map `ROOM_TYPE_STYLES` — `{ sejour: "#...", cuisine: "#...", chambre: "#...", sdb: "#...", ... }`
+- **Justification** : palette sémantique métier dédiée à la différenciation visuelle des 13 types de pièces sur le canvas. Niveau tier 2 sémantique dédié au domaine pièce — distinct des tokens Versi génériques. Cette map est la source de vérité partagée entre (1) le rendu canvas `RoomCanvas.tsx` via `ctx.fillStyle`, et (2) les composants UI du panel (légendes, badges de type de pièce). Centraliser ces valeurs dans un fichier dédié (`styles.ts`) est la bonne architecture : elle évite la duplication entre canvas et UI panel.
+- **Règle audit** : les hex dans `ROOM_TYPE_STYLES` (et toute map de même nature dans `styles.ts`) sont des tokens tier 2 métier. Exception G23 justifiée R03. Ne pas signaler.
+
+### R04 — Overlays de validation (rgba)
+
+- **Fichier** : `versi-studio/src/components/vs/RoomCanvas.tsx` (state `validationBlocked`, lignes 223-241)
+- **Pattern** : `ctx.fillStyle = "rgba(220,38,38,0.5)"` (fill overlay) + `ctx.strokeStyle = "#DC2626"` (contour)
+- **Justification** : double contrainte — canvas API (R02) + besoin d'opacité custom pour overlay non destructif. L'overlay rgba semi-transparent met en évidence les pièces non identifiées sans masquer le plan sous-jacent. Le canal alpha (0.5) ne peut pas être exprimé via un token de couleur opaque.
+- **Cohérence sémantique** : `#DC2626` est l'équivalent hex exact de `--color-error` (token sémantique d'erreur Versi). La cohérence est maintenue conceptuellement — seule la forme de référencement change (hex string JS vs variable CSS).
+- **Règle audit** : OK. Exception G23 justifiée R04. Vérifier uniquement que `#DC2626` reste synchronisé avec le token `--color-error` si ce token évolue.
+
+---
+
+## Mappage exceptions canvas → tokens sémantiques
+
+Ce tableau est la source de vérité pour maintenir la cohérence sémantique lors des évolutions. Quand un token sémantique évolue, les hex correspondants dans les fichiers canvas **doivent être mis à jour manuellement**.
+
+| Hex JS | Token sémantique équivalent | Exception | Fichier(s) | Usage |
+|---|---|---|---|---|
+| `#F0EDE8` | `--color-bg-canvas` (créé versi-s18) | R02 | `RoomCanvas.tsx` | Fond canvas |
+| `#DC2626` | `--color-error` (= `error-foreground`) | R02 + R04 | `RoomCanvas.tsx` | Contour pièces non identifiées |
+| `rgba(220,38,38,0.5)` | `--color-error` avec alpha 50% | R04 | `RoomCanvas.tsx` | Fill overlay validation bloquée |
+| palette `ROOM_TYPE_STYLES` | tier 2 dédié `room-{type}-color` | R03 | `styles.ts` | Différenciation visuelle des 13 types de pièces |
+
+**Règle de maintenance** : quand un agent (humain ou IA) modifie ces fichiers, conserver la cohérence avec les tokens sémantiques correspondants — mais les hex sont autorisés (justifiés R02/R03/R04). Si `--color-error` change de valeur dans le design system parent, mettre à jour `#DC2626` dans `RoomCanvas.tsx` en même temps.
+
+---
+
 ## 3. Logo Versi Studio
 
 ### 3.1 Construction typographique
