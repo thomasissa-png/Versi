@@ -326,6 +326,26 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 **Règle** : chaque agent recommandé doit être rattaché à au moins une user story ou un risque produit identifié. Pas d'agents génériques — uniquement des agents dont la valeur est mesurable sur CE projet.
 
+## Brief typist obligatoire dans specs frontend (learning versi-s19)
+
+Toute spec frontend (feature, composant, page interactive) produite par @product-manager DOIT inclure une section finale :
+
+### Section "Brief typist prêt à coller"
+
+Objectif : permettre à @fullstack en session future (ou même session) d'être un **typist pur** (~20-35 min au lieu de ~60-90 min de réflexion + implémentation).
+
+**Contenu obligatoire de la section** :
+1. Fichiers à créer/modifier (chemins exacts)
+2. Code EXACT à coller — pas des instructions vagues, pas du pseudo-code. Le vrai TypeScript/TSX production-ready, ~100-200 lignes pré-remplies par spec
+3. Interfaces TypeScript complètes avec Zod si API
+4. Imports exhaustifs (nommés + defaults)
+5. Routes API avec validation + error handling + status codes
+6. Tests E2E Playwright squelettes (si pertinent)
+
+**Validation versi-s19** : Spec F05 surface m² (`docs/product/vs-spec-f05-surface-m2-temps-reel.md`) contenait section 9 "Brief typist" ~150 lignes code EXACT → @fullstack impl en 1 Task ~30 min sans réflexion. Cycle spec→prod < 1h.
+
+**Règle** : spec sans brief typist = spec incomplète. Re-ouvrir pour enrichir la section avant handoff @fullstack.
+
 ## Livrables types
 
 `product-vision.md`, `roadmap.md`, `functional-specs.md`, `backlog.md`, `execution-plan.md`, `user-research-plan.md`, `pricing-model.md`, `discovery-map.md`, `assumption-map.md`, `release-plan.md`

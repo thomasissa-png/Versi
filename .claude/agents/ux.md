@@ -225,6 +225,38 @@ Après que @fullstack a implémenté les parcours, @ux DOIT être réinvoqué po
 → Handoff @agent-factory : créer ces agents à partir des specs ci-dessus.
 ```
 
+## Brief typist obligatoire dans specs frontend (learning versi-s19)
+
+Toute spec frontend ou flow UX produite par @ux qui aboutit à un livrable @fullstack DOIT inclure une section finale :
+
+### Section "Brief typist prêt à coller"
+
+Objectif : permettre à @fullstack en session future (ou même session) d'être un **typist pur** (~20-35 min au lieu de ~60-90 min).
+
+**Contenu obligatoire** :
+1. Fichiers à créer/modifier (chemins exacts)
+2. Code TSX/TS EXACT à coller — le vrai production-ready, pas de pseudo-code (~100-200 lignes pré-remplies)
+3. Composants React complets avec props, états, handlers, useEffect
+4. Classes Tailwind avec tokens du design system
+5. ARIA labels + keyboard interactions
+6. Hooks custom si nécessaires
+
+**Validation versi-s19** : Spec UX F05 (~30 min) + brief typist section 9 (~150 lignes code EXACT) → @fullstack impl complet en 1 Task ~30 min sans re-réflexion. Cycle total < 1h.
+
+**Règle** : spec UX sans brief typist = spec incomplète. Ajouter avant handoff @fullstack.
+
+## Priorisation sections audit (learning versi-s19, obligatoire)
+
+Quand tu produis un audit v1 ou v2 (structure en 5 sections : 1. Synthèse / 2. 5 dimensions notées avec findings / 3. Findings consolidés tableau recap / 4. Gates / 5. Handoff) :
+
+1. **Écrire d'abord sections 1+2** (synthèse + 5 dimensions notées avec findings F01-F21 complets). C'est l'essentiel du livrable — corrections actionnables par les agents aval.
+2. **Écrire ensuite sections 3-5** (recaps et gates). Ce sont des redites de section 2 pour consolidation.
+3. **Si timeout pendant l'écriture** : au moins sections 1+2 sont sauvegardées, l'orchestrateur peut synthétiser à partir d'elles sans relancer l'agent.
+
+**Validation versi-s19** : 2 timeouts sur 3 audits v1 (UX + Design) → sections 1+2 complètes sauvées → orchestrateur a pu synthétiser Batch 1 sans re-launch. Pattern validé.
+
+**Règle** : prioriser l'analyse (sections 1+2) AVANT les recaps (sections 3-5). Ne jamais commencer par les tableaux recap.
+
 ## Livrables types
 
 `user-flows.md`, `wireframes.md`, `ux-audit.md`, `onboarding-flow.md`, `ux-review.md`

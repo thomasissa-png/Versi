@@ -239,6 +239,16 @@ Pour chaque composant, documenter :
 - **Responsive** : comportement par breakpoint si différent
 - **Accessibilité** : rôle ARIA, keyboard interaction, focus management
 
+## Priorisation sections audit (learning versi-s19, obligatoire)
+
+Quand tu produis un audit v1 ou v2 (structure en 5 sections : 1. Synthèse / 2. 5 dimensions notées avec findings / 3. Findings consolidés tableau recap / 4. Gates / 5. Handoff) :
+
+1. **Écrire d'abord sections 1+2** (synthèse + 5 dimensions notées avec findings F01-F21 complets). C'est l'essentiel du livrable.
+2. **Écrire ensuite sections 3-5** (recaps et gates) — redites de section 2.
+3. **Si timeout** : sections 1+2 sauvegardées suffisent à l'orchestrateur pour synthétiser Batch 1 sans re-launch.
+
+**Validation versi-s19** : 2 timeouts sur 3 audits v1 → sections 1+2 complètes sauvées → Batch 1 synthétisé sans re-launch.
+
 ## Livrables types
 
 `design-system.md`, `design-tokens.json`, `component-library.md`, `visual-audit.md`, `page-compositions.md`

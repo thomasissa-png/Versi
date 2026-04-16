@@ -456,6 +456,26 @@ Le budget d'une étape frontend complexe (page + 2-3 composants) dépend de la c
 
 **Règle** : annoncer au fondateur le budget visé dès Phase 1 : "Étape complexe → 4 batches Express si corrections concentrées, 7 batches Standard sinon."
 
+### Pattern Express = méthode canonique (learning versi-s19, 3e validation consécutive)
+
+Pattern Express validé pour la 3e fois consécutive :
+- Étape 2 Lots (versi-s17) : 6,33 → 9,1/10 GO ABSOLU
+- Étape 3 Pièces (versi-s18) : 7,40 → 9,3/10 GO ABSOLU (avec Batch 2.5)
+- Étape 4 Visuels (versi-s19) : 7,47 → 9,2/10 GO ABSOLU
+
+**Statut** : Pattern Express est désormais la **méthode autopilote canonique** pour toute étape frontend complexe Versi Studio (et tout projet comparable : outil interne, dashboard multi-composants). Il n'est plus nécessaire de "tester" la méthode — l'invoquer par défaut.
+
+**Séquence canonique** :
+1. Batch 1 : 3 agents audits v1 parallèles (@ux + @design + @copywriter) — priorité sections 1+2
+2. Batch 2 : 2 agents @fullstack parallèles scope disjoint (Alpha = page+tokens / Beta = composants feuilles)
+3. Batch 3 : 3 agents re-audits v2 parallèles
+4. Batch 2.5 (conditionnel) : 1 typist @fullstack micro-corrections si unanimité v2 = 8,5-8,9/10 GO CONDITIONNEL + ≤3 résiduels triviaux
+5. Batch 4 : @moi gate finale
+
+Budget cible : ~9-10 Tasks producteurs par étape complexe. Pas besoin de Batch 5 re-audits complet si Batch 2.5 suffit.
+
+**Exceptions où NE PAS invoquer Express** : projet greenfield sans livrables amont (Phase 0 fondations) ; landing commerciale haute-visibilité (nécessite boucle visuelle par étape, pas par bundle) ; refonte majeure (>5 fichiers @fullstack non découpables en Alpha/Beta).
+
 ### Vérification Glob post-agent décisionnel (learning versi-s17)
 
 Certains agents décisionnels (@moi, @reviewer, testeurs-persona Laurent/Sophie/Nicolas) peuvent afficher le contenu markdown complet d'un livrable dans leur réponse ("Je rédige maintenant...") SANS effectivement émettre l'appel Write. Le fichier attendu reste absent du filesystem.
@@ -505,6 +525,27 @@ Pour scope fullstack multi-fichiers (>3 fichiers modifiés), découper en 2 agen
 **Gain** : latence / 2 (deux agents en parallèle ~15-20 min chacun vs séquentiel 30-40 min, 2× risque timeout).
 
 **Validation** : versi-s17 Batch 2 Lots — Alpha page+globals (6 edits) + Beta LotPanel+PlanCanvas (18 edits) en parallèle, 0 conflit.
+
+### Parallélisation Waves P2-P6 résiduels (learning versi-s19)
+
+Pour traiter plusieurs priorités résiduelles dans une même session (P2 BUG fix, P3 audit specs, P5 refactor route, P6 migration gate, etc.) — grouper par scope disjoint en Waves de 2-3 Tasks parallèles :
+
+**Principe** : tant que chaque Task modifie des fichiers différents (aucun conflit git possible), les lancer simultanément dans le même message.
+
+**Exemples validés versi-s19** :
+- **Wave 1 parallèle (3 Tasks)** : P2 BUG-1 component (@fullstack : PlanThumbnail.tsx:26) + P3 audit specs E2E (@qa : 4 fichiers specs) + P5 refactor route Upload XHR (@fullstack : upload/page.tsx). Scope 100% disjoint → exécution simultanée.
+- **Wave 2 parallèle (2 Tasks)** : P6 G26 stricte 3 specs visual (@qa) + P4 spec UX F05 (@ux : nouveau fichier spec). Disjoint.
+- **Final parallèle (2 Tasks)** : F05 impl @fullstack + OCR Q3 @ia. Disjoint.
+
+**Procédure obligatoire avant Wave** :
+1. Lister les fichiers cibles de CHAQUE Task dans la Wave
+2. Vérifier visuellement 0 intersection de chemins
+3. Si intersection (ex : 2 Tasks touchent `page.tsx`) → sérialiser ces 2 Tasks, garder les autres en parallèle
+4. Lancer les 2-3 Tasks dans UN SEUL message Claude (sinon pas de vrai parallélisme)
+
+**Gain mesuré** : ~50% économie temps vs séquentiel. Compteur Tasks identique (chaque Task compte 1) mais durée totale divisée par ~2.
+
+**Limite** : max 3 Tasks par Wave (règle anti-timeout orchestrateur), même si 5 Tasks disjointes sont possibles. Split en 2 Waves successives.
 
 ### Batch 2.5 micro-corrections post-v2 audits (learning versi-s18)
 
