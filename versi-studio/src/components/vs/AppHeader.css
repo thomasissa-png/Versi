@@ -1,0 +1,180 @@
+/**
+ * AppHeader.css — Versi Studio
+ * Réplique fidèle de Nav.css de versi.fr (src/src/components/Nav.css).
+ * Tokens locaux Versi (--vs-nav-*) pour ne pas conflicter avec design system Studio.
+ */
+
+.vs-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  z-index: 100;
+  background: transparent;
+  transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.vs-nav--scrolled {
+  background: #1A1A1A;
+  box-shadow: 0 1px 0 rgba(247, 245, 242, 0.08);
+}
+
+.vs-nav__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.vs-nav__logo {
+  font-size: 0.9375rem;
+  font-weight: 200;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #F7F5F2;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.vs-nav__items {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vs-nav__link {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #F7F5F2;
+  text-decoration: none;
+  padding-bottom: 4px;
+  border-bottom: 1px solid transparent;
+  transition: opacity 200ms ease;
+}
+
+.vs-nav__link:hover {
+  opacity: 0.85;
+}
+
+.vs-nav__cta {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #F7F5F2;
+  text-decoration: none;
+  border: 1px solid #F7F5F2;
+  padding: 10px 20px;
+  border-radius: 4px;
+  transition: background-color 200ms ease;
+  flex-shrink: 0;
+}
+
+.vs-nav__cta:hover {
+  background: rgba(247, 245, 242, 0.08);
+}
+
+.vs-nav__hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 12px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.vs-nav__hamburger-line {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: #F7F5F2;
+}
+
+.vs-nav__overlay {
+  position: fixed;
+  inset: 0;
+  background: #0F0F0F;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: vs-nav-fadeIn 200ms ease;
+}
+
+@keyframes vs-nav-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.vs-nav__close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.vs-nav__close-line {
+  position: absolute;
+  width: 20px;
+  height: 1.5px;
+  background: #F7F5F2;
+}
+
+.vs-nav__close-line:first-child { transform: rotate(45deg); }
+.vs-nav__close-line:last-child { transform: rotate(-45deg); }
+
+.vs-nav__overlay-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vs-nav__overlay-link {
+  font-size: 2.25rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #F7F5F2;
+  text-decoration: none;
+  transition: opacity 200ms ease;
+}
+
+.vs-nav__overlay-link:hover {
+  opacity: 0.7;
+}
+
+@media (max-width: 767px) {
+  .vs-nav__inner { padding: 0 20px; }
+  .vs-nav__items, .vs-nav__cta { display: none; }
+  .vs-nav__hamburger { display: flex; }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .vs-nav__inner { padding: 0 24px; }
+  .vs-nav__items { gap: 24px; }
+  .vs-nav__link { font-size: 0.75rem; }
+  .vs-nav__cta { font-size: 0.75rem; padding: 8px 16px; }
+}

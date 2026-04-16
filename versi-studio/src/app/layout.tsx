@@ -29,8 +29,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AppHeader />
-        {/* padding-top 56px compense la hauteur du header fixe (spec §5) */}
-        <main style={{ paddingTop: "56px" }}>{children}</main>
+        {/* padding-top 80px compense la hauteur du header fixe Versi (.vs-nav height) */}
+        <main style={{ paddingTop: "80px" }}>{children}</main>
         <AppFooter />
       </body>
     </html>

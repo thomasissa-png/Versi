@@ -3,128 +3,113 @@
 /**
  * AppHeader — Versi Studio
  *
- * Header fixe, fond sombre, identité Versi (logo VERSI STUDIO) + navigation outil.
- * Spec : docs/design/vs-header-footer-versi-cohérence.md (§5)
- * Pattern inspiré de versi-invest-site/src/components/Nav.jsx (le plus récent).
+ * Réplique fidèle du Nav.jsx de versi.fr (src/src/components/Nav.jsx) adapté à Next.js.
+ * Identité visuelle Versi : transparent → fond sombre au scroll, logo VERSI uppercase
+ * letter-spacing 0.18em font-thin, liens uppercase 0.08em, CTA bordé blanc.
  *
- * Comportement :
- * - Fond transparent au scroll = 0, devient --color-bg-dark au scroll > 20px
- * - Hauteur 56px (outil de travail compact, vs 64px sites marketing)
- * - Logo aligné baseline, gap 8px, UPPERCASE
- * - Navigation minimale (Mes projets) — extensible si auth future
- *
- * Accessibilité :
- * - aria-label sur header et nav
- * - focus-visible hérité de globals.css
- * - touch target CTA >= 44x44px (padding + font-size)
+ * Liens nav adaptés au contexte SaaS Versi Studio (pas de scroll sections marketing).
  */
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import './AppHeader.css';
+
+const NAV_ITEMS = [
+  { label: 'MES PROJETS', href: '/vs/projects' },
+  { label: 'NOUVEAU PROJET', href: '/vs' },
+];
 
 export default function AppHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
   return (
-    <header
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '56px',
-        zIndex: 100,
-        backgroundColor: scrolled
-          ? 'var(--color-bg-dark)'
-          : 'transparent',
-        borderBottom: scrolled
-          ? '1px solid var(--color-border-dark)'
-          : 'none',
-        transition: 'background-color 200ms ease, border-color 200ms ease',
-      }}
-      aria-label="En-tête Versi Studio"
-    >
-      <div
-        style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 var(--space-xl)',
-        }}
-      >
-        {/* Logo VERSI STUDIO */}
-        <Link
-          href="/vs/projects"
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: '8px',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-          aria-label="Versi Studio — Accueil"
-        >
-          <span
-            style={{
-              fontSize: '1.125rem',
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: '0.18em',
-              color: 'var(--color-text-inverse)',
-            }}
-          >
-            VERSI
-          </span>
-          <span
-            style={{
-              fontSize: '1.125rem',
-              fontWeight: 300,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--color-text-inverse)',
-            }}
-          >
-            STUDIO
-          </span>
+    <nav className={`vs-nav ${scrolled ? 'vs-nav--scrolled' : ''}`} aria-label="Navigation principale">
+      <div className="vs-nav__inner">
+        <Link href="/vs" className="vs-nav__logo">
+          VERSI
         </Link>
 
-        {/* Navigation outil */}
-        <nav
-          aria-label="Navigation Versi Studio"
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xl)' }}
+        <ul className="vs-nav__items">
+          {NAV_ITEMS.map((item) => (
+            <li key={item.href}>
+              <Link href={item.href} className="vs-nav__link">
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <Link href="/vs" className="vs-nav__cta">
+          NOUVEAU PROJET
+        </Link>
+
+        <button
+          type="button"
+          className="vs-nav__hamburger"
+          onClick={() => setMenuOpen(true)}
+          aria-expanded={menuOpen}
+          aria-controls="vs-mobile-menu"
+          aria-label="Menu de navigation"
         >
-          <Link
-            href="/vs/projects"
-            style={{
-              fontSize: 'var(--font-size-xs)',
-              fontWeight: 400,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--color-text-inverse)',
-              textDecoration: 'none',
-              opacity: 0.85,
-              transition: 'opacity 150ms ease',
-              minHeight: '44px',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
-          >
-            Mes projets
-          </Link>
-        </nav>
+          <span className="vs-nav__hamburger-line" />
+          <span className="vs-nav__hamburger-line" />
+          <span className="vs-nav__hamburger-line" />
+        </button>
       </div>
-    </header>
+
+      {menuOpen && (
+        <div
+          id="vs-mobile-menu"
+          className="vs-nav__overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+        >
+          <button
+            type="button"
+            className="vs-nav__close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Fermer le menu"
+          >
+            <span className="vs-nav__close-line" />
+            <span className="vs-nav__close-line" />
+          </button>
+          <ul className="vs-nav__overlay-items">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className="vs-nav__overlay-link"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </nav>
   );
 }
