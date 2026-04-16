@@ -29,6 +29,14 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Terminé",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-bg-default text-text-muted border border-border-default",
+  step_1_complete: "bg-warning/10 text-warning",
+  step_2_complete: "bg-warning/10 text-warning",
+  step_3_complete: "bg-warning/10 text-warning",
+  completed: "bg-success/10 text-success",
+};
+
 // ─── Composant principal ───────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -76,7 +84,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="vs-h1">Mes opérations</h1>
           <p className="vs-body-sm text-text-muted mt-1">
-            Découpe de plans, identification des lots et génération de visuels post-travaux.
+            Découpez vos plans, identifiez les lots et générez des visuels vendeurs — prêts à intégrer dans vos dossiers d&apos;acquisition.
           </p>
         </div>
         <button
@@ -144,7 +152,7 @@ export default function DashboardPage() {
             </svg>
           </div>
           <p className="vs-body mb-lg text-text-muted">
-            Aucune opération pour l&apos;instant. Lance ta première opération.
+            Aucune opération pour l&apos;instant. Créez votre première opération pour commencer.
           </p>
           <button
             onClick={() => setShowForm(true)}
@@ -235,7 +243,8 @@ function CreateProjectForm({
       onSubmit={handleSubmit}
       className="bg-bg-card border border-border-default rounded-lg p-xl"
     >
-      <h2 className="text-lg font-medium mb-lg">Nouvelle opération</h2>
+      <h2 className="vs-h3 mb-xs">Nouvelle opération</h2>
+      <p className="vs-body-sm text-text-muted mb-lg">Renseignez les informations de base pour initialiser l&apos;opération.</p>
 
       {error && (
         <div className="mb-lg bg-error/10 border border-error/20 rounded-md p-md text-sm text-error">
@@ -393,7 +402,7 @@ function ProjectCard({ project }: { project: VsProject }) {
           </div>
         </div>
         <div className="text-right">
-          <span className="inline-block px-sm py-2xs rounded text-xs bg-bg-default text-text-muted">
+          <span className={`inline-block px-sm py-2xs rounded text-xs ${STATUS_COLORS[project.status] ?? "bg-bg-default text-text-muted border border-border-default"}`}>
             {STATUS_LABELS[project.status] || project.status}
           </span>
           <p className="text-xs text-text-muted mt-xs">{createdDate}</p>
