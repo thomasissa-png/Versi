@@ -9,6 +9,31 @@
 
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
+// ─── Erreurs typées (P1-5 : résilience DB) ────────────────────────
+
+export class DbUnavailableError extends Error {
+  code = "DB_UNAVAILABLE" as const;
+  cause?: unknown;
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = "DbUnavailableError";
+    this.cause = cause;
+  }
+}
+
+/**
+ * Détecte si une erreur provient d'un problème de connexion DB
+ * (cold start Replit, pool épuisé, timeout, DATABASE_URL manquante).
+ */
+export function isDbUnavailable(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: string; name?: string; message?: string };
+  if (e.code === "DB_UNAVAILABLE") return true;
+  if (e.code === "ECONNREFUSED" || e.code === "ENOTFOUND" || e.code === "ETIMEDOUT") return true;
+  if (e.message && /DATABASE_URL manquante|Connection terminated|timeout/i.test(e.message)) return true;
+  return false;
+}
+
 // ─── Singleton Pool ────────────────────────────────────────────────
 
 let pool: Pool | null = null;
@@ -206,6 +231,17 @@ let tablesEnsured = false;
 
 export async function ensureDbReady(): Promise<void> {
   if (tablesEnsured) return;
-  await ensureVsTables();
-  tablesEnsured = true;
+  try {
+    await ensureVsTables();
+    tablesEnsured = true;
+  } catch (err) {
+    // Requalifier les erreurs de connexion en DbUnavailableError
+    if (isDbUnavailable(err)) {
+      throw new DbUnavailableError(
+        "Service de base de données temporairement indisponible.",
+        err
+      );
+    }
+    throw err;
+  }
 }

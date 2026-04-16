@@ -38,11 +38,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const fetchProjects = useCallback(async () => {
+  const fetchProjects = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/vs/projects");
+      const res = await fetch("/api/vs/projects", { signal });
       const json = (await res.json()) as ApiResponse<VsProject[]>;
 
       if (json.success) {
@@ -50,15 +50,18 @@ export default function DashboardPage() {
       } else {
         setError(json.error);
       }
-    } catch {
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError("Impossible de charger les opérations.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchProjects();
+    const controller = new AbortController();
+    fetchProjects(controller.signal);
+    return () => controller.abort();
   }, [fetchProjects]);
 
   const handleProjectCreated = (project: VsProject) => {
@@ -108,7 +111,7 @@ export default function DashboardPage() {
         <div className="bg-error/10 border border-error/20 rounded-md p-lg text-sm text-error">
           {error}
           <button
-            onClick={fetchProjects}
+            onClick={() => fetchProjects()}
             className="ml-md underline hover:no-underline"
           >
             Réessayer

@@ -105,6 +105,31 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
     return () => stopPolling();
   }, [fetchRoomData]);
 
+  // ─── Persistance localStorage du chat (P1-6) ──────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(`vs-chat-${room.id}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as ChatMessage[];
+        if (Array.isArray(parsed)) setChatMessages(parsed);
+      } catch {
+        // Silencieux — localStorage corrompu, on ignore
+      }
+    }
+  }, [room.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (chatMessages.length > 0) {
+      try {
+        localStorage.setItem(`vs-chat-${room.id}`, JSON.stringify(chatMessages));
+      } catch {
+        // Silencieux — quota localStorage ou mode privé
+      }
+    }
+  }, [chatMessages, room.id]);
+
   // ─── Polling ──────────────────────────────────────────────────
 
   const startPolling = useCallback((visualId: string) => {

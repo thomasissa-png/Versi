@@ -138,6 +138,7 @@ export default function UploadPage({
   // ─── Suppression d'un plan ─────────────────────────────────────
 
   const handleDelete = useCallback(async (planId: string) => {
+    if (!confirm("Supprimer ce plan ? Cette action est irreversible.")) return;
     setDeletingId(planId);
     try {
       const res = await fetch(`/api/vs/plans/${planId}`, {

@@ -90,15 +90,15 @@ export default function LotsPage({
 
   // ─── Chargement initial ───────────────────────────────────────
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError(null);
 
       const [projectRes, plansRes, lotsRes] = await Promise.all([
-        fetch(`/api/vs/projects/${projectId}`),
-        fetch(`/api/vs/projects/${projectId}/plans`),
-        fetch(`/api/vs/projects/${projectId}/lots`),
+        fetch(`/api/vs/projects/${projectId}`, { signal }),
+        fetch(`/api/vs/projects/${projectId}/plans`, { signal }),
+        fetch(`/api/vs/projects/${projectId}/lots`, { signal }),
       ]);
 
       const projectJson = (await projectRes.json()) as ApiResponse<VsProject>;
@@ -126,15 +126,18 @@ export default function LotsPage({
       if (plansJson.data.length > 0) {
         setSelectedFloor(plansJson.data[0].floor_number);
       }
-    } catch {
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError("Impossible de charger les données du projet.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [projectId]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
   // ─── Étages disponibles ───────────────────────────────────────
@@ -247,6 +250,7 @@ export default function LotsPage({
 
   const handleDeleteLot = useCallback(
     async (lotId: string) => {
+      if (!confirm("Supprimer ce lot ? Cette action est irreversible.")) return;
       // Optimistic update
       setLots((prev) => prev.filter((lot) => lot.id !== lotId));
       if (selectedLotId === lotId) setSelectedLotId(null);

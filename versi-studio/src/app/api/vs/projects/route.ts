@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { query, ensureDbReady } from "@/lib/vs/db";
+import { query, ensureDbReady, isDbUnavailable } from "@/lib/vs/db";
 import type {
   VsProject,
   CreateProjectPayload,
@@ -28,6 +28,12 @@ export async function GET(): Promise<NextResponse<ApiResponse<VsProject[]>>> {
     return NextResponse.json({ success: true, data: result.rows });
   } catch (err) {
     console.error("[API] GET /api/vs/projects erreur :", err);
+    if (isDbUnavailable(err)) {
+      return NextResponse.json(
+        { success: false, error: "Service temporairement indisponible. Reconnexion en cours..." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: "Impossible de charger les opérations." },
       { status: 500 }
@@ -84,6 +90,12 @@ export async function POST(
     );
   } catch (err) {
     console.error("[API] POST /api/vs/projects erreur :", err);
+    if (isDbUnavailable(err)) {
+      return NextResponse.json(
+        { success: false, error: "Service temporairement indisponible. Reconnexion en cours..." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: "Impossible de créer l'opération." },
       { status: 500 }

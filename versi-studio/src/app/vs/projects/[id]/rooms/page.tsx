@@ -314,6 +314,7 @@ export default function RoomsPage({
   const handleDeleteRoom = useCallback(
     async (roomId: string) => {
       if (!selectedLotId) return;
+      if (!confirm("Supprimer cette piece ? Cette action est irreversible.")) return;
 
       // Optimistic delete
       setRoomsByLot((prev) => ({
