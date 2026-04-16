@@ -100,7 +100,7 @@ En tant que Thomas, je veux consulter la liste de mes opérations en cours afin 
 |---|---|---|---|---|---|
 | adresse | string | Affiché | N/A (lecture seule) | 5–200 caractères | "12 rue des Lilas, 75011 Paris" |
 | type_bien | enum | Affiché | Valeurs : immeuble, maison, appartement | N/A | "immeuble" |
-| surface_totale | number\|null | Affiché si non null | N/A (lecture seule) | 10–9999 m² | 350 |
+| surface_totale | number\|null | Affiché si non null | N/A (lecture seule) | 9–5000 m² (pas=1) | 350 |
 | status | enum | Affiché (badge) | draft, step_1_complete, step_2_complete, step_3_complete, completed | N/A | "step_2_complete" |
 | created_at | ISO8601 | Affiché | N/A | N/A | "2026-04-15T10:30:00Z" |
 
@@ -206,7 +206,7 @@ En tant que Thomas, je veux créer un nouveau projet en renseignant l'adresse du
 |---|---|---|---|---|---|
 | adresse | string | Oui | Minimum 5 caractères, pas de validation géographique en V1 | 5–200 caractères | "12 rue des Lilas, 75011 Paris" |
 | type_bien | enum | Oui | Valeurs : immeuble, maison, appartement | N/A | "immeuble" |
-| surface_totale | number | Non | Nombre entier positif si renseigné | 10–9999 m² | 350 |
+| surface_totale | number | Non | Nombre entier positif si renseigné (step=1) | 9–5000 m² | 350 |
 
 #### 5 états UI (Gate G21)
 | État | Comportement | Message/Affichage |
