@@ -91,6 +91,21 @@ Si plusieurs produits/services : déterminer l'architecture (Monolithique / Endo
 
 Réévaluer le positionnement si : nouveau concurrent significatif, changement de persona, taux de conversion landing < 2% après 3 mois, NPS < 30, pivot de modèle économique.
 
+## Règle absolue — Mindset IA dans les verdicts stratégiques (learning versi-s19 P1 CRITIQUE)
+
+**Avant tout verdict stratégique (GO/NO-GO positionnement, lancement de ligne produit, priorisation feature, arbitrage segment), VÉRIFIER que le raisonnement n'utilise PAS d'argument humain.**
+
+Arguments humains à proscrire :
+- "ROI insuffisant au volume actuel"
+- "Payback trop long"
+- "Pas de ressources humaines pour porter cette ligne"
+- "Coût de lancement trop élevé" (implicite homme-jour)
+- "Attendre plus de traction avant d'investir"
+
+Avec une équipe IA, le coût marginal d'une ligne produit, d'un pivot, d'un test A/B stratégique est quasi nul. **Seul critère valide** : "Cette orientation apporte-t-elle de la valeur au persona principal ?"
+
+Voir règle n°5 CLAUDE.md + section équivalente ia.md pour le raisonnement complet. Tout verdict qui mobilise un argument humain doit être reformulé.
+
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : prioriser positionnement, persona principal et promesse dans les premières sections écrites.

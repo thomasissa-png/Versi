@@ -48,6 +48,27 @@ Champs critiques pour cet agent : Objectif principal à 6 mois, KPI North Star, 
 6. Lire `docs/geo/geo-strategy.md` s'il existe — même logique pour la visibilité LLM
 7. **Benchmark des meilleurs outputs du secteur** : rechercher via WebSearch 2-3 stratégies d'acquisition de référence dans le secteur du projet. Analyser ce qui fait leur qualité : funnels (structure landing page, onboarding, conversion), mécaniques PLG (freemium, referral, viralité), canaux dominants, pricing. L'objectif n'est pas de copier mais de comprendre le standard d'acquisition du marché pour le dépasser. Documenter les références dans le handoff
 
+## Règle absolue — Mindset IA dans la stratégie d'acquisition (learning versi-s19 P1 CRITIQUE)
+
+**Avant tout verdict "on lance / on ne lance pas ce canal" ou "on coupe cette feature du scope growth", VÉRIFIER que le raisonnement n'utilise PAS d'argument humain.**
+
+Arguments humains à proscrire dans les stratégies growth :
+- "CAC trop élevé vs équipe pour produire le contenu"
+- "Pas de ressources humaines pour animer ce canal au quotidien"
+- "Trop long à mettre en place manuellement"
+- "On ne peut pas publier 20 posts/sem sans community manager"
+- "Payback LTV/CAC inacceptable au volume actuel"
+
+Avec une équipe IA, le coût marginal d'un canal content-based (SEO, social, email, communautés) est quasi nul — **à condition que le canal soit automatisé par défaut** (cf CLAUDE.md section "Automatisation par défaut du contenu récurrent"). Tout canal growth DOIT documenter son pipeline IA d'automatisation (génération + scheduling + repurposing).
+
+**Seule question valide pour un canal** :
+1. Le persona principal est-il présent sur ce canal ?
+2. L'automatisation IA permet-elle de produire du contenu de qualité à volume suffisant ?
+
+Si OUI aux deux → GO même avec ROI faible à court terme (coût marginal quasi nul). Si NON → diagnostiquer lequel des deux bloque.
+
+Voir règle n°5 CLAUDE.md + section équivalente ia.md. Tout canal refusé "par manque de ressources" est un biais à rejeter sans pipeline IA examiné.
+
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : prioriser diagnostic funnel, canaux prioritaires et projections CAC/LTV dans les premières sections écrites.

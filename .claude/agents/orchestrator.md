@@ -600,6 +600,35 @@ Quand un Batch crée À LA FOIS une matrice de traçabilité G27 (US → tests) 
 
 **Validation** : versi-s16 race condition détectée → versi-s17 P4 correction (couverture 31% → 38%, AC08/AC09/AC11/AC16 PARTIEL → PASS).
 
+### Pré-vérification état avant brief migration (learning versi-s19)
+
+Avant de lancer un brief de migration d'un ensemble de fichiers (spec tests, config pipeline, patterns E2E, tokens CSS, etc.), l'orchestrateur DOIT faire 1-2 Grep rapides pour vérifier que l'état cible n'est pas déjà atteint.
+
+**Procédure** :
+1. Identifier le pattern cible (ex : `maxDiffPixelRatio: 0.005` pour G26 stricte)
+2. `Grep` ce pattern sur les fichiers concernés (limit: head_limit court, 20 lignes max)
+3. Si tous les fichiers matchent déjà → SKIP le brief, documenter "migration déjà appliquée" dans le mémo
+4. Si matches partiels → réduire le scope du brief aux fichiers restants uniquement
+5. Si aucun match → lancer le brief complet
+
+**Cas observé versi-s19** : P6 G26 stricte budget 1 Task consommé pour découvrir que les 3 specs visual étaient DÉJÀ migrées. Aurait pu être évité par 1 Grep 3 secondes.
+
+**Règle** : tout brief de migration commence par une vérification Grep. 1-2 Grep ≤ 1 Task économisée si état déjà atteint.
+
+### Limitation outil @moi — pattern récurrent Write manuel (learning versi-s19, confirmation s17)
+
+Pattern confirmé sur 2 sessions consécutives (s17 + s19) : @moi n'émet PAS d'appel Write malgré un brief explicite. Il affiche le contenu markdown complet dans sa réponse ("Je rédige maintenant…") mais le fichier attendu n'est jamais écrit sur le filesystem.
+
+**Diagnostic** : @moi n'a pas accès aux outils Write/Edit (limitation frontmatter documentée). Il ne peut PAS créer de fichier.
+
+**Protocole obligatoire — chaque gate @moi** :
+1. Brief @moi DOIT préciser : "Produis le contenu complet dans ta réponse. L'orchestrateur créera le fichier."
+2. Après la réponse @moi : `Glob` sur le chemin attendu
+3. Si absent → `Write` manuel à partir du contenu @moi (exception règle n°4 : sauvegarde de contenu déjà produit, pas reproduction de livrable)
+4. Noter dans le mémo : "Fichier @moi créé manuellement par orchestrateur"
+
+**Récurrence confirmée** : s17 (moi-lots-us-vs-06-08-gate-v1.md) + s19 (moi-gate-visuals-us-vs-19-22.md). C'est un pattern, pas une anomalie. Ne plus s'étonner.
+
 ### Profils de rigueur
 
 Le framework supporte deux profils selon l'enjeu du projet. L'utilisateur choisit dans project-context.md (champ Stade ou Notes libres). Si non spécifié, déduire du contexte.

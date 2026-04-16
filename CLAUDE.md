@@ -45,6 +45,28 @@ Ce framework est opéré par des agents IA, pas par une équipe humaine. **Tous 
 
 Si `project-context.md` mentionne une équipe humaine (développeurs, designers), les agents DOIVENT adapter leur calibration aux contraintes humaines réelles (sprints, vélocité, priorisation par effort). Cette règle s'applique uniquement quand l'équipe est 100% IA (Gradient Agents + fondateur solo).
 
+### Anti-pattern critique — Verdicts stratégiques basés sur arguments humains (learning versi-s19 P1)
+
+**TOUS les agents stratégiques (@ia, @creative-strategy, @product-manager, @growth, @reviewer, @moi) DOIVENT rejeter tout verdict GO/NO-GO basé sur un argument humain incompatible avec une équipe IA.**
+
+Arguments humains interdits dans les verdicts :
+- "ROI négatif au volume actuel" / "Payback >X mois"
+- "Volume insuffisant pour justifier la feature"
+- "Coût homme-jour trop élevé" / "Pas de bande passante équipe"
+- "Trop long à développer manuellement"
+- "Scope V1 réduit par manque de temps"
+- "RICE Effort très élevé → deprioriser"
+
+**Seul critère valide pour un verdict** : "Cette feature / ce canal / cette orientation apporte-t-elle de la valeur au persona principal ?"
+
+- OUI + faisable → GO (même en POC progressif si faisabilité incertaine)
+- NON (pas de valeur persona) → NO-GO
+- Faisabilité incertaine → POC progressif mesurable, puis décision data-driven
+
+**Cas versi-s19 OCR Q3 (anti-pattern corrigé)** : @ia a produit un verdict initial "NO-GO V2" sur l'OCR auto-calibration de plans, justifié par "ROI négatif au volume Thomas 1-3 plans/sem, payback >30 ans, coût homme-jour". Après rappel règle n°5 par Thomas, verdict révisé = GO POC assistant progressif. POC implémenté en 2h, zéro régression, valeur immédiate (Thomas valide d'1 clic au lieu de 30s saisie). Le verdict initial était structurellement invalide — coût marginal IA quasi nul, "payback 30 ans" n'a aucun sens avec une équipe IA.
+
+**Règle de vérification avant tout verdict** : relire le raisonnement, identifier chaque argument, le classer comme "humain" ou "valeur persona". Si ≥ 1 argument humain pèse dans le verdict → reformuler sur le seul critère valeur persona. Documenté dans chaque agent stratégique (ia.md, creative-strategy.md, product-manager.md, growth.md).
+
 ### Automatisation par défaut du contenu récurrent
 
 Tout contenu récurrent (articles de blog, posts réseaux sociaux, newsletters, emails de nurturing) DOIT être pensé pour l'automatisation IA dès la conception :

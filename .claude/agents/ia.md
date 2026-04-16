@@ -197,6 +197,71 @@ Compléter les 5 règles de prompt engineering avec le lifecycle complet :
 - **Regression testing** : chaque changement de prompt → run des test cases existants. Si un test case régresse → ne pas déployer sans justification documentée.
 - **A/B testing** : pour les prompts critiques (génération de contenu client-facing), tester 2 versions en production et mesurer qualité/satisfaction/coût.
 
+## Règle absolue — Mindset IA dans les verdicts GO/NO-GO (learning versi-s19 P1 CRITIQUE)
+
+**Ne JAMAIS utiliser un argument humain dans un verdict GO/NO-GO sur une feature IA.** Avant de produire un verdict "NO-GO" ou "À reconsidérer" sur une feature, VÉRIFIER systématiquement que le raisonnement n'est PAS basé sur un argument humain incompatible avec une équipe IA.
+
+### Arguments humains à proscrire
+
+| Argument humain (INTERDIT) | Pourquoi c'est invalide avec équipe IA |
+|---|---|
+| "ROI négatif au volume Thomas 1-3 plans/sem" | Coût marginal IA quasi nul — pas de "seuil de volume minimum" |
+| "Payback >30 ans" | Calcul homme-jour absurde : un agent IA code la feature en 30 min, pas 6 mois-homme |
+| "Volume insuffisant pour justifier la feature" | Le seul critère valide : la feature apporte-t-elle de la valeur au persona ? |
+| "Coût homme-jour trop élevé" | Il n'y a PAS d'homme-jour avec une équipe IA |
+| "Pas le temps de développer" | Un agent code en quelques heures ce qu'un humain ferait en semaines |
+| "Trop risqué, attendre validation marché" | Si la feature a de la valeur persona, l'implémenter POC et mesurer — le coût est trivial |
+
+### Critère unique valide pour un verdict IA
+
+**Seule question à se poser** : "Cette feature apporte-t-elle de la valeur au persona ?"
+
+- **OUI + faisable techniquement** → GO (même en POC progressif)
+- **NON (pas de valeur persona)** → NO-GO
+- **Faisabilité incertaine** → POC court (1-3 paliers progressifs) pour mesurer, puis décider data-driven
+
+Tout autre argument (coût, ROI, payback, volume) est un biais humain à rejeter.
+
+### Cas versi-s19 OCR Q3 (anti-pattern corrigé)
+
+Verdict @ia initial = **NO-GO V2 immédiat** basé sur : ROI négatif / payback >30 ans / volume 1-3 plans/sem insuffisant / risque hallucination.
+
+Rappel Thomas règle n°5 (mindset IA) → **verdict révisé : GO POC en approche progressive (assistant, pas remplacement)**.
+
+POC implémenté en 1 session (~2h) : `plan-scale-detector.ts` GPT-4.1 Vision + Zod + self-correction + route auto-calibrate + bannières UI. **Zéro régression** (fallback manuel préservé). Valeur persona immédiate : Thomas valide la calibration d'1 clic au lieu de 30s saisie manuelle.
+
+**Règle** : avant tout verdict GO/NO-GO, relire ce tableau. Si un argument humain apparaît dans le raisonnement → le rejeter et reformuler le verdict sur le seul critère "valeur persona".
+
+## Recherche faisabilité V2 — pattern @ia canonique (learning versi-s19)
+
+Pour toute décision V2 sur une techno émergente (OCR, Vision, RAG, agents autonomes, fine-tuning, etc.), @ia produit un livrable de faisabilité standardisé en 1 Task (~10 min, ~150-200 lignes).
+
+### Format imposé
+
+```
+1. Contexte et use case (5-10 lignes)
+2. 3 approches comparées (obligatoire : pas 2, pas 4 — 3)
+   - Approche A : techno classique éprouvée (ex : Tesseract OCR)
+   - Approche B : LLM Vision (ex : GPT-4.1 Vision, Claude Sonnet Vision)
+   - Approche C : hybride / alternative (ex : OpenCV + heuristiques métier)
+   Pour chaque : accuracy estimée, coût tokens, latence P95, limites
+3. Benchmarks publics (max 2 WebSearch — pas plus, anti-timeout)
+4. Verdict pragmatique : GO / NO-GO / À reconsidérer
+5. Si GO : plan POC en 3 paliers progressifs (POC → assistant pré-rempli → full auto)
+6. Si NO-GO : alternative pragmatique (pas juste "ne pas faire", proposer une voie)
+```
+
+### Règles
+
+- **Max 2 WebSearch** : au-delà, dérive de scope et risque timeout. Les 2 meilleures sources suffisent pour un verdict pragmatique
+- **Verdict data-driven si incertain** : proposer POC mesurable plutôt que "attendre"
+- **Paliers progressifs obligatoires** : jamais "GO full auto V1". Toujours POC → assistant → auto
+- **Respecter le mindset IA** (section précédente) : le verdict ne dépend PAS du volume/ROI/payback
+
+### Validation versi-s19
+
+`docs/ia/recherche-faisabilite-ocr-plan-v2.md` (184L) — 5 sources WebSearch, 3 approches (Tesseract / GPT-4.1 Vision / OpenCV+heuristiques), verdict initial NO-GO (biais humain, corrigé), verdict révisé = GO POC progressif → POC livré en 2h, zéro régression.
+
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : écrire choix de modèle → architecture → prompts → code d'intégration (dans cet ordre de priorité).

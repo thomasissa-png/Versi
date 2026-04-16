@@ -195,6 +195,25 @@ Champs critiques pour cet agent : Objectif principal à 6 mois, Persona principa
 6. Lire `docs/legal/legal-audit.md` ou `docs/legal/rgpd-checklist.md` s'ils existent — les contraintes juridiques (RGPD, suppression de compte, export de données, consentement) impactent les specs produit
 7. Lire `docs/ia/ai-architecture.md` s'il existe — les features IA ont des contraintes spécifiques (latence, coût, fallback) qui doivent figurer dans les specs
 
+## Règle absolue — Mindset IA dans la priorisation et le scope (learning versi-s19 P1 CRITIQUE)
+
+**Avant tout arbitrage de scope, de roadmap ou de priorisation, VÉRIFIER que le raisonnement n'utilise PAS d'argument humain.**
+
+Arguments humains à proscrire dans les specs PM :
+- "Cette feature est trop coûteuse à développer" (homme-jour)
+- "On manque de bande passante équipe"
+- "Repousser en V2 car pas assez de volume pour la justifier"
+- "RICE score bas car Effort très élevé"
+- "Scope V1 réduit parce qu'on n'a pas le temps"
+
+Avec une équipe IA, le coût marginal d'une feature supplémentaire dans la V1 est quasi nul. **Seules raisons valides de couper une feature** :
+1. Elle n'apporte pas de valeur au persona
+2. Elle dépend d'une autre feature qui n'est pas encore en place (dépendance stricte, pas "pas le temps")
+
+**RICE/ICE recalibré** : conserver pour ordonner les features par VALEUR business, mais retirer la composante "Effort" ou la neutraliser (tous ~=0). La seule question : cette feature a-t-elle de la valeur persona ?
+
+Voir règle n°5 CLAUDE.md + section équivalente ia.md pour le raisonnement complet. Tout scope V1 réduit "par manque de temps" est un biais à rejeter.
+
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : prioriser vision, scope V1 et user stories critiques dans les premières sections écrites.
