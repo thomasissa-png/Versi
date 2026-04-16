@@ -13,7 +13,8 @@
 
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type ConfirmModalVariant = "danger" | "default";
 
@@ -41,6 +42,12 @@ export default function ConfirmModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // SSR safety — document.body n'est disponible que côté client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Focus initial + restauration
   useEffect(() => {
@@ -94,14 +101,14 @@ export default function ConfirmModal({
     }
   }, []);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const confirmButtonClasses =
     variant === "danger"
       ? "bg-error hover:bg-error/90 text-text-inverse focus-visible:outline-error"
       : "bg-interactive-primary hover:bg-interactive-hover text-text-inverse focus-visible:outline-interactive-primary";
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
@@ -120,7 +127,8 @@ export default function ConfirmModal({
       {/* Modal */}
       <div
         ref={modalRef}
-        className="relative bg-bg-card rounded-lg shadow-xl max-w-md w-full p-lg border border-border-default"
+        style={{ maxWidth: "28rem" }}
+        className="relative bg-bg-card rounded-lg shadow-xl w-full p-lg border border-border-default"
       >
         <h2
           id="confirm-modal-title"
@@ -154,4 +162,6 @@ export default function ConfirmModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

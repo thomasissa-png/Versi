@@ -351,10 +351,13 @@ export default function UploadPage({
 
   if (loading) {
     return (
-      <div className="flex gap-2xl">
-        <aside className="w-64 flex-shrink-0">
+      <div className="flex flex-col md:flex-row gap-lg md:gap-2xl">
+        <aside className="hidden md:block md:w-64 md:flex-shrink-0">
           <Stepper currentStep={1} projectId={projectId} />
         </aside>
+        <div className="md:hidden mb-lg">
+          <Stepper currentStep={1} projectId={projectId} variant="horizontal" />
+        </div>
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin motion-reduce:animate-none" />
         </div>
@@ -377,14 +380,19 @@ export default function UploadPage({
   }
 
   return (
-    <div className="flex gap-2xl">
-      {/* Stepper latéral */}
-      <aside className="w-64 flex-shrink-0">
+    <div className="flex flex-col md:flex-row gap-lg md:gap-2xl">
+      {/* Stepper latéral (desktop/tablet) */}
+      <aside className="hidden md:block md:w-64 md:flex-shrink-0">
         <Stepper currentStep={1} projectId={projectId} />
       </aside>
 
+      {/* Stepper horizontal (mobile) */}
+      <div className="md:hidden mb-lg">
+        <Stepper currentStep={1} projectId={projectId} variant="horizontal" />
+      </div>
+
       {/* Contenu principal */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         {/* En-tête */}
         <div className="mb-xl">
           <p className="vs-label mb-xs">{project.adresse}</p>
