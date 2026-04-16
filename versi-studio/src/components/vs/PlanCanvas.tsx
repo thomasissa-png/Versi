@@ -49,6 +49,7 @@ interface PlanCanvasProps {
   selectedLotId: string | null;
   onSelectLot: (lotId: string | null) => void;
   onUpdateLotZone: (lotId: string, zone: ZoneRect) => void;
+  onDeleteLot?: (lotId: string) => void;
   lotIndexMap: Map<string, number>;
   m2PerPixel: number | null;
 }
@@ -212,9 +213,11 @@ export default function PlanCanvas({
   selectedLotId,
   onSelectLot,
   onUpdateLotZone,
+  onDeleteLot,
   lotIndexMap,
   m2PerPixel,
 }: PlanCanvasProps) {
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lotId: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -693,7 +696,19 @@ export default function PlanCanvas({
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
 
   const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLCanvasElement>) => {
+    // Escape : désélectionne (même sans lot sélectionné, ferme menu contextuel)
+    if (e.key === "Escape") {
+      setContextMenu(null);
+      onSelectLot(null);
+      return;
+    }
     if (!selectedLotId) return;
+    // Delete / Backspace : supprime le lot sélectionné
+    if ((e.key === "Delete" || e.key === "Backspace") && onDeleteLot) {
+      e.preventDefault();
+      onDeleteLot(selectedLotId);
+      return;
+    }
     const lot = lots.find((l) => l.id === selectedLotId);
     if (!lot) return;
     const zone = parseZoneData(lot);
@@ -709,7 +724,25 @@ export default function PlanCanvas({
       e.preventDefault();
       onUpdateLotZone(lot.id, { x_percent, y_percent, width_percent, height_percent });
     }
-  }, [selectedLotId, lots, onUpdateLotZone]);
+  }, [selectedLotId, lots, onUpdateLotZone, onSelectLot, onDeleteLot]);
+
+  // Clic droit sur un lot → menu contextuel "Supprimer".
+  const handleContextMenu = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const { px, py } = getCanvasCoords(e);
+    const hitLotId = hitTestLot(px, py);
+    if (hitLotId) {
+      onSelectLot(hitLotId);
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      setContextMenu({
+        x: e.clientX - (containerRect?.left ?? 0),
+        y: e.clientY - (containerRect?.top ?? 0),
+        lotId: hitLotId,
+      });
+    } else {
+      setContextMenu(null);
+    }
+  }, [onSelectLot]);
 
   // ─── Rendu ────────────────────────────────────────────────────
 
@@ -724,12 +757,45 @@ export default function PlanCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={handleContextMenu}
         onKeyDown={handleCanvasKeyDown}
         tabIndex={0}
         role="application"
-        aria-label="Éditeur de plan — flèches directionnelles pour déplacer le lot sélectionné, Tab pour cycler entre les lots"
+        aria-label="Éditeur de plan — flèches pour déplacer, Delete pour supprimer, clic droit pour menu, Échap pour désélectionner"
         className="absolute inset-0 block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
+      {/* Menu contextuel clic droit */}
+      {contextMenu && onDeleteLot && (
+        <>
+          {/* Backdrop pour fermer en cliquant ailleurs */}
+          <div
+            className="absolute inset-0 z-10"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }}
+          />
+          <div
+            role="menu"
+            aria-label="Actions du lot"
+            className="absolute z-20 bg-white rounded-md shadow-lg border border-[var(--color-border-default)] py-xs min-w-[160px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onDeleteLot(contextMenu.lotId);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-md py-sm text-sm text-[var(--color-error-strong)] hover:bg-[var(--color-error-bg)] flex items-center gap-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+              </svg>
+              Supprimer ce lot
+            </button>
+          </div>
+        </>
+      )}
       {/* Message de chevauchement */}
       {overlappingIds.size > 0 && (
         <div className="absolute bottom-3 left-3 right-3 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-md px-md py-sm text-sm text-[var(--color-error-strong)] flex items-center gap-sm">

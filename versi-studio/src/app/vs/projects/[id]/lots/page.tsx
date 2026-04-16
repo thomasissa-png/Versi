@@ -574,6 +574,7 @@ export default function LotsPage({
               selectedLotId={selectedLotId}
               onSelectLot={setSelectedLotId}
               onUpdateLotZone={handleUpdateLotZone}
+              onDeleteLot={handleDeleteLot}
               lotIndexMap={lotIndexMap}
               m2PerPixel={m2PerPixel}
             />

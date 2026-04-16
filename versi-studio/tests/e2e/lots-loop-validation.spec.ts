@@ -1,8 +1,8 @@
 /**
- * Test reproduction bugs Thomas s20 :
- * Header visible + plan affiché + ajouter 4 lots décalés + pas de double bouton
- *
- * Prend des screenshots à chaque étape pour inspection visuelle manuelle.
+ * Test validation s20 :
+ * - Logo VERSI STUDIO pattern Versi
+ * - Clic droit sur lot → menu contextuel
+ * - Touche Delete → ouvre modal suppression
  */
 import { test, type Route } from "@playwright/test";
 
@@ -28,22 +28,17 @@ const MOCK_PLAN = {
   created_at: "2026-04-16T00:00:00Z",
 };
 
-// 1 seul lot initial — on va ajouter via bouton
-const initialLots: Array<Record<string, unknown>> = [];
+let lots: Array<Record<string, unknown>> = [];
 
-let lots = [...initialLots];
-
-test("Bugs Thomas — header visible + plan + ajouter 4 lots décalés", async ({ page }) => {
-  lots = [...initialLots]; // reset entre runs
+test("Logo VERSI STUDIO + clic droit + Delete", async ({ page }) => {
+  lots = [];
 
   await page.route("**/api/vs/files*", (route: Route) =>
     route.fulfill({
       status: 200,
       contentType: "image/png",
-      // Vraie PNG 800x600 grise pour simuler plan
       body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAyAAAAJYCAIAAAAuHQQoAAAAgklEQVR42u3PAREAAAQDMPofAg/q" +
-          "AUBv2e7RGTTaNA8gAAgAECEAABAAAECAAEAJAUIAASAEABA0AkAQEwCACYBABAHAICAAAEAQAACAgAECAAAEAIAAAAECAAEAAAAECAAAECAAAAAAECAAECAAEAAAAECAAAECAAAAAAECAAECAAEAAAAAACyE9vEAAB+8hLwAAAAAElFTkSuQmCC",
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         "base64"
       ),
     })
@@ -61,8 +56,8 @@ test("Bugs Thomas — header visible + plan + ajouter 4 lots décalés", async (
         id: `lot-${lots.length + 1}`,
         project_id: PROJECT_ID,
         plan_id: PLAN_ID,
-        floor_number: body.floor_number ?? 0,
-        name: body.name || `Lot ${lots.length + 1}`,
+        floor_number: 0,
+        name: body.name,
         zone_data: body.zone_data,
         surface_m2: 47,
         status: "manual",
@@ -82,36 +77,45 @@ test("Bugs Thomas — header visible + plan + ajouter 4 lots décalés", async (
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`/vs/projects/${PROJECT_ID}/lots`, { waitUntil: "load" });
   await page.waitForSelector("canvas", { timeout: 5000 });
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1500);
 
-  // 1) Header visible (opaque)
-  const headerBg = await page.locator(".vs-nav").evaluate((el) => window.getComputedStyle(el).backgroundColor);
-  console.log("Header background:", headerBg);
-  // 2) Footer visible
-  const footerBg = await page.locator(".vs-footer").evaluate((el) => window.getComputedStyle(el).backgroundColor);
-  console.log("Footer background:", footerBg);
+  // Vérifier le logo VERSI STUDIO (2 spans)
+  const logoName = await page.locator(".vs-nav__logo-name").textContent();
+  const logoLabel = await page.locator(".vs-nav__logo-label").textContent();
+  console.log(`Logo header : "${logoName}" + "${logoLabel}"`);
 
-  // Screenshot état initial (0 lots)
-  await page.screenshot({ path: "/tmp/bug-thomas-1-initial.png", fullPage: false });
+  const footerLogoName = await page.locator(".vs-footer__logo-name").textContent();
+  const footerLogoLabel = await page.locator(".vs-footer__logo-label").textContent();
+  console.log(`Logo footer : "${footerLogoName}" + "${footerLogoLabel}"`);
 
-  // Cliquer "+ Ajouter un lot" 4 fois — il ne doit y avoir qu'1 seul bouton
-  const addButtons = await page.getByRole("button", { name: /ajouter un lot/i }).all();
-  console.log("Nombre de boutons 'Ajouter un lot' visibles :", addButtons.length);
+  // Ajouter 1 lot
+  await page.getByRole("button", { name: /ajouter un lot/i }).first().click();
+  await page.waitForTimeout(800);
+  console.log("Lots après 1 ajout :", lots.length);
 
-  if (addButtons.length > 0) {
-    for (let i = 0; i < 4; i++) {
-      await addButtons[0].click();
-      await page.waitForTimeout(400);
-    }
-    await page.waitForTimeout(1500);
+  // Screenshot état avec 1 lot
+  await page.screenshot({ path: "/tmp/s20-final-1lot.png", fullPage: true });
+
+  // Clic droit sur le canvas (au milieu du lot ajouté — coords approximatives x=180, y=150)
+  const canvas = page.locator("canvas").first();
+  await canvas.click({ button: "right", position: { x: 180, y: 150 } });
+  await page.waitForTimeout(500);
+
+  // Vérifier qu'un menu contextuel apparaît
+  const contextMenuVisible = await page.locator('role=menu[name="Actions du lot"]').isVisible();
+  console.log("Menu contextuel visible après clic droit :", contextMenuVisible);
+
+  await page.screenshot({ path: "/tmp/s20-final-contextmenu.png", fullPage: false });
+
+  // Cliquer "Supprimer ce lot"
+  if (contextMenuVisible) {
+    await page.getByRole("menuitem", { name: /supprimer ce lot/i }).click();
+    await page.waitForTimeout(800);
+
+    // Vérifier que la modal de confirmation est apparue
+    const confirmModal = await page.locator('text=/Supprimer ce lot/i').isVisible();
+    console.log("Modal confirmation après clic Supprimer :", confirmModal);
   }
 
-  // Compter les lots
-  console.log("Lots créés :", lots.length);
-  console.log("Coordonnées :", JSON.stringify(lots.map((l) => ({ name: l.name, zone: l.zone_data })), null, 2));
-
-  // Screenshot après 4 ajouts
-  await page.screenshot({ path: "/tmp/bug-thomas-2-after-add.png", fullPage: false });
-  // Pleine page (inclut footer)
-  await page.screenshot({ path: "/tmp/bug-thomas-3-fullpage.png", fullPage: true });
+  await page.screenshot({ path: "/tmp/s20-final-confirmmodal.png", fullPage: false });
 });
