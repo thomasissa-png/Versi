@@ -102,8 +102,9 @@
 - **Portée** : code frontend (`.tsx`, `.jsx`), specs user-facing, tests E2E (labels visuels `getByText`), micro-copy, ARIA labels, **messages d'erreur API retournés au client** (`NextResponse.json({ error: "..." })` affichés via `setError(json.error)` — enrichi versi-s16). N'affecte PAS les commentaires code, identifiants techniques, noms de variables/fonctions, noms d'endpoints API.
 - **Gate associée** : G33 (BLOQUANT) dans CLAUDE.md. Contrôle par @copywriter, @ux, @seo, @fullstack à chaque livrable.
 
-### Registre Versi Studio (session s16)
-- **Vous de politesse uniforme.** Pour Versi Studio (outil pro INTERNE), le registre par défaut est "vous" de politesse. Validé par @moi GO absolu versi-s16 malgré la recommandation @copywriter de passer au "tu" canonique. Le "vous" convient au ton pro sobre Versi.
+### Registre Versi Studio (sessions s16, s17)
+- **Vous de politesse / impératif neutre.** Pour Versi Studio (outil pro INTERNE), le registre par défaut est "vous" de politesse. Validé par @moi GO absolu versi-s16 (Étape 1 Upload) et re-validé versi-s17 (Étape 2 Lots) malgré la recommandation @copywriter de passer au "tu" canonique. Le "vous" convient au ton pro sobre Versi et préserve la cohérence avec la plateforme B2B Versi Immobilier.
+- **Forme privilégiée** : impératif neutre sans sujet explicite ("Vérifiez votre connexion", "Rechargez la page", "Réessayez"). Le "vous" apparaît uniquement dans les messages longs nécessitant une possession ("vos lots", "votre connexion").
 - **Règle** : @copywriter ne doit PAS recommander le passage au "tu" sans validation @moi préalable. Le tu n'est pas automatiquement préférable en contexte pro B2B.
 - **Scope** : s'applique à Versi Studio uniquement. Les autres entités (Versi Immobilier, Versi Invest) conservent leurs décisions de registre propres.
 

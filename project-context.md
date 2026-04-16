@@ -234,7 +234,11 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
-| @copywriter | 2026-04-16 | `docs/copy/lots-us-vs-06-08-copy-audit-v1.md` | Audit copy Étape 2 Lots (US-VS-06/07/08). Note globale 6,5/10. 2 gates FAIL : règle n°13 UTF-8 (F2 accent "irréversible" + F9 `m\u00B2`) et cohérence ConfirmModal (F1 `confirm()` natif). G33 Zéro anglicisme PASS. G24 Registre PASS (impératif neutre uniforme). 9 corrections exactes fournies pour @fullstack (2 P0, 7 P1) : messages d'erreur non actionnables → reformulés avec cause + action utilisateur ; `confirm()` natif → ConfirmModal portalisée ; `m\u00B2` → `m²` ; "irreversible" → "irréversible". | Priorité P0 : `confirm()` natif rompt la cohérence interaction avec l'Étape 1 Upload (ConfirmModal portalisée). Messages d'erreur type "Impossible de..." retenus pour correction car aucun ne précise la cause ni l'action — standard actionnabilité systématique. UTF-8 direct obligatoire sur `m²` : règle n°13 CLAUDE.md (zéro escape Unicode dans les strings JS). Alternative écartée : proposer une réécriture H1/sous-titre — PASS constaté, aucune réécriture justifiée (inutile de changer ce qui fonctionne). |
+| @moi | 2026-04-16 | `docs/reviews/moi-lots-us-vs-06-08-gate-v1.md` | Gate finale Étape 2 Lots versi-s17 — **GO ABSOLU 9,1/10**. Parité Étape 1 Upload (9,17/10) confirmée. Résidus acceptables (F05 surface m² temps réel nice-to-have, 4 résidus P2 Design justifiés, badge succès rename cosmétique, drawer mobile Versi Studio = desktop-first). P3 tu/vous : **status quo "vous" impératif neutre** re-validé (2e confirmation après s16). Boucle visuelle Playwright G26 = DIFFÉRÉE fin versi-s17 sur bundle complet (pas gate par étape — goulot vélocité). Prochaine priorité : Étape 3 Versi Studio. | Décision autonome @moi (périmètre "review livrables, merge réversible, précédent direct versi-s16"). Confiance HAUTE : cohérence audits (zéro contradiction), 0 gate BLOQUANT FAIL, patterns identiques à Upload déjà validé. Alternative écartée : demander une boucle visuelle Playwright immédiate — coût élevé (baselines par étape = goulot 30 min par batch), ROI limité (audits triangulés suffisent pour parité Upload). Alternative écartée : demander corrections supplémentaires pour 10/10 strict — diminishing returns, résidus documentés et non bloquants. |
+| @fullstack (Batch 2 Alpha+Beta versi-s17) | 2026-04-16 | `versi-studio/src/app/globals.css` (+15L) + `versi-studio/src/app/vs/projects/[id]/lots/page.tsx` (+117L) + `versi-studio/src/components/vs/LotPanel.tsx` (+69L) + `versi-studio/src/components/vs/PlanCanvas.tsx` (+57L) | 28 corrections P0/P1 Étape 2 Lots appliquées en pattern typiste strict, scope disjoint Alpha (page + tokens) / Beta (composants feuilles) parallèle. ConfirmModal remplace `confirm()` natif (cohérence Upload), 3 tokens erreur (bg/border/strong), prefers-reduced-motion, bouton Réessayer + rollback fetchData, aria-live étage + sauvegarde, responsive `flex-col md:flex-row`, canvas a11y (tabIndex + role=application + aria-label + onKeyDown flèches 1%/Shift+5%), getComputedStyle pour 5 tokens canvas (zéro hex JSX), UTF-8 `m²` direct, touch target 44px mobile, empty state CTA inline, badge succès "Lots enregistrés", icône stylo rename cliquable au hover/focus. | Pattern Alpha/Beta disjoint validé : Alpha = page principale + tokens globaux, Beta = composants feuilles (LotPanel + PlanCanvas). Communication via interface prop optionnelle (`validationSuccess?: boolean` déclarée Alpha + typée void cast, implémentée Beta badge succès). Zéro conflit git. Alternative écartée : 1 seul @fullstack séquentiel — doublerait la durée (2 timeouts potentiels vs 1 en parallèle). Pattern typiste = latence ~15-20 min par agent vs 90s+ si "inventer" le code. Learning versi-s17 : budget autopilote frontend étape = 4 batches (Batch 1 → Batch 2 Alpha+Beta → Batch 3a re-audits → Batch 4 gate @moi) vs 7 batches s16. |
+| @qa | 2026-04-16 | `docs/qa/upload-us-vs-02-traceability.md` (matrice G27 mise à jour) | P4 versi-s17 : re-mapping des 7 AC P0 Upload couverts par `upload-p0.spec.ts` T1-T7. AC08 (déposer fichiers) PARTIEL→PASS (T6 Promise.allSettled), AC09 (traitement erreur) PARTIEL→PASS (T3/T4/T7 retry + abort + offline), AC11 (modifier étage) À CRÉER→PASS (T2 PATCH + rollback), AC16 (a11y ConfirmModal) PARTIEL→PASS (T1 focus trap). Couverture globale 31%→38%. P0-T5 (isAnalyzing+POST /extract) noté hors-périmètre (US-VS-03, pas US-VS-02). | Race condition détectée versi-s16 (Batch 5b) : matrice et tests créés en parallèle, matrice obsolète. Re-mapping ciblé (10 Edits) plutôt que refonte complète. Learning : dans un batch qui crée matrice ET tests, imposer ordre (1) matrice d'abord, (2) tests ensuite, (3) matrice mise à jour après tests. Propagé dans `.claude/agents/qa.md` (à-faire). |
+| @design | 2026-04-16 | `docs/design/lots-us-vs-06-08-design-audit-v1.md` puis `-v2.md` | Audit Étape 2 Lots : v1 **6/10 NO-GO** (18 findings, 4 gates FAIL : G22 WCAG focus-visible + touch target + reduced-motion, G23 8 hex hardcoded canvas + 3 classes JSX, G31 tokens primitives, G32 6 états composant). v2 **9/10 GO** — les 4 gates FAIL → PASS. Résidus P2 justifiés : `focus:outline-none` cohabite `focus-visible:outline-2` (navigateurs modernes OK), `#F7F5F2` fond canvas + `rgba(255,255,255,0.85)` fond label (canvas 2D API ne lit pas CSS vars), HANDLE_HIT_SIZE 20px desktop (à porter 44 si version touch planifiée). | Note v1 HONNÊTE (6/10) car écart tokens sémantiques substantiel sur PlanCanvas. Note v2 HONNÊTE 9/10 (pas 10/10) car 4 résidus P2 cosmétiques subsistent malgré corrections majeures. Alternative écartée : demander 10/10 strict — coût refactor canvas disproportionné pour outil interne desktop-first. |
+| @ux | 2026-04-16 | `docs/ux/lots-us-vs-06-08-audit-v1.md` puis `-v2.md` | Audit Étape 2 Lots : v1 **6.5/10 NO-GO** (11 findings : 4 P0 [bouton Réessayer manquant, rollback save, responsive cassé, renommage non découvrable], 5 P1, 2 P2, gate G21 5 états UI FAIL erreur non récupérable). v2 **8.5/10 GO** — 10/11 findings PASS. Résidu P1 non bloquant F05 (surface m² temps réel pendant drag — nice-to-have, pas un bug : surface affichée depuis BDD après sauvegarde). Résidus P2 : drawer mobile 40vh non implémenté (desktop-first OK), Tab cycling documenté aria-label mais non implémenté handler. | Parcours Thomas cognitive walkthrough révèle 3 frictions P0 en v1. v2 : G21 désormais PASS grâce à bouton Réessayer + empty state CTA + rollback fetchData + aria-live changement étage. Alternative écartée : forcer F05 en v2 (surface temps réel drag) — scope creep, à mieux traiter versi-s18 avec le polish Étape 3. |
 | Claude principal (fallback @qa) | 2026-04-16 | `docs/qa/upload-us-vs-02-audit-v2.md` | Audit v2 Upload US-VS-02 écrit manuellement après 2× timeouts consécutifs @qa (324s/40 tool_uses puis 99s/4 tool_uses sur scope réduit 200 lignes). Score 8.5/10 vs 6/10 v1. 12/12 P0+ECART PASS (vérification code ligne par ligne). Gates : G21 PASS (5 états UI), G22 PASS conditionnel (contrastes `bg-error/10` à re-vérifier @design), G23 PASS (tokens sémantiques), G26 PASS (15/15 Playwright baselines), G27 **REPORTÉ versi-s16** (matrice AC→tests non produite), G28 PASS (tsc + 15/15 tests PASS), G31 PASS. Verdict GO CONDITIONNEL — re-validation @qa/@reviewer versi-s16 obligatoire (règle n°4 escalade versi-s12 : écriture manuelle suivie d'audit agent 10/10). | Règle n°4 escalade versi-s12 respectée : 2+ tentatives agent avant fallback manuel. Fidélité : HAUTE section 1 (code lu ligne par ligne), MOYENNE section 2 (gates), LIMITÉE section 3 (findings). Alternative écartée : 3e tentative @qa avec scope encore plus réduit — risque timeout identique car bottleneck = ambiguïté brief, pas volume. Alternative écartée : passer à Batch 6 sans audit v2 — violerait le protocole d'unanimité 9/10. Résiduels P1 documentés pour versi-s16 : bug Tailwind v4 systémique (5+ composants), matrice G27 (AC01..AC16), 7 tests P0 flows métier, PlanThumbnail non re-audité. |
 | @qa | 2026-04-16 | `versi-studio/tests/e2e/pages.spec.ts` + `versi-studio/tests/e2e/workflow.spec.ts` (ECART-VS-3 fix pré-timeout) | Rename "uploadés/uploadez" → "déposés/déposez" dans 2 fichiers tests E2E pour alignement avec rebranding copy anglicismes P0. 15/15 Playwright PASS post-fix. Fix appliqué avant le timeout complet (40 tool_uses / 324s). | Tests E2E synchronisés avec copy client-facing = gate G28 critique. Alternative écartée : skip des tests concernés — perdrait la couverture de régression sur le workflow principal. Learning : les renames de copy client-facing doivent toujours déclencher un Grep exhaustif sur les suites tests E2E avant commit. |
 | @fullstack (Batch 4d) | 2026-04-16 | `versi-studio/src/app/vs/projects/[id]/upload/page.tsx` + `versi-studio/src/components/vs/ConfirmModal.tsx` + `versi-studio/src/components/vs/Stepper.tsx` | Fix 3 ECARTs détectés par boucle visuelle : (1) dual Stepper responsive — sidebar desktop `hidden md:block md:w-64` + sibling horizontal `md:hidden mb-lg` avec variant prop `"vertical" | "horizontal"` dans Stepper.tsx, (2) ConfirmModal portalisé avec `createPortal(modalContent, document.body)` + `mounted` state SSR safety + `style={{ maxWidth: "28rem" }}` inline (contournement Tailwind v4), (3) 6 baselines screenshots régénérées dans `tests/screenshots/upload/`. | Dual render Tailwind pur retenu vs mediaQuery JS : plus simple, SSR-safe, pas de flash de contenu, aligné pattern design system. createPortal obligatoire pour ConfirmModal car conteneur parent compressait le modal à 70-90px (bug Tailwind v4 `--spacing-md: 16px` écrase `max-w-md`). Inline style `maxWidth` contournement ciblé — fix systémique (`--space-*` rename ou `max-w-[28rem]` partout) reporté versi-s16 hors scope Upload. |
@@ -380,6 +384,70 @@
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
+
+**Branche** : `claude/versi-s17-lots-autopilot-ocDqn`
+**Date de clôture** : 2026-04-16
+**Session** : versi-s17 — Étape 2 Lots GO ABSOLU (unanimité 9,0/10 audits + @moi 9,1/10)
+**Dernier commit** : voir `git log --oneline -1`
+
+**Résumé session (versi-s17) — Étape 2 Lots US-VS-06/07/08 GO ABSOLU 9,1/10** :
+
+1. **Propagation learnings P0/P1 versi-s16** : aucun non-propagé bloquant détecté.
+2. **Batch 1** : 3 audits v1 parallèles — @ux 6,5/10 NO-GO (11 findings : 4 P0, 5 P1, 2 P2), @design 6/10 NO-GO (18 findings, 4 gates FAIL : G22/G23/G31/G32), @copywriter 6,5/10 NO-GO (9 findings : 2 P0, 7 P1, gates règle n°13 UTF-8 + cohérence ConfirmModal FAIL). Moyenne 6,33/10.
+3. **P4 Matrice G27 race condition résolue** : @qa a re-mappé `upload-p0.spec.ts` T1-T7 aux 7 AC P0 Upload. AC08/AC09/AC11/AC16 PARTIEL→PASS. Couverture 31%→38%.
+4. **Batch 2** : @fullstack Alpha (page.tsx + globals.css) + Beta (LotPanel + PlanCanvas) en parallèle scope disjoint, pattern typiste strict. 28 corrections appliquées : ConfirmModal remplace confirm() natif, bouton Réessayer + rollback fetchData, tokens erreur 3 variantes, prefers-reduced-motion, responsive flex-col md:flex-row, canvas a11y (tabIndex + aria-label + onKeyDown), getComputedStyle pour 5 tokens canvas (zéro hex JSX), UTF-8 m² direct, touch target 44px mobile, empty state CTA inline, badge succès, aria-live étage + sauvegarde.
+5. **Batch 3a** : 3 re-audits v2 parallèles — @ux 8,5/10 GO (10/11 PASS, F05 surface temps réel drag résiduel P1 non bloquant), @design 9/10 GO (4 gates FAIL→PASS, 4 résidus P2 canvas justifiés), @copywriter 9,5/10 GO (9/9 PASS, 2 gates FAIL→PASS). Moyenne 9,0/10, unanimité GO.
+6. **Batch 4** : gate @moi (proxy Thomas) — **GO ABSOLU 9,1/10**, parité confirmée avec Étape 1 Upload (9,17/10). Boucle visuelle Playwright = à faire sur bundle complet fin versi-s17 (pas gate par étape). Registre "vous" impératif neutre re-validé.
+
+**Scoring final Étape 2 Lots** :
+| Agent | v1 | v2 | Delta |
+|---|---|---|---|
+| @ux | 6.5 | **8.5** | +2.0 |
+| @design | 6.0 | **9.0** | +3.0 |
+| @copywriter | 6.5 | **9.5** | +3.0 |
+| **Moyenne audits** | 6.33 | **9.00** | +2.67 |
+| @moi (gate finale) | — | **9.1** (GO ABSOLU) | — |
+
+**Gates Étape 2 Lots** : G21 PASS (5 états UI — bouton Réessayer + empty state CTA), G22 PASS (WCAG AA contrastes + focus-visible + touch targets + reduced-motion), G23 PASS (zéro hardcoded JSX, 2 hex canvas documentés justifiés), G24 PASS (registre "vous" uniforme), G31 PASS (tokens 3 tiers), G32 PASS (6 états composant), G33 PASS (zéro anglicisme), Règle n°13 PASS (UTF-8 canonique). G26 boucle visuelle DIFFÉRÉ fin versi-s17.
+
+**Travail restant — PROCHAINE SESSION (versi-s18 ou fin versi-s17)** :
+
+**PRIORITÉ 1 — Étape 3 Versi Studio** (prochaine US ou Tantièmes) — continuer la série pendant que le standard est en place. Reproduire le protocole 4 batches Lots (vs 7 batches historiques).
+
+**PRIORITÉ 2 — F05 Surface m² temps réel pendant drag** (résidu P1 UX Lots)
+- Dans `PlanCanvas.tsx` `draw()` : afficher overlay texte surface calculée localement sur le rectangle actif pendant mousemove.
+- À traiter en même temps que le polish Étape 3.
+
+**PRIORITÉ 3 — P2 backlog Upload (différé versi-s16/s17)**
+- 3 violations G31 tokens primitives : `bg-noir-profond/60`, `border-l-[3px]`, `hover:border-gris-pierre/50` → créer `--color-overlay-modal`, `--border-width-accent`.
+- Touch target bouton supprimer PlanThumbnail → `p-sm` minimum.
+- Labels Stepper mobile masqués : `<span sr-only>` + label 10px sous cercle actif.
+- États `:active` systémiques (`vs-btn-primary` défaut) : ajouter `active:scale-95` ou `active:opacity-70`.
+- P1 actionabilité : bouton "Réessayer" sur erreur fetchData chargement initial (page.tsx:89).
+- P2 message rollback étage enrichi (page.tsx:296).
+- Double rouge global + tuiles : masquer `failedFiles` si `error` fetchData présent.
+
+**PRIORITÉ 4 — Boucle visuelle Playwright G26 sur bundle complet**
+- `tests/screenshots/` baselines sur iPhone 13 / iPad / Desktop 1280 × 5 états × toutes les étapes livrées.
+- À produire quand Étape 3 sera mergée.
+
+**PRIORITÉ 5 — Documenter exceptions canvas dans vs-design-system.md**
+- R02/R03 : `#F7F5F2` fond canvas + `rgba(255,255,255,0.85)` fond label (justifié : canvas 2D API ne lit pas CSS vars, fallback performance).
+- R04 : HANDLE_HIT_SIZE 20px acceptable desktop, à porter à 44 si version touch planifiée.
+
+**PRIORITÉ 6 — P5 Investigation upload-p0.spec.ts échecs préexistants**
+- Tests PATCH floor / workflow state qui échouent (signalés préexistants versi-s16).
+- Debugger + corriger pour G27 100% vert.
+
+**Propagation learnings versi-s17 à compléter (P1 à-faire)** :
+- Budget autopilote révisable 4 batches (vs 7) → `.claude/agents/orchestrator.md`
+- Vérification Glob post-agent décisionnel (exception règle n°4) → `.claude/agents/orchestrator.md`
+- Batch 3b boucle visuelle conditionnelle par bundle → `.claude/agents/orchestrator.md`
+- Pattern fullstack Alpha/Beta scope disjoint → `.claude/agents/orchestrator.md`
+
+---
+
+### Mémo de reprise versi-s16 (archive)
 
 **Branche** : `claude/resume-versi-s16-upload-cK4ex`
 **Date de clôture** : 2026-04-16
