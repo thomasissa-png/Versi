@@ -29,6 +29,8 @@ import {
   zonesOverlap as zonesOverlapShared,
   pointInPolygon,
   polygonCentroid,
+  polygonAreaPercent,
+  polygonHasSelfIntersection,
 } from "@/lib/vs/types";
 
 // ─── Types internes ───────────────────────────────────────────────
@@ -259,6 +261,27 @@ export default function PlanCanvas({
   // ─── Dessin polygone — versi-s20 phase 2 ────────────────────────
   const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<ZonePolygonPoint[]>([]);
   const [drawingCursorPos, setDrawingCursorPos] = useState<{ x: number; y: number } | null>(null);
+  // Index du sommet polygone survolé (pour halo + cercle plus gros au hover) — versi-s20 P0
+  const [hoveredVertexIndex, setHoveredVertexIndex] = useState<{ lotId: string; index: number } | null>(null);
+  // Message d'erreur dessin (auto-hide après 2.5s) — versi-s20 P0
+  const [drawingError, setDrawingError] = useState<string | null>(null);
+  const drawingErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Surface en cours de tracé pendant dessin polygone (overlay temps réel) — versi-s20 P0
+  const [drawingSurface, setDrawingSurface] = useState<{ x: number; y: number; label: string } | null>(null);
+
+  // Helper : afficher un message d'erreur dessin auto-effacé après 2.5s.
+  const showDrawingError = useCallback((msg: string) => {
+    setDrawingError(msg);
+    if (drawingErrorTimerRef.current) clearTimeout(drawingErrorTimerRef.current);
+    drawingErrorTimerRef.current = setTimeout(() => setDrawingError(null), 2500);
+  }, []);
+
+  // Cleanup timer au démontage
+  useEffect(() => {
+    return () => {
+      if (drawingErrorTimerRef.current) clearTimeout(drawingErrorTimerRef.current);
+    };
+  }, []);
 
   // Reset des points quand on quitte le mode dessin (cleanup déclenché par parent)
   const [prevDrawingPolygon, setPrevDrawingPolygon] = useState(drawingPolygon);
@@ -267,6 +290,8 @@ export default function PlanCanvas({
     if (!drawingPolygon) {
       setDrawingPolygonPoints([]);
       setDrawingCursorPos(null);
+      setDrawingSurface(null);
+      setDrawingError(null);
     }
   }
 
@@ -500,15 +525,29 @@ export default function PlanCanvas({
 
       // Poignées polygon (cercles sur chaque sommet) après le label pour rester visibles
       if (polygonHandlePoints) {
-        for (const pt of polygonHandlePoints) {
+        const hoveredIdx =
+          hoveredVertexIndex && hoveredVertexIndex.lotId === lot.id
+            ? hoveredVertexIndex.index
+            : -1;
+        polygonHandlePoints.forEach((pt, i) => {
+          const isVertexHovered = i === hoveredIdx;
+          // Halo doux autour du sommet survolé (anneau translucide)
+          if (isVertexHovered) {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, HANDLE_SIZE + 4, 0, Math.PI * 2);
+            ctx.fillStyle = hexToRgba(tokenInteractivePrimary, 0.18);
+            ctx.fill();
+          }
+          // Cercle plus gros (8px de rayon) si hover, sinon taille standard (4px de rayon)
+          const radius = isVertexHovered ? 8 : HANDLE_SIZE / 2 + 1;
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, HANDLE_SIZE / 2 + 1, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
           ctx.fillStyle = tokenTextInverse;
           ctx.fill();
-          ctx.strokeStyle = tokenTextDefault;
-          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = isVertexHovered ? tokenInteractivePrimary : tokenTextDefault;
+          ctx.lineWidth = isVertexHovered ? 2 : 1.5;
           ctx.stroke();
-        }
+        });
       }
     }
 
@@ -560,6 +599,7 @@ export default function PlanCanvas({
     lots,
     selectedLotId,
     hoveredLotId,
+    hoveredVertexIndex,
     imageLoaded,
     planImageUrl,
     lotIndexMap,
@@ -809,6 +849,8 @@ export default function PlanCanvas({
               startMouseY: py,
               startZone: selectedZone,
             };
+            const canvasEl2 = canvasRef.current;
+            if (canvasEl2) canvasEl2.style.cursor = "grabbing";
             return;
           }
         } else {
@@ -874,6 +916,34 @@ export default function PlanCanvas({
       // Stocker la position curseur en pixels logiques (canvas-relatif)
       setDrawingCursorPos({ x: px, y: py });
       if (canvas) canvas.style.cursor = "crosshair";
+
+      // versi-s20 P0 : surface temps réel à partir du 3e sommet (polygone fermable).
+      // Affichée en overlay HTML près du curseur (positionné en coords écran).
+      if (drawingPolygonPoints.length >= 3) {
+        const containerEl = containerRef.current;
+        if (canvas && containerEl) {
+          const canvasRect = canvas.getBoundingClientRect();
+          const containerRect = containerEl.getBoundingClientRect();
+          const areaPctSq = polygonAreaPercent(drawingPolygonPoints);
+          const areaPixelsSq = (areaPctSq / 10000) * canvasRect.width * canvasRect.height;
+          const surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? areaPixelsSq * m2PerPixel : null;
+          const label = surfaceM2 != null ? `${surfaceM2.toFixed(1)} m²` : "— m²";
+          // Position : coords écran du curseur (px logiques → écran via viewport)
+          const cursorScreenX = px * viewport.scale + viewport.offsetX;
+          const cursorScreenY = py * viewport.scale + viewport.offsetY;
+          const offsetX = canvasRect.left - containerRect.left;
+          const offsetY = canvasRect.top - containerRect.top;
+          // Décalage pour ne pas masquer le curseur (12px droite, 28px haut)
+          let overlayX = offsetX + cursorScreenX + 12;
+          const overlayY = offsetY + cursorScreenY - 28;
+          if (overlayX + 80 > containerRect.width) {
+            overlayX = offsetX + cursorScreenX - 84;
+          }
+          setDrawingSurface({ x: overlayX, y: overlayY, label });
+        }
+      } else if (drawingSurface !== null) {
+        setDrawingSurface(null);
+      }
       return;
     }
 
@@ -989,8 +1059,18 @@ export default function PlanCanvas({
         if (isPolygon(selectedZone)) {
           const vIdx = hitTestPolygonVertex(px, py, selectedLot);
           if (vIdx !== null) {
-            if (canvas) canvas.style.cursor = "move";
+            // versi-s20 P0 : "grab" est le bon affordance pour saisir un sommet déplaçable
+            // (le drag actif passera à "grabbing" via le handler de move-vertex).
+            if (canvas) canvas.style.cursor = "grab";
             setHoveredLotId(null);
+            // Stocker l'index pour rendre le sommet plus gros + halo
+            if (
+              !hoveredVertexIndex ||
+              hoveredVertexIndex.lotId !== selectedLot.id ||
+              hoveredVertexIndex.index !== vIdx
+            ) {
+              setHoveredVertexIndex({ lotId: selectedLot.id, index: vIdx });
+            }
             return;
           }
         } else {
@@ -998,11 +1078,15 @@ export default function PlanCanvas({
           if (handle) {
             if (canvas) canvas.style.cursor = getCursor(handle, false);
             setHoveredLotId(null);
+            if (hoveredVertexIndex !== null) setHoveredVertexIndex(null);
             return;
           }
         }
       }
     }
+
+    // Pas sur un sommet : reset hoveredVertexIndex
+    if (hoveredVertexIndex !== null) setHoveredVertexIndex(null);
 
     const hitLotId = hitTestLot(px, py);
     setHoveredLotId(hitLotId);
@@ -1063,10 +1147,21 @@ export default function PlanCanvas({
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
       // Mode dessin : double-clic = fermer le polygone (>= 3 points requis)
       if (drawingPolygon) {
-        if (drawingPolygonPoints.length >= 3 && onPolygonComplete) {
+        // versi-s20 P0 — feedback explicite si trop peu de points.
+        if (drawingPolygonPoints.length < 3) {
+          showDrawingError("Ajoutez au moins 3 sommets pour fermer la forme");
+          return;
+        }
+        // versi-s20 P0 — refus si polygone auto-intersecté (papillon).
+        if (polygonHasSelfIntersection(drawingPolygonPoints)) {
+          showDrawingError("Le polygone se croise — ajustez les sommets");
+          return;
+        }
+        if (onPolygonComplete) {
           onPolygonComplete(drawingPolygonPoints);
           setDrawingPolygonPoints([]);
           setDrawingCursorPos(null);
+          setDrawingSurface(null);
         }
         return;
       }
@@ -1077,7 +1172,7 @@ export default function PlanCanvas({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [viewport, lots, drawingPolygon, drawingPolygonPoints, onPolygonComplete]
+    [viewport, lots, drawingPolygon, drawingPolygonPoints, onPolygonComplete, showDrawingError]
   );
 
   const resetViewport = useCallback(() => {
@@ -1093,6 +1188,8 @@ export default function PlanCanvas({
         e.preventDefault();
         setDrawingPolygonPoints([]);
         setDrawingCursorPos(null);
+        setDrawingSurface(null);
+        setDrawingError(null);
         if (onCancelDrawingPolygon) onCancelDrawingPolygon();
         return;
       }
@@ -1101,11 +1198,24 @@ export default function PlanCanvas({
         setDrawingPolygonPoints((prev) => prev.slice(0, -1));
         return;
       }
-      if (e.key === "Enter" && drawingPolygonPoints.length >= 3 && onPolygonComplete) {
+      if (e.key === "Enter") {
         e.preventDefault();
-        onPolygonComplete(drawingPolygonPoints);
-        setDrawingPolygonPoints([]);
-        setDrawingCursorPos(null);
+        // versi-s20 P0 — feedback explicite si trop peu de points.
+        if (drawingPolygonPoints.length < 3) {
+          showDrawingError("Ajoutez au moins 3 sommets pour fermer la forme");
+          return;
+        }
+        // versi-s20 P0 — refus si polygone auto-intersecté.
+        if (polygonHasSelfIntersection(drawingPolygonPoints)) {
+          showDrawingError("Le polygone se croise — ajustez les sommets");
+          return;
+        }
+        if (onPolygonComplete) {
+          onPolygonComplete(drawingPolygonPoints);
+          setDrawingPolygonPoints([]);
+          setDrawingCursorPos(null);
+          setDrawingSurface(null);
+        }
         return;
       }
       return; // les autres touches sont ignorées en mode dessin
@@ -1166,7 +1276,7 @@ export default function PlanCanvas({
         });
       }
     }
-  }, [selectedLotId, lots, onUpdateLotZone, onSelectLot, onDeleteLot, drawingPolygon, drawingPolygonPoints, onPolygonComplete, onCancelDrawingPolygon]);
+  }, [selectedLotId, lots, onUpdateLotZone, onSelectLot, onDeleteLot, drawingPolygon, drawingPolygonPoints, onPolygonComplete, onCancelDrawingPolygon, showDrawingError]);
 
   // Clic droit sur un lot → menu contextuel "Supprimer".
   const handleContextMenu = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {

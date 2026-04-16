@@ -355,6 +355,13 @@ export default function LotPanel({
           )}
         </button>
 
+        {/* Message d'aide si aucun lot (versi-s20) */}
+        {lots.length === 0 && (
+          <p className="text-xs text-[var(--color-text-muted)] text-center">
+            Ajoutez au moins un lot pour continuer.
+          </p>
+        )}
+
         {/* Message d'avertissement chevauchement */}
         {hasOverlap && lots.length > 0 && (
           <p className="text-xs text-[var(--color-error-strong)] text-center">

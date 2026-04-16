@@ -9,8 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { query, ensureDbReady, withTransaction } from "@/lib/vs/db";
-import type { VsPlan, VsProject, VsLot, ApiResponse, ZoneRect } from "@/lib/vs/types";
+import { query, ensureDbReady } from "@/lib/vs/db";
+import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
 import { extractPlanData } from "@/lib/vs/plan-extractor";
 import type { PlanExtractionResult } from "@/lib/vs/schemas";
@@ -69,7 +69,18 @@ export async function POST(
       [projectId]
     );
 
-    let totalLotsCreated = 0;
+    // Stratégie versi-s20 : NE PAS pré-créer de lots génériques.
+    // Un rectangle englobant aléatoire des pièces produit un découpage faux qui pollue
+    // l'écran et oblige Thomas (marchand) à supprimer avant de redessiner. L'état vide
+    // guidé est meilleur — l'utilisateur arrive sur l'Étape 2 avec 0 lot et utilise
+    // « Dessiner un polygone » ou « + Ajouter un lot » pour partir d'une page blanche.
+    //
+    // La stratégie clustering `unit_id` (IA) est documentée pour s21 (audit @ia P0 #1) :
+    // l'IA produira directement des suggestions de lots fiables (un lot = un appartement
+    // identifié), avec polygones IA (P0 #2) et gate cohérence surface (P0 #3).
+    //
+    // Les `extraction_data` (avec rooms et bounding_box) restent extraites et utilisées
+    // en Étape 3 (Pièces).
 
     // Extraire chaque plan
     for (const plan of plansResult.rows) {
@@ -85,83 +96,11 @@ export async function POST(
           project.type_bien
         );
 
-        // Sauvegarder le résultat d'extraction
+        // Sauvegarder le résultat d'extraction (utilisé en Étape 3 — Pièces)
         await query(
           "UPDATE vs_plans SET extraction_data = $1, extraction_status = 'done' WHERE id = $2",
           [JSON.stringify(extraction), plan.id]
         );
-
-        // Créer les lots suggérés à partir des pièces extraites
-        // Stratégie V1 : un lot = une zone englobante des pièces par étage
-        const roomsByFloor = new Map<number, typeof extraction.rooms>();
-        for (const room of extraction.rooms) {
-          const floor = room.floor ?? plan.floor_number;
-          if (!roomsByFloor.has(floor)) {
-            roomsByFloor.set(floor, []);
-          }
-          roomsByFloor.get(floor)!.push(room);
-        }
-
-        await withTransaction(async (client) => {
-          let lotIndex = 0;
-          for (const [floor, rooms] of roomsByFloor) {
-            // Calculer la bounding box englobante
-            let minX = 100, minY = 100, maxX = 0, maxY = 0;
-            let totalSurface = 0;
-            let hasBox = false;
-
-            for (const room of rooms) {
-              if (room.bounding_box) {
-                hasBox = true;
-                minX = Math.min(minX, room.bounding_box.x_percent);
-                minY = Math.min(minY, room.bounding_box.y_percent);
-                maxX = Math.max(
-                  maxX,
-                  room.bounding_box.x_percent + room.bounding_box.width_percent
-                );
-                maxY = Math.max(
-                  maxY,
-                  room.bounding_box.y_percent + room.bounding_box.height_percent
-                );
-              }
-              if (room.surface_m2) {
-                totalSurface += room.surface_m2;
-              }
-            }
-
-            // Fallback si pas de bounding box
-            const zoneData: ZoneRect = hasBox
-              ? {
-                  x_percent: Math.max(0, minX - 1),
-                  y_percent: Math.max(0, minY - 1),
-                  width_percent: Math.min(100, maxX - minX + 2),
-                  height_percent: Math.min(100, maxY - minY + 2),
-                }
-              : {
-                  x_percent: 10 + lotIndex * 5,
-                  y_percent: 10 + lotIndex * 5,
-                  width_percent: 30,
-                  height_percent: 30,
-                };
-
-            const floorLabel = floor === 0 ? "RDC" : `R+${floor}`;
-            const lotName = `Lot ${totalLotsCreated + lotIndex + 1} — ${floorLabel}`;
-
-            await client.query(
-              `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, status, source)
-               VALUES ($1, $2, $3, $4, $5, 'suggested', 'ai')`,
-              [
-                projectId,
-                lotName,
-                floor,
-                totalSurface > 0 ? totalSurface : null,
-                JSON.stringify(zoneData),
-              ]
-            );
-            lotIndex++;
-          }
-          totalLotsCreated += lotIndex;
-        });
       } catch (planErr) {
         console.error(
           `[API] Extraction plan ${plan.id} échouée :`,
@@ -175,9 +114,10 @@ export async function POST(
       }
     }
 
+    // 0 lot pré-créé : l'utilisateur démarre sur l'écran vide guidé.
     return NextResponse.json({
       success: true,
-      data: { lots_created: totalLotsCreated },
+      data: { lots_created: 0 },
     });
   } catch (err) {
     console.error("[API] POST /api/vs/projects/[id]/extract erreur :", err);

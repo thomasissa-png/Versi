@@ -218,7 +218,7 @@ export function boundingBoxOverlap(
 }
 
 // Test segment-segment intersection (pour polygon overlap V1)
-function segmentsIntersect(
+export function segmentsIntersect(
   p1: ZonePolygonPoint,
   p2: ZonePolygonPoint,
   p3: ZonePolygonPoint,
@@ -275,6 +275,81 @@ export function zonesOverlap(a: Zone, b: Zone): boolean {
   if (pointInPolygon(polyA[0].x_percent, polyA[0].y_percent, polyB)) return true;
   if (pointInPolygon(polyB[0].x_percent, polyB[0].y_percent, polyA)) return true;
   return false;
+}
+
+// Détecte une auto-intersection dans un polygone (segments non adjacents qui se croisent).
+// Utilisé pour empêcher la fermeture d'un polygone "papillon" qui produit une surface
+// shoelace incorrecte et un rendu visuellement cassé.
+export function polygonHasSelfIntersection(points: ZonePolygonPoint[]): boolean {
+  const n = points.length;
+  if (n < 4) return false; // 3 points = triangle, pas d'auto-intersection possible
+  for (let i = 0; i < n; i++) {
+    const a1 = points[i];
+    const a2 = points[(i + 1) % n];
+    // Tester contre tous les segments NON-adjacents (i+2 à i+n-2)
+    for (let j = i + 2; j < n; j++) {
+      // Skip le segment qui partage le sommet de fermeture avec le segment i
+      if (i === 0 && j === n - 1) continue;
+      const b1 = points[j];
+      const b2 = points[(j + 1) % n];
+      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+  return false;
+}
+
+// ─── Validation des zones (côté API) ──────────────────────────────
+// Constantes partagées : limites de robustesse pour empêcher les payloads
+// pathologiques (DoS) et les zones dégénérées.
+
+export const MAX_POLYGON_POINTS = 100;
+export const MIN_POLYGON_AREA_PERCENT = 0.5; // % carrés (formule shoelace)
+export const MIN_RECT_SIZE_PERCENT = 0.5; // % minimum largeur/hauteur
+
+// Helper : vérifie qu'une valeur est un nombre fini et borné dans [0, 100].
+function isValidPercent(v: unknown): v is number {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+}
+
+export function isValidZoneRect(zone: unknown): zone is ZoneRect {
+  if (!zone || typeof zone !== "object") return false;
+  const z = zone as Record<string, unknown>;
+  // Le champ "type" est optionnel pour rect (backward compat) — si présent, doit valoir "rect".
+  if (z.type !== undefined && z.type !== "rect") return false;
+  if (
+    !isValidPercent(z.x_percent) ||
+    !isValidPercent(z.y_percent) ||
+    typeof z.width_percent !== "number" || !Number.isFinite(z.width_percent) ||
+    typeof z.height_percent !== "number" || !Number.isFinite(z.height_percent)
+  ) {
+    return false;
+  }
+  if (z.width_percent < MIN_RECT_SIZE_PERCENT || z.width_percent > 100) return false;
+  if (z.height_percent < MIN_RECT_SIZE_PERCENT || z.height_percent > 100) return false;
+  // Le rectangle doit rester dans le canvas : x + w <= 100, y + h <= 100.
+  if (z.x_percent + z.width_percent > 100) return false;
+  if (z.y_percent + z.height_percent > 100) return false;
+  return true;
+}
+
+export function isValidZonePolygon(zone: unknown): zone is ZonePolygon {
+  if (!zone || typeof zone !== "object") return false;
+  const z = zone as Record<string, unknown>;
+  if (z.type !== "polygon") return false;
+  if (!Array.isArray(z.points)) return false;
+  if (z.points.length < 3 || z.points.length > MAX_POLYGON_POINTS) return false;
+  for (const p of z.points) {
+    if (!p || typeof p !== "object") return false;
+    const pt = p as Record<string, unknown>;
+    if (!isValidPercent(pt.x_percent) || !isValidPercent(pt.y_percent)) return false;
+  }
+  // Aire minimum (anti-polygone dégénéré aplati)
+  if (polygonAreaPercent(z.points as ZonePolygonPoint[]) < MIN_POLYGON_AREA_PERCENT) return false;
+  return true;
+}
+
+export function isValidZone(zone: unknown): zone is Zone {
+  return isValidZoneRect(zone) || isValidZonePolygon(zone);
 }
 
 // ─── Palette de couleurs lots (8 couleurs, cyclique) ──────────────

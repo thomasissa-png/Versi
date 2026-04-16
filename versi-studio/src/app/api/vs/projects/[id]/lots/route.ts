@@ -12,56 +12,13 @@ import type {
   VsLot,
   CreateLotPayload,
   ApiResponse,
-  Zone,
-  ZoneRect,
-  ZonePolygon,
 } from "@/lib/vs/types";
+import { isValidZone } from "@/lib/vs/types";
 
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     str
   );
-}
-
-function isValidZoneRect(zone: unknown): zone is ZoneRect {
-  if (!zone || typeof zone !== "object") return false;
-  const z = zone as Record<string, unknown>;
-  return (
-    typeof z.x_percent === "number" &&
-    typeof z.y_percent === "number" &&
-    typeof z.width_percent === "number" &&
-    typeof z.height_percent === "number" &&
-    z.x_percent >= 0 &&
-    z.x_percent <= 100 &&
-    z.y_percent >= 0 &&
-    z.y_percent <= 100 &&
-    z.width_percent > 0 &&
-    z.width_percent <= 100 &&
-    z.height_percent > 0 &&
-    z.height_percent <= 100
-  );
-}
-
-function isValidZonePolygon(zone: unknown): zone is ZonePolygon {
-  if (!zone || typeof zone !== "object") return false;
-  const z = zone as Record<string, unknown>;
-  if (z.type !== "polygon") return false;
-  if (!Array.isArray(z.points) || z.points.length < 3) return false;
-  for (const p of z.points) {
-    if (!p || typeof p !== "object") return false;
-    const pt = p as Record<string, unknown>;
-    if (
-      typeof pt.x_percent !== "number" ||
-      typeof pt.y_percent !== "number" ||
-      pt.x_percent < 0 || pt.x_percent > 100 ||
-      pt.y_percent < 0 || pt.y_percent > 100
-    ) return false;
-  }
-  return true;
-}
-
-function isValidZone(zone: unknown): zone is Zone {
-  return isValidZoneRect(zone) || isValidZonePolygon(zone);
 }
 
 // ─── GET /api/vs/projects/[id]/lots ───────────────────────────────

@@ -471,8 +471,8 @@ export default function LotsPage({
             Découpez vos lots
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-sm">
-            Ajustez les zones de chaque lot sur le plan.
-            Déplacez et redimensionnez les rectangles, ou ajoutez de nouveaux lots manuellement.
+            Ajustez chaque lot par glisser-déposer. Zoomez à la molette, Ctrl+glisser pour naviguer.
+            Utilisez « Dessiner un polygone » pour les formes complexes (appartements en L, retraits, pièces obliques).
           </p>
         </div>
 
