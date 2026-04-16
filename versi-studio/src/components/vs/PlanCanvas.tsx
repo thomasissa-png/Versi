@@ -101,6 +101,12 @@ const ZOOM_FACTOR = 1.1;
 const ZOOM_RESET_THRESHOLD = 1.05; // bouton reset visible si scale > seuil
 const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
+// Dessin polygone (versi-s20 it3)
+// Distance px (logiques) sous laquelle le curseur snap sur le 1er sommet pour fermer.
+const POLYGON_CLOSE_SNAP_DISTANCE = 15;
+// Aire minimale d'un polygone valide (en % carrés) — partagée avec types.ts.
+const MIN_POLYGON_AREA_PERCENT = 0.5;
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 // parseZoneData : retourne un Zone (rect ou polygon) depuis le zone_data brut.
@@ -258,6 +264,36 @@ export default function PlanCanvas({
   const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const panRef = useRef<PanState | null>(null);
 
+  // ─── Tokens CSSOM mémoïsés (versi-s20 it3 P0 perf) ──────────────
+  // Lecture une seule fois au mount au lieu de 5 reads par frame.
+  // Si Alpha modifie ses tokens dynamiquement, un remount est requis (cas marginal).
+  const tokensRef = useRef<{
+    errorStrong: string;
+    textDefault: string;
+    textInverse: string;
+    borderDefault: string;
+    interactivePrimary: string;
+    successStrong: string;
+  }>({
+    errorStrong: "#B91C1C",
+    textDefault: "#0B0B0B",
+    textInverse: "#FFFFFF",
+    borderDefault: "#D9D4CE",
+    interactivePrimary: "#0B0B0B",
+    successStrong: "#15803D",
+  });
+  useEffect(() => {
+    const styles = getComputedStyle(document.documentElement);
+    tokensRef.current = {
+      errorStrong: styles.getPropertyValue("--color-error-strong").trim() || "#B91C1C",
+      textDefault: styles.getPropertyValue("--color-text-default").trim() || "#0B0B0B",
+      textInverse: styles.getPropertyValue("--color-text-inverse").trim() || "#FFFFFF",
+      borderDefault: styles.getPropertyValue("--color-border-default").trim() || "#D9D4CE",
+      interactivePrimary: styles.getPropertyValue("--color-interactive-primary").trim() || "#0B0B0B",
+      successStrong: styles.getPropertyValue("--color-success-strong").trim() || "#15803D",
+    };
+  }, []);
+
   // ─── Dessin polygone — versi-s20 phase 2 ────────────────────────
   const [drawingPolygonPoints, setDrawingPolygonPoints] = useState<ZonePolygonPoint[]>([]);
   const [drawingCursorPos, setDrawingCursorPos] = useState<{ x: number; y: number } | null>(null);
@@ -374,13 +410,13 @@ export default function PlanCanvas({
     ctx.translate(viewport.offsetX, viewport.offsetY);
     ctx.scale(viewport.scale, viewport.scale);
 
-    // DESIGN-F06 à F09 : lecture des tokens CSS (fallback hex si non définis par Alpha)
-    const styles = getComputedStyle(document.documentElement);
-    const tokenErrorStrong = styles.getPropertyValue("--color-error-strong").trim() || "#B91C1C";
-    const tokenTextDefault = styles.getPropertyValue("--color-text-default").trim() || "#0B0B0B";
-    const tokenTextInverse = styles.getPropertyValue("--color-text-inverse").trim() || "#FFFFFF";
-    const tokenBorderDefault = styles.getPropertyValue("--color-border-default").trim() || "#D9D4CE";
-    const tokenInteractivePrimary = styles.getPropertyValue("--color-interactive-primary").trim() || "#0B0B0B";
+    // DESIGN-F06 à F09 : tokens lus une fois au mount via tokensRef (versi-s20 it3 P0 perf)
+    const tokenErrorStrong = tokensRef.current.errorStrong;
+    const tokenTextDefault = tokensRef.current.textDefault;
+    const tokenTextInverse = tokensRef.current.textInverse;
+    const tokenBorderDefault = tokensRef.current.borderDefault;
+    const tokenInteractivePrimary = tokensRef.current.interactivePrimary;
+    const tokenSuccessStrong = tokensRef.current.successStrong;
 
     // Fond
     ctx.fillStyle = "#F7F5F2";
@@ -553,6 +589,20 @@ export default function PlanCanvas({
 
     // ─── Polygone en cours de tracé (mode dessin) ────────────────
     if (drawingPolygonPoints.length > 0) {
+      // Snap fermeture (versi-s20 it3) : si curseur proche du 1er point ET >= 3 sommets,
+      // matérialiser visuellement (1er point gros + couleur succès) → clic simple ferme.
+      let snapToFirst = false;
+      if (drawingPolygonPoints.length >= 3 && drawingCursorPos) {
+        const firstP = drawingPolygonPoints[0];
+        const firstX = (firstP.x_percent / 100) * w;
+        const firstY = (firstP.y_percent / 100) * h;
+        const dx = drawingCursorPos.x - firstX;
+        const dy = drawingCursorPos.y - firstY;
+        if (Math.sqrt(dx * dx + dy * dy) <= POLYGON_CLOSE_SNAP_DISTANCE) {
+          snapToFirst = true;
+        }
+      }
+
       ctx.strokeStyle = tokenInteractivePrimary;
       ctx.lineWidth = 2;
       ctx.fillStyle = hexToRgba(tokenInteractivePrimary, 0.15);
@@ -576,22 +626,43 @@ export default function PlanCanvas({
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
-        ctx.lineTo(drawingCursorPos.x, drawingCursorPos.y);
+        // Si snap actif : la ligne pointillée se termine sur le 1er point (preview de fermeture)
+        if (snapToFirst) {
+          const firstP = drawingPolygonPoints[0];
+          const firstX = (firstP.x_percent / 100) * w;
+          const firstY = (firstP.y_percent / 100) * h;
+          ctx.lineTo(firstX, firstY);
+        } else {
+          ctx.lineTo(drawingCursorPos.x, drawingCursorPos.y);
+        }
         ctx.stroke();
         ctx.restore();
       }
 
       // Cercles sur les points existants — premier mis en évidence (cercle plus gros)
+      // Si snap actif : 1er point passe à 14px (8px rayon) + couleur succès → indique clic ferme.
       drawingPolygonPoints.forEach((p, i) => {
         const px = (p.x_percent / 100) * w;
         const py = (p.y_percent / 100) * h;
-        const radius = i === 0 ? 7 : 4;
+        const isFirstSnapping = i === 0 && snapToFirst;
+        const radius = isFirstSnapping ? 8 : i === 0 ? 7 : 4;
+        // Halo doux autour du 1er point en mode snap
+        if (isFirstSnapping) {
+          ctx.beginPath();
+          ctx.arc(px, py, radius + 6, 0, Math.PI * 2);
+          ctx.fillStyle = hexToRgba(tokenSuccessStrong, 0.25);
+          ctx.fill();
+        }
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fillStyle = i === 0 ? tokenInteractivePrimary : tokenTextInverse;
+        if (isFirstSnapping) {
+          ctx.fillStyle = tokenSuccessStrong;
+        } else {
+          ctx.fillStyle = i === 0 ? tokenInteractivePrimary : tokenTextInverse;
+        }
         ctx.fill();
-        ctx.strokeStyle = tokenInteractivePrimary;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = isFirstSnapping ? tokenSuccessStrong : tokenInteractivePrimary;
+        ctx.lineWidth = isFirstSnapping ? 2.5 : 2;
         ctx.stroke();
       });
     }
@@ -790,6 +861,22 @@ export default function PlanCanvas({
     return "default";
   }
 
+  // ─── Clamp pan viewport (versi-s20 it3 P0 robustesse) ─────────
+  // Empêche le plan de disparaître complètement à fort zoom + pan extrême.
+  // Bornes : offsetX ∈ [-(scale-1)*w, 0], offsetY ∈ [-(scale-1)*h, 0]
+  // (à scale=1 → forcément [0, 0], donc INITIAL_VIEWPORT).
+  const clampViewportOffsets = useCallback(
+    (scale: number, offsetX: number, offsetY: number, rectW: number, rectH: number) => {
+      const minX = -(scale - 1) * rectW;
+      const minY = -(scale - 1) * rectH;
+      return {
+        offsetX: clamp(offsetX, minX, 0),
+        offsetY: clamp(offsetY, minY, 0),
+      };
+    },
+    []
+  );
+
   // ─── Events souris ────────────────────────────────────────────
   // NOTE : handleMouseDown/handleMouseMove utilisent des helpers déclarés dans le
   // composant (hitTestLot, hitTestHandle, getCanvasCoords). React Compiler gère
@@ -818,11 +905,41 @@ export default function PlanCanvas({
     const { px, py } = getCanvasCoords(e);
 
     // ─── MODE DESSIN POLYGONE — versi-s20 phase 2 ────────────────
-    // Clic gauche dans le mode dessin = ajouter un point au polygone en cours
+    // Clic gauche dans le mode dessin :
+    //   - si curseur snap sur 1er sommet (>= 3 points + dist <= seuil) → fermer (versi-s20 it3)
+    //   - sinon → ajouter un point au polygone en cours
     if (drawingPolygon && e.button === 0) {
       const canvasEl = canvasRef.current;
       if (!canvasEl) return;
       const rect = canvasEl.getBoundingClientRect();
+
+      // Snap fermeture : si >= 3 points + curseur proche du 1er sommet → fermer
+      if (drawingPolygonPoints.length >= 3) {
+        const firstP = drawingPolygonPoints[0];
+        const firstPx = (firstP.x_percent / 100) * rect.width;
+        const firstPy = (firstP.y_percent / 100) * rect.height;
+        const dxSnap = px - firstPx;
+        const dySnap = py - firstPy;
+        if (Math.sqrt(dxSnap * dxSnap + dySnap * dySnap) <= POLYGON_CLOSE_SNAP_DISTANCE) {
+          // Guards (cohérence avec double-clic et Enter)
+          if (polygonHasSelfIntersection(drawingPolygonPoints)) {
+            showDrawingError("Le polygone se croise — ajustez les sommets");
+            return;
+          }
+          if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
+            showDrawingError("Le polygone est trop petit ou aplati");
+            return;
+          }
+          if (onPolygonComplete) {
+            onPolygonComplete(drawingPolygonPoints);
+            setDrawingPolygonPoints([]);
+            setDrawingCursorPos(null);
+            setDrawingSurface(null);
+          }
+          return;
+        }
+      }
+
       const xp = (px / rect.width) * 100;
       const yp = (py / rect.height) * 100;
       // Clamp dans 0-100
@@ -899,11 +1016,15 @@ export default function PlanCanvas({
       const raw = getCanvasCoordsRaw(e);
       const dx = raw.px - panRef.current.startMouseX;
       const dy = raw.py - panRef.current.startMouseY;
-      setViewport((prev) => ({
-        ...prev,
-        offsetX: panRef.current!.originOffsetX + dx,
-        offsetY: panRef.current!.originOffsetY + dy,
-      }));
+      const rect2 = canvasEl?.getBoundingClientRect();
+      setViewport((prev) => {
+        const rawX = panRef.current!.originOffsetX + dx;
+        const rawY = panRef.current!.originOffsetY + dy;
+        if (!rect2) return { ...prev, offsetX: rawX, offsetY: rawY };
+        // Clamp pan (versi-s20 it3 P0) : empêche disparition du plan hors viewport.
+        const clamped = clampViewportOffsets(prev.scale, rawX, rawY, rect2.width, rect2.height);
+        return { ...prev, offsetX: clamped.offsetX, offsetY: clamped.offsetY };
+      });
       if (canvasEl) canvasEl.style.cursor = "grabbing";
       return;
     }
@@ -915,34 +1036,81 @@ export default function PlanCanvas({
     if (drawingPolygon) {
       // Stocker la position curseur en pixels logiques (canvas-relatif)
       setDrawingCursorPos({ x: px, y: py });
-      if (canvas) canvas.style.cursor = "crosshair";
 
-      // versi-s20 P0 : surface temps réel à partir du 3e sommet (polygone fermable).
-      // Affichée en overlay HTML près du curseur (positionné en coords écran).
+      // Snap fermeture (versi-s20 it3) : curseur "pointer" si proche du 1er point.
+      let cursorSnap = false;
       if (drawingPolygonPoints.length >= 3) {
-        const containerEl = containerRef.current;
-        if (canvas && containerEl) {
-          const canvasRect = canvas.getBoundingClientRect();
-          const containerRect = containerEl.getBoundingClientRect();
+        const firstP = drawingPolygonPoints[0];
+        const canvasRect2 = canvas?.getBoundingClientRect();
+        if (canvasRect2) {
+          const firstPx = (firstP.x_percent / 100) * canvasRect2.width;
+          const firstPy = (firstP.y_percent / 100) * canvasRect2.height;
+          const dxS = px - firstPx;
+          const dyS = py - firstPy;
+          if (Math.sqrt(dxS * dxS + dyS * dyS) <= POLYGON_CLOSE_SNAP_DISTANCE) {
+            cursorSnap = true;
+          }
+        }
+      }
+      if (canvas) canvas.style.cursor = cursorSnap ? "pointer" : "crosshair";
+
+      // versi-s20 it3 : surface temps réel dès 1er sommet (label adapté).
+      // 1 pt → "0.0 m²" (ou message calibration), 2 pts → distance segment, 3+ pts → surface polygone.
+      const containerEl = containerRef.current;
+      if (canvas && containerEl) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const containerRect = containerEl.getBoundingClientRect();
+        let label: string | null = null;
+        const calibrated = m2PerPixel != null && m2PerPixel > 0;
+
+        if (drawingPolygonPoints.length === 1) {
+          // 1er sommet posé : surface = 0
+          label = calibrated ? "0.0 m²" : "Calibrez le plan pour la surface";
+        } else if (drawingPolygonPoints.length === 2) {
+          // 2 sommets : afficher la longueur du segment (utile pour mesurer un mur)
+          const a = drawingPolygonPoints[0];
+          const b = drawingPolygonPoints[1];
+          const ax = (a.x_percent / 100) * canvasRect.width;
+          const ay = (a.y_percent / 100) * canvasRect.height;
+          const bx = (b.x_percent / 100) * canvasRect.width;
+          const by = (b.y_percent / 100) * canvasRect.height;
+          const distPx = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
+          if (calibrated) {
+            // m2PerPixel = m² par pixel². Donc m par pixel = sqrt(m2PerPixel).
+            const mPerPx = Math.sqrt(m2PerPixel);
+            label = `${(distPx * mPerPx).toFixed(2)} m`;
+          } else {
+            label = "Calibrez le plan pour la longueur";
+          }
+        } else if (drawingPolygonPoints.length >= 3) {
           const areaPctSq = polygonAreaPercent(drawingPolygonPoints);
           const areaPixelsSq = (areaPctSq / 10000) * canvasRect.width * canvasRect.height;
-          const surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? areaPixelsSq * m2PerPixel : null;
-          const label = surfaceM2 != null ? `${surfaceM2.toFixed(1)} m²` : "— m²";
+          if (calibrated) {
+            const surfaceM2 = areaPixelsSq * m2PerPixel;
+            label = `${surfaceM2.toFixed(1)} m²`;
+          } else {
+            label = "Calibrez le plan pour la surface";
+          }
+        }
+
+        if (label !== null) {
           // Position : coords écran du curseur (px logiques → écran via viewport)
           const cursorScreenX = px * viewport.scale + viewport.offsetX;
           const cursorScreenY = py * viewport.scale + viewport.offsetY;
           const offsetX = canvasRect.left - containerRect.left;
           const offsetY = canvasRect.top - containerRect.top;
           // Décalage pour ne pas masquer le curseur (12px droite, 28px haut)
+          // Largeur estimée plus grande pour les labels textuels longs ("Calibrez le plan…")
+          const estLabelW = label.length * 7 + 16;
           let overlayX = offsetX + cursorScreenX + 12;
           const overlayY = offsetY + cursorScreenY - 28;
-          if (overlayX + 80 > containerRect.width) {
-            overlayX = offsetX + cursorScreenX - 84;
+          if (overlayX + estLabelW > containerRect.width) {
+            overlayX = offsetX + cursorScreenX - estLabelW - 4;
           }
           setDrawingSurface({ x: overlayX, y: overlayY, label });
+        } else if (drawingSurface !== null) {
+          setDrawingSurface(null);
         }
-      } else if (drawingSurface !== null) {
-        setDrawingSurface(null);
       }
       return;
     }
@@ -1110,9 +1278,16 @@ export default function PlanCanvas({
     if (panRef.current) {
       panRef.current = null;
       const canvas = canvasRef.current;
-      if (canvas) canvas.style.cursor = "default";
+      // versi-s20 it3 : ne pas reset cursor en mode dessin polygone
+      if (canvas && !drawingPolygon) canvas.style.cursor = "default";
     }
-  }, []);
+    // versi-s20 it3 : conserver crosshair en mode dessin polygone même si la souris
+    // sort du canvas (Thomas frustration #3 — cursor flicker au passage sidebar).
+    if (drawingPolygon) {
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "crosshair";
+    }
+  }, [drawingPolygon]);
 
   // ─── Wheel — zoom centré curseur (versi-s20) ────────────────
   const handleWheel = useCallback(
@@ -1136,10 +1311,12 @@ export default function PlanCanvas({
       if (newScale === ZOOM_MIN) {
         setViewport(INITIAL_VIEWPORT);
       } else {
-        setViewport({ scale: newScale, offsetX: newOffsetX, offsetY: newOffsetY });
+        // Clamp pour empêcher le plan de disparaître hors viewport (versi-s20 it3 P0)
+        const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
+        setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
       }
     },
-    [viewport]
+    [viewport, clampViewportOffsets]
   );
 
   // ─── Double-clic — fermer polygone (mode dessin) OU reset viewport ──────
@@ -1155,6 +1332,11 @@ export default function PlanCanvas({
         // versi-s20 P0 — refus si polygone auto-intersecté (papillon).
         if (polygonHasSelfIntersection(drawingPolygonPoints)) {
           showDrawingError("Le polygone se croise — ajustez les sommets");
+          return;
+        }
+        // versi-s20 it3 — refus si polygone dégénéré (aire trop petite).
+        if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
+          showDrawingError("Le polygone est trop petit ou aplati");
           return;
         }
         if (onPolygonComplete) {
@@ -1208,6 +1390,11 @@ export default function PlanCanvas({
         // versi-s20 P0 — refus si polygone auto-intersecté.
         if (polygonHasSelfIntersection(drawingPolygonPoints)) {
           showDrawingError("Le polygone se croise — ajustez les sommets");
+          return;
+        }
+        // versi-s20 it3 — refus si polygone dégénéré (aire trop petite).
+        if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
+          showDrawingError("Le polygone est trop petit ou aplati");
           return;
         }
         if (onPolygonComplete) {
