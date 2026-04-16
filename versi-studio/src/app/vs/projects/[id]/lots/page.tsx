@@ -18,6 +18,7 @@ import Stepper from "@/components/vs/Stepper";
 import PlanCanvas from "@/components/vs/PlanCanvas";
 import LotPanel from "@/components/vs/LotPanel";
 import ConfirmModal from "@/components/vs/ConfirmModal";
+import PlanCalibration from "@/components/vs/PlanCalibration";
 import type {
   VsProject,
   VsPlan,
@@ -86,6 +87,7 @@ export default function LotsPage({
   const [saving, setSaving] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [validationSuccess, setValidationSuccess] = useState(false);
+  const [calibrationOpen, setCalibrationOpen] = useState(false);
 
   // Debounce pour la sauvegarde auto
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -171,11 +173,17 @@ export default function LotsPage({
 
   // ─── Plan image URL pour l'étage sélectionné ─────────────────
 
+  const currentPlan = useMemo(
+    () => plans.find((p) => p.floor_number === selectedFloor) ?? null,
+    [plans, selectedFloor]
+  );
+
   const planImageUrl = useMemo(() => {
-    const plan = plans.find((p) => p.floor_number === selectedFloor);
-    if (!plan) return null;
-    return `/api/vs/files?path=${encodeURIComponent(plan.file_path)}`;
-  }, [plans, selectedFloor]);
+    if (!currentPlan) return null;
+    return `/api/vs/files?path=${encodeURIComponent(currentPlan.file_path)}`;
+  }, [currentPlan]);
+
+  const m2PerPixel = currentPlan?.m2_per_pixel ?? null;
 
   // ─── Overlap detection ────────────────────────────────────────
 
@@ -516,6 +524,39 @@ export default function LotsPage({
           </div>
         )}
 
+        {/* Bannière calibration (F05 versi-s19) — affichée si le plan courant n'est pas calibré */}
+        {currentPlan && m2PerPixel == null && (
+          <div
+            role="status"
+            className="mb-md flex items-center gap-md border-l-4 border-[var(--color-warning)] bg-[var(--color-warning)]/10 px-md py-sm rounded-md"
+          >
+            <svg
+              className="w-5 h-5 flex-shrink-0 text-[var(--color-warning)]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+            <span className="flex-1 text-sm text-[var(--color-text-default)]">
+              Calibrez ce plan pour afficher les surfaces m² pendant le tracé des lots.
+            </span>
+            <button
+              type="button"
+              onClick={() => setCalibrationOpen(true)}
+              className="px-md py-xs rounded-md text-sm font-medium bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)] hover:bg-[var(--color-interactive-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] active:opacity-80 min-h-[44px]"
+            >
+              Calibrer le plan
+            </button>
+          </div>
+        )}
+
         {/* Canvas + Panneau latéral */}
         <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
           {/* Canvas */}
@@ -527,6 +568,7 @@ export default function LotsPage({
               onSelectLot={setSelectedLotId}
               onUpdateLotZone={handleUpdateLotZone}
               lotIndexMap={lotIndexMap}
+              m2PerPixel={m2PerPixel}
             />
           </div>
 
@@ -555,6 +597,24 @@ export default function LotsPage({
         onConfirm={confirmDeleteLot}
         onCancel={() => setDeleteTargetId(null)}
       />
+
+      {/* Modale calibration (F05 versi-s19) */}
+      {calibrationOpen && currentPlan && planImageUrl && (
+        <PlanCalibration
+          planId={currentPlan.id}
+          imageUrl={planImageUrl}
+          onCalibrated={(value) => {
+            // Optimistic update du plan courant
+            setPlans((prev) =>
+              prev.map((p) =>
+                p.id === currentPlan.id ? { ...p, m2_per_pixel: value } : p
+              )
+            );
+            setCalibrationOpen(false);
+          }}
+          onCancel={() => setCalibrationOpen(false)}
+        />
+      )}
     </div>
   );
 }
