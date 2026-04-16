@@ -73,6 +73,37 @@ await page.route('**/*', ...);                // wildcard écrase tout, y compri
 
 **Symptômes d'une route mal ordonnée** : tests E2E passent localement mais échouent en CI avec des données inattendues, écrans extrêmes (erreur 404, offline, timeout) non reproductibles, mocks qui semblent ignorés. Origine identifiée en versi-s13 sur les tests "écrans extrêmes" (T19).
 
+### Playwright `route.fallback()` vs `route.continue()` + filtre Next.js (learning versi-s18)
+
+**Règle critique** : pour CHAÎNER plusieurs handlers `page.route()` (mock chain), utiliser `await route.fallback()`, PAS `await route.continue()`.
+
+- `route.fallback()` → délègue au handler suivant dans la chaîne (mock chain). C'est ce qu'on veut quand on a un wildcard de fallback ET un mock spécifique.
+- `route.continue()` → part au RÉSEAU RÉEL (pas de mock). Utile uniquement pour les requêtes qu'on veut laisser passer en réel.
+
+**Symptôme classique du mauvais choix** : `route.continue()` utilisé en pensant déléguer au mock GET précédent → la requête part au backend réel → page "Opération introuvable" → DropZone absent → `setInputFiles` timeout.
+
+**Filtre obligatoire `__next-route-announcer__`** : Next.js injecte un `<div id="__next-route-announcer__">` invisible qui contient le texte de la page courante. Cause des `strict mode violations` Playwright sur `getByText("Mon texte")` car le texte apparaît 2 fois (page + announcer). Pattern recommandé :
+
+```ts
+await expect(page.locator('main').getByText('Mon texte')).toBeVisible();
+// OU
+await expect(page.getByText('Mon texte').first()).toBeVisible();
+```
+
+Ne JAMAIS utiliser `page.getByText()` sans scope quand le texte risque d'apparaître dans l'announcer Next.js.
+
+### Frontière @qa investigation vs @fullstack implémentation (learning versi-s18)
+
+**Règle de scope** : @qa SIGNALE les bugs applicatifs détectés en investigation, mais ne les corrige JAMAIS sans accord explicite du fondateur ou de l'orchestrateur. Le rôle @qa est diagnostic + reporting structuré, pas implémentation métier. Le rôle @fullstack est implémentation métier.
+
+Pattern obligatoire en investigation :
+1. Détecter le bug applicatif (ex : state local jamais resync avec props)
+2. Documenter dans le rapport d'investigation : symptôme, cause racine, fichier:ligne, fix proposé inline (3-5 lignes max)
+3. Marquer "À ARBITRER : @fullstack ou fondateur"
+4. **Ne PAS éditer le code applicatif** dans la même session
+
+Brief @qa investigation DOIT inclure : "Si tu trouves un bug applicatif, SIGNALE-LE dans le rapport (symptôme + cause + fix proposé inline). Ne corrige PAS le code applicatif sans accord explicite. Tu peux corriger les tests pour les rendre robustes au bug, mais pas le code source."
+
 ### Contract testing (APIs et services tiers)
 
 - Consumer-driven contracts : pour chaque API externe (Stripe, Resend, OAuth providers), définir un contrat (schema JSON expected) et le tester à chaque CI run
@@ -155,6 +186,23 @@ Classifier les features par niveau de risque :
 - États visuels composants : screenshots de tous les états (default, hover, focus, active, disabled, loading, error)
 - Responsive visual : screenshots sur 3 devices via Playwright device descriptors (`devices['iPhone 13']`, `devices['iPad']`, `devices['Desktop Chrome']`) pour chaque page critique — tester le device réel, pas juste la taille d'écran
 - **Gate G26 — Conformité visuelle** : les screenshots CI DOIVENT être comparées aux baselines approuvées dans `tests/screenshots/`. Seuil < 0.5% de pixels différents. Si aucune baseline → première exécution crée les baselines, review humain obligatoire. C'est une gate BLOQUANT.
+
+#### Boucle visuelle bundle multi-étapes — pattern tier 1/2/3 (learning versi-s18)
+
+Quand la boucle visuelle G26 est exécutée sur un BUNDLE (plusieurs étapes mergées en fin de session — ex : Upload + Lots + Pièces), adopter le pattern tier 1/2/3 par priorité décroissante pour maximiser la livraison sans risque de timeout :
+
+| Tier | Livrable | Statut | Risque timeout |
+|---|---|---|---|
+| **Tier 1 — Specs** | Fichiers `.spec.ts` (un par étape) avec `page.screenshot({ path })` ou `toHaveScreenshot()` couvrant 3 viewports × N états | OBLIGATOIRE | Faible (écriture code) |
+| **Tier 2 — Baselines** | PNG dans `tests/screenshots/` générés via `npx playwright test --update-snapshots` ou run direct du dev server | BEST-EFFORT | Élevé (dépend dev server, browsers installés) |
+| **Tier 3 — Doc** | `docs/qa/visual-regression-bundle.md` : procédure refresh manuelle (commandes exactes), structure baselines, conventions naming | OBLIGATOIRE | Faible (écriture markdown) |
+
+**Règle** : si tier 2 bloque (dev server inaccessible, browsers Playwright absents, sandbox réseau coupé), SKIP propre — tier 1 + tier 3 suffisent pour que le fondateur regenère les baselines en local en suivant la procédure documentée.
+
+**Brief @qa bundle visuel DOIT inclure** :
+- Liste exhaustive des étapes à couvrir (ex : Upload + Lots + Pièces)
+- Procédure tier 2 SKIP (commandes Bash que l'utilisateur peut copier-coller)
+- Convention naming baselines : `[etape]-[etat]-[viewport].png`
 
 ### Matrice de traçabilité (obligatoire — Gate G27)
 

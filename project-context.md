@@ -382,10 +382,53 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/extract-project-context-ZVB40`
+- Branche de développement : `claude/versi-s19-visuels-autopilot-K7mQr`
 - Profil de rigueur : V1-Production (toutes les gates G1-G32 + GP + GC si applicable)
 
 ### Mémo de reprise
+
+**Branche** : `claude/versi-s19-visuels-autopilot-K7mQr`
+**Date d'ouverture** : 2026-04-16
+**Session** : versi-s19 — Étape 4 Visuels Versi Studio (US-VS-16/17/18) en autopilote Express 4 batches + Fix BUG-1 PlanThumbnail floorInput + Audit `route.continue()` 4 specs + résidus F05 surface m² / Upload % / G26 stricte
+**Statut** : EN COURS
+
+**Plan d'exécution versi-s19 — 6 priorités ordonnées (budget cible ~10-13 Tasks producteurs sur 18 max)**
+
+| # | Priorité | Mode | Estimation Tasks |
+|---|---|---|---|
+| P1 | **Étape 4 Visuels (US-VS-16/17/18)** — composants `RoomGrid.tsx`, `VisualRoom.tsx`, `VisualResult.tsx` + page `/visuals/page.tsx`. Pattern Express 4 batches validé sur Étape 2 Lots (s17, 9,1/10) ET Étape 3 Pièces (s18, 9,3/10). Persona gate finale = @moi (outil INTERNE, mapping persona→gate s16). | Express 4 batches | ~6-8 |
+| P2 | **Fix BUG-1 PlanThumbnail floorInput resync** — `versi-studio/src/components/vs/PlanThumbnail.tsx:26` ajouter `useEffect(() => setFloorInput(plan.floor_number ?? ""), [plan.floor_number])` (3 lignes) + renforcer T2 dans `upload-p0.spec.ts` pour vérifier l'input visuel après rollback. Réf : `docs/qa/upload-p0-investigation.md` BUG-1. | Typist + test | 1 |
+| P3 | **Audit pattern `route.continue()` sur 4 specs E2E restantes** — Grep `await route.continue()` dans `versi-studio/tests/e2e/` (lots-visual, rooms-visual, workflow, pages). Remplacer par `route.fallback()` si même pattern incorrect que upload-p0. Learning versi-s18 P6. | @qa | 1 |
+| P4 | **F05 surface m² temps réel pendant drag** — résidu versi-s17→s18. Brief dédié spec UX (calibration pixel→m² + UI overlay) + DB (champ projet `m2_per_pixel`?). À chiffrer après spec validée. | @ux + @fullstack | 1-2 |
+| P5 | **Upload % feedback fichiers > 5 Mo** — résidu P3 versi-s18. Refactor XHR avec `onprogress` (fetch ne supporte pas). TODO P2 marqué dans `upload/page.tsx:468`. | @fullstack | 1 |
+| P6 | **Migration G26 stricte (si budget)** — migrer `page.screenshot({ path })` → `toHaveScreenshot({ maxDiffPixelRatio: 0.005 })` sur les 3 specs visual (upload, lots, rooms) pour activer la gate G26 stricte. | @qa | 1 |
+
+**Pattern Express attendu pour P1 Étape 4 Visuels** :
+- Batch 1 : 3 audits v1 parallèles (UX + Design + Copy) sur RoomGrid + VisualRoom + VisualResult + page visuals
+- Batch 2 : 2 @fullstack scope disjoint (Alpha = page + tokens globaux, Beta = composants feuilles)
+- Batch 3 : 3 re-audits v2 parallèles
+- **Batch 2.5 conditionnel** (si unanimité 8,5-8,9/10 GO CONDITIONNEL avec ≤3 résiduels triviaux) : typist micro-corrections + vérification Grep orchestrateur
+- Batch 4 : gate finale @moi (proxy fondateur Thomas)
+
+**Profil de rigueur** : V1-Production — toutes gates G1-G34 actives, gate G33 anglicismes BLOQUANT, gate G34 collisions @theme BLOQUANT, exceptions canvas R02/R03/R04 documentées (vs-design-system.md §2.4 — ne pas signaler G23 sur ces patterns).
+
+**Propagation P0/P1 versi-s18 (PRÉ-REQUIS BLOQUANT — gate de reprise de session)** :
+- 7 learnings versi-s18 statut propagation = `à-faire` à propager AVANT tout nouveau travail :
+  1. Pattern Batch 2.5 micro-corrections post-v2 audits → `.claude/agents/orchestrator.md`
+  2. @moi gate finale post-Batch 2.5 doit re-vérifier en code → `.claude/agents/moi.md` + brief @moi orchestrateur
+  3. @qa boucle visuelle bundle multi-étapes (tier 1/2/3) → `.claude/agents/qa.md`
+  4. @qa Playwright `route.fallback()` vs `route.continue()` + filtre `__next-route-announcer__` → `.claude/agents/qa.md`
+  5. @qa frontière investigation vs implémentation (signaler bugs, ne pas corriger sans accord) → `.claude/agents/qa.md`
+  6. Exceptions G23 documentées au design-system (canvas R02/R03/R04) → `.claude/agents/design.md` + `.claude/agents/reviewer.md`
+  7. Bundle backlog typist (recensement précis + brief patterns EXACT + Grep vérif) → `.claude/agents/orchestrator.md`
+- + 1 learning versi-s16 P2 statut `à-faire` : G33 périmètre messages d'erreur API → CLAUDE.md (déjà fait dans `docs/founder-preferences.md` mais à vérifier dans CLAUDE.md G33)
+- + 1 learning versi-s16 P1 statut `à-faire` : ordonnancement Batch G27 (matrice avant tests) → `.claude/agents/qa.md` + `.claude/agents/orchestrator.md`
+
+**Compteur Tasks producteurs** : 0/18 (ALERTE ROUGE > 18). Mis à jour à chaque batch par l'orchestrateur.
+
+---
+
+### Mémo de reprise versi-s18 (archive)
 
 **Branche** : `claude/versi-s18-pieces-autopilot-Vlowg`
 **Date de clôture** : 2026-04-16
