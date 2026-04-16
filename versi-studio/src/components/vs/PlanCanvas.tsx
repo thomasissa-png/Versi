@@ -14,6 +14,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   useState,
   type MouseEvent as ReactMouseEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -258,8 +259,13 @@ export default function PlanCanvas({
   }, [planImageUrl]);
 
   // ─── Calcul des overlaps ──────────────────────────────────────
-
-  const overlappingIds = getOverlappingLotIds(lots);
+  // BUGFIX versi-s20 : sans useMemo, getOverlappingLotIds retourne un nouveau Set
+  // à chaque render. Cela invalide la référence de `draw` (useCallback), qui à son
+  // tour déclenche le useEffect du ResizeObserver (deps=[draw]) → reconnexion
+  // d'observer → observer peut trigger un callback synthétique → boucle infinie
+  // de render. Symptôme visuel : le canvas grossit indéfiniment (layout shift
+  // cumulé entre canvas.style.width/height et container flex).
+  const overlappingIds = useMemo(() => getOverlappingLotIds(lots), [lots]);
 
   // ─── Rendu canvas ─────────────────────────────────────────────
 
@@ -408,12 +414,29 @@ export default function PlanCanvas({
   }, [draw]);
 
   // ─── Redessiner quand le conteneur change de taille ───────────
+  // BUGFIX versi-s20 : guard anti-boucle ResizeObserver.
+  // Le callback ne redessine QUE si les dimensions ont réellement changé (>= 1px).
+  // `draw` modifie canvas.style.width/height, ce qui peut provoquer un reflow
+  // du container flex et déclencher le ResizeObserver de façon répétée.
+  // Le guard casse cette chaîne si les dimensions sont stables.
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const observer = new ResizeObserver(() => {
+    let lastWidth = 0;
+    let lastHeight = 0;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      // Seuil 1px pour absorber les sub-pixel fluctuations du layout
+      if (Math.abs(width - lastWidth) < 1 && Math.abs(height - lastHeight) < 1) {
+        return;
+      }
+      lastWidth = width;
+      lastHeight = height;
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = requestAnimationFrame(draw);
     });
