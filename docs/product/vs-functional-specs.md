@@ -367,7 +367,7 @@ Voir tableau section 3 en-tête.
 En tant que Thomas, je veux lancer l'analyse automatique de mes plans afin que l'IA identifie les pièces et propose un découpage en lots.
 
 #### Contexte de navigation
-- **Page/écran d'origine** : `/vs/projects/[id]/upload` — après upload d'au moins 1 plan
+- **Page/écran d'origine** : `/vs/projects/[id]/upload` — après dépôt d'au moins 1 plan
 - **Déclencheur** : Clic sur "Analyser les plans"
 - **Page/écran de destination (succès)** : `/vs/projects/[id]/lots` — Étape 2 Découpe
 - **Page/écran de destination (échec)** : Reste sur `/vs/projects/[id]/upload` avec message d'erreur
