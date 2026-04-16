@@ -297,7 +297,8 @@ export default function LotPanel({
           Ajouter un lot
         </button>
 
-        {/* Bouton dessiner un polygone (versi-s20 phase 2) */}
+        {/* Bouton dessiner un polygone — différenciation visuelle vs "Ajouter un lot"
+            (action spécialisée, mode persistant) — versi-s20 it3 UX P1 */}
         {onStartDrawingPolygon && (
           <button
             onClick={onStartDrawingPolygon}
@@ -305,9 +306,9 @@ export default function LotPanel({
             className="
               w-full flex items-center justify-center gap-sm
               px-md py-sm rounded-md text-sm font-medium
-              border border-dashed border-[var(--color-border-default)]
-              text-[var(--color-text-muted)]
-              hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-default)]
+              border border-solid border-[var(--color-interactive-primary)]/40
+              text-[var(--color-interactive-primary)]
+              hover:border-[var(--color-interactive-primary)] hover:bg-[var(--color-interactive-primary)]/5
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors duration-150
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
