@@ -37,6 +37,15 @@ type RoomSubState =
 
 const POLL_INTERVAL = 5000;
 
+// ─── Mapping erreurs API → messages utilisateur ─────────────────
+
+const errorMessages: Record<string, string> = {
+  FILE_TOO_LARGE: "Le fichier dépasse 10 Mo. Compressez la photo et réessayez.",
+  INVALID_FORMAT: "Format non supporté. Utilisez JPG ou PNG.",
+  ROOM_NOT_FOUND: "Pièce introuvable. Rechargez la page.",
+  RATE_LIMIT_EXCEEDED: "Limite de génération atteinte. Réessayez dans une heure.",
+};
+
 // ─── Composant principal ─────────────────────────────────────────
 
 export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
@@ -232,12 +241,6 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         const json = (await res.json()) as ApiResponse<VsPhoto>;
 
         if (!json.success) {
-          const errorMessages: Record<string, string> = {
-            FILE_TOO_LARGE: "Le fichier dépasse 10 Mo. Compressez la photo et réessayez.",
-            INVALID_FORMAT: "Format non supporté. Utilisez JPG ou PNG.",
-            ROOM_NOT_FOUND: "Pièce introuvable. Rechargez la page.",
-            RATE_LIMIT_EXCEEDED: "Limite de génération atteinte. Réessayez dans une heure.",
-          };
           const friendlyMessage = errorMessages[json.error] || json.error || "Une erreur inattendue s'est produite.";
           setError(friendlyMessage);
           return;
@@ -299,7 +302,8 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
       const json = (await res.json()) as ApiResponse<{ visual_id: string }>;
 
       if (!json.success) {
-        setError(json.error);
+        const friendlyMessage = errorMessages[json.error] || json.error || "Une erreur inattendue s'est produite.";
+        setError(friendlyMessage);
         setIsGenerating(false);
         return;
       }

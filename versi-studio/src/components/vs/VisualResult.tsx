@@ -30,6 +30,17 @@ interface VisualResultProps {
   isValidating?: boolean;
 }
 
+// ─── Mapping erreurs OpenAI brutes → messages utilisateur ────────
+
+function translateOpenAIError(raw: string | null | undefined): string {
+  if (!raw) return "La création a échoué — réessayez.";
+  const lower = raw.toLowerCase();
+  if (lower.includes("content policy")) return "Image refusée par le filtre de contenu. Modifiez l'instruction.";
+  if (lower.includes("timeout")) return "Délai dépassé. Réessayez dans quelques instants.";
+  if (lower.includes("rate limit")) return "Limite de génération atteinte. Réessayez dans une heure.";
+  return "La création a échoué — réessayez.";
+}
+
 // ─── Timer de progression ────────────────────────────────────────
 
 function useProgressTimer(isProcessing: boolean) {
@@ -137,7 +148,7 @@ export default function VisualResult({
           </p>
           {activeVisual.error_message && (
             <p className="text-xs text-text-muted mb-md max-w-sm text-center">
-              {activeVisual.error_message}
+              {translateOpenAIError(activeVisual.error_message)}
             </p>
           )}
           <button
@@ -146,6 +157,7 @@ export default function VisualResult({
               px-xl py-sm rounded-md text-sm font-medium
               bg-interactive-primary text-text-inverse
               hover:bg-interactive-hover transition-colors duration-200
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80 min-h-[44px]
             "
           >
             Réessayer
@@ -261,6 +273,7 @@ export default function VisualResult({
                     px-lg py-sm rounded-md text-sm font-medium
                     border border-border-default text-text-default
                     hover:bg-bg-card transition-colors duration-200
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80 min-h-[44px]
                   "
                 >
                   Modifier
@@ -271,6 +284,7 @@ export default function VisualResult({
                     px-lg py-sm rounded-md text-sm font-medium
                     border border-border-default text-text-muted
                     hover:bg-bg-card hover:text-text-default transition-colors duration-200
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80 min-h-[44px]
                   "
                 >
                   Essayer un autre style
@@ -299,6 +313,7 @@ export default function VisualResult({
                   onClick={() => onSelectVisual(visual)}
                   className={`
                     flex-shrink-0 w-24 rounded-md overflow-hidden border-2 transition-all duration-200
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary active:opacity-80
                     ${isActive ? "border-interactive-primary" : "border-transparent hover:border-border-default"}
                   `}
                   aria-label={`Visuel ${vStyleName}`}
