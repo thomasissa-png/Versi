@@ -45,11 +45,20 @@ function translateOpenAIError(raw: string | null | undefined): string {
 
 function useProgressTimer(isProcessing: boolean) {
   const [elapsed, setElapsed] = useState(0);
+  const [prevProcessing, setPrevProcessing] = useState(isProcessing);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Reset elapsed quand on repasse à isProcessing=true — setState pendant render
+  // (pattern React docs compliant React Compiler, pas de cascading renders).
+  if (isProcessing && !prevProcessing) {
+    setPrevProcessing(true);
+    setElapsed(0);
+  } else if (!isProcessing && prevProcessing) {
+    setPrevProcessing(false);
+  }
 
   useEffect(() => {
     if (isProcessing) {
-      setElapsed(0);
       intervalRef.current = setInterval(() => {
         setElapsed((prev) => prev + 1);
       }, 1000);

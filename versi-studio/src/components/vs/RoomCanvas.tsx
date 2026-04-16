@@ -104,10 +104,17 @@ export default function RoomCanvas({
   } | null>(null);
 
   // ─── Charger l'image du plan ──────────────────────────────────
+  // Reset imageLoaded quand l'URL change — setState pendant render (pattern
+  // React docs compliant React Compiler). imageRef est reset dans l'effect.
+  const [prevPlanImageUrl, setPrevPlanImageUrl] = useState(planImageUrl);
+  if (planImageUrl !== prevPlanImageUrl) {
+    setPrevPlanImageUrl(planImageUrl);
+    setImageLoaded(false);
+  }
 
   useEffect(() => {
     if (!planImageUrl) {
-      setImageLoaded(false);
+      imageRef.current = null;
       return;
     }
 

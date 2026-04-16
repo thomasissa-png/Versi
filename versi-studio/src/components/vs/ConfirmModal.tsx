@@ -44,8 +44,11 @@ export default function ConfirmModal({
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // SSR safety — document.body n'est disponible que côté client
+  // SSR safety — document.body n'est disponible que côté client.
+  // Pattern standard Next.js App Router : setState dans useEffect vide pour détecter
+  // le passage client. Alternative useSyncExternalStore disproportionnée pour ce cas.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

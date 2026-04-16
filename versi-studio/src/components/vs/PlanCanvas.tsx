@@ -230,10 +230,17 @@ export default function PlanCanvas({
   const rafOverlayRef = useRef<number>(0);
 
   // ─── Charger l'image du plan ──────────────────────────────────
+  // Reset imageLoaded quand l'URL change — setState pendant render (pattern
+  // React docs compliant React Compiler).
+  const [prevPlanImageUrl, setPrevPlanImageUrl] = useState(planImageUrl);
+  if (planImageUrl !== prevPlanImageUrl) {
+    setPrevPlanImageUrl(planImageUrl);
+    setImageLoaded(false);
+  }
 
   useEffect(() => {
     if (!planImageUrl) {
-      setImageLoaded(false);
+      imageRef.current = null;
       return;
     }
 
@@ -504,127 +511,125 @@ export default function PlanCanvas({
   }
 
   // ─── Events souris ────────────────────────────────────────────
+  // NOTE : handleMouseDown/handleMouseMove utilisent des helpers déclarés dans le
+  // composant (hitTestLot, hitTestHandle, getCanvasCoords). React Compiler gère
+  // automatiquement la memoization — pas besoin de useCallback manuel qui créerait
+  // un mismatch de dépendances inférées.
 
-  const handleMouseDown = useCallback(
-    (e: ReactMouseEvent<HTMLCanvasElement>) => {
-      const { px, py } = getCanvasCoords(e);
+  const handleMouseDown = (e: ReactMouseEvent<HTMLCanvasElement>) => {
+    const { px, py } = getCanvasCoords(e);
 
-      // Vérifier d'abord les poignées du lot sélectionné
-      if (selectedLotId) {
-        const selectedLot = lots.find((l) => l.id === selectedLotId);
-        if (selectedLot) {
-          const handle = hitTestHandle(px, py, selectedLot);
-          if (handle) {
-            dragRef.current = {
-              type: "resize",
-              lotId: selectedLotId,
-              handle,
-              startMouseX: px,
-              startMouseY: py,
-              startZone: parseZoneData(selectedLot),
-            };
-            return;
-          }
-        }
-      }
-
-      // Vérifier si on clique sur un lot
-      const hitLotId = hitTestLot(px, py);
-      if (hitLotId) {
-        onSelectLot(hitLotId);
-        const hitLot = lots.find((l) => l.id === hitLotId);
-        if (hitLot) {
+    // Vérifier d'abord les poignées du lot sélectionné
+    if (selectedLotId) {
+      const selectedLot = lots.find((l) => l.id === selectedLotId);
+      if (selectedLot) {
+        const handle = hitTestHandle(px, py, selectedLot);
+        if (handle) {
           dragRef.current = {
-            type: "move",
-            lotId: hitLotId,
+            type: "resize",
+            lotId: selectedLotId,
+            handle,
             startMouseX: px,
             startMouseY: py,
-            startZone: parseZoneData(hitLot),
+            startZone: parseZoneData(selectedLot),
           };
+          return;
         }
+      }
+    }
+
+    // Vérifier si on clique sur un lot
+    const hitLotId = hitTestLot(px, py);
+    if (hitLotId) {
+      onSelectLot(hitLotId);
+      const hitLot = lots.find((l) => l.id === hitLotId);
+      if (hitLot) {
+        dragRef.current = {
+          type: "move",
+          lotId: hitLotId,
+          startMouseX: px,
+          startMouseY: py,
+          startZone: parseZoneData(hitLot),
+        };
+      }
+    } else {
+      onSelectLot(null);
+    }
+  };
+
+  const handleMouseMove = (e: ReactMouseEvent<HTMLCanvasElement>) => {
+    const { px, py } = getCanvasCoords(e);
+    const canvas = canvasRef.current;
+
+    if (dragRef.current && canvas) {
+      const { type, lotId, handle, startMouseX, startMouseY, startZone } =
+        dragRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const dxPercent = ((px - startMouseX) / rect.width) * 100;
+      const dyPercent = ((py - startMouseY) / rect.height) * 100;
+
+      let newZone: ZoneRect;
+
+      if (type === "move") {
+        newZone = {
+          x_percent: clamp(startZone.x_percent + dxPercent, 0, 100 - startZone.width_percent),
+          y_percent: clamp(startZone.y_percent + dyPercent, 0, 100 - startZone.height_percent),
+          width_percent: startZone.width_percent,
+          height_percent: startZone.height_percent,
+        };
       } else {
-        onSelectLot(null);
+        newZone = computeResize(startZone, handle!, dxPercent, dyPercent);
       }
-    },
-    [lots, selectedLotId, onSelectLot]
-  );
 
-  const handleMouseMove = useCallback(
-    (e: ReactMouseEvent<HTMLCanvasElement>) => {
-      const { px, py } = getCanvasCoords(e);
-      const canvas = canvasRef.current;
+      onUpdateLotZone(lotId, newZone);
 
-      if (dragRef.current && canvas) {
-        const { type, lotId, handle, startMouseX, startMouseY, startZone } =
-          dragRef.current;
-        const rect = canvas.getBoundingClientRect();
-        const dxPercent = ((px - startMouseX) / rect.width) * 100;
-        const dyPercent = ((py - startMouseY) / rect.height) * 100;
-
-        let newZone: ZoneRect;
-
-        if (type === "move") {
-          newZone = {
-            x_percent: clamp(startZone.x_percent + dxPercent, 0, 100 - startZone.width_percent),
-            y_percent: clamp(startZone.y_percent + dyPercent, 0, 100 - startZone.height_percent),
-            width_percent: startZone.width_percent,
-            height_percent: startZone.height_percent,
-          };
-        } else {
-          newZone = computeResize(startZone, handle!, dxPercent, dyPercent);
+      // Overlay surface m² temps réel (F05) — calcul dans rAF pour ne pas bloquer le drag
+      cancelAnimationFrame(rafOverlayRef.current);
+      rafOverlayRef.current = requestAnimationFrame(() => {
+        const canvasEl = canvasRef.current;
+        const containerEl = containerRef.current;
+        if (!canvasEl || !containerEl) return;
+        const canvasRect = canvasEl.getBoundingClientRect();
+        const containerRect = containerEl.getBoundingClientRect();
+        const widthPx = (newZone.width_percent / 100) * canvasRect.width;
+        const heightPx = (newZone.height_percent / 100) * canvasRect.height;
+        const label =
+          m2PerPixel != null && m2PerPixel > 0
+            ? `${(widthPx * heightPx * m2PerPixel).toFixed(1)} m²`
+            : "— m²";
+        const lotRightPx =
+          ((newZone.x_percent + newZone.width_percent) / 100) * canvasRect.width;
+        const lotBottomPx =
+          ((newZone.y_percent + newZone.height_percent) / 100) * canvasRect.height;
+        const offsetX = canvasRect.left - containerRect.left;
+        const offsetY = canvasRect.top - containerRect.top;
+        let overlayX = offsetX + lotRightPx + 12;
+        const overlayY = offsetY + lotBottomPx - 28;
+        if (overlayX + 80 > containerRect.width) {
+          overlayX = offsetX + (newZone.x_percent / 100) * canvasRect.width - 84;
         }
+        setSurfaceOverlay({ x: overlayX, y: overlayY, label, visible: true });
+      });
+      return;
+    }
 
-        onUpdateLotZone(lotId, newZone);
-
-        // Overlay surface m² temps réel (F05) — calcul dans rAF pour ne pas bloquer le drag
-        cancelAnimationFrame(rafOverlayRef.current);
-        rafOverlayRef.current = requestAnimationFrame(() => {
-          const canvasEl = canvasRef.current;
-          const containerEl = containerRef.current;
-          if (!canvasEl || !containerEl) return;
-          const canvasRect = canvasEl.getBoundingClientRect();
-          const containerRect = containerEl.getBoundingClientRect();
-          const widthPx = (newZone.width_percent / 100) * canvasRect.width;
-          const heightPx = (newZone.height_percent / 100) * canvasRect.height;
-          const label =
-            m2PerPixel != null && m2PerPixel > 0
-              ? `${(widthPx * heightPx * m2PerPixel).toFixed(1)} m²`
-              : "— m²";
-          const lotRightPx =
-            ((newZone.x_percent + newZone.width_percent) / 100) * canvasRect.width;
-          const lotBottomPx =
-            ((newZone.y_percent + newZone.height_percent) / 100) * canvasRect.height;
-          const offsetX = canvasRect.left - containerRect.left;
-          const offsetY = canvasRect.top - containerRect.top;
-          let overlayX = offsetX + lotRightPx + 12;
-          const overlayY = offsetY + lotBottomPx - 28;
-          if (overlayX + 80 > containerRect.width) {
-            overlayX = offsetX + (newZone.x_percent / 100) * canvasRect.width - 84;
-          }
-          setSurfaceOverlay({ x: overlayX, y: overlayY, label, visible: true });
-        });
-        return;
-      }
-
-      // Hover
-      if (selectedLotId) {
-        const selectedLot = lots.find((l) => l.id === selectedLotId);
-        if (selectedLot) {
-          const handle = hitTestHandle(px, py, selectedLot);
-          if (handle) {
-            if (canvas) canvas.style.cursor = getCursor(handle, false);
-            setHoveredLotId(null);
-            return;
-          }
+    // Hover
+    if (selectedLotId) {
+      const selectedLot = lots.find((l) => l.id === selectedLotId);
+      if (selectedLot) {
+        const handle = hitTestHandle(px, py, selectedLot);
+        if (handle) {
+          if (canvas) canvas.style.cursor = getCursor(handle, false);
+          setHoveredLotId(null);
+          return;
         }
       }
+    }
 
-      const hitLotId = hitTestLot(px, py);
-      setHoveredLotId(hitLotId);
-      if (canvas) canvas.style.cursor = getCursor(null, !!hitLotId);
-    },
-    [lots, selectedLotId, onUpdateLotZone, m2PerPixel]
-  );
+    const hitLotId = hitTestLot(px, py);
+    setHoveredLotId(hitLotId);
+    if (canvas) canvas.style.cursor = getCursor(null, !!hitLotId);
+  };
 
   const handleMouseUp = useCallback(() => {
     dragRef.current = null;
