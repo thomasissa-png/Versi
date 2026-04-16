@@ -1,12 +1,14 @@
 /**
  * Root Layout — Versi Studio
  * Rendu : statique (layout shell, pas de données dynamiques)
+ *
+ * NOTE versi-s20 : le header/footer Versi sont définis dans `app/vs/layout.tsx`
+ * (qui couvre toutes les pages /vs/*). Pas de header global ici pour éviter
+ * la duplication.
  */
 
 import type { Metadata } from "next";
 import "./globals.css";
-import AppHeader from "@/components/vs/AppHeader";
-import AppFooter from "@/components/vs/AppFooter";
 
 export const metadata: Metadata = {
   title: "Versi Studio",
@@ -27,12 +29,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">
-        <AppHeader />
-        {/* padding-top 80px compense la hauteur du header fixe Versi (.vs-nav height) */}
-        <main style={{ paddingTop: "80px" }}>{children}</main>
-        <AppFooter />
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

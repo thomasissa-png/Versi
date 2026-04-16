@@ -298,13 +298,20 @@ export default function LotsPage({
   // ─── Ajouter un lot manuellement ─────────────────────────────
 
   const handleAddLot = useCallback(async () => {
-    const lotNumber = lots.length + 1;
+    // Numérotation basée sur les lots existants pour CET étage (évite collision
+    // si plusieurs étages ont des lots).
+    const lotsOnFloor = lots.filter((l) => l.floor_number === selectedFloor);
+    const lotNumber = lotsOnFloor.length + 1;
     const floorLabel = selectedFloor === 0 ? "RDC" : `R+${selectedFloor}`;
     const name = `Lot ${lotNumber} — ${floorLabel}`;
 
+    // Décalage automatique : chaque nouveau lot est positionné en cascade pour
+    // éviter de créer N lots superposés à coordonnées identiques (bug s20).
+    // Pas de 4% horizontal et 4% vertical par lot existant, modulo borné.
+    const offset = (lotsOnFloor.length * 4) % 50;
     const zone: ZoneRect = {
-      x_percent: 30,
-      y_percent: 30,
+      x_percent: 10 + offset,
+      y_percent: 10 + offset,
       width_percent: 25,
       height_percent: 25,
     };
@@ -330,7 +337,7 @@ export default function LotsPage({
     } catch {
       setError("Le lot n'a pas pu être créé. Réessayez ou rechargez la page.");
     }
-  }, [lots.length, selectedFloor, projectId]);
+  }, [lots, selectedFloor, projectId]);
 
   // ─── Valider les lots ─────────────────────────────────────────
 

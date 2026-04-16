@@ -4,6 +4,9 @@
  * Tokens locaux Versi (--vs-nav-*) pour ne pas conflicter avec design system Studio.
  */
 
+/* Versi Studio = outil SaaS sur fond clair → header opaque par défaut.
+ * Différent de versi.fr (site marketing avec hero sombre fullscreen).
+ */
 .vs-nav {
   position: fixed;
   top: 0;
@@ -11,13 +14,12 @@
   right: 0;
   height: 80px;
   z-index: 100;
-  background: transparent;
-  transition: background-color 200ms ease, box-shadow 200ms ease;
+  background: #1A1A1A;
+  box-shadow: 0 1px 0 rgba(247, 245, 242, 0.08);
 }
 
 .vs-nav--scrolled {
-  background: #1A1A1A;
-  box-shadow: 0 1px 0 rgba(247, 245, 242, 0.08);
+  background: #0F0F0F;
 }
 
 .vs-nav__inner {
