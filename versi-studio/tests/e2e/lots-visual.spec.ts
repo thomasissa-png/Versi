@@ -215,10 +215,10 @@ test.describe("Lots — baselines visuelles", () => {
         // Pause pour laisser le canvas se stabiliser
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-default.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -236,10 +236,10 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-lots-detected.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-lots-detected.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -255,10 +255,10 @@ test.describe("Lots — baselines visuelles", () => {
         await page.getByText(/lot 1/i).first().click();
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-lot-selected.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-lot-selected.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -278,10 +278,10 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-lot-validated.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-lot-validated.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -303,10 +303,10 @@ test.describe("Lots — baselines visuelles", () => {
         await expect(dialog).toBeAttached();
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-modal-delete.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-modal-delete.png`, {
           fullPage: false, // Modal : on veut le viewport avec overlay
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -326,10 +326,10 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-error.png`),
+        await expect(page).toHaveScreenshot(`lots/${vp.name}-error.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
     });

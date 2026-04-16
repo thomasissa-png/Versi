@@ -229,10 +229,10 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-default.png`),
+        await expect(page).toHaveScreenshot(`rooms/${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -256,10 +256,10 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-rooms-detected.png`),
+        await expect(page).toHaveScreenshot(`rooms/${vp.name}-rooms-detected.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -283,10 +283,10 @@ test.describe("Rooms — baselines visuelles", () => {
         await roomCard.first().click();
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-room-selected.png`),
+        await expect(page).toHaveScreenshot(`rooms/${vp.name}-room-selected.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -316,10 +316,10 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-lot-validated.png`),
+        await expect(page).toHaveScreenshot(`rooms/${vp.name}-lot-validated.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -349,14 +349,14 @@ test.describe("Rooms — baselines visuelles", () => {
           await page.waitForTimeout(400);
         }
 
-        await page.screenshot({
-          path: path.join(
-            SCREENSHOT_DIR,
-            `${vp.name}-validation-blocked.png`
-          ),
-          fullPage: true,
-          animations: "disabled",
-        });
+        await expect(page).toHaveScreenshot(
+          `rooms/${vp.name}-validation-blocked.png`,
+          {
+            fullPage: true,
+            animations: "disabled",
+            maxDiffPixelRatio: 0.005,
+          }
+        );
       });
 
       test("modal confirmation suppression pièce", async ({ page }) => {
@@ -389,10 +389,10 @@ test.describe("Rooms — baselines visuelles", () => {
         await expect(dialog).toBeAttached();
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-modal-delete.png`),
+        await expect(page).toHaveScreenshot(`rooms/${vp.name}-modal-delete.png`, {
           fullPage: false,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -420,14 +420,14 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(
-            SCREENSHOT_DIR,
-            `${vp.name}-all-lots-validated.png`
-          ),
-          fullPage: true,
-          animations: "disabled",
-        });
+        await expect(page).toHaveScreenshot(
+          `rooms/${vp.name}-all-lots-validated.png`,
+          {
+            fullPage: true,
+            animations: "disabled",
+            maxDiffPixelRatio: 0.005,
+          }
+        );
       });
     });
   }

@@ -19,8 +19,7 @@
  *   npx playwright test upload-visual --project="Desktop Chrome" --project="iPhone 13" --project="iPad"
  */
 
-import { test, expect, devices, type Page, type Route } from "@playwright/test";
-import path from "node:path";
+import { test, expect, type Page, type Route } from "@playwright/test";
 import {
   PROJECT_ID,
   MOCK_PROJECT,
@@ -29,7 +28,8 @@ import {
 
 // ─── Constantes ──────────────────────────────────────────────────
 
-const SCREENSHOT_DIR = path.join(__dirname, "..", "screenshots", "upload");
+// Baselines visuelles : `tests/screenshots/upload/<viewport>-<state>.png`
+// Résolution par Playwright via `snapshotPathTemplate` (playwright.config.ts).
 
 // 3 plans mockés pour l'état "succès" (suffisant pour afficher la grille)
 const MOCK_PLANS_3 = [
@@ -198,10 +198,10 @@ test.describe("Upload — baselines visuelles", () => {
         // La dropzone est rendue (texte caractéristique)
         await expect(page.getByText(/glissez.*plans|formats acceptés/i).first()).toBeVisible();
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-default.png`),
+        await expect(page).toHaveScreenshot(`upload/${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -212,10 +212,10 @@ test.describe("Upload — baselines visuelles", () => {
         await expect(page.getByText(/3 plans déposés/i)).toBeVisible();
         await expect(page.getByRole("button", { name: /lancer l'analyse/i })).toBeVisible();
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-success.png`),
+        await expect(page).toHaveScreenshot(`upload/${vp.name}-success.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -231,10 +231,10 @@ test.describe("Upload — baselines visuelles", () => {
           page.getByRole("button", { name: /réessayer/i }).first()
         ).toBeVisible({ timeout: 15_000 });
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-error.png`),
+        await expect(page).toHaveScreenshot(`upload/${vp.name}-error.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -253,10 +253,10 @@ test.describe("Upload — baselines visuelles", () => {
         // Pause courte pour laisser le layout se stabiliser
         await page.waitForTimeout(400);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-uploading.png`),
+        await expect(page).toHaveScreenshot(`upload/${vp.name}-uploading.png`, {
           fullPage: true,
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
 
@@ -277,10 +277,10 @@ test.describe("Upload — baselines visuelles", () => {
         // Laisser le focus-trap se stabiliser
         await page.waitForTimeout(300);
 
-        await page.screenshot({
-          path: path.join(SCREENSHOT_DIR, `${vp.name}-modal-delete.png`),
+        await expect(page).toHaveScreenshot(`upload/${vp.name}-modal-delete.png`, {
           fullPage: false, // Modal : on veut le viewport avec overlay
           animations: "disabled",
+          maxDiffPixelRatio: 0.005,
         });
       });
     });

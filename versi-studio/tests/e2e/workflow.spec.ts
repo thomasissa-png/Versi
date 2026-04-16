@@ -538,7 +538,9 @@ test.describe("Workflow — Etats d'erreur", () => {
           body: JSON.stringify({ success: false, error: "Erreur serveur" }),
         });
       } else {
-        await route.continue();
+        // route.fallback() délègue au handler précédent (mockAllApiRoutes /plans GET)
+        // — route.continue() partirait au réseau réel (learning versi-s18 P6)
+        await route.fallback();
       }
     });
 

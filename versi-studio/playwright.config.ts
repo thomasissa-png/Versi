@@ -21,6 +21,11 @@ export default defineConfig({
     timeout: 10_000,
   },
 
+  // G26 strict — baselines visuelles dans tests/screenshots/{arg}
+  // Permet à `await expect(page).toHaveScreenshot("upload/desktop-default.png")`
+  // de résoudre le baseline en `tests/screenshots/upload/desktop-default.png`.
+  snapshotPathTemplate: "tests/screenshots/{arg}",
+
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
