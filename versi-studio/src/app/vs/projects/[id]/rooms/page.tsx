@@ -640,7 +640,7 @@ export default function RoomsPage({
   // ─── Rendu principal ──────────────────────────────────────────
 
   return (
-    <div className="flex flex-col sm:flex-row gap-md sm:gap-2xl h-auto sm:h-[calc(100vh-120px)]">
+    <div className="flex gap-2xl">
       {/* Stepper latéral — caché sur mobile */}
       <aside className="hidden sm:block w-64 flex-shrink-0">
         <Stepper
@@ -654,6 +654,17 @@ export default function RoomsPage({
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
         <div className="mb-lg overflow-hidden">
+          {/* Bouton retour contextuel (s22 — Point 1) */}
+          <button
+            type="button"
+            onClick={() => router.push(`/vs/projects/${projectId}/lots`)}
+            className="inline-flex items-center gap-xs text-sm text-text-muted hover:text-text-default transition-colors duration-150 mb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Lots
+          </button>
           <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
           <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">Identifiez les pièces</h1>
         </div>
@@ -734,10 +745,10 @@ export default function RoomsPage({
           </p>
         )}
 
-        {/* Canvas + Panel */}
-        <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
-          {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
-          <div className="h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-0">
+        {/* s22 Point 4 — Stack vertical : canvas pleine largeur + panneau en grille dessous */}
+        <div className="flex flex-col flex-1 min-h-0 gap-lg">
+          {/* Canvas pleine largeur */}
+          <div className="w-full h-[400px] sm:h-[550px] rounded-md overflow-hidden border border-border-default">
             <RoomCanvas
               planImageUrl={planImageUrl}
               lotZone={lotZone}
@@ -749,7 +760,7 @@ export default function RoomsPage({
             />
           </div>
 
-          {/* Panel latéral */}
+          {/* Panel pièces en grille dessous */}
           <RoomPanel
             lots={lots}
             selectedLotId={selectedLotId ?? ""}

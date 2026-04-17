@@ -24,6 +24,8 @@ interface LotPanelProps {
   onDeleteLot: (lotId: string) => void;
   onAddLot: () => void;
   onValidate: () => void;
+  /** Navigation vers pièces — distinct de onValidate (s22 Point 3) */
+  onContinue?: () => void;
   hasOverlap: boolean;
   validating: boolean;
   lotIndexMap: Map<string, number>;
@@ -112,10 +114,11 @@ function LotCard({
       aria-label={`Sélectionner ${lot.name}`}
       className={`
         group flex items-start gap-sm p-md rounded-md cursor-pointer transition-colors duration-150
-        ${lot.source === "ai" && lot.status === "suggested" ? "border border-dashed border-[var(--color-interactive-primary)]/40" : ""}
-        ${lot.source === "ai" && lot.status === "validated" ? "border border-solid border-[var(--color-success,#16A34A)]/40" : ""}
-        ${isSelected && lot.source === "ai" ? "bg-[var(--color-background-default)] ring-2 ring-[var(--color-border-default)]" : ""}
-        ${isSelected && lot.source !== "ai" ? "bg-[var(--color-background-default)] border border-[var(--color-border-default)]" : ""}
+        bg-white border
+        ${lot.source === "ai" && lot.status === "suggested" ? "border-dashed border-[var(--color-interactive-primary)]/40" : ""}
+        ${lot.source === "ai" && lot.status === "validated" ? "border-solid border-[var(--color-success,#16A34A)]/40" : ""}
+        ${isSelected ? "ring-2 ring-[var(--color-interactive-primary)] border-[var(--color-interactive-primary)]" : ""}
+        ${!isSelected && !(lot.source === "ai") ? "border-[var(--color-border-default)]" : ""}
         ${!isSelected ? "hover:bg-[var(--color-background-default)]" : ""}
       `}
     >
@@ -269,6 +272,7 @@ export default function LotPanel({
   onDeleteLot,
   onAddLot,
   onValidate,
+  onContinue,
   hasOverlap,
   validating,
   lotIndexMap,
@@ -284,11 +288,13 @@ export default function LotPanel({
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
   const aiSuggestedLots = lots.filter((l) => l.source === "ai" && l.status === "suggested");
+  const allLotsValidated = lots.length > 0 && lots.every((l) => l.status === "validated");
+  const hasSuggestedLots = lots.some((l) => l.status === "suggested");
 
   return (
-    <aside className="w-80 flex-shrink-0 flex flex-col bg-white border-l border-[var(--color-border-default)] h-full">
+    <section className="w-full flex flex-col">
       {/* En-tête */}
-      <div className="px-lg py-md border-b border-[var(--color-border-default)]">
+      <div className="py-sm">
         <h2 className="text-sm font-medium text-[var(--color-text-default)]">
           {lots.length} lot{lots.length !== 1 ? "s" : ""}
         </h2>
@@ -299,8 +305,8 @@ export default function LotPanel({
         )}
       </div>
 
-      {/* Liste des lots */}
-      <div className="flex-1 overflow-y-auto px-sm py-sm">
+      {/* Grille de lots (s22 Point 4 — cards en grille au lieu de liste latérale) */}
+      <div>
         {lots.length === 0 ? (
           <div className="text-center text-sm text-[var(--color-text-muted)] py-2xl px-md">
             {hasAiExtracted ? (
@@ -316,7 +322,7 @@ export default function LotPanel({
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-2xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
             {lots.map((lot) => (
               <LotCard
                 key={lot.id}
@@ -344,7 +350,7 @@ export default function LotPanel({
 
       {/* I7 — Pièces non assignées (versi-s21 it2) */}
       {unassignedRooms && unassignedRooms.length > 0 && (
-        <div className="mx-sm mb-sm p-sm bg-gray-50 rounded-lg border border-gray-200">
+        <div className="mt-md p-sm bg-gray-50 rounded-lg border border-gray-200">
           <h3 className="text-sm font-medium text-[var(--color-text-default)] mb-xs">
             Pièces non assignées ({unassignedRooms.length})
           </h3>
@@ -361,8 +367,8 @@ export default function LotPanel({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="px-lg py-md border-t border-[var(--color-border-default)] flex flex-col gap-sm">
+      {/* Actions (s22 Point 4) */}
+      <div className="border-t border-[var(--color-border-default)] py-md mt-lg flex flex-col gap-sm">
         {/* Bandeau mode dessin actif (versi-s20) */}
         {drawingPolygon && (
           <div
@@ -383,23 +389,6 @@ export default function LotPanel({
               Annuler le tracé
             </button>
           </div>
-        )}
-
-        {/* Bouton tout valider — lots IA (versi-s21) */}
-        {aiSuggestedLots.length > 0 && onValidateAllAiLots && (
-          <button
-            onClick={onValidateAllAiLots}
-            className="
-              w-full px-md py-sm rounded-md text-sm font-medium
-              bg-[var(--color-success,#16A34A)] text-white
-              hover:opacity-90
-              transition-all duration-150
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
-              min-h-[44px]
-            "
-          >
-            Tout valider ({aiSuggestedLots.length} lot{aiSuggestedLots.length !== 1 ? "s" : ""} IA)
-          </button>
         )}
 
         {/* Bouton ajouter */}
@@ -470,28 +459,59 @@ export default function LotPanel({
           </button>
         )}
 
-        {/* Bouton valider */}
-        <button
-          onClick={onValidate}
-          disabled={!canValidate}
-          className="
-            w-full px-md py-sm rounded-md text-sm font-medium
-            bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]
-            hover:opacity-90
-            disabled:opacity-50 disabled:cursor-not-allowed
-            transition-all duration-150
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
-          "
-        >
-          {validating ? (
-            <span className="flex items-center justify-center gap-sm">
-              <span className="inline-block w-4 h-4 border-2 border-[var(--color-text-inverse)]/30 border-t-[var(--color-text-inverse)] rounded-full animate-spin" />
-              Validation...
-            </span>
-          ) : (
-            "Continuer vers les pièces"
-          )}
-        </button>
+        {/* s22 Point 3 — Deux boutons distincts : Valider + Passer aux pièces */}
+        <div className="flex flex-col gap-sm">
+          {/* Bouton 1 : Valider tous les lots (outline/secondaire) */}
+          <button
+            onClick={hasSuggestedLots ? onValidate : undefined}
+            disabled={!canValidate || !hasSuggestedLots}
+            className="
+              w-full flex items-center justify-center gap-sm
+              px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+              border border-[var(--color-border-default)]
+              text-[var(--color-text-default)]
+              hover:border-[var(--color-text-muted)] hover:bg-[var(--color-background-default)]
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-all duration-150
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
+            "
+          >
+            {validating ? (
+              <span className="flex items-center justify-center gap-sm">
+                <span className="inline-block w-4 h-4 border-2 border-[var(--color-text-default)]/30 border-t-[var(--color-text-default)] rounded-full animate-spin" />
+                Validation...
+              </span>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Valider tous les lots
+              </>
+            )}
+          </button>
+
+          {/* Bouton 2 : Passer aux pièces (primary) */}
+          <button
+            onClick={onContinue ?? onValidate}
+            disabled={!allLotsValidated || hasOverlap}
+            title={!allLotsValidated ? "Validez tous les lots pour continuer" : undefined}
+            className="
+              w-full flex items-center justify-center gap-sm
+              px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+              bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]
+              hover:opacity-90
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-all duration-150
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
+            "
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            Passer aux pièces
+          </button>
+        </div>
 
         {/* Message d'aide si aucun lot (versi-s20) */}
         {lots.length === 0 && (
@@ -520,6 +540,6 @@ export default function LotPanel({
           </div>
         )}
       </div>
-    </aside>
+    </section>
   );
 }

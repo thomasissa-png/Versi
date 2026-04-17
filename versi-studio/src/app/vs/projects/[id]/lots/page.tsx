@@ -579,6 +579,12 @@ export default function LotsPage({
     }
   }, [lots, projectId]);
 
+  // ─── Navigation vers les pièces (s22 — distinct de la validation) ──
+
+  const handleContinueToRooms = useCallback(() => {
+    router.push(`/vs/projects/${projectId}/rooms`);
+  }, [projectId, router]);
+
   // ─── U3 — Extraction IA déjà tentée ? (versi-s21 it2) ────────
 
   const hasAiExtracted = useMemo(() => {
@@ -665,6 +671,17 @@ export default function LotsPage({
       <div className="flex-1 flex flex-col min-h-0">
         {/* En-tête */}
         <div className="mb-lg">
+          {/* Bouton retour contextuel (s22 — Point 1) */}
+          <button
+            type="button"
+            onClick={() => router.push(`/vs/projects/${projectId}/upload`)}
+            className="inline-flex items-center gap-xs text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-default)] transition-colors duration-150 mb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[44px]"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Plans
+          </button>
           <p className="text-xs uppercase tracking-widest text-[var(--color-text-muted)] mb-xs">
             {project.adresse}
           </p>
@@ -818,10 +835,10 @@ export default function LotsPage({
           </div>
         )}
 
-        {/* Canvas + Panneau latéral */}
-        <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
-          {/* Canvas */}
-          <div className="flex-1 min-w-0">
+        {/* s22 Point 4 — Stack vertical : canvas pleine largeur + panneau en grille dessous */}
+        <div className="flex-1 flex flex-col gap-lg min-h-0">
+          {/* Canvas pleine largeur */}
+          <div className="w-full h-[400px] sm:h-[550px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
             <PlanCanvas
               planImageUrl={planImageUrl}
               lots={filteredLots}
@@ -837,7 +854,7 @@ export default function LotsPage({
             />
           </div>
 
-          {/* Panneau latéral */}
+          {/* Panneau lots en grille dessous */}
           <LotPanel
             lots={filteredLots}
             selectedLotId={selectedLotId}
@@ -846,6 +863,7 @@ export default function LotsPage({
             onDeleteLot={handleDeleteLot}
             onAddLot={handleAddLot}
             onValidate={handleValidate}
+            onContinue={handleContinueToRooms}
             hasOverlap={hasOverlap}
             validating={validating}
             lotIndexMap={lotIndexMap}

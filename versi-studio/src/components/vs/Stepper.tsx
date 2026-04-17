@@ -8,6 +8,7 @@
 
 "use client";
 
+import { useRouter } from "next/navigation";
 import { STEPS, type StepId } from "@/lib/vs/types";
 
 export type StepperVariant = "vertical" | "horizontal";
@@ -21,9 +22,22 @@ interface StepperProps {
 
 export default function Stepper({
   currentStep,
+  projectId,
   completedSteps = [],
   variant = "vertical",
 }: StepperProps) {
+  const router = useRouter();
+
+  /** Un step est cliquable s'il est complété et pas l'étape courante */
+  const isClickable = (stepId: StepId) =>
+    completedSteps.includes(stepId) && stepId !== currentStep;
+
+  const handleStepClick = (stepId: StepId) => {
+    if (!isClickable(stepId)) return;
+    const step = STEPS.find((s) => s.id === stepId);
+    if (step) router.push(step.path(projectId));
+  };
+
   if (variant === "horizontal") {
     return (
       <nav
@@ -35,9 +49,16 @@ export default function Stepper({
           const isCompleted = completedSteps.includes(step.id);
           const isFuture = !isActive && !isCompleted;
 
+          const clickable = isClickable(step.id);
+
           return (
             <div key={step.id} className="flex items-center gap-xs flex-shrink-0">
-              <div className="flex flex-col items-center gap-2xs">
+              <button
+                type="button"
+                onClick={() => handleStepClick(step.id)}
+                disabled={!clickable}
+                className={`flex flex-col items-center gap-2xs bg-transparent border-none p-0 ${clickable ? "cursor-pointer" : isFuture ? "cursor-not-allowed opacity-50" : "cursor-default"}`}
+              >
                 <div
                   aria-current={isActive ? "step" : undefined}
                   aria-label={`Étape ${step.id} : ${step.label}${isCompleted ? " (complétée)" : isActive ? " (en cours)" : ""}`}
@@ -76,7 +97,7 @@ export default function Stepper({
                 >
                   {step.label}
                 </span>
-              </div>
+              </button>
               {idx < STEPS.length - 1 && (
                 <div
                   className="w-4 h-px bg-border-default"
@@ -97,15 +118,22 @@ export default function Stepper({
         const isActive = step.id === currentStep;
         const isCompleted = completedSteps.includes(step.id);
         const isFuture = !isActive && !isCompleted;
+        const clickable = isClickable(step.id);
 
         return (
           // Arbitrary value justifiée: token --border-width-thick à créer si réutilisé ailleurs (P2 design-system)
-          <div
+          <button
+            type="button"
             key={step.id}
+            onClick={() => handleStepClick(step.id)}
+            disabled={!clickable}
             className={`
-              flex items-start gap-md p-md rounded-md transition-colors duration-200 motion-reduce:transition-none
+              flex items-start gap-md p-md rounded-md transition-colors duration-200 motion-reduce:transition-none text-left
               ${isActive ? "bg-bg-dark text-text-inverse border-l-[3px] border-text-default" : ""}
-              ${isFuture ? "opacity-50" : ""}
+              ${isFuture ? "opacity-50 cursor-not-allowed" : ""}
+              ${clickable ? "cursor-pointer hover:bg-bg-default/50" : ""}
+              ${!clickable && !isFuture ? "cursor-default" : ""}
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
             `}
           >
             {/* Indicateur circulaire */}
@@ -157,7 +185,7 @@ export default function Stepper({
                 {step.description}
               </span>
             </div>
-          </div>
+          </button>
         );
       })}
     </nav>

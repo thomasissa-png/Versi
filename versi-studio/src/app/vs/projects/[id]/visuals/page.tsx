@@ -340,6 +340,17 @@ export default function VisualsPage({
       <div className="flex-1 flex flex-col min-w-0">
         {/* En-tête */}
         <div className="mb-lg px-lg pt-lg overflow-hidden">
+          {/* Bouton retour contextuel (s22 — Point 1) */}
+          <button
+            type="button"
+            onClick={() => router.push(`/vs/projects/${projectId}/rooms`)}
+            className="inline-flex items-center gap-xs text-sm text-text-muted hover:text-text-default transition-colors duration-150 mb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Pièces
+          </button>
           <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
           <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">Créez vos visuels</h1>
         </div>

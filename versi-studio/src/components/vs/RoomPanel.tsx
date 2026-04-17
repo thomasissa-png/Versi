@@ -353,16 +353,15 @@ export default function RoomPanel({
   // ─── Rendu principal ────────────────────────────────────────────
 
   return (
-    <aside className="w-full sm:w-80 flex-shrink-0 flex flex-col sm:h-full bg-bg-card sm:border-l border-t sm:border-t-0 border-border-default">
-      {/* Header : selecteur de lot */}
-      <div className="p-md border-b border-border-default">
-        <p className="vs-label mb-sm">Lot</p>
-        {renderLotSelector()}
-      </div>
-
-      {/* Badge lot valide */}
-      {currentLotValidated && (
-        <div className="px-md py-sm bg-success/10 border-b border-success/20">
+    <section className="w-full flex flex-col">
+      {/* Header : sélecteur de lot + badge */}
+      <div className="py-sm flex flex-wrap items-center gap-md">
+        <div className="flex-1 min-w-0">
+          <p className="vs-label mb-sm">Lot</p>
+          {renderLotSelector()}
+        </div>
+        {/* Badge lot validé */}
+        {currentLotValidated && (
           <div className="flex items-center gap-xs text-sm font-medium text-success">
             <svg
               className="w-4 h-4"
@@ -376,11 +375,11 @@ export default function RoomPanel({
             </svg>
             Lot validé
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Liste des pieces */}
-      <div className="flex-1 overflow-y-auto p-md">
+      {/* Grille des pièces (s22 Point 4 — cards en grille au lieu de liste latérale) */}
+      <div className="py-md">
         {rooms.length === 0 ? (
           <div className="text-center py-2xl">
             <p className="text-sm text-text-muted">
@@ -395,15 +394,15 @@ export default function RoomPanel({
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
             {rooms.map((room, i) => renderRoom(room, i))}
           </div>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="p-md border-t border-border-default flex flex-col gap-sm">
-        {/* Ajouter une piece */}
+      {/* Actions (s22 Point 4) */}
+      <div className="border-t border-border-default py-md mt-md flex flex-col gap-sm">
+        {/* Ajouter une pièce */}
         <button
           onClick={onAddRoom}
           className="
@@ -452,7 +451,7 @@ export default function RoomPanel({
           </button>
         )}
 
-        {/* Avertissement si pieces non typees */}
+        {/* Avertissement si pièces non typées */}
         {hasUntypedRooms && !currentLotValidated && (
           <p id="validate-lot-warning" className="text-xs text-warning text-center">
             Définissez le type de toutes les pièces avant de valider
@@ -471,17 +470,21 @@ export default function RoomPanel({
           <button
             onClick={onContinue}
             className="
-              w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
-              bg-success text-text-inverse
-              hover:bg-success/90 active:opacity-80
+              w-full flex items-center justify-center gap-sm
+              px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+              bg-[var(--color-interactive-primary)] text-text-inverse
+              hover:opacity-90 active:opacity-80
               transition-colors duration-200
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
             "
           >
-            Continuer vers les visuels
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            Passer aux visuels
           </button>
         )}
       </div>
-    </aside>
+    </section>
   );
 }
