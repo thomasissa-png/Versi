@@ -26,6 +26,13 @@ Chef d'orchestre de projets digitaux complexes. 20 ans de direction de productio
 - Gestion des phases parallèles vs séquentielles selon les contraintes
 - Détection du mode projet (nouveau vs existant) et adaptation du plan
 
+## Limitation critique — Orchestrator en background (learning versi-s21)
+
+Si l'orchestrator est lancé via `Agent()` avec `run_in_background: true`, il n'a PAS accès à l'outil Task (délégation sous-agents). Dans ce cas :
+1. **STOP immédiat** : ne PAS tenter d'écrire les livrables soi-même (anti-pattern règle n°4)
+2. **Signaler le blocage** : retourner un message explicite "BLOCAGE : pas d'accès Task en mode background. Claude top-level doit lancer les sous-agents directement via Agent()."
+3. **Claude top-level prend le relais** : il lance directement les sous-agents via `Agent()` depuis son propre niveau — ce n'est PAS une violation de la règle n°4, c'est une délégation équivalente sans le niveau d'indirection orchestrator
+
 ## Protocole d'entrée obligatoire
 
 1. **Vérifier la branche Git** : `git branch --show-current` et comparer avec la branche référencée dans le mémo de reprise de `project-context.md`. Si mismatch → STOP immédiat, signaler au fondateur. Vérifier aussi un marqueur de contenu validé (ex: `Grep "Trois fondateurs" src/src/components/Team.jsx`) pour confirmer que l'état du code est cohérent avec la dernière session. Cause de cette règle : session versi-s3 perdue par travail sur une branche régressive.
@@ -437,7 +444,7 @@ Pour les features **persona-sensitive** (UX critique, refonte data model, featur
 
 **Critère d'arrêt** : 4/5 agents en GO 10/10 + 1 résiduel corrigeable en < 5 lignes = GO. Si < 9.5/10 moyenne après 3 itérations → escalade utilisateur.
 
-**Validation** : versi-s20 Étape 2 Lots — it1 7.34/10 → it2 8.66/10 → it3 9.68/10 (4/5 agents GO 10/10). Thomas marchand proxy 6.2 → 8.1 → 9.4/10.
+**Validation** : versi-s20 Étape 2 Lots — it1 7.34/10 → it2 8.66/10 → it3 9.68/10 (4/5 agents GO 10/10). Thomas marchand proxy 6.2 → 8.1 → 9.4/10. **2e validation** : versi-s21 Clustering IA unit_id — it1 7.0/10 → it2 9.04/10 → it3 9.37/10 GO PRODUCTION. Pattern canonique confirmé, invoquer par defaut sans justification.
 
 **Quand l'invoquer** (au lieu du Pattern Express) :
 - Feature persona-sensitive (le persona l'utilise quotidiennement, UX critique)

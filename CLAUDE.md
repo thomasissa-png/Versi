@@ -122,6 +122,7 @@ Pour une tâche ciblée : invoquer directement l'agent concerné.
 - Réponses à des questions de l'utilisateur (pas de livrable produit)
 - Opérations git (commit, push, PR)
 - Modifications de `project-context.md` ou `CLAUDE.md` (fichiers transversaux, pas des livrables agents)
+- **Orchestrator lancé en background sans outil Task (learning versi-s21)** : quand l'orchestrator est invoqué via `Agent()` avec `run_in_background: true`, il n'a PAS accès à l'outil Task. Dans ce cas, Claude top-level DOIT lancer directement les sous-agents via `Agent()` depuis son propre niveau — ce n'est PAS une violation de la règle n°4, c'est une délégation équivalente sans le niveau d'indirection orchestrator
 
 ## Ordre de priorité des agents par type de demande
 
