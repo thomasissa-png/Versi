@@ -59,19 +59,32 @@ Budget cible : 10-13 Tasks producteurs. ALERTE ROUGE > 18.
 ### Phase 4 -- Audit cross-agents 3 iterations (persona-sensitive)
 - Pattern : audit cross-agents 3 iterations (learning s20)
 - Agents : @qa, @ux, @product-manager, @ia, @creative-strategy proxy Thomas marchand
-- Statut : A FAIRE
+- Statut : COMPLETE
+- Trajectoire : it1 7.0/10 (10 P0) → it2 9.04/10 (0 P0) → it3 mini 9.37/10 (typist 25 lignes)
+- Livrables : 11 audits + 2 bundles consolidation dans `docs/reviews/vs-s21-*`
 
-### Phase 5 -- Tests obligatoires (@qa)
-- E2E + unit + isValidZone + suite complete
-- Statut : A FAIRE
+### Phase 5 -- Tests obligatoires (P3/P5)
+- Statut : COMPLETE
+- P3 re-run E2E + tests reels : vitest 58/58 PASS + tsc 0 + ESLint 0 prod + playwright 5/5 PASS
+- P5 isValidZone : 30/30 cas Vitest (zone-validation.test.ts) PASS, 0 bug types.ts
 
-### Phase 6 -- Analytics + gate finale
-- @data-analyst events + @moi gate
-- Statut : A FAIRE
+### Phase 6 -- Analytics events (P4)
+- Statut : COMPLETE
+- Spec @data-analyst : `docs/analytics/vs-s21-clustering-events.md`
+- Impl @fullstack typist : helper `analytics.ts` + 4 inserts (extract/route + lots/page)
+- 4 events : lot_auto_created, lot_auto_validated, lot_manually_adjusted, ia_fallback_triggered
 
-### Phase 7 -- Cloture
-- Learnings + memo + commit
-- Statut : A FAIRE
+### Phase 7 -- Gate finale @moi
+- Statut : COMPLETE
+- Verdict : GO PRODUCTION ferme, score final 9.37/10
+- Livrable : `docs/reviews/vs-s21-gate-moi-finale.md`
+
+### Phase 8 -- Cloture session
+- Statut : EN COURS
+- Mise a jour project-context.md + lessons-learned.md + push branche + main
+
+### Hors scope s21 (reporte s22)
+- P2 POC OCR auto-calibration en reel : en attente OPENAI_API_KEY + 5-10 plans Thomas
 
 ## Metriques live
 | Phase | Agents | Paralleles | Relances | P0 | Cout estime | Statut |
@@ -79,3 +92,12 @@ Budget cible : 10-13 Tasks producteurs. ALERTE ROUGE > 18.
 | 0 | 0 (edits directs) | - | 0 | 0 | $0 | COMPLETE |
 | 1 | 0 (edits directs) | - | 0 | 0 | $0 | COMPLETE |
 | 2 | 2 (orchestrateur) | - | 0 | 0 | ~$0 | COMPLETE |
+| 3 | 2 (orchestrateur fallback) | - | 0 | 0 | ~$0 | COMPLETE |
+| 4 it1 | 5 audits (QA+UX+PM+IA+CS proxy) | 5 | 0 | 10 | ~$0.30 | COMPLETE |
+| 4 it2 | 3 fullstack + 5 re-audits | 3 + 5 | 0 | 0 | ~$0.40 | COMPLETE |
+| 4 it3 mini | 1 typist + 3 re-audits + 1 @moi | 1 + 3 | 0 | 0 | ~$0.15 | COMPLETE |
+| 5 (P3+P5) | 1 @qa tests unit | 1 | 0 | 0 | ~$0.05 | COMPLETE |
+| 6 (P4) | 1 data-analyst + 1 fullstack typist | 1 + 1 | 0 | 0 | ~$0.10 | COMPLETE |
+| 7 @moi | 1 | - | 0 | 0 | ~$0.05 | COMPLETE |
+| 8 cloture | 0 (edits directs) | - | 0 | 0 | $0 | EN COURS |
+| **Total** | ~30 Tasks producteurs (zone ALERTE ROUGE > 18, tenue par patterns typist + scope disjoint) | - | 0 | 0 P0 residuel | **~$1.05** | GO PRODUCTION |

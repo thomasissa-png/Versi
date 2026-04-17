@@ -234,6 +234,7 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
+| @orchestrator + agents spécialisés (synthèse versi-s21) | 2026-04-17 | `docs/product/clustering-ia-spec.md` + `docs/ia/extraction-enrichie-spec.md` + `docs/analytics/vs-s21-clustering-events.md` + 11 audits `docs/reviews/vs-s21-*` + code prod : `versi-studio/src/lib/vs/{clustering.ts, analytics.ts}` (NEW) + modifications `extract/route.ts`, `LotPanel.tsx`, `lots/page.tsx`, `schemas.ts`, `plan-extractor.ts`, `db.ts`, `types.ts` + tests `tests/unit/{clustering.test.ts, zone-validation.test.ts}` (NEW 58 cas) + `tests/e2e/clustering-ia.spec.ts` (5/5 PASS) | **Option A+B Clustering IA `unit_id` + Polygones IA** : pré-création lots = 1 appartement (filtre triple : avg ≥0.7 + min ≥0.5 + count ≥2 + exception studios) avec validation 1-clic Thomas. Pattern audit cross-agents 3 itérations 7.0 → 9.04 → 9.37/10 (QA, UX, PM, IA, persona Thomas proxy @creative-strategy). Pattern typist it3 mini (25 lignes de fix ciblés). Gate @moi GO PRODUCTION ferme. P3 exécution réelle tests : vitest 58/58 + tsc 0 + ESLint 0 prod + playwright 5/5 PASS. P5 isValidZone 30/30 cas, 0 bug types.ts. P4 4 events analytics (lot_auto_created, lot_auto_validated, lot_manually_adjusted, ia_fallback_triggered) instrumentés via helper analytics.ts isomorphe. | **Triple filtre clustering IA validé** (avg seul masque pièces à risque : 1 pièce à 0.4 noyée dans 3 à 0.9 = avg 0.78 acceptée à tort). **Règle n°5 "no AI > bad AI" appliquée** (seuil 0.7 strict, 0 lot pré-créé sinon). **Pattern audit cross-agents 3 itérations validé 2x consécutif** (s20 + s21) → méthode canonique refonte persona-sensitive. **Pattern typist it3 mini** (< 80 lignes, it2 ≥ 9.0) économise une itération complète. **Alternative écartée** : arrêter à it2 GO-CONDITIONNEL 9.04 — it3 mini a corrigé route.continue() → route.fulfill() qui bloquait CI E2E, ROI maximum. **Anti-pattern orchestrator background sans Task** (P0 learning s21) : l'orchestrator en `run_in_background` n'a pas l'outil Task, d'où délégation directe Agent() depuis Claude top-level. **Stack analytics V1 sans SDK externe** (logging JSON structuré) : évite dépendance PostHog/Mixpanel pour MVP, migration future via `/api/vs/analytics` documentée s22. |
 | @qa | 2026-04-16 | `versi-studio/tests/e2e/lots-visual.spec.ts` (NEW 333L) + `versi-studio/tests/e2e/rooms-visual.spec.ts` (NEW 415L) + `docs/qa/visual-regression-bundle.md` (NEW 100L) + 39 baselines screenshots (18 lots + 21 rooms) | P4 versi-s18 boucle visuelle G26 BUNDLE Studio (Étapes 2 Lots + 3 Pièces). 3 viewports manuels (iphone13 375px / ipad 768px / desktop 1280px) sans projects Playwright multiples (pattern aligné upload-visual.spec.ts). Lots = 6 états (default, lots-detected, lot-selected, lot-validated, modal-delete, error). Rooms = 7 états (default, rooms-detected, room-selected, lot-validated, validation-blocked, modal-delete, all-lots-validated). 18/18 lots + 21/21 rooms PASS. APIs mockées via `page.route()` ordre wildcard→spécifique (learning versi-s13 P1 #2). Locators robustes via `getByRole({name: /pièce \d+ : salon/i})` (aria-label RoomPanel) plutôt que `getByText(/salon/i)` (interceptions canvas). Adaptation des assertions à 2 réalités UI : (1) état error Lots = "Opération introuvable" (page rend fallback car `if(!project)` avant `if(error)`), (2) état lot-validated Rooms = pièce cuisine visible (l'app sélectionne automatiquement le premier lot non-validé). | Pattern viewports manuels (boucle for) retenu vs multi-projects Playwright : cohérence stricte avec `upload-visual.spec.ts` existant + nommage stable des PNG (`{viewport}-{état}.png`) sans suffixe project. Pré-requis identifié : `npm install` versi-studio absent + `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright install chromium` requis avant exécution → documenté dans procédure refresh. Mock pattern `success: false` retourné en status 200 (pas 5xx) car l'API Versi Studio lit `json.success` pas le status HTTP — alignement réalité. Locators aria-label cibles privilégiés vs getByText : robustesse face aux occurrences multiples (canvas + panel) + alignement règle interne `getByRole > getByText`. Alternative écartée : forcer la sélection lot 1 via clic onglet pour test "lot-validated" — adapter l'assertion à la réalité (cuisine visible) plus simple et reflète vraiment l'état UI produit. Total 39 baselines, durée run ~10 min (lots 80s + rooms 6 min). 0 modification source, uniquement specs et baselines. |
 | @copywriter | 2026-04-16 | `docs/reviews/copy-rooms-us-vs-13-15-v1.md` | Audit copy Étape 3 Pièces (US-VS-13/14/15) v1. Score **7,6/10 — GO CONDITIONNEL**. G33 anglicismes : PASS (10/10) — zéro occurrence dans les 5 fichiers. Règle n°13 UTF-8 : 1 P0 bloquant (page.tsx:317 — `"piece"` + `"irreversible"` sans accents dans `confirm()`). Conformité spec §5 : 2/5 messages conformes (erreur validation PASS exact, reste FAIL ou absent — loading générique, vide sans "L'IA", succès absent, warning lot invalidé absent). Registre G24 : cohérent "vous impératif neutre", impératifs canoniques respectés. ARIA : bon niveau (canvas, tabs, selects labelisés), P1 aria-describedby manquant sur bouton désactivé. 6 corrections P0/P1 documentées avec code exact. | Audit direct demandé (sans @orchestrator). Décision clé : note 7,6 honnête et non gonflée — le critère spec §5 (6/10) tire la moyenne malgré un G33 parfait et un ARIA au-dessus de la moyenne. La `confirm()` native (page.tsx:317) cumule P0 UTF-8 et dette UX — signalée mais hors périmètre copy strict. Alternative écartée : noter 8/10 "car l'essentiel fonctionne" — non, 4/5 messages spec absents est un vrai écart de conformité. |
 | @moi | 2026-04-16 | `docs/reviews/moi-lots-us-vs-06-08-gate-v1.md` | Gate finale Étape 2 Lots versi-s17 — **GO ABSOLU 9,1/10**. Parité Étape 1 Upload (9,17/10) confirmée. Résidus acceptables (F05 surface m² temps réel nice-to-have, 4 résidus P2 Design justifiés, badge succès rename cosmétique, drawer mobile Versi Studio = desktop-first). P3 tu/vous : **status quo "vous" impératif neutre** re-validé (2e confirmation après s16). Boucle visuelle Playwright G26 = DIFFÉRÉE fin versi-s17 sur bundle complet (pas gate par étape — goulot vélocité). Prochaine priorité : Étape 3 Versi Studio. | Décision autonome @moi (périmètre "review livrables, merge réversible, précédent direct versi-s16"). Confiance HAUTE : cohérence audits (zéro contradiction), 0 gate BLOQUANT FAIL, patterns identiques à Upload déjà validé. Alternative écartée : demander une boucle visuelle Playwright immédiate — coût élevé (baselines par étape = goulot 30 min par batch), ROI limité (audits triangulés suffisent pour parité Upload). Alternative écartée : demander corrections supplémentaires pour 10/10 strict — diminishing returns, résidus documentés et non bloquants. |
@@ -417,25 +418,34 @@
 
 7. **Phase 6 gate finale @moi** : GO PRODUCTION ferme (pas conditionnel). Thomas fondateur "renouvelle l'abonnement sans hésitation"
 
+8. **Phase "rouverte" P3+P5+P4** (Thomas a demandé "pourquoi clôturer ?") :
+   - **P3 tests exécutés réellement** : `npm install` + `npx vitest run` 58/58 PASS + `npx tsc --noEmit` 0 erreur + `npm run lint` 0 erreur prod (2 erreurs legacy `reference-existant/`) + `npx playwright test clustering-ia.spec.ts` 5/5 PASS après fix 3 régressions tests
+   - **P5 Vitest `isValidZone`** : 30/30 cas (zone-validation.test.ts NEW), 0 bug détecté dans `types.ts`, validation DRY s20 confirmée
+   - **P4 Analytics events** : spec `docs/analytics/vs-s21-clustering-events.md` + helper `analytics.ts` isomorphe + 4 inserts (extract/route.ts + lots/page.tsx) via typist @fullstack — V1 logging JSON sans SDK externe, stack PostHog/Mixpanel reportée s22 via `/api/vs/analytics`
+
 **Priorités pour s22 (proposées, Thomas tranche au démarrage)** :
 
 | # | Priorité | Estimation Tasks |
 |---|---|---|
-| P1 | **Phase 6 Analytics events** (PM-P1-E8 reporté) : `lot_auto_created`, `lot_auto_validated`, `lot_manually_adjusted`, `ia_fallback_triggered` → @data-analyst + @fullstack | 2-3 |
-| P2 | **Test POC OCR auto-calibration en réel** : OPENAI_API_KEY + 5-10 plans + décision V1 | 1-2 |
-| P3 | **Backlog produit suivant** : Auth (D) / Dashboard multi-projets (E) / Export acquéreur (F) / Validation cross-étapes (G) | 5-8 selon option |
-| P4 | **Nettoyage P1 backlog maintenance s21** : bordure IA ternaire (UX-P1-R2), icône ★ SVG (UX-P1-N1), NaN computeAvgX (QA), `.nullable().optional()` Zod (IA), double regex (QA), duplication mock E2E (QA) | 1-2 |
-| P5 | **Hypothèses complexes (si pertinent)** : refonte onboarding Versi Studio / intégration Stripe abonnement / multi-tenants | 8-12 |
+| P1 | **POC OCR auto-calibration en réel** (seul item du brief s21 non traité) : `OPENAI_API_KEY` + 5-10 plans (haussmanniens R+3, immeubles modernes, villas, scans basse qualité) à déposer dans `/home/user/Versi/test-plans/` + mesure accuracy réelle → décision GO V1 promotion / ajustement seuil 0.9 / suppression POC | 1-2 |
+| P2 | **Backlog produit suivant** : Auth (D) / Dashboard multi-projets (E) / Export acquéreur PDF+lien (F) / Validation cross-étapes KPI NS (G) / Finitions (H) | 5-8 selon option |
+| P3 | **Stack analytics V2** : migration logging JSON → SDK (PostHog self-hosted ou Plausible) + endpoint `/api/vs/analytics` + dashboard KPI North Star "taux validation 1-clic" | 3-5 |
+| P4 | **Nettoyage P1 backlog maintenance s21** (7 items cosmétiques/défensifs documentés dans `docs/reviews/vs-s21-audit-it2-bundle.md`) : bordure IA ternaire sélection (UX-P1-R2), icône ★ → SVG inline (UX-P1-N1), `computeAvgX([])` NaN (QA), `.nullable().optional()` Zod redondant (IA), double regex insensibilité (QA), duplication mock routes E2E (QA), fix 2 erreurs ESLint legacy `reference-existant/PlanEditor.tsx` | 1-2 |
+| P5 | **Hypothèses complexes (si pertinent)** : refonte onboarding Versi Studio / intégration Stripe abonnement / multi-tenants / migration Replit→Vercel | 8-12 |
 
 **Propagation P0/P1 OBLIGATOIRE s22 (gate de reprise — AVANT tout nouveau travail)** :
 
-6 learnings versi-s21 statut propagation = `à-faire` à propager :
+10 learnings versi-s21 statut propagation = `à-faire` à propager (6 initiaux + 4 nouveaux de la session rouverte) :
 1. **Orchestrator background n'a PAS Task** (P0) → `CLAUDE.md` règle n°4 exception + `orchestrator.md` STOP
 2. **Pattern audit cross-agents 3 itérations — méthode canonique** (P1) → `orchestrator.md` promotion
 3. **Pattern typist it3 mini** (P1) → `orchestrator.md` section dédiée
-4. **Triple filtre clustering IA** (P1) → `ia.md` patterns clustering
-5. **Anti-pattern route.continue() fallback Playwright** (P1) → `qa.md` patterns E2E
+4. **Triple filtre clustering IA (avg + min + count)** (P1) → `ia.md` patterns clustering
+5. **Anti-pattern `route.continue()` fallback Playwright** (P1) → `qa.md` patterns E2E
 6. **Bundle P0 unanimes + isolés** (P2) → `orchestrator.md` consolidation post-audits
+7. **Clôture prématurée après P1** (P1 — Thomas a dû rouvrir la session) → `orchestrator.md` + `CLAUDE.md` : ne jamais clôturer une session sans avoir traité TOUTES les priorités du brief initial
+8. **Tests écrits ≠ tests validés** (P1) → `qa.md` + `CLAUDE.md` règle n°3 : ajouter "les tests DOIVENT être exécutés RÉELLEMENT avant de déclarer une feature terminée" (pas juste écrits)
+9. **Port dev 5000 vs Playwright 3000** (P2) → `fullstack.md` + `qa.md` : aligner `PORT` dans `package.json` et `playwright.config.ts`
+10. **Vitest absent de package.json versi-s21** (P2) → `qa.md` : ajouter `vitest` comme `devDependency` lors de la création de `tests/unit/*.test.ts`
 
 **Marqueur de contenu validé** : `Grep "clusterByUnit" versi-studio/src/lib/vs/clustering.ts` (clustering IA unit_id ajouté s21)
 
@@ -445,7 +455,20 @@
 - **Pattern Express 4 batches** (versi-s19 × 3) — stabilisé pour étapes frontend complexes non persona-sensitive
 - **Pattern @creative-strategy proxy persona** (versi-s20 + s21) — incarner Thomas marchand pour audit valeur métier
 
-**Blocage connu à signaler** : `node_modules` absent dans l'environnement Claude Code web → `tsc --noEmit`, `npm test`, `vitest run`, `playwright test` tous bloqués. Les tests sont VÉRIFIÉS par lecture de code (23 cas Vitest + 5 E2E) mais non exécutés. À exécuter localement ou en CI après merge.
+**Blocage résolu en fin de session** : `node_modules` absent en début de session, installé via `npm install` (versi-studio) + `npm install -D vitest` + `npx playwright install chromium` (browsers dans `/opt/pw-browsers`). Environnement de test complet et fonctionnel. Pour Playwright, lancer le serveur dev sur **port 3000** (pas 5000 par défaut) : `npx next dev -p 3000 -H 0.0.0.0 &` puis `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test`.
+
+**Commande de reprise suggérée pour s22** :
+
+```
+@orchestrator session versi-s22. Lire project-context.md mémo reprise s21→s22 (priorités P1-P5 + 10 learnings à propager).
+
+Gate de reprise obligatoire (AVANT tout nouveau travail) : propager les 10 learnings P0/P1 versi-s21 non-propagés (détails dans docs/lessons-learned.md section s21). Séquencement :
+1. Propagation (0 Task producteur — édits directs CLAUDE.md + agents)
+2. Question Thomas : quelle priorité s22 parmi P1 (POC OCR réel — nécessite OPENAI_API_KEY + plans), P2 (backlog produit D/E/F/G/H), P3 (stack analytics V2), P4 (nettoyage 7 P1 maintenance), P5 (hypothèses complexes) ?
+3. Plan d'exécution selon scope retenu (Pattern Express / Audit cross-agents 3 itérations / Typist it3 mini selon complexité)
+
+Compteur Task producteurs initial : 0/18. Contraintes : anti-timeout n°3, règle n°4 délégation, règle n°5 mindset IA, G33/G34 BLOQUANT, node_modules installé (tests réels exécutables).
+```
 
 ---
 

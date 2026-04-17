@@ -114,3 +114,25 @@
 - **Versi Invest** (investisseurs family office) → **@testeur-persona-laurent** (family office).
 - **Versi Invest VI2** (investisseurs particuliers) → **@testeur-persona-nicolas** (investisseur locatif).
 - **Règle orchestrateur** : mapper explicitement persona → agent final AVANT le brief. Ne JAMAIS utiliser un testeur-persona externe sur un outil interne.
+
+## Session versi-s21 — Tests exécutés et clôture de session (2026-04-17)
+
+### Tests exécutés, pas juste écrits
+- **Thomas refuse tout GO PRODUCTION sans preuve d'exécution des tests.** Quand Thomas dit "Fais bien tester ensuite pour valider" dans un brief, il attend la sortie console réelle (vitest PASS, playwright PASS, tsc OK), pas une lecture de code par les agents.
+- **Évidence requise avant toute gate @moi** :
+  - `npx tsc --noEmit` → sortie visible "0 erreur" OU liste exacte des erreurs
+  - `npx vitest run` → sortie "X/X PASS" avec durée
+  - `npx playwright test` → sortie "X/X PASS" avec durée
+  - `npm run lint` → sortie 0 erreur prod (warnings tolérés, erreurs legacy `reference-existant/` tolérées mais documentées)
+- **Action orchestrateur** : installer `node_modules` dès le début de session si absent (`npm install` en background Phase 0 — n'ajoute pas de Task producteur).
+- **Action @qa** : lors de la création de `tests/unit/*.test.ts`, ajouter `vitest` + `@vitest/ui` comme `devDependency` dans `package.json` (pas seulement via `npx`).
+- **Action @moi** : refuser tout verdict GO PRODUCTION sans sortie console visible dans la session. Les audits textuels sont nécessaires mais PAS suffisants.
+
+### Clôture de session : milestone ≠ terminal
+- **Thomas refuse la clôture après une seule priorité même si GO PRODUCTION.** Quand Thomas liste P1-P5 dans un brief initial, il attend que TOUT soit traité (ou explicitement reporté avec sa validation).
+- **GO PRODUCTION sur P1 = milestone, pas terminal session.** Exemple s21 : P1 clustering IA livré 9.37/10 GO, mais P2/P3/P4/P5 du brief initial non traités → Thomas a dit "pourquoi clôture t on ? On vient de commencer ...".
+- **Action orchestrateur avant toute proposition de clôture** : 
+  1. Grep "P[1-9]" dans le brief initial de la session
+  2. Checklist statut de chaque priorité : traitée / reportée explicitement avec validation Thomas / en cours
+  3. Si au moins une priorité non couverte → continuer la session, NE PAS proposer clôture
+- **Action @moi** : la gate finale valide le livrable PRINCIPAL (P1), pas la session. La clôture de session est une étape distincte qui suit le traitement de toutes les priorités du brief.
