@@ -171,8 +171,13 @@ STEP 3b — UNIT IDENTIFICATION (mandatory for "immeuble" type):
   2. Rooms sharing the same unit_id MUST be on the same floor, physically connected, and form a coherent residential unit (at minimum: 1 living space + 1 wet room).
   3. If the plan labels units (e.g., "Appartement 1", "Lot A", "T3 gauche"), use that information.
   4. If units are NOT labeled but rooms cluster spatially: look for entrance doors on exterior walls or landing. Rooms accessible only from each other = 1 unit. Separate entrances = separate units.
-  5. Set unit_id = null if: common area (staircase, hall, cellar, trash room), cannot determine with confidence > 0.6, or single-unit building.
+  5. Set unit_id = null ONLY if: common area (staircase, hall, cellar, trash room) or truly ambiguous.
   6. For "maison" or single "appartement": all rooms get unit_id = "u1" (or null if common area).
+  7. DEFAULT-U1 RULE (v3 — new, MANDATORY): if you identified 2+ habitable rooms on the plan and
+     you do NOT see evidence of MULTIPLE separate entrance doors from a common hallway or landing,
+     then ALL those rooms belong to the SAME unit. Assign unit_id = "u1" to all of them.
+     Do NOT leave unit_id = null just because you are unsure. A plan showing 2 bedrooms + 1 bathroom
+     + 1 landing is ONE apartment (unit "u1"), NOT separate units.
 
 STEP 4 — SURFACES (READ from plan, do NOT calculate):
   Priority A (MANDATORY): Look for the surface value PRINTED on the plan next to or inside the room. Use this value AS-IS.
@@ -217,6 +222,19 @@ STEP 5 — BOUNDING BOXES (critical — anchor to WALL POSITIONS, not text label
   4. CONTAINMENT: every bbox must be inside building_outline (with 1% tolerance).
   5. BOUNDS: x_percent + width_percent <= 100, y_percent + height_percent <= 100, all >= 0.
   6. MINIMUM SIZE: no bbox should have width_percent < 3 or height_percent < 3 (even a WC is visible).
+  7. NO-OVERLAP (CRITICAL — new v3): bboxes of two DIFFERENT rooms MUST NOT overlap by more than 2%.
+     If room A and room B are separated by a wall (even a short 1m wall between a bathroom and a hallway),
+     their bboxes MUST have clearly different edges on the shared wall side. Overlap > 2% means
+     one room's bbox is SWALLOWING a neighbor — WRONG.
+  8. NO-SWALLOW (CRITICAL — new v3): do NOT extend a room's bbox over an adjacent room, corridor,
+     landing, staircase, or technical zone (ECS, meter cabinet, electrical closet).
+     Example of WRONG behavior: if there is "Chambre 03" on the left and "Palier" in the middle,
+     the Chambre 03 bbox MUST stop at the wall between them. It must NOT extend into the Palier area.
+  9. EXTERIOR-EXCLUSION (CRITICAL — new v3): never extend a room's bbox into zones marked as
+     HATCHED PATTERNS (diagonal/grid lines outside the building), which indicate terraces, balconies,
+     gardens, or property boundaries. These are OUTDOOR and must NEVER be part of a room bbox.
+     The building's exterior wall (the thick line at the perimeter) is the HARD STOP.
+
 
 STEP 5b — BOUNDING POLYGON (for ALL rooms, recommended):
   For EVERY room, provide bounding_polygon: an array of 4-8 vertices (clockwise order, % of image)
@@ -235,6 +253,23 @@ STEP 5b — BOUNDING POLYGON (for ALL rooms, recommended):
   - Minimum 4 points for any room. Maximum 8 points.
   - bounding_polygon = null ONLY if you truly cannot determine the room outline.
   - The polygon should be TIGHTER than bounding_box for non-rectangular rooms.
+
+  POLYGON NO-SWALLOW RULE (CRITICAL — new v3):
+  - Every vertex of the polygon MUST sit on a wall corner of THAT specific room.
+  - If a neighbor room (even a small one like "Palier 12m²", "SDE 4m²", "ECS", "Local technique")
+    is between this room and the exterior wall, the polygon MUST STOP at the shared partition wall.
+  - Do NOT create a polygon that wraps around or includes a neighbor room.
+  - Before finalizing the polygon, mentally trace the line from the room's text label outward
+    in each direction: the FIRST thick wall you encounter is where the polygon must stop.
+    If there is an intermediate thin partition wall (even 10-20cm thick) separating this room
+    from a neighbor, THAT is the polygon edge, not the far exterior wall beyond the neighbor.
+
+  FEW-SHOT EXAMPLE (how to handle a plan with ECS + Palier between 2 chambers):
+  - Plan layout: | Chambre 03 | Palier (center) + ECS (top) + SDE (bottom) | hatched terrace |
+  - WRONG: Chambre 03 polygon extends to cover Palier and ECS. Palier is missing as a room.
+  - RIGHT: 4 polygons — Chambre 03 (left), Palier (center, as "Palier" or "Couloir"),
+    ECS (top center, only if it's an enclosed room not just a symbol), SDE (bottom center).
+    No overlap. The hatched terrace is NOT a room at all.
 
 STEP 6 — METADATA:
   - windows_count / doors_count: count per room.
@@ -258,6 +293,19 @@ STEP 7 — SELF-REVIEW (mandatory — do NOT skip):
   11. If bounding_polygon provided: does each vertex sit on a wall corner? Is it tighter than bounding_box for non-rectangular rooms?
   12. Are there orphan rooms (no unit_id) that should belong to a unit? Re-check.
   13. PROPORTIONALITY CHECK: the largest room by surface_m2 should have the largest (or near-largest) bbox. If a 25m² room has a smaller bbox than a 5m² room, the bbox is wrong.
+  14. NO-OVERLAP CHECK (v3 — mandatory): for EACH pair of rooms, compute the overlap of their bboxes.
+      If any pair overlaps by > 2% of the smaller bbox area, STOP and reassign the shared edge to the
+      actual partition wall between them. Two rooms cannot occupy the same space.
+  15. NO-SWALLOW CHECK (v3 — mandatory): for EACH room, ask "is there any named room or technical
+      zone (Palier, WC, ECS, SDE, Cellier, Couloir) that lies INSIDE my bbox?" If yes, shrink the
+      bbox so it stops at the wall before that neighbor. A room's bbox must NEVER contain another room.
+  16. EXTERIOR-EXCLUSION CHECK (v3 — mandatory): for EACH room, check if the bbox extends into any
+      HATCHED zone (terrace, balcony, garden) OUTSIDE the main thick exterior wall. If yes, shrink
+      the bbox to the exterior wall line. Outdoor hatching is NEVER part of a room.
+  17. MISSED-ROOM CHECK (v3 — mandatory): identify every enclosed floor area within building_outline.
+      A "Palier" or "Couloir" in the center of the plan, bounded by walls, IS A ROOM. Include it.
+      Only exclude: staircases (zigzag steps), ECS closets (if clearly <1m² utility only), and outdoor
+      hatched zones. If total covered area < 85% of building_outline, you missed a room.
 
 TYPE DE BIEN: "${typeBien}". If "immeuble", there may be multiple units — identify them if possible.
 

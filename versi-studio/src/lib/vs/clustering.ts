@@ -179,6 +179,36 @@ export function clusterByUnit(
     }
   }
 
+  // S22 v3 — Fallback "orphan rooms" : si aucun groupe accepté mais 2+ pieces
+  // identifiées sans unit_id (GPT-4.1 trop prudent sur certains plans partiels),
+  // regrouper par floor pour créer 1 lot par étage avec confidence_avg >= 0.5.
+  if (accepted.length === 0) {
+    const orphansByFloor = new Map<number, ExtractedRoom[]>();
+    for (const room of rooms) {
+      if (room.floor == null) continue;
+      if (room.unit_id) continue; // déjà tenté dans le clustering principal
+      const existing = orphansByFloor.get(room.floor);
+      if (existing) existing.push(room);
+      else orphansByFloor.set(room.floor, [room]);
+    }
+    for (const [floor, floorRooms] of orphansByFloor) {
+      candidateCount++;
+      if (floorRooms.length < 2) continue;
+      const confidenceAvg =
+        floorRooms.reduce((sum, r) => sum + r.confidence, 0) / floorRooms.length;
+      const confidenceMin = Math.min(...floorRooms.map((r) => r.confidence));
+      if (confidenceAvg >= 0.5 && confidenceMin >= 0.3) {
+        accepted.push({
+          floor,
+          unitId: `u_fallback_f${floor}`,
+          rooms: floorRooms,
+          confidenceAvg,
+          confidenceMin,
+        });
+      }
+    }
+  }
+
   return { accepted, candidateCount };
 }
 
