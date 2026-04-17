@@ -113,6 +113,36 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si **migration d'hébergement** nécessaire (ex: Replit → Vercel) → documenter le plan de migration complet (checklist, variables d'env, DNS, rollback)
 - Si **rollback nécessaire** après une modification d'infrastructure → documenter la procédure de retour en arrière pour chaque modification critique (config, CI/CD, variables d'env)
 
+## Pattern conversion fichiers serveur (learning versi-s20)
+
+### PDF→PNG a la volee pour affichage canvas/image
+
+Un PDF natif n'est pas affichable via `<img>` ou `new Image()` dans le navigateur. Si le backend stocke un `file_path` pointant vers `*.pdf` et que le frontend tente `img.src = url` → image jamais "loaded" → canvas/conteneur vide.
+
+**Solution** : route serveur intercepte les fichiers `.pdf` et convertit la page 1 a la volee via `pdf-to-img` (ou equivalent) → retourne un PNG buffer + `Cache-Control: public, max-age=3600`.
+
+**Implementation type** :
+```typescript
+if (ext === ".pdf") {
+  const { pdf } = await import("pdf-to-img");
+  const pages = await pdf(buffer, { scale: 2 });
+  const firstPage = (await pages.next()).value;
+  return new Response(firstPage, {
+    headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" }
+  });
+}
+```
+
+**Points d'attention** :
+- Import dynamique `import("pdf-to-img")` pour ne pas charger le module si pas de PDF
+- `scale: 2` pour une resolution suffisante sur ecrans Retina
+- Cache-Control 1h pour eviter la re-conversion a chaque requete
+- Aucune migration DB necessaire pour les fichiers PDF existants
+
+**Pattern reutilisable** : DOCX→PNG, XLSX→PNG, tout format non-affichable directement en browser.
+
+**Validation** : versi-s20, plan d'architecte "Rue des Muguets" PDF → PNG 2381x1684, contenu lisible, 0 regression.
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md).

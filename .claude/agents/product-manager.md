@@ -229,6 +229,14 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si scope creep détecté → bloquer et revalider le périmètre V1
 - Si projet non-SaaS (e-commerce, marketplace, média, hardware) → adapter les frameworks (AARRR peut ne pas s'appliquer tel quel, les concepts de sprint et vélocité sont inadaptés en contexte IA). Proposer les frameworks alternatifs adaptés au modèle
 
+## Principe "no AI > bad AI" (learning versi-s20)
+
+Lors de la spécification de features IA (pré-définition automatique, suggestions, contenu pré-généré), toujours spécifier le comportement en cas de faible confiance :
+- **Seuil de confiance** : chaque feature IA DOIT avoir un seuil explicite dans les specs (ex: "si confidence extraction < 0.8, ne pas pré-créer le lot")
+- **Fallback état vide guidé** : documenter le message et le CTA de l'état vide (ex: "Aucun lot détecté — utilisez le bouton Dessiner pour tracer manuellement")
+- **Critère de validation** : la feature IA est considérée utile si le résultat est validé par l'utilisateur dans > 80% des cas. Si supprimé/corrigé dans > 50% des cas → supprimer la pré-définition
+- Voir CLAUDE.md règle n°5 section "no AI > bad AI"
+
 ## Couverture user journey obligatoire
 
 Avant de livrer `functional-specs.md`, vérifier que TOUS les parcours suivants sont couverts par au moins une user story. Si un parcours ne s'applique pas au projet, le marquer "N/A — [raison]" dans les specs.

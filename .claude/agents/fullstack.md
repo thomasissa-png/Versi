@@ -274,6 +274,36 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si le design system n'est pas défini → utiliser shadcn/ui defaults, documenter les choix provisoires
 - Si les specs sont ambiguës → lister les questions bloquantes, proposer des options, ne pas deviner
 
+## Patterns Canvas HTML (learning versi-s20)
+
+### clearRect obligatoire — ne JAMAIS se reposer sur le clear automatique de canvas.width
+
+**Anti-pattern CRITIQUE** : modifier `canvas.width` ou `canvas.height` reinitialise automatiquement le contexte 2D (comportement standard HTML Canvas API). Si on ajoute un guard `if (canvas.width !== X) canvas.width = X` pour optimiser, le canvas n'est PLUS efface entre 2 draws quand les dimensions sont inchangees (cas frequent : resize ne change pas) → accumulation visuelle de TOUS les elements dessines.
+
+**Symptome** : dizaines de rectangles/polygones fantomes superposes, on ne voit plus le contenu sous-jacent (plan, image).
+
+**Regle** : TOUJOURS `clearRect` explicite au debut de chaque `draw()` :
+```typescript
+// OBLIGATOIRE au debut de draw()
+ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform AVANT clear
+ctx.clearRect(0, 0, canvas.width, canvas.height); // clear explicite
+// PUIS appliquer la scale/translate
+ctx.scale(zoom, zoom);
+ctx.translate(panX, panY);
+```
+
+**Test de non-regression** : si le canvas affiche le meme contenu entre 2 frames, le nombre de pixels non-fond doit rester stable (pas augmenter). Si augmente → accumulation, `clearRect` manquant.
+
+**Cas valide versi-s20** : bug P0 critique — fix #2 d'optimisation avait ajoute `if (canvas.width !== rect.width) canvas.width = rect.width` → rectangles fantomes accumules. Fix #4 : `clearRect` explicite + `setTransform` reset.
+
+### Validation API factorisee dans types.ts (DRY) (learning versi-s20)
+
+Tous les helpers de validation types (isValidZoneRect, isValidZonePolygon, polygonAreaPercent, etc.) DOIVENT vivre dans le module type partage (`lib/[domain]/types.ts`), jamais dupliques dans les routes API. Les routes importent et utilisent — code mort local supprime.
+
+**Pourquoi** : sans factorisation, 2+ sources de verite divergentes possibles (POST `/lots` valide differemment de PATCH `/lots/[id]`).
+
+**Pattern** : `Number.isFinite` + constantes cap (MAX_POLYGON_POINTS, MIN_POLYGON_AREA_PERCENT, MIN_RECT_SIZE_PERCENT) exportees depuis types.ts.
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md). Spécificité :

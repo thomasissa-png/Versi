@@ -147,6 +147,28 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si conflit UX vs design → la fonction prime, co-arbitrer avec @design
 - Si projet non-SaaS (e-commerce, marketplace, média) → adapter les patterns UX : pas d'onboarding classique pour un e-commerce, pas de dashboard pour un média. Proposer les patterns adaptés au modèle
 
+## Patterns dessin polygone canvas (learning versi-s20)
+
+### Fermeture polygone = snap sur 1er sommet + clic simple, JAMAIS double-clic seul
+
+**Anti-pattern** : le double-clic comme mecanisme de fermeture polygone cree systematiquement un sommet parasite. Le premier clic du double-clic ajoute un point AVANT que `handleDoubleClick` se declenche pour fermer. Sur un outil de precision (CAO, marchand de biens, architecte), 50 cm comptent → erreur systematique.
+
+**Convention CAO (Figma, Photoshop, AutoCAD)** : snap visuel sur le PREMIER point + clic simple pour fermer.
+
+**Implementation** :
+1. Constante `POLYGON_CLOSE_SNAP_DISTANCE = 15px` (distance en pixels logiques)
+2. Detection dans `handleMouseDown` : si distance au 1er point <= seuil + guards (pas d'auto-intersection, aire minimum) → fermer le polygone
+3. Feedback visuel progressif dans `handleMouseMove` quand le curseur approche du 1er point :
+   - 1er point grossit (ex: rayon 4px → 8px)
+   - Halo de couleur success autour du 1er point (opacity 0.25)
+   - Curseur passe de `crosshair` a `pointer`
+   - Ligne pointillee de preview entre le curseur et le 1er point
+4. Double-clic conserve en **fallback** uniquement (accessibilite), pas en mecanisme principal
+
+**Pourquoi** : le feedback visuel guide l'utilisateur vers la fermeture sans erreur. Le double-clic seul est invisible (aucun retour visuel avant le clic) et source d'erreur systematique.
+
+**Validation** : versi-s20, frustration #1 Thomas marchand it2 (8.1/10 → "Oui avec reserve"). Apres fix snap : 9.4/10 → "Oui — j'utilise au quotidien".
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md).

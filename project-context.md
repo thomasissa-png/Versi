@@ -386,10 +386,32 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/resume-versi-s20-sAewb`
+- Branche de développement : `claude/versi-s21-clustering-polygones-ia`
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ### Mémo de reprise
+
+**Branche courante** : `claude/versi-s21-clustering-polygones-ia`
+**Date de début** : 2026-04-17
+**Statut s21** : EN COURS — Clustering IA `unit_id` + Polygones IA dans extraction
+
+**Objectif s21** : Implémenter le clustering IA `unit_id` (regroupement pièces par appartement) + bounding_polygon optionnel par pièce dans extraction GPT-4.1 → lots pré-créés intelligents "1 lot = 1 appartement" avec validation 1-clic Thomas marchand. Tests E2E + unitaires + audit cross-agents obligatoires (exigence explicite fondateur).
+
+**Marqueur de contenu validé** : `Grep "ZonePolygon" src/lib/vs/types.ts` (type polygone N côtés ajouté s20)
+
+**Phases** :
+- Phase 0 propagation learnings s20 : COMPLETE (7/7 propagés)
+- Phase 1 branche + refs : EN COURS
+- Phase 2 specs @product-manager + @ia : A FAIRE
+- Phase 3 implémentation @fullstack + @ia : A FAIRE
+- Phase 4 audit cross-agents 3 itérations (persona-sensitive) : A FAIRE
+- Phase 5 tests obligatoires @qa : A FAIRE
+- Phase 6 analytics + gate @moi : A FAIRE
+- Phase 7 clôture : A FAIRE
+
+---
+
+### Mémo de reprise versi-s20 (archive)
 
 **Branche dernière clôturée** : `claude/resume-versi-s20-sAewb`
 **Date de clôture** : 2026-04-16

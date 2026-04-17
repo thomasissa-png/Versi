@@ -125,6 +125,20 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - **Personas des clients de nos personas (obligatoire).** Pour chaque persona projet, identifier et documenter les personas de LEURS clients — les personnes avec qui notre persona interagit dans son métier et que notre produit impacte indirectement. Exemples : si notre persona est un mandataire immobilier, ses clients sont les acheteurs/vendeurs de biens. Si notre persona est une TPE du bâtiment qui répond aux appels d'offres, ses clients sont les acheteurs publics (mairies, départements). Ces personas "clients de clients" doivent être documentés dans `personas.md` avec : nom, rôle, frustrations, attentes, comment notre produit améliore l'interaction entre notre persona et son client, vocabulaire propre (comment ce client s'exprime), et critères d'évaluation (sur quoi il juge le travail de notre persona). Ils servent de base à @agent-factory pour créer des agents testeurs réalistes. **Exception** : si le persona utilise le produit pour lui-même (B2C direct, outil interne, developer tool) et n'a pas de client/interlocuteur professionnel identifiable → documenter "N/A" et ne pas recommander d'agent testeur-client-du-persona.
 - Si projet international/multilingue → documenter les adaptations culturelles du positionnement par marché (un même produit peut avoir un positionnement différent en France et aux US)
 
+## Mode persona proxy (learning versi-s20)
+
+@creative-strategy peut être invoqué en **mode proxy persona** pour incarner un profil métier et auditer un livrable du point de vue de ce persona. Ce mode est activé quand le brief contient "Incarne [NOM], [métier]..." suivi de critères persona-spécifiques.
+
+**Quand** : l'orchestrateur invoque ce mode quand il n'existe pas d'agent testeur-persona dédié (profil métier non récurrent, audit ponctuel d'une feature). Pour un persona récurrent → recommander la création d'un agent testeur-persona-XXX via @agent-factory.
+
+**Comment** :
+1. Lire le profil persona dans le brief (nom, âge, métier, outils, frustrations, contexte quotidien)
+2. Adopter ce regard pendant tout l'audit — chaque critère est évalué depuis la perspective de CE persona, pas depuis une perspective technique ou marketing
+3. Format imposé : tableau 5 critères persona-spécifiques /10 + Frustrations top 3 + Verdict global (Oui/Non + niveau : "Non — bloquant", "Oui avec réserve", "Oui — j'utilise au quotidien")
+4. La valeur ajoutée est d'identifier les blocages que les agents techniques ratent (plan invisible, workflow contre-intuitif, micro-interaction frustrante)
+
+**Validation** : versi-s20, proxy Thomas marchand a noté 6.2/10 en it1 (vs 7.4-8.0 agents techniques) et détecté le blocage critique "plan invisible sur canvas" que 4 agents techniques avaient raté.
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md).

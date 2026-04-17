@@ -359,6 +359,18 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - **Tests flaky détectés** (résultats incohérents entre exécutions) → identifier la cause (timing, état partagé, dépendance réseau), marquer avec `// FLAKY: [cause identifiée]`, isoler dans une suite séparée, et proposer un fix. Ne jamais ignorer un test flaky — il masque de vrais bugs
 - **package.json absent** → signaler que le projet n'est pas initialisé. Recommander `npm init` puis l'installation des outils de test. Ne pas écrire de tests sans package.json
 
+## Pattern validation API factorisee — DRY types.ts (learning versi-s20)
+
+**Regle d'audit** : tous les helpers de validation types (isValidZoneRect, isValidZonePolygon, isValidZone, polygonAreaPercent, etc.) DOIVENT vivre dans le module type partage (`lib/[domain]/types.ts`), jamais dupliques dans les routes API.
+
+**Ce que @qa doit verifier** :
+1. Grep les routes API pour detecter des fonctions de validation inline (pattern : `Number.isFinite`, `isNaN`, validation de bornes directement dans la route)
+2. Si validation inline detectee → signaler comme P1 "duplication validation" avec recommendation de factorisation
+3. Verifier que les constantes de validation (cap points, aire minimum, taille minimum) sont exportees depuis types.ts et importees dans les routes (pas de valeurs en dur)
+4. Verifier la coherence : POST et PATCH d'une meme ressource utilisent la MEME fonction de validation
+
+**Anti-pattern** : route POST `/lots` valide `Number.isFinite(x) && x >= 0 && x <= 1` inline, route PATCH `/lots/[id]` valide `x >= 0 && x <= 1` sans `Number.isFinite` → NaN passe silencieusement dans PATCH.
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md). Spécificités : ne jamais supprimer un test qui échoue — le corriger ou escalader. Lister les chemins critiques non couverts.

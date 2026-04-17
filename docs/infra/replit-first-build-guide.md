@@ -1,7 +1,7 @@
 # Guide Replit 1er Build — Versi Studio
 
 **Date** : 2026-04-16 (màj commit `893340d`)
-**Branche à déployer** : `claude/resume-versi-s20-sAewb`
+**Branche à déployer** : `claude/versi-s21-clustering-polygones-ia`
 **Commit build-ready** : `893340d` (post-retour Replit : zod v3 + allowedDevOrigins + dev port 5000)
 **Pré-requis** : compte Replit (plan Core recommandé pour PostgreSQL persistant) + accès repo GitHub `thomasissa-png/Versi`
 
@@ -34,7 +34,7 @@ Versi Studio est une app Next.js 16 App Router + PostgreSQL + OpenAI GPT-4.1 Vis
 3. Autoriser l'accès GitHub si 1re fois → sélectionner le repo `thomasissa-png/Versi`
 4. Dans l'écran de création :
    - **Language / Template** : Replit détecte automatiquement Next.js via `package.json`. Sinon, choisir **Node.js**.
-   - **Branch** : saisir `claude/resume-versi-s20-sAewb` (branche build-ready s20)
+   - **Branch** : saisir `claude/versi-s21-clustering-polygones-ia` (branche build-ready s20)
    - **Name** : `versi-studio` (ou autre, non critique)
    - **Privacy** : Private (recommandé — le repo contient un workflow business)
 5. Cliquer **Import from GitHub** → Replit clone le repo (~1-2 min pour un repo de cette taille)
@@ -628,7 +628,7 @@ Puis commit les nouvelles baselines dans `tests/screenshots/`. Reviewer humain a
 ### Phase A — Setup projet
 
 - [ ] Repo `thomasissa-png/Versi` importé sur Replit
-- [ ] Branche active : `claude/resume-versi-s20-sAewb`
+- [ ] Branche active : `claude/versi-s21-clustering-polygones-ia`
 - [ ] Fichier `.replit` remplacé par la config §4
 - [ ] Fichier `.replit` sauvegardé (Ctrl+S)
 
@@ -682,7 +682,7 @@ Puis commit les nouvelles baselines dans `tests/screenshots/`. Reviewer humain a
 ### Repo + branche
 
 - **Repo GitHub** : https://github.com/thomasissa-png/Versi
-- **Branche build-ready s20** : `claude/resume-versi-s20-sAewb`
+- **Branche build-ready s20** : `claude/versi-s21-clustering-polygones-ia`
 - **Commit de référence** : `5990c68`
 - **Sous-dossier à déployer** : `versi-studio/`
 

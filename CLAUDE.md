@@ -67,6 +67,20 @@ Arguments humains interdits dans les verdicts :
 
 **Règle de vérification avant tout verdict** : relire le raisonnement, identifier chaque argument, le classer comme "humain" ou "valeur persona". Si ≥ 1 argument humain pèse dans le verdict → reformuler sur le seul critère valeur persona. Documenté dans chaque agent stratégique (ia.md, creative-strategy.md, product-manager.md, growth.md).
 
+### Principe "no AI > bad AI" (learning versi-s20)
+
+Si une pré-définition IA (lot pré-créé, contenu pré-généré, suggestion automatique) n'a pas une confiance suffisante OU n'est pas utile au persona → **SUPPRIMER** plutôt que livrer un mauvais default. Page blanche guidée >> résultat générique pollueur.
+
+**Pourquoi** : le coût UX d'un mauvais default est SUPÉRIEUR au coût UX de l'absence de default. Un rectangle générique que Thomas doit supprimer-redessiner = UX négative nette (perte de temps + frustration). Un état vide guidé ("Aucun lot — utilisez le bouton Dessiner") = UX neutre qui laisse le contrôle à l'utilisateur.
+
+**Règle concrète** :
+- Si confidence IA < seuil (à définir par feature) → ne rien pré-créer, afficher état vide guidé
+- Si le résultat IA nécessite systématiquement une correction manuelle (>50% des cas) → supprimer la pré-définition
+- Si le résultat IA est utile dans > 80% des cas → le proposer avec UI "valider d'1 clic" ou "ajuster"
+- Le seuil entre "utile" et "pollueur" se mesure empiriquement : tester sur 5-10 cas réels et compter les suppressions vs validations
+
+**Cas versi-s20** : pré-définition 1 lot = bbox englobante par étage → rectangle sans rapport avec les vrais appartements → Thomas supprime-redessine systématiquement → suppression du feature = meilleure UX. Solution future s21 : clustering IA `unit_id` = 1 lot = 1 appartement (résultat utile).
+
 ### Automatisation par défaut du contenu récurrent
 
 Tout contenu récurrent (articles de blog, posts réseaux sociaux, newsletters, emails de nurturing) DOIT être pensé pour l'automatisation IA dès la conception :

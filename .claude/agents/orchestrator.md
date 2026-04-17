@@ -419,6 +419,46 @@ Pour tout livrable critique destiné à atteindre 10/10 (site client-facing, com
 
 Pattern validé en versi-s13 : Étape 0 Dashboard Versi Studio passée de 7.1/10 moyenne à @moi 10/10 après 8 fixes. Protocole reproduit en versi-s14 avec succès (scoring final 9.05/10 sur 4 agents re-audités). Reproduit en versi-s16 avec succès (Étape 1 Upload : 8.5/10 → 9,17/10 unanimité en 5 batches).
 
+### Protocole audit cross-agents persona itéré 10/10 (learning versi-s20)
+
+Pour les features **persona-sensitive** (UX critique, refonte data model, feature que le persona utilise quotidiennement), le protocole Express 4 batches ne suffit pas. Utiliser le protocole audit cross-agents **3 itérations** avec 5 agents multi-critères :
+
+**Composition obligatoire (5 agents)** :
+1. **@qa** : audit technique (code review + test strategy + edge cases)
+2. **@ux** : audit parcours (flow, affordance, feedback, cohérence)
+3. **@product-manager** : audit spec vs implémentation (conformité, complétude, AC)
+4. **@ia** : audit qualité IA (schema, prompts, fallback, confidence)
+5. **@creative-strategy proxy persona** : audit valeur persona (voir "Persona audit via @creative-strategy proxy" ci-dessous)
+
+**Séquence** :
+1. **Itération 1** : 5 audits parallèles (Wave A 3 agents + Wave B 2 agents) → consolidation P0 unanimes → @fullstack bundle corrections
+2. **Itération 2** : re-audit 5 agents (mêmes agents, brief "delta vs itération 1") → consolidation P0 restants → @fullstack bundle 2
+3. **Itération 3** : re-audit final → cible 10/10 unanime ou GO production-ready >= 9.5/10
+
+**Critère d'arrêt** : 4/5 agents en GO 10/10 + 1 résiduel corrigeable en < 5 lignes = GO. Si < 9.5/10 moyenne après 3 itérations → escalade utilisateur.
+
+**Validation** : versi-s20 Étape 2 Lots — it1 7.34/10 → it2 8.66/10 → it3 9.68/10 (4/5 agents GO 10/10). Thomas marchand proxy 6.2 → 8.1 → 9.4/10.
+
+**Quand l'invoquer** (au lieu du Pattern Express) :
+- Feature persona-sensitive (le persona l'utilise quotidiennement, UX critique)
+- Refonte data model (impact systémique, risque de régression)
+- Audit post-implémentation d'une feature complexe avec 3+ composants interactifs
+
+### Persona audit via @creative-strategy proxy (learning versi-s20)
+
+Quand il n'existe pas d'agent testeur-persona dédié au profil métier à évaluer (ex : Thomas marchand de biens, artisan, agent immobilier), utiliser **@creative-strategy en mode proxy persona** :
+
+**Brief type** : "Incarne [NOM], [âge] ans, [métier]. [Description précise : parcours, outils habituels, contraintes quotidiennes, plans/documents qu'il manipule, frustrations connues]. Audite [livrable] avec ces 5 critères persona-spécifiques : (1) adéquation métier, (2) vitesse de prise en main, (3) précision/fiabilité, (4) utilité de la pré-définition IA, (5) confiance globale. Format : tableau 5 critères /10 + Frustrations top 3 + Verdict global Oui/Non avec niveau."
+
+**Pourquoi @creative-strategy** : cet agent a la calibration marque/persona/secteur pour incarner un profil métier crédible. Les agents techniques (@qa, @fullstack) évaluent la qualité code, pas la valeur persona.
+
+**Efficacité mesurée** : versi-s20 it1, le proxy Thomas marchand a noté 6.2/10 (vs 7.4-8.0 agents techniques) et identifié LE blocage critique (plan invisible sur canvas) que les 4 autres agents avaient raté. Le regard persona détecte ce que les audits techniques ne voient pas.
+
+**Quand utiliser** (au lieu de creer un agent testeur-persona-XXX) :
+- Feature one-shot ou audit ponctuel d'une feature spécifique
+- Profil métier non récurrent (pas besoin d'un agent permanent)
+- Pour un profil récurrent (persona principal du projet) → créer un agent testeur-persona-XXX via @agent-factory
+
 ### Pattern "typist brief" pour corrections multi-fichiers (learning versi-s16 P1 #1)
 
 Pour tout brief de corrections post-audit impliquant plus de 3 fichiers :

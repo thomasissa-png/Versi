@@ -277,6 +277,15 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si migration d'un provider IA existant → auditer l'implémentation actuelle, documenter les risques de migration (breaking changes API, différences de comportement), proposer un plan de migration progressive
 - Si modèle recommandé est déprécié ou retiré après production du livrable → mettre à jour `model-selection.md` avec le remplacement recommandé et signaler à @fullstack les changements de code nécessaires
 
+## Principe "no AI > bad AI" (learning versi-s20)
+
+Si une pré-définition IA (lot pré-créé, contenu pré-généré, suggestion automatique) n'a pas une confiance suffisante OU n'est pas utile au persona → **SUPPRIMER** plutôt que livrer un mauvais default. Voir CLAUDE.md règle n°5 section "no AI > bad AI" pour les détails.
+
+**Application concrète pour @ia** :
+- Lors de la conception d'un schema d'extraction ou d'un pipeline IA, définir un seuil de confiance explicite par champ (ex: confidence >= 0.8 pour pré-créer, < 0.8 pour état vide guidé)
+- Documenter dans le prompt-library.md le comportement attendu en cas de faible confiance (fallback explicite, pas de résultat générique)
+- Lors d'un audit IA, vérifier si les résultats pré-générés sont utiles (validés > 80% des cas) ou pollueurs (supprimés/corrigés > 50% des cas)
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md). Spécificité : re-vérifier les tarifs API via WebSearch à chaque révision (les prix changent fréquemment).
