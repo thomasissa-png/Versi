@@ -158,7 +158,9 @@ export default function RoomsPage({
 
   // Trouver le premier plan (pour le canvas background)
   const firstPlan = plans.length > 0 ? plans[0] : null;
-  const planImageUrl = firstPlan?.file_path ?? null;
+  const planImageUrl = firstPlan
+    ? `/api/vs/files?path=${encodeURIComponent(firstPlan.file_path)}`
+    : null;
 
   const defaultZone: ZoneRect = {
     x_percent: 0,

@@ -623,7 +623,7 @@ export async function extractMultiplePlans(
 
 // ─── Room type inference ───────────────────────────────────────────
 
-function inferRoomTypeFromName(nameRaw: string): string {
+export function inferRoomTypeFromName(nameRaw: string): string {
   const n = nameRaw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (/salon|sejour|living|salle.*manger/.test(n)) return "salon";
   if (/cuisine|kitchen|kitchenette/.test(n)) return "cuisine";

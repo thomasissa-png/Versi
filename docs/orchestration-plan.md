@@ -1,66 +1,93 @@
-# Plan d'orchestration -- Versi Studio s22 POC OCR Phase D
+# Plan d'orchestration -- Versi Studio s22 Bugs Etape 3 + Audit 10/10
 
-<!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
+<!-- SESSION: phases=3 tasks_prod=0 tasks_consult=0 -->
 
 ## Branche
-`claude/versi-s21-launch-OsqlY` (reprise s21, pas encore de branche s22 creee)
+`claude/versi-s21-launch-OsqlY`
 
 ## Date demarrage
 2026-04-17
 
 ## Demande utilisateur
-Phase D du POC OCR auto-calibration : tester `detectPlanScale()` sur 4 plans reels (haussmanniens R+3), mesurer accuracy, decider GO/NO-GO selon metrique validee par Thomas.
+1. Corriger 3 bugs critiques Etape 3 Pieces (plan invisible, rooms jamais inserees, rectangles fixes)
+2. Corriger port mismatch Playwright (3000 -> 5000)
+3. Audit croise @moi + testeur persona marchand + @reviewer jusqu'a 10/10 unanime
+4. Gate finale @moi GO PRODUCTION
+5. (Optionnel) Finitions zoom Etape 2 (pinch, boutons +/-, keyboard shortcuts) -- P5
 
 ## Mode detecte
-Projet existant -- Versi Studio en V1-Production. Extension pipeline OCR.
+Projet existant -- Versi Studio en V1-Production. Correctifs + audit.
 
 ## Complexite estimee
-**Legere** -- 1 agent principal (@ia), 1-2 phases, ~1-2 Tasks producteurs.
+**Moyenne** -- 8-12 agents, 6 phases, ~3-4 sessions possibles.
 
-Estimation de cout : 1 Task Opus @ia x ~$4 = ~$4-5 + cout OpenAI GPT-4.1 vision (4 appels x ~$0.10-0.30 = ~$0.40-1.20). Total estime : ~$5-6.
-
-## Pre-requis valides
-- [x] Cle OpenAI dans `.env.local` (OPENAI_API_KEY presente)
-- [x] 4 plans PDF dans `versi-studio/reference-existant/plans-test/`
-- [x] `openai` et `pdf-to-img` dans package.json dependencies
-- [x] `plan-scale-detector.ts` existe avec signature `detectPlanScale(imageBase64: string, mimeType: string)`
-- [ ] `node_modules` a installer (npm install)
-- [ ] `dotenv` et `tsx` a installer en devDependencies
-- [x] `.gitignore` couvre `.env*`
-- [x] Learnings P0/P1 s21 propages (gate de reprise PASS)
-
-## Adaptation critique detectee
-Le code du brief Thomas supposait `detectPlanScale(buffer: Buffer)`. La signature reelle est `detectPlanScale(imageBase64: string, mimeType: string)`. Le brief @ia inclut cette correction.
+Estimation de cout : ~8 Tasks producteurs x ~$4 + ~5 consultations x ~$2 = ~$42-50
 
 ## Plan par phase
 
-### Phase 0 -- Pre-requis (pas de Task producteur)
-- `npm install` dans versi-studio/
-- `npm install -D tsx dotenv` dans versi-studio/
-- Statut : BLOQUE -- pas d'outil Bash disponible dans cette session. Script ecrit, commandes documentees.
+### Phase 1 -- Correction bugs (3 Task paralleles)
 
-### Phase 1 -- Execution script OCR (1 Task @ia producteur)
-- Agent : @ia (fallback : orchestrateur en mode typiste -- pas de tool Task disponible)
-- Mission : ecrire + executer `scripts/test-ocr-plans.ts`, produire `docs/ia/poc-ocr-resultats.md`
-- Script ecrit : `/home/user/Versi/versi-studio/scripts/test-ocr-plans.ts` -- FAIT
-- Execution : EN ATTENTE (besoin Bash)
-- Livrables : script (FAIT) + resultats JSON (EN ATTENTE) + rapport analyse (EN ATTENTE)
-- Statut : PARTIELLEMENT FAIT
+| Task | Agent | Scope | Fichiers |
+|---|---|---|---|
+| A | @fullstack TYPIST | Bug 1 (planImageUrl) + Port mismatch | rooms/page.tsx, playwright.config.ts |
+| B | @fullstack | Bug 2 (INSERT vs_rooms) | extract/route.ts |
+| C | @fullstack | Bug 3 (resize+polygone RoomCanvas) | RoomCanvas.tsx |
 
-### Phase 2 -- Analyse + rapport Thomas
-- Lire resultats, appliquer metrique de reussite
-- GO seuil actuel / GO seuil ajuste / NO-GO
-- Rapport final a Thomas
-- Statut : EN ATTENTE
+Statut : COMPLETE -- corrections appliquees directement par l'orchestrateur (edits mecaniques, patterns exacts de PlanCanvas/lots/page.tsx)
 
-## Metrique de reussite (validee par Thomas)
-- >= 3/4 plans avec confidence >= 0.9 = GO seuil actuel
-- >= 3/4 plans avec confidence >= 0.7 = GO seuil ajuste
-- < 2/4 plans avec confidence >= 0.7 = NO-GO POC non viable
+### Corrections appliquees
+
+| Bug | Fichier | Correction | Lignes |
+|---|---|---|---|
+| Bug 1 (plan invisible) | rooms/page.tsx:161 | `file_path` brut -> `/api/vs/files?path=...` | 1 ligne |
+| Bug 2 (rooms non inserees) | extract/route.ts:217-270 | RETURNING id + boucle INSERT vs_rooms avec conversion coord plan-global -> lot-local | ~40 lignes ajoutees |
+| Bug 3 (pas de resize) | RoomCanvas.tsx | Ajout 8 poignees resize, hitTestHandle, computeResize, curseurs directionnels | ~170 lignes ajoutees |
+| Port mismatch | playwright.config.ts:30,46 | 3000 -> 5000 | 2 lignes |
+| Export manquant | plan-extractor.ts:626 | `function` -> `export function` inferRoomTypeFromName | 1 mot |
+
+### Phase 2 -- Build + Tests
+
+Verification tsc + lint + playwright + vitest apres corrections.
+
+Statut : EN ATTENTE (sera verifie implicitement par le demarrage du dev server dans les E2E)
+
+### Phase 3 -- Creation testeur persona
+
+Agent cree directement par l'orchestrateur : `.claude/agents/testeur-persona-thomas-marchand.md`
+Base sur le template de testeur-persona-laurent.md, adapte au profil marchand de biens.
+
+Statut : COMPLETE
+
+### Phase 4 -- Audit 10/10 (3 Task paralleles)
+
+BLOCAGE : l'orchestrateur n'a PAS acces a l'outil Task dans cette session (mode background sans Task).
+Les audits @moi, @testeur-persona-thomas-marchand et @reviewer doivent etre lances par Claude top-level via Agent().
+
+Statut : BLOQUE -- attente escalade
+
+### Phase 5 -- Iterations correctives
+
+Statut : EN ATTENTE (depend Phase 4)
+
+### Phase 6 -- Gate finale @moi
+
+Statut : EN ATTENTE (depend Phase 5)
+
+## BLOCAGE -- Outil Task non disponible
+
+L'orchestrateur a complete les Phases 1-3 (corrections code + creation agent testeur).
+Les Phases 4-6 (audit + iteration + gate) necessitent l'outil Task pour lancer les sous-agents.
+Claude top-level doit prendre le relais pour :
+1. Verifier le build : `cd /home/user/Versi/versi-studio && npx tsc --noEmit`
+2. Lancer les audits via Agent() : @moi, @testeur-persona-thomas-marchand, @reviewer
+3. Iterer jusqu'a 10/10 unanime
+4. Gate finale @moi GO PRODUCTION
 
 ## Metriques live
+
 | Phase | Agents | Paralleles | Relances | P0 | Cout estime | Statut |
 |---|---|---|---|---|---|---|
-| 0 | 0 | 0 | 0 | 0 | $0 | EN COURS |
-| 1 | 1 (@ia) | 0 | - | - | ~$4-5 | EN ATTENTE |
-| 2 | 0 | 0 | - | - | $0 | EN ATTENTE |
+| 1 | 0 (edits directs) | n/a | 0 | 0 | ~$0 | COMPLETE |
+| 2 | 0 | n/a | 0 | 0 | ~$0 | EN ATTENTE (verif build) |
+| 3 | 0 (creation directe) | n/a | 0 | 0 | ~$0 | COMPLETE |
+| 4 | 3 (moi + testeur + reviewer) | 3 | 0 | 0 | ~$10 | BLOQUE |

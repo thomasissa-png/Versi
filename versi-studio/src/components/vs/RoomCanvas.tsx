@@ -78,6 +78,115 @@ function getDropdownLabel(roomType: string): string {
   return found?.label ?? roomType;
 }
 
+// ─── Constantes resize (pattern PlanCanvas) ──────────────────────
+
+const HANDLE_SIZE = 8;
+const HANDLE_HIT_SIZE = 20;
+const MIN_ROOM_SIZE_PERCENT = 3;
+
+type HandlePosition = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+function getHandlePositions(
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): { position: HandlePosition; x: number; y: number }[] {
+  return [
+    { position: "nw", x, y },
+    { position: "n", x: x + w / 2, y },
+    { position: "ne", x: x + w, y },
+    { position: "e", x: x + w, y: y + h / 2 },
+    { position: "se", x: x + w, y: y + h },
+    { position: "s", x: x + w / 2, y: y + h },
+    { position: "sw", x, y: y + h },
+    { position: "w", x, y: y + h / 2 },
+  ];
+}
+
+function computeResize(
+  start: RoomPosition,
+  handle: HandlePosition,
+  dxPercent: number,
+  dyPercent: number
+): RoomPosition {
+  let { x_percent, y_percent, width_percent, height_percent } = start;
+
+  switch (handle) {
+    case "e":
+      width_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent + dxPercent);
+      break;
+    case "w": {
+      const newW = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent - dxPercent);
+      x_percent = start.x_percent + (start.width_percent - newW);
+      width_percent = newW;
+      break;
+    }
+    case "s":
+      height_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent + dyPercent);
+      break;
+    case "n": {
+      const newH = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent - dyPercent);
+      y_percent = start.y_percent + (start.height_percent - newH);
+      height_percent = newH;
+      break;
+    }
+    case "se":
+      width_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent + dxPercent);
+      height_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent + dyPercent);
+      break;
+    case "nw": {
+      const newW = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent - dxPercent);
+      const newH = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent - dyPercent);
+      x_percent = start.x_percent + (start.width_percent - newW);
+      y_percent = start.y_percent + (start.height_percent - newH);
+      width_percent = newW;
+      height_percent = newH;
+      break;
+    }
+    case "ne": {
+      width_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent + dxPercent);
+      const newH = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent - dyPercent);
+      y_percent = start.y_percent + (start.height_percent - newH);
+      height_percent = newH;
+      break;
+    }
+    case "sw": {
+      const newW = Math.max(MIN_ROOM_SIZE_PERCENT, start.width_percent - dxPercent);
+      x_percent = start.x_percent + (start.width_percent - newW);
+      width_percent = newW;
+      height_percent = Math.max(MIN_ROOM_SIZE_PERCENT, start.height_percent + dyPercent);
+      break;
+    }
+  }
+
+  // Clamper dans [0, 100]
+  x_percent = Math.max(0, Math.min(100 - MIN_ROOM_SIZE_PERCENT, x_percent));
+  y_percent = Math.max(0, Math.min(100 - MIN_ROOM_SIZE_PERCENT, y_percent));
+  width_percent = Math.min(100 - x_percent, width_percent);
+  height_percent = Math.min(100 - y_percent, height_percent);
+
+  return { x_percent, y_percent, width_percent, height_percent };
+}
+
+function getCursorForHandle(handle: HandlePosition | null, isOverRoom: boolean): string {
+  if (handle) {
+    const cursorMap: Record<HandlePosition, string> = {
+      nw: "nwse-resize",
+      n: "ns-resize",
+      ne: "nesw-resize",
+      e: "ew-resize",
+      se: "nwse-resize",
+      s: "ns-resize",
+      sw: "nesw-resize",
+      w: "ew-resize",
+    };
+    return cursorMap[handle];
+  }
+  if (isOverRoom) return "grab";
+  return "default";
+}
+
 // ─── Composant ────────────────────────────────────────────────────
 
 export default function RoomCanvas({
@@ -95,9 +204,11 @@ export default function RoomCanvas({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  // Drag state
+  // Drag state (move ou resize)
   const [dragging, setDragging] = useState<{
+    type: "move" | "resize";
     roomId: string;
+    handle?: HandlePosition;
     startX: number;
     startY: number;
     origPos: RoomPosition;
@@ -285,6 +396,28 @@ export default function RoomCanvas({
 
       ctx.fillStyle = "#0B0B0B";
       ctx.fillText(label + surfaceText, centerX, centerY);
+
+      // Poignées de resize pour la pièce sélectionnée (8 directions)
+      if (isSelected) {
+        const handles = getHandlePositions(x, y, w, h);
+        for (const handle of handles) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.strokeStyle = baseColor;
+          ctx.lineWidth = 2;
+          ctx.fillRect(
+            handle.x - HANDLE_SIZE / 2,
+            handle.y - HANDLE_SIZE / 2,
+            HANDLE_SIZE,
+            HANDLE_SIZE
+          );
+          ctx.strokeRect(
+            handle.x - HANDLE_SIZE / 2,
+            handle.y - HANDLE_SIZE / 2,
+            HANDLE_SIZE,
+            HANDLE_SIZE
+          );
+        }
+      }
     }
   }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked]);
 
@@ -319,16 +452,68 @@ export default function RoomCanvas({
     [rooms, toCanvasCoords]
   );
 
+  // ─── Hit-test poignée resize ───────────────────────────────────
+
+  const hitTestHandle = useCallback(
+    (clientX: number, clientY: number, room: VsRoom): HandlePosition | null => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      const pos = getRoomPosition(room);
+      if (!pos) return null;
+
+      const rect = canvas.getBoundingClientRect();
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const { x, y, w, h } = toCanvasCoords(pos);
+
+      const handles = getHandlePositions(x, y, w, h);
+      for (const handle of handles) {
+        if (
+          Math.abs(px - handle.x) <= HANDLE_HIT_SIZE / 2 &&
+          Math.abs(py - handle.y) <= HANDLE_HIT_SIZE / 2
+        ) {
+          return handle.position;
+        }
+      }
+      return null;
+    },
+    [toCanvasCoords]
+  );
+
   // ─── Gestionnaires souris ─────────────────────────────────────
 
   const handleMouseDown = useCallback(
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
+      // 1. Vérifier d'abord les poignées de resize sur la pièce sélectionnée
+      if (selectedRoomId) {
+        const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+        if (selectedRoom) {
+          const handle = hitTestHandle(e.clientX, e.clientY, selectedRoom);
+          if (handle) {
+            const pos = getRoomPosition(selectedRoom);
+            if (pos) {
+              setDragging({
+                type: "resize",
+                roomId: selectedRoom.id,
+                handle,
+                startX: e.clientX,
+                startY: e.clientY,
+                origPos: { ...pos },
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. Sinon, sélection + drag classique
       const room = getRoomAtPoint(e.clientX, e.clientY);
       if (room) {
         onSelectRoom(room.id);
         const pos = getRoomPosition(room);
         if (pos) {
           setDragging({
+            type: "move",
             roomId: room.id,
             startX: e.clientX,
             startY: e.clientY,
@@ -339,53 +524,80 @@ export default function RoomCanvas({
         onSelectRoom(null);
       }
     },
-    [getRoomAtPoint, onSelectRoom]
+    [getRoomAtPoint, hitTestHandle, onSelectRoom, rooms, selectedRoomId]
   );
 
   const handleMouseMove = useCallback(
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
       if (!dragging) {
-        // Changer le curseur si on survole une piece
-        const room = getRoomAtPoint(e.clientX, e.clientY);
+        // Changer le curseur selon ce qui est sous le pointeur
         const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.style.cursor = room ? "grab" : "default";
+        if (!canvas) return;
+
+        // Vérifier les poignées de la pièce sélectionnée en premier
+        if (selectedRoomId) {
+          const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+          if (selectedRoom) {
+            const handle = hitTestHandle(e.clientX, e.clientY, selectedRoom);
+            if (handle) {
+              canvas.style.cursor = getCursorForHandle(handle, false);
+              return;
+            }
+          }
         }
+
+        const room = getRoomAtPoint(e.clientX, e.clientY);
+        canvas.style.cursor = getCursorForHandle(null, !!room);
         return;
       }
 
       const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.cursor = "grabbing";
+
+      if (dragging.type === "resize" && dragging.handle) {
+        // Mode resize
+        if (canvas) {
+          canvas.style.cursor = getCursorForHandle(dragging.handle, false);
+        }
+
+        const dx = e.clientX - dragging.startX;
+        const dy = e.clientY - dragging.startY;
+        const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
+
+        const newPos = computeResize(dragging.origPos, dragging.handle, dxPct, dyPct);
+        onMoveRoom(dragging.roomId, newPos);
+      } else {
+        // Mode déplacement
+        if (canvas) {
+          canvas.style.cursor = "grabbing";
+        }
+
+        const dx = e.clientX - dragging.startX;
+        const dy = e.clientY - dragging.startY;
+        const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
+
+        const newPos: RoomPosition = {
+          x_percent: Math.max(
+            0,
+            Math.min(
+              100 - dragging.origPos.width_percent,
+              dragging.origPos.x_percent + dxPct
+            )
+          ),
+          y_percent: Math.max(
+            0,
+            Math.min(
+              100 - dragging.origPos.height_percent,
+              dragging.origPos.y_percent + dyPct
+            )
+          ),
+          width_percent: dragging.origPos.width_percent,
+          height_percent: dragging.origPos.height_percent,
+        };
+
+        onMoveRoom(dragging.roomId, newPos);
       }
-
-      const dx = e.clientX - dragging.startX;
-      const dy = e.clientY - dragging.startY;
-
-      const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
-
-      const newPos: RoomPosition = {
-        x_percent: Math.max(
-          0,
-          Math.min(
-            100 - dragging.origPos.width_percent,
-            dragging.origPos.x_percent + dxPct
-          )
-        ),
-        y_percent: Math.max(
-          0,
-          Math.min(
-            100 - dragging.origPos.height_percent,
-            dragging.origPos.y_percent + dyPct
-          )
-        ),
-        width_percent: dragging.origPos.width_percent,
-        height_percent: dragging.origPos.height_percent,
-      };
-
-      onMoveRoom(dragging.roomId, newPos);
     },
-    [dragging, getRoomAtPoint, onMoveRoom, toPercentCoords]
+    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toPercentCoords]
   );
 
   const handleMouseUp = useCallback(() => {

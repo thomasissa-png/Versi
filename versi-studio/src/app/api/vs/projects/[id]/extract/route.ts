@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
-import { extractPlanData } from "@/lib/vs/plan-extractor";
+import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
 import {
   clusterByUnit,
@@ -135,6 +135,12 @@ export async function POST(
       }
     }
 
+    // ─── Map floor → plan_id (pour associer rooms → plan) ─────────
+    const floorToPlanId = new Map<number, string>();
+    for (const plan of plansResult.rows) {
+      floorToPlanId.set(plan.floor_number, plan.id);
+    }
+
     // ─── Clustering par unit_id (versi-s21) ───────────────────────
     //
     // Principe "no AI > bad AI" : si confiance clustering < 0.7,
@@ -208,9 +214,10 @@ export async function POST(
         );
 
         // U1 — Persister confidence_avg dans vs_lots
-        await query(
+        const lotInsertResult = await query<{ id: string }>(
           `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
-           VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
+           VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)
+           RETURNING id`,
           [
             projectId,
             lotName,
@@ -220,6 +227,47 @@ export async function POST(
             group.confidenceAvg,
           ]
         );
+
+        const lotId = lotInsertResult.rows[0].id;
+
+        // ─── S22 — Pré-créer les rooms IA dans vs_rooms ─────────
+        // Convertir les bounding_box plan-global (%) → position lot-local (%)
+        const planIdForFloor = floorToPlanId.get(group.floor) ?? null;
+
+        for (const room of group.rooms) {
+          const bb = room.bounding_box;
+          // Position lot-local : re-normaliser la bbox de la room
+          // relativement à la bbox englobante du lot (zoneData)
+          let position: Record<string, number> | null = null;
+          if (bb && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
+            position = {
+              x_percent: ((bb.x_percent - zoneData.x_percent) / zoneData.width_percent) * 100,
+              y_percent: ((bb.y_percent - zoneData.y_percent) / zoneData.height_percent) * 100,
+              width_percent: (bb.width_percent / zoneData.width_percent) * 100,
+              height_percent: (bb.height_percent / zoneData.height_percent) * 100,
+            };
+            // Clamper dans [0, 100]
+            position.x_percent = Math.max(0, Math.min(100, position.x_percent));
+            position.y_percent = Math.max(0, Math.min(100, position.y_percent));
+            position.width_percent = Math.max(1, Math.min(100 - position.x_percent, position.width_percent));
+            position.height_percent = Math.max(1, Math.min(100 - position.y_percent, position.height_percent));
+          }
+
+          const roomType = inferRoomTypeFromName(room.name_raw);
+
+          await query(
+            `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, source, status)
+             VALUES ($1, $2, $3, $4, $5, $6, 'ai', 'suggested')`,
+            [
+              lotId,
+              planIdForFloor,
+              room.name_raw,
+              roomType,
+              room.surface_m2,
+              position ? JSON.stringify(position) : null,
+            ]
+          );
+        }
 
         lotsCreated.push({ name: lotName, confidenceAvg: group.confidenceAvg });
 
