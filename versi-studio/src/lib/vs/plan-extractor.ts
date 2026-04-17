@@ -403,7 +403,7 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
                     additionalProperties: false,
                   },
                   minItems: 4,
-                  maxItems: 8,
+                  maxItems: 12,
                 },
                 { type: "null" as const },
               ],

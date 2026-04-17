@@ -16,7 +16,10 @@ import { query, ensureDbReady } from "@/lib/vs/db";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
+import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
+import OpenAI from "openai";
+import sharp from "sharp";
 import {
   clusterByUnit,
   computeEnvelopeBbox,
@@ -107,6 +110,64 @@ export async function POST(
           plan.mime_type,
           project.type_bien
         );
+
+        // ─── Passe 2 — Raffinement polygones par crop (s22 v4) ─────
+        // Pour chaque piece avec bbox, crop l'image et appel GPT-4.1
+        // dedie pour tracer le polygone precis sur le zoom.
+        const REFINE_POLYGONS = process.env.VS_REFINE_POLYGONS !== "false";
+        if (REFINE_POLYGONS) {
+          try {
+            // Obtenir le buffer PNG de l'image (reconvertir PDF si besoin)
+            let imageBuffer: Buffer;
+            if (plan.mime_type === "application/pdf" || base64.startsWith("JVBERi0")) {
+              const { pdf } = await import("pdf-to-img");
+              const pdfBuffer = Buffer.from(base64, "base64");
+              const pages = await pdf(pdfBuffer, { scale: 3 });
+              let pngBuffer: Buffer | null = null;
+              for await (const page of pages) {
+                pngBuffer = Buffer.from(page);
+                break;
+              }
+              imageBuffer = pngBuffer!;
+            } else {
+              imageBuffer = Buffer.from(base64, "base64");
+            }
+
+            const metadata = await sharp(imageBuffer).metadata();
+            const imgW = metadata.width || 1;
+            const imgH = metadata.height || 1;
+
+            const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+            console.log(`[passe-2] Raffinement de ${extraction.rooms.length} pieces pour plan ${plan.id}...`);
+
+            for (const room of extraction.rooms) {
+              if (!room.bounding_box) continue;
+              try {
+                const refined = await refineRoomPolygon(
+                  imageBuffer,
+                  imgW,
+                  imgH,
+                  room.name_raw,
+                  room.bounding_box,
+                  openaiClient,
+                );
+                if (refined && refined.length >= 4) {
+                  room.bounding_polygon = refined;
+                  console.log(`[passe-2] ${room.name_raw}: raffiné → ${refined.length} pts`);
+                } else {
+                  console.log(`[passe-2] ${room.name_raw}: conserve polygone passe 1`);
+                }
+              } catch (refineErr) {
+                console.error(`[passe-2] Echec pour ${room.name_raw}:`, refineErr instanceof Error ? refineErr.message : refineErr);
+                // Conserver le polygone grossier de la passe 1
+              }
+            }
+          } catch (pass2Err) {
+            console.error(`[passe-2] Erreur globale passe 2 pour plan ${plan.id}:`, pass2Err instanceof Error ? pass2Err.message : pass2Err);
+            // Continuer avec les polygones passe 1
+          }
+        }
 
         // Sauvegarder le résultat d'extraction (utilisé en Étape 3 — Pièces)
         await query(

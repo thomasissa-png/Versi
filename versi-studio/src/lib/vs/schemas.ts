@@ -206,12 +206,13 @@ export const ExtractedRoomSchema = z.object({
       })
     )
     .min(4)
-    .max(8)
+    .max(12)
     .nullable()
     .optional()
     .describe(
-      "Contour polygonal de la pièce en % de l'image (4-8 sommets aux coins des murs). " +
-      "Recommandé pour toutes les pièces. null uniquement si contour indéterminable."
+      "Contour polygonal de la pièce en % de l'image (4-12 sommets aux coins des murs). " +
+      "Passe 1 : 4-8 points. Passe 2 (refinement crop) : jusqu'à 12 points. " +
+      "null uniquement si contour indéterminable."
     ),
 });
 export type ExtractedRoom = z.infer<typeof ExtractedRoomSchema>;
