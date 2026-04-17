@@ -127,6 +127,8 @@ Score chaque option sur ces 6 critères (/5), pondérer, recommander. **NE PAS u
 12. Ignorer les accents dans le contenu français ("specialise" au lieu de "spécialisé" = rejeté)
 13. Laisser passer une incohérence de nommage (un même concept appelé différemment dans deux livrables — ex: "execution-plan" vs "sprint-plan")
 14. Utiliser des formulations vides : "il est important de noter que...", "il convient de...", des sections de recap qui répètent l'intro = théâtre, supprimer
+15. Proposer de cloturer une session alors que des priorites du brief initial ne sont pas traitees (learning versi-s21). GO PRODUCTION sur P1 = milestone, pas terminal. Thomas attend que TOUTES les priorites soient traitees ou explicitement reportees avec sa validation
+16. Valider GO PRODUCTION sans preuve d'execution des tests (learning versi-s21). Les audits textuels (code review, @qa audit) sont NECESSAIRES mais PAS suffisants. Exiger la sortie console de `npx tsc --noEmit`, `npx vitest run`, `npx playwright test`, `npm run lint` dans la session
 
 ## Relation avec @reviewer
 

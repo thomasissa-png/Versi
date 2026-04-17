@@ -168,6 +168,13 @@ Avant de lancer la phase suivante :
 **Estimation de sessions en début de run :**
 Au lancement d'un projet, annoncer : "Ce projet est de complexité [légère/moyenne/lourde]. J'estime [N] phases avec [N] agents, soit environ [N] sessions de travail. Je t'alerterai quand il sera temps de clôturer chaque session."
 
+**Anti-cloture prematuree (learning versi-s21, CLAUDE.md regle n22) :**
+L'orchestrateur NE DOIT JAMAIS cloturer une session tant que le brief initial contient des priorites non-traitees, meme si la priorite principale (P1) a ete validee GO PRODUCTION. GO PRODUCTION sur P1 = milestone, pas terminal de session. Avant toute proposition de cloture :
+1. Grep `P[1-9]` dans le brief initial de la session
+2. Checklist statut de chaque priorite (traitee / reportee explicitement avec validation fondateur / en cours)
+3. Si au moins une priorite non couverte -> continuer la session, NE PAS proposer cloture
+La gate finale @moi valide le livrable PRINCIPAL, pas la session.
+
 ### Règles strictes anti-timeout pour l'orchestrateur
 
 1. **Maximum 2-3 Task par message.** Lancer 2-3 agents en parallèle, attendre les résultats, puis lancer les suivants. JAMAIS plus de 3 Task dans le même message.
@@ -633,6 +640,41 @@ Pour traiter une dette technique P2 différée sur plusieurs sessions (résidus 
 **Quand SKIP justifié dans le bundle** : si un item nécessite un refactor (ex : Upload % feedback nécessite passage fetch → XHR pour `onprogress`) → SKIP propre avec justification, déférer à une session dédiée. Ne pas tenter de "forcer" dans le typist.
 
 **Validation** : versi-s18 Bundle Upload P3 — 7 OK + 1 SKIP justifié sur 8 items en ~15 min (vs ~3 Batches audit triangulé estimé). Permet de purger la dette technique sans saturer le budget Tasks producteurs.
+
+### Pattern typist it3 mini (learning versi-s21)
+
+Quand l'itération 2 d'un audit cross-agents atteint 9.0-9.2/10 avec 5 P1 critiques triviaux ou moins, on evite une iteration 3 lourde (5 audits complets) en briefant UN seul @fullstack avec le code EXACT a appliquer (pattern typist).
+
+**Conditions d'activation** :
+- it2 moyenne >= 9.0/10
+- <= 5 P1 triviaux restants (< 15 lignes de code par fix, pas de logique nouvelle)
+- Aucun P0 residuel
+
+**Procedure** :
+1. Brief typist @fullstack avec Fix 1-N et le code EXACT a copier-coller pour chacun (fichier:ligne, ancien pattern, nouveau pattern). Aucune "reflexion" requise de l'agent.
+2. Re-audit cible : uniquement les agents qui avaient les P1 concernes (pas les 5), brief "delta vs it2" ultra-court.
+3. Si re-audit >= 9.3/10 unanime -> GO PRODUCTION. Sinon -> iteration 3 complete.
+
+**Gain** : 1 @fullstack (~12 min) + 2-3 re-audits cibles (~3 min chacun) vs 5 audits complets (~15 min chacun) + 1 @fullstack bundle. Economie ~50% du budget Tasks.
+
+**Validation** : versi-s21 it3 mini — 5 fix cibles en 25 lignes + re-audit 3 agents (QA 9.0 + UX 9.6 + persona 9.5) = moyenne 9.37/10 GO PRODUCTION.
+
+### Pattern bundle P0 unanimes + isoles (learning versi-s21)
+
+Apres 5 audits paralleles, distinguer deux categories de P0 pour la consolidation :
+
+**P0 UNANIMES** (mentionnes par >= 2 agents) : convergence = signal fort. Corrections sans discussion, priorite absolue dans le bundle @fullstack.
+
+**P0 ISOLES** (1 seul agent les mentionne) : criticite evaluee au cas par cas par l'orchestrateur. Un P0 isole peut etre critique (bug technique reel que seul @qa detecte) ou repoussable (preference stylistique d'un seul agent).
+
+**Procedure de consolidation post-audits** :
+1. Compiler TOUS les P0 des 5 audits
+2. Classer chaque P0 : unanime (>= 2 agents) ou isole (1 seul agent)
+3. Les unanimes vont dans le bundle @fullstack sans discussion
+4. Les isoles sont evalues par l'orchestrateur : critique (risque technique ou UX) -> integrer au bundle ; cosmetique -> reporter en P1
+5. Decouper le bundle en scopes disjoints pour parallélisation @fullstack (ex : Bundle A backend + B UI + C tests)
+
+**Validation** : versi-s21 it1 — 5 P0 unanimes (U1-U5) + 5 P0 isoles (I1-I10). Tous unanimes corriges, 8/10 isoles corriges (2 critiques malgre isoles), resultant en it2 9.04/10.
 
 ### Ordonnancement matrice G27 dans un Batch tests (learning versi-s16 P1 #9)
 

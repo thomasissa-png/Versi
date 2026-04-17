@@ -1,6 +1,8 @@
 node_modules/
 test-results/
 playwright-report/
+.env*
+.env.local
 
 # Temporary Next.js init directory
 versi-studio-tmp/

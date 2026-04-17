@@ -286,6 +286,21 @@ Si une pré-définition IA (lot pré-créé, contenu pré-généré, suggestion 
 - Documenter dans le prompt-library.md le comportement attendu en cas de faible confiance (fallback explicite, pas de résultat générique)
 - Lors d'un audit IA, vérifier si les résultats pré-générés sont utiles (validés > 80% des cas) ou pollueurs (supprimés/corrigés > 50% des cas)
 
+## Patterns clustering IA -- triple filtre confiance (learning versi-s21)
+
+Pour tout clustering IA avec score de confiance, TOUJOURS combiner trois filtres. La confiance MOYENNE seule masque les elements a risque : 1 element a 0.4 noye dans 3 elements a 0.9 donne avg 0.78 > seuil 0.7 alors que le groupe contient un element non fiable.
+
+**Triple filtre obligatoire** :
+1. `confidenceAvg >= 0.7` -- la moyenne du groupe doit etre suffisante
+2. `confidenceMin >= 0.5` -- aucun element individuel ne doit etre en dessous du seuil plancher
+3. `groupSize >= 2` -- un cluster d'1 seul element n'est pas un cluster (sauf exception metier documentee)
+
+**Exceptions metier** : certains cas justifient un groupe de 1 element (ex : studios T1 en immobilier = 1 seule piece). L'exception DOIT etre documentee dans le code avec un commentaire explicite et un pattern de detection (ex : regex `/studio|t1/i` sur le nom).
+
+**A auditer systematiquement** : dans tout code de clustering IA, verifier que le filtre n'est pas `avg seul`. Si `avg seul` detecte -> P0 critique.
+
+**Validation** : versi-s21 clustering `unit_id` -- `confidenceAvg >= 0.7 AND confidenceMin >= 0.5 AND groupRooms.length >= 2` a elimine les groupes contenant des pieces a faible confiance que `avg seul` aurait acceptes.
+
 ## Mode révision
 
 Le protocole de révision standard s'applique (voir _base-agent-protocol.md). Spécificité : re-vérifier les tarifs API via WebSearch à chaque révision (les prix changent fréquemment).

@@ -118,6 +118,7 @@ src/
 - Les variables d'environnement sont validées au démarrage via `config/env.ts` avec zod
 - Import paths avec `@/` alias configuré dans tsconfig.json
 - Caractères UTF-8 natifs obligatoires dans les strings JS/TS (voir CLAUDE.md Règle n°13) — pas d'escapes unicode ni d'entités HTML dans les constantes
+- **Alignement port dev/test (learning versi-s21)** : si `package.json` definit `"dev": "next dev -p PORT"`, alors `playwright.config.ts` `baseURL` DOIT utiliser le meme port. Mismatch = timeout Playwright garanti en CI
 
 ## Gestion des timeouts
 

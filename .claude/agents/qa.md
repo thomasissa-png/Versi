@@ -92,6 +92,29 @@ await expect(page.getByText('Mon texte').first()).toBeVisible();
 
 Ne JAMAIS utiliser `page.getByText()` sans scope quand le texte risque d'apparaître dans l'announcer Next.js.
 
+### Anti-pattern `route.continue()` comme fallback catch-all (learning versi-s21)
+
+**Regle complementaire** : dans un handler `page.route("**/api/**", route => { ... })` qui matche plusieurs endpoints, le fallback pour les requetes non-matchees DOIT etre `route.fulfill({ status: 404, body: JSON.stringify({ error: 'Mock not found' }) })`, JAMAIS `route.continue()`.
+
+**Pourquoi** : `route.continue()` envoie la requete au backend reel. En CI sans backend, cela cause des timeouts flaky garantis. Avec `route.fulfill({ status: 404 })`, les tests sont deterministes et activables en CI.
+
+```ts
+// CORRECT — tests deterministes en CI
+page.route('**/api/**', async route => {
+  if (matchesEndpointA(route)) { route.fulfill(mockA); }
+  else if (matchesEndpointB(route)) { route.fulfill(mockB); }
+  else { route.fulfill({ status: 404, body: JSON.stringify({ error: 'Mock not found' }) }); }
+});
+
+// INCORRECT — requetes non-matchees partent au reseau reel
+page.route('**/api/**', async route => {
+  if (...) { ... }
+  else { route.continue(); }  // TIMEOUT en CI sans backend
+});
+```
+
+**Validation** : versi-s21 — 3 occurrences dans `clustering-ia.spec.ts` corrigees. Zero requete reseau reelle en CI.
+
 ### Frontière @qa investigation vs @fullstack implémentation (learning versi-s18)
 
 **Règle de scope** : @qa SIGNALE les bugs applicatifs détectés en investigation, mais ne les corrige JAMAIS sans accord explicite du fondateur ou de l'orchestrateur. Le rôle @qa est diagnostic + reporting structuré, pas implémentation métier. Le rôle @fullstack est implémentation métier.
@@ -147,6 +170,7 @@ Classifier les features par niveau de risque :
 - Husky + lint-staged : lint + tests unitaires avant chaque commit
 - GitHub Actions : pipeline complet (lint → unit → integration → E2E → build). Le deploy est géré par Replit, pas par le CI/CD.
 - Branch protection : merge bloqué si pipeline rouge
+- **Alignement port dev/test (learning versi-s21)** : `playwright.config.ts` `baseURL` DOIT pointer sur le meme port que `package.json` script `dev`. Si `"dev": "next dev -p 5000"` alors `baseURL: "http://localhost:5000"`. Mismatch port = timeout Playwright garanti en CI. Verifier a chaque creation/modification de `playwright.config.ts`.
 
 ### Tests de sécurité (OWASP Top 10)
 
@@ -236,6 +260,22 @@ Avant tout déploiement, vérifier dans cet ordre :
 5. Grep pour clés API placeholders : `sk_test_`, `pk_test_`, `="..."`, `=xxx`, `=placeholder` dans src/ — aucun résultat autorisé
 
 Si un des 5 échoue → gate G28 FAIL, bloquer le déploiement.
+
+### Tests executes, pas juste ecrits (learning versi-s21, CLAUDE.md regle n21)
+
+Les tests DOIVENT etre executes REELLEMENT dans la session avant de declarer une feature "terminee". Les audits textuels (code review, @qa audit) sont NECESSAIRES mais PAS suffisants.
+
+**Checklist execution obligatoire avant tout verdict GO** :
+1. `npx tsc --noEmit` — 0 erreur (ou liste exacte des erreurs)
+2. `npx vitest run` — X/X PASS + duree affichee
+3. `npx playwright test` — X/X PASS + duree affichee
+4. `npm run lint` — 0 erreur production (warnings et erreurs legacy tolerees mais documentees)
+
+La sortie console de chaque commande DOIT etre visible dans la session. @moi DOIT refuser tout GO PRODUCTION sans cette preuve.
+
+**Checklist creation tests Vitest** : lors de la creation de `tests/unit/*.test.ts`, ajouter `vitest` et `@vitest/ui` dans les `devDependencies` du `package.json` du projet, epingler la version, re-lancer `npm install`. Ne jamais se reposer sur `npx` runtime install.
+
+**Installer node_modules des le debut de session** : si `node_modules` est absent, lancer `npm install` en arriere-plan (Phase 0 de la session). N'ajoute pas de Task producteur au compteur.
 
 ### Jeu de données adversarial (obligatoire)
 
