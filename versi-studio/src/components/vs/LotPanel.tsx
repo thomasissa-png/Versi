@@ -114,7 +114,9 @@ function LotCard({
         group flex items-start gap-sm p-md rounded-md cursor-pointer transition-colors duration-150
         ${lot.source === "ai" && lot.status === "suggested" ? "border border-dashed border-[var(--color-interactive-primary)]/40" : ""}
         ${lot.source === "ai" && lot.status === "validated" ? "border border-solid border-[var(--color-success,#16A34A)]/40" : ""}
-        ${isSelected ? "bg-[var(--color-background-default)] border border-[var(--color-border-default)]" : "hover:bg-[var(--color-background-default)]"}
+        ${isSelected && lot.source === "ai" ? "bg-[var(--color-background-default)] ring-2 ring-[var(--color-border-default)]" : ""}
+        ${isSelected && lot.source !== "ai" ? "bg-[var(--color-background-default)] border border-[var(--color-border-default)]" : ""}
+        ${!isSelected ? "hover:bg-[var(--color-background-default)]" : ""}
       `}
     >
       {/* Pastille couleur */}
@@ -208,7 +210,7 @@ function LotCard({
               e.stopPropagation();
               onValidateSingle();
             }}
-            className="mt-xs px-sm py-2xs rounded text-xs font-medium bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] hover:bg-[var(--color-success,#16A34A)]/20 transition-colors min-h-[32px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+            className="mt-xs px-sm py-2xs rounded text-xs font-medium bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] hover:bg-[var(--color-success,#16A34A)]/20 transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
             aria-label={`Valider ${lot.name}`}
           >
             Valider ce lot
@@ -290,6 +292,11 @@ export default function LotPanel({
         <h2 className="text-sm font-medium text-[var(--color-text-default)]">
           {lots.length} lot{lots.length !== 1 ? "s" : ""}
         </h2>
+        {lots.some((l) => l.source === "ai") && (
+          <p className="text-xs text-[var(--color-text-muted)] italic mt-2xs">
+            Les zones sont une approximation rectangulaire de l'union des pièces détectées.
+          </p>
+        )}
       </div>
 
       {/* Liste des lots */}

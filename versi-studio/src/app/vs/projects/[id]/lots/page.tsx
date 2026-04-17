@@ -620,7 +620,9 @@ export default function LotsPage({
             {project.adresse}
           </p>
           <h1 className="text-xl font-semibold text-[var(--color-text-default)]">
-            Découpez vos lots
+            {hasAiExtracted && aiSuggestedLots.length > 0
+              ? `${aiSuggestedLots.length} lot${aiSuggestedLots.length > 1 ? "s" : ""} à valider`
+              : "Découpez vos lots"}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-sm">
             Ajustez chaque lot par glisser-déposer. Zoomez à la molette, Ctrl+glisser pour naviguer.

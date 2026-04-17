@@ -167,8 +167,12 @@ function setupMockRoutes(
       });
     }
 
-    // Fallback
-    return route.continue();
+    // Fallback — ne jamais laisser passer au backend reel en E2E
+    return route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ success: false, error: "Mock 404 — route non geree" }),
+    });
   });
 }
 
@@ -253,7 +257,11 @@ test.describe("Clustering IA — lots pre-crees", () => {
         });
       }
 
-      return route.continue();
+      return route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ success: false, error: "Mock 404 — route non geree" }),
+      });
     });
 
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
@@ -320,7 +328,11 @@ test.describe("Clustering IA — lots pre-crees", () => {
         });
       }
 
-      return route.continue();
+      return route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ success: false, error: "Mock 404 — route non geree" }),
+      });
     });
 
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
