@@ -30,6 +30,7 @@ import type {
 } from "@/lib/vs/types";
 import type { ExtractedRoom } from "@/lib/vs/schemas";
 import { parseZone, zonesOverlap as zonesOverlapShared } from "@/lib/vs/types";
+import { track } from "@/lib/vs/analytics";
 
 // ─── Constantes ───────────────────────────────────────────────────
 
@@ -180,7 +181,7 @@ export default function LotsPage({
   // ─── Sauvegarde auto (debounce) ───────────────────────────────
 
   const saveLotZone = useCallback(
-    async (lotId: string, zone: Zone) => {
+    async (lotId: string, zone: Zone, lotSource: string) => {
       try {
         setSaving(true);
         const res = await fetch(`/api/vs/lots/${lotId}`, {
@@ -192,6 +193,15 @@ export default function LotsPage({
         if (!json.success) {
           setError("Modifications non enregistrées. Rechargez la page pour reprendre depuis la dernière version sauvegardée.");
           fetchData();
+        } else if (lotSource === "ai") {
+          // Analytics — lot IA modifié manuellement (versi-s21)
+          track({
+            event: "lot_manually_adjusted",
+            project_id: projectId,
+            lot_id: lotId,
+            adjustment_type: "zone_redraw",
+            source: "ai",
+          });
         }
       } catch {
         setError("Modifications non enregistrées. Rechargez la page pour reprendre depuis la dernière version sauvegardée.");
@@ -200,17 +210,20 @@ export default function LotsPage({
         setSaving(false);
       }
     },
-    [fetchData]
+    [fetchData, projectId]
   );
 
   const handleUpdateLotZone = useCallback(
     (lotId: string, zone: Zone) => {
+      const lot = lots.find((l) => l.id === lotId);
+      const lotSource = lot?.source ?? "manual";
+
       // Optimistic update
       setLots((prev) =>
-        prev.map((lot) =>
-          lot.id === lotId
-            ? { ...lot, zone_data: zone as unknown as Record<string, unknown> }
-            : lot
+        prev.map((l) =>
+          l.id === lotId
+            ? { ...l, zone_data: zone as unknown as Record<string, unknown> }
+            : l
         )
       );
 
@@ -219,13 +232,13 @@ export default function LotsPage({
       if (existing) clearTimeout(existing);
 
       const timer = setTimeout(() => {
-        saveLotZone(lotId, zone);
+        saveLotZone(lotId, zone, lotSource);
         saveTimersRef.current.delete(lotId);
       }, DEBOUNCE_SAVE_MS);
 
       saveTimersRef.current.set(lotId, timer);
     },
-    [saveLotZone]
+    [saveLotZone, lots]
   );
 
   // ─── Renommer un lot ──────────────────────────────────────────
@@ -264,6 +277,10 @@ export default function LotsPage({
     const lotId = deleteTargetId;
     if (!lotId) return;
     setDeleteTargetId(null);
+
+    // Capturer avant optimistic update pour analytics
+    const targetLot = lots.find((l) => l.id === lotId);
+
     // Optimistic update
     setLots((prev) => prev.filter((lot) => lot.id !== lotId));
     if (selectedLotId === lotId) setSelectedLotId(null);
@@ -276,12 +293,21 @@ export default function LotsPage({
       if (!json.success) {
         setError("La suppression a échoué. Le lot a été restauré automatiquement.");
         fetchData();
+      } else if (targetLot?.source === "ai") {
+        // Analytics — lot IA supprimé (versi-s21)
+        track({
+          event: "lot_manually_adjusted",
+          project_id: projectId,
+          lot_id: lotId,
+          adjustment_type: "deleted",
+          source: "ai",
+        });
       }
     } catch {
       setError("La suppression a échoué. Le lot a été restauré automatiquement.");
       fetchData();
     }
-  }, [deleteTargetId, selectedLotId, fetchData]);
+  }, [deleteTargetId, selectedLotId, fetchData, lots, projectId]);
 
   // ─── Ajouter un lot manuellement ─────────────────────────────
 
@@ -430,6 +456,15 @@ export default function LotsPage({
             )
           );
           setError("Impossible de valider ce lot.");
+        } else {
+          // Analytics — lot IA validé en 1 clic (versi-s21)
+          track({
+            event: "lot_auto_validated",
+            project_id: projectId,
+            lot_id: lotId,
+            trigger: "single_click",
+            source: "ai",
+          });
         }
       } catch {
         // Rollback
@@ -441,7 +476,7 @@ export default function LotsPage({
         setError("Impossible de valider ce lot.");
       }
     },
-    []
+    [projectId]
   );
 
   // ─── U4 — Annuler la validation d'un lot IA (versi-s21 it2) ──
@@ -528,7 +563,21 @@ export default function LotsPage({
       );
       setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
     }
-  }, [lots]);
+
+    // Analytics — lots IA validés globalement (versi-s21)
+    const validatedIds = aiSuggested
+      .filter((lot) => !failedIds.has(lot.id))
+      .map((lot) => lot.id);
+    for (const id of validatedIds) {
+      track({
+        event: "lot_auto_validated",
+        project_id: projectId,
+        lot_id: id,
+        trigger: "bulk_validate",
+        source: "ai",
+      });
+    }
+  }, [lots, projectId]);
 
   // ─── U3 — Extraction IA déjà tentée ? (versi-s21 it2) ────────
 

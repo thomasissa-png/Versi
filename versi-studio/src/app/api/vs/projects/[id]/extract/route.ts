@@ -25,6 +25,7 @@ import {
   computeAvgX,
   CLUSTERING_CONFIDENCE_THRESHOLD,
 } from "@/lib/vs/clustering";
+import { track } from "@/lib/vs/analytics";
 
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -221,6 +222,19 @@ export async function POST(
         );
 
         lotsCreated.push({ name: lotName, confidenceAvg: group.confidenceAvg });
+
+        // Analytics — lot pré-créé par IA (versi-s21)
+        track({
+          event: "lot_auto_created",
+          project_id: projectId,
+          lot_name: lotName,
+          floor_number: group.floor,
+          confidence_avg: group.confidenceAvg,
+          surface_m2: surfaceM2 > 0 ? surfaceM2 : null,
+          room_count: group.rooms.length,
+          habitable_room_count: habitableCount,
+          source: "ai",
+        });
       }
     }
 
@@ -231,6 +245,17 @@ export async function POST(
         : candidateCount === 0
           ? "no_units_detected"
           : "low_confidence";
+
+    // Analytics — fallback IA (0 lot créé malgré des candidats ou 0 unit_id)
+    if (lotsCreated.length === 0) {
+      track({
+        event: "ia_fallback_triggered",
+        project_id: projectId,
+        reason: candidateCount === 0 ? "no_units_detected" : "low_confidence",
+        candidate_count: candidateCount,
+        plan_count: plansResult.rows.length,
+      });
+    }
 
     return NextResponse.json({
       success: true,
