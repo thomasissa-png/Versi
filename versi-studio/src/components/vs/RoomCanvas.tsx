@@ -23,6 +23,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { VsRoom, ZoneRect } from "@/lib/vs/types";
+import { pointInPolygon, polygonCentroid } from "@/lib/vs/types";
 import { getRoomColor, ROOM_TYPE_DROPDOWN } from "@/lib/vs/styles";
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -346,6 +347,27 @@ export default function RoomCanvas({
     [renderLayout]
   );
 
+  // ─── Conversion polygone lot-local % → pixels canvas ─────────
+
+  const toCanvasPolygonPoints = useCallback(
+    (polygon: Array<{ x_percent: number; y_percent: number }>): Array<{ x: number; y: number }> => {
+      const { renderW, renderH, offsetX, offsetY } = renderLayout;
+      return polygon.map((p) => ({
+        x: (p.x_percent / 100) * renderW + offsetX,
+        y: (p.y_percent / 100) * renderH + offsetY,
+      }));
+    },
+    [renderLayout]
+  );
+
+  /**
+   * Determine si une pièce est une suggestion IA non confirmée :
+   * source='ai', status='suggested', touched=false
+   */
+  function isUntouchedAiRoom(room: VsRoom): boolean {
+    return room.source === "ai" && !room.touched;
+  }
+
   // ─── Dessin du canvas ─────────────────────────────────────────
 
   const draw = useCallback(() => {
@@ -392,41 +414,116 @@ export default function RoomCanvas({
       }
     }
 
-    // Dessiner les pieces
+    // Dessiner les pieces (polygone si disponible, sinon rectangle)
     for (const room of rooms) {
       const pos = getRoomPosition(room);
       if (!pos) continue;
 
-      const { x, y, w, h } = toCanvasCoords(pos);
       const baseColor = getRoomColor(room.room_type);
       const isSelected = room.id === selectedRoomId;
       const isBlockedRoom =
         validationBlocked && room.room_type === "non_identifie";
+      const isAiSuggestion = isUntouchedAiRoom(room);
 
-      // Fill avec transparence (rouge si validation bloquée — CORR-C3)
-      ctx.fillStyle = isBlockedRoom
-        ? "rgba(220, 38, 38, 0.5)"
-        : hexToRgba(baseColor, 0.4);
-      ctx.fillRect(x, y, w, h);
+      // Opacités réduites pour suggestion IA non confirmée (Option C)
+      const fillAlpha = isBlockedRoom ? 0.5 : isAiSuggestion ? 0.25 : 0.4;
+      const strokeAlpha = isAiSuggestion ? 0.6 : 0.7;
 
-      // Bordure (rouge plus épaisse si bloqué)
-      if (isBlockedRoom) {
-        ctx.strokeStyle = "#DC2626";
-        ctx.lineWidth = 3;
+      // Vérifier si un polygone valide (>= 4 points) existe
+      const hasPolygon = Array.isArray(room.polygon) && room.polygon.length >= 4;
+
+      if (hasPolygon) {
+        // ─── Rendu polygone ────────────────────────────────────
+        const canvasPts = toCanvasPolygonPoints(room.polygon!);
+
+        ctx.beginPath();
+        ctx.moveTo(canvasPts[0].x, canvasPts[0].y);
+        for (let i = 1; i < canvasPts.length; i++) {
+          ctx.lineTo(canvasPts[i].x, canvasPts[i].y);
+        }
+        ctx.closePath();
+
+        // Fill
+        ctx.fillStyle = isBlockedRoom
+          ? `rgba(220, 38, 38, ${fillAlpha})`
+          : hexToRgba(baseColor, fillAlpha);
+        ctx.fill();
+
+        // Bordure (pointillée si suggestion IA non confirmée)
+        if (isAiSuggestion) {
+          ctx.setLineDash([6, 4]);
+        } else {
+          ctx.setLineDash([]);
+        }
+
+        if (isBlockedRoom) {
+          ctx.strokeStyle = "#DC2626";
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = isSelected ? baseColor : hexToRgba(baseColor, strokeAlpha);
+          ctx.lineWidth = isSelected ? 3 : 1.5;
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); // reset
+
+        // Halo de sélection (bounding box du polygone)
+        if (isSelected) {
+          const { x, y, w, h } = toCanvasCoords(pos);
+          ctx.strokeStyle = hexToRgba(baseColor, 0.3);
+          ctx.lineWidth = 6;
+          ctx.setLineDash([]);
+          ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
+        }
       } else {
-        ctx.strokeStyle = isSelected ? baseColor : hexToRgba(baseColor, 0.7);
-        ctx.lineWidth = isSelected ? 3 : 1.5;
-      }
-      ctx.strokeRect(x, y, w, h);
+        // ─── Rendu rectangle (fallback) ────────────────────────
+        const { x, y, w, h } = toCanvasCoords(pos);
 
-      // Halo de selection
-      if (isSelected) {
-        ctx.strokeStyle = hexToRgba(baseColor, 0.3);
-        ctx.lineWidth = 6;
-        ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
+        // Fill
+        ctx.fillStyle = isBlockedRoom
+          ? `rgba(220, 38, 38, ${fillAlpha})`
+          : hexToRgba(baseColor, fillAlpha);
+        ctx.fillRect(x, y, w, h);
+
+        // Bordure (pointillée si suggestion IA non confirmée)
+        if (isAiSuggestion) {
+          ctx.setLineDash([6, 4]);
+        } else {
+          ctx.setLineDash([]);
+        }
+
+        if (isBlockedRoom) {
+          ctx.strokeStyle = "#DC2626";
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = isSelected ? baseColor : hexToRgba(baseColor, strokeAlpha);
+          ctx.lineWidth = isSelected ? 3 : 1.5;
+        }
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]); // reset
+
+        // Halo de sélection
+        if (isSelected) {
+          ctx.strokeStyle = hexToRgba(baseColor, 0.3);
+          ctx.lineWidth = 6;
+          ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
+        }
       }
 
-      // Label de la piece
+      // ─── Label (centroïde polygone ou centre rectangle) ──────
+      let centerX: number;
+      let centerY: number;
+
+      if (hasPolygon) {
+        const centroid = polygonCentroid(room.polygon!);
+        const { renderW, renderH, offsetX, offsetY } = renderLayout;
+        centerX = (centroid.x_percent / 100) * renderW + offsetX;
+        centerY = (centroid.y_percent / 100) * renderH + offsetY;
+      } else {
+        const { x, y, w, h } = toCanvasCoords(pos);
+        centerX = x + w / 2;
+        centerY = y + h / 2;
+      }
+
       const label = room.name || getDropdownLabel(room.room_type);
       const surfaceText = room.surface_m2
         ? ` ${Number(room.surface_m2).toFixed(0)} m²`
@@ -436,13 +533,12 @@ export default function RoomCanvas({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const centerX = x + w / 2;
-      const centerY = y + h / 2;
-
-      // Fond du label pour lisibilite
+      // Fond du label pour lisibilité
       const textWidth = ctx.measureText(label + surfaceText).width;
       const padding = 6;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      ctx.fillStyle = isAiSuggestion
+        ? "rgba(255, 255, 255, 0.65)"
+        : "rgba(255, 255, 255, 0.85)";
       ctx.fillRect(
         centerX - textWidth / 2 - padding,
         centerY - 10,
@@ -450,16 +546,55 @@ export default function RoomCanvas({
         20
       );
 
-      ctx.fillStyle = "#0B0B0B";
+      ctx.fillStyle = isAiSuggestion ? "#6B7280" : "#0B0B0B";
       ctx.fillText(label + surfaceText, centerX, centerY);
 
-      // Poignées de resize pour la pièce sélectionnée (8 directions)
+      // ─── Badge "IA" pour suggestion non confirmée ────────────
+      if (isAiSuggestion) {
+        const badgeText = "IA";
+        ctx.font = "600 9px 'PP Neue Montreal', 'DM Sans', sans-serif";
+        const badgeW = ctx.measureText(badgeText).width + 8;
+        const badgeH = 14;
+        // Positionner en haut-gauche : pour polygone ou rectangle
+        let badgeX: number;
+        let badgeY: number;
+        if (hasPolygon) {
+          const canvasPts = toCanvasPolygonPoints(room.polygon!);
+          badgeX = Math.min(...canvasPts.map((p) => p.x)) + 4;
+          badgeY = Math.min(...canvasPts.map((p) => p.y)) + 4;
+        } else {
+          const { x, y } = toCanvasCoords(pos);
+          badgeX = x + 4;
+          badgeY = y + 4;
+        }
+
+        // Fond du badge
+        ctx.fillStyle = "#F59E0B";
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 3);
+        ctx.fill();
+
+        // Texte du badge
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2);
+      }
+
+      // Reset font/align pour la suite
+      ctx.font = "500 13px 'PP Neue Montreal', 'DM Sans', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // ─── Poignées de resize (toujours basées sur la bbox rectangle) ──
       if (isSelected) {
+        const { x, y, w, h } = toCanvasCoords(pos);
         const handles = getHandlePositions(x, y, w, h);
         for (const handle of handles) {
           ctx.fillStyle = "#FFFFFF";
           ctx.strokeStyle = baseColor;
           ctx.lineWidth = 2;
+          ctx.setLineDash([]);
           ctx.fillRect(
             handle.x - HANDLE_SIZE / 2,
             handle.y - HANDLE_SIZE / 2,
@@ -475,7 +610,7 @@ export default function RoomCanvas({
         }
       }
     }
-  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked, renderLayout]);
+  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, toCanvasPolygonPoints, validationBlocked, renderLayout]);
 
   useEffect(() => {
     draw();
@@ -498,14 +633,25 @@ export default function RoomCanvas({
         const pos = getRoomPosition(room);
         if (!pos) continue;
 
-        const { x, y, w, h } = toCanvasCoords(pos);
-        if (px >= x && px <= x + w && py >= y && py <= y + h) {
-          return room;
+        const hasPolygon = Array.isArray(room.polygon) && room.polygon.length >= 4;
+
+        if (hasPolygon) {
+          // Hit-test polygone : convertir le point canvas en coordonnées lot-local %
+          const { xPct, yPct } = toPercentCoords(px, py);
+          if (pointInPolygon(xPct, yPct, room.polygon!)) {
+            return room;
+          }
+        } else {
+          // Hit-test rectangle classique
+          const { x, y, w, h } = toCanvasCoords(pos);
+          if (px >= x && px <= x + w && py >= y && py <= y + h) {
+            return room;
+          }
         }
       }
       return null;
     },
-    [rooms, toCanvasCoords]
+    [rooms, toCanvasCoords, toPercentCoords]
   );
 
   // ─── Hit-test poignée resize ───────────────────────────────────

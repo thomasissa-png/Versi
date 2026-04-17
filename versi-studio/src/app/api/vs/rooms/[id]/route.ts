@@ -27,6 +27,8 @@ interface PatchRoomPayload {
   custom_label?: string | null;
   surface_m2?: number | null;
   position?: Record<string, unknown> | null;
+  /** Marque explicitement la pièce comme confirmée par l'utilisateur */
+  touched?: boolean;
 }
 
 export async function PATCH(
@@ -100,6 +102,12 @@ export async function PATCH(
     if (body.position !== undefined) {
       setClauses.push(`position = $${paramIndex++}`);
       values.push(body.position ? JSON.stringify(body.position) : null);
+    }
+
+    // Option C : toute modification utilisateur marque la pièce comme confirmée.
+    // Le flag `touched` peut aussi être envoyé explicitement (bouton "Confirmer").
+    if (setClauses.length > 0 || body.touched === true) {
+      setClauses.push(`touched = true`);
     }
 
     if (setClauses.length === 0) {

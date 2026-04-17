@@ -34,6 +34,7 @@ interface RoomPanelProps {
   onDeleteRoom: (roomId: string) => void;
   onValidateLot: () => void;
   onContinue: () => void;
+  onConfirmRoom: (roomId: string) => void;
   allLotsValidated: boolean;
   isValidating: boolean;
   currentLotValidated: boolean;
@@ -65,6 +66,7 @@ export default function RoomPanel({
   onDeleteRoom,
   onValidateLot,
   onContinue,
+  onConfirmRoom,
   allLotsValidated,
   isValidating,
   currentLotValidated,
@@ -75,6 +77,10 @@ export default function RoomPanel({
 
   const hasUntypedRooms = rooms.some(
     (r) => r.room_type === "non_identifie"
+  );
+
+  const hasUntouchedAiRooms = rooms.some(
+    (r) => r.source === "ai" && !r.touched
   );
 
   // Scroll vers la card sélectionnée quand selectedRoomId change (CORR-B5)
@@ -170,6 +176,9 @@ export default function RoomPanel({
       const isBlockedRoom =
         validationBlocked && room.room_type === "non_identifie";
 
+      const isAiUntouched = room.source === "ai" && !room.touched;
+      const isAiTouched = room.source === "ai" && room.touched;
+
       return (
         <div
           key={room.id}
@@ -206,6 +215,23 @@ export default function RoomPanel({
             <span className="text-sm font-medium text-text-default flex-1">
               {room.name || getDropdownLabel(room.room_type)}
             </span>
+            {/* Indicateur IA / Validée */}
+            {isAiUntouched && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700" title="Suggestion IA — à confirmer">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" />
+                </svg>
+                IA
+              </span>
+            )}
+            {isAiTouched && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700" title="Pièce confirmée">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                OK
+              </span>
+            )}
             {room.surface_m2 && (
               <span className="text-xs text-text-muted">
                 {Number(room.surface_m2).toFixed(0)} m²
@@ -282,8 +308,27 @@ export default function RoomPanel({
             </div>
           )}
 
-          {/* Bouton supprimer */}
-          <div className="flex justify-end">
+          {/* Actions : Confirmer (si IA non confirmée) + Supprimer */}
+          <div className="flex items-center justify-between">
+            {isAiUntouched ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConfirmRoom(room.id);
+                }}
+                className="
+                  text-xs font-medium text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100
+                  active:opacity-80 transition-colors duration-200
+                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500
+                  px-sm py-2xs rounded min-h-[44px]
+                "
+                aria-label={`Confirmer la pièce ${getDropdownLabel(room.room_type)}`}
+              >
+                Confirmer
+              </button>
+            ) : (
+              <span />
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -302,7 +347,7 @@ export default function RoomPanel({
         </div>
       );
     },
-    [selectedRoomId, expandedCustom, onSelectRoom, onUpdateRoom, onDeleteRoom, validationBlocked]
+    [selectedRoomId, expandedCustom, onSelectRoom, onUpdateRoom, onDeleteRoom, onConfirmRoom, validationBlocked]
   );
 
   // ─── Rendu principal ────────────────────────────────────────────
@@ -376,8 +421,10 @@ export default function RoomPanel({
         {!currentLotValidated && (
           <button
             onClick={onValidateLot}
-            disabled={isValidating || hasUntypedRooms || rooms.length === 0}
-            aria-describedby={hasUntypedRooms ? "validate-lot-warning" : undefined}
+            disabled={isValidating || hasUntypedRooms || hasUntouchedAiRooms || rooms.length === 0}
+            aria-describedby={
+              hasUntypedRooms ? "validate-lot-warning" : hasUntouchedAiRooms ? "validate-lot-ai-warning" : undefined
+            }
             className="
               w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
               bg-interactive-primary text-text-inverse
@@ -389,6 +436,8 @@ export default function RoomPanel({
             title={
               hasUntypedRooms
                 ? "Définissez le type de toutes les pièces avant de valider"
+                : hasUntouchedAiRooms
+                ? "Ajustez ou confirmez chaque pièce IA avant de valider le lot"
                 : undefined
             }
           >
@@ -407,6 +456,13 @@ export default function RoomPanel({
         {hasUntypedRooms && !currentLotValidated && (
           <p id="validate-lot-warning" className="text-xs text-warning text-center">
             Définissez le type de toutes les pièces avant de valider
+          </p>
+        )}
+
+        {/* Avertissement si pièces IA non confirmées */}
+        {hasUntouchedAiRooms && !hasUntypedRooms && !currentLotValidated && (
+          <p id="validate-lot-ai-warning" className="text-xs text-warning text-center">
+            Ajustez ou confirmez chaque pièce IA avant de valider le lot
           </p>
         )}
 

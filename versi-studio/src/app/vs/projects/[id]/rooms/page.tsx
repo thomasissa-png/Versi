@@ -289,13 +289,13 @@ export default function RoomsPage({
       const lotWasValidated =
         lots.find((l) => l.id === selectedLotId)?.status === "validated";
 
-      // Optimistic update
+      // Optimistic update — marquer aussi touched=true (Option C)
       setRoomsByLot((prev) => {
         const lotRooms = prev[selectedLotId] ?? [];
         return {
           ...prev,
           [selectedLotId]: lotRooms.map((r) =>
-            r.id === roomId ? { ...r, ...updates } : r
+            r.id === roomId ? { ...r, ...updates, touched: true } : r
           ),
         };
       });
@@ -438,10 +438,43 @@ export default function RoomsPage({
     [selectedLotId, selectedRoomId]
   );
 
+  const handleConfirmRoom = useCallback(
+    async (roomId: string) => {
+      if (!selectedLotId) return;
+
+      // Optimistic update : marquer touched localement
+      setRoomsByLot((prev) => {
+        const lotRooms = prev[selectedLotId] ?? [];
+        return {
+          ...prev,
+          [selectedLotId]: lotRooms.map((r) =>
+            r.id === roomId ? { ...r, touched: true } : r
+          ),
+        };
+      });
+
+      // PATCH API avec touched=true
+      try {
+        const res = await fetch(`/api/vs/rooms/${roomId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ touched: true }),
+        });
+        const json = (await res.json()) as ApiResponse<VsRoom>;
+        if (!json.success) {
+          setError(json.error);
+        }
+      } catch {
+        setError("Impossible de confirmer la pièce.");
+      }
+    },
+    [selectedLotId]
+  );
+
   const handleValidateLot = useCallback(async () => {
     if (!selectedLotId) return;
 
-    // Pré-check : toutes les pièces doivent être typées avant validation
+    // Pré-check 1 : toutes les pièces doivent être typées avant validation
     const untypedRooms = currentRooms.filter(
       (r) => r.room_type === "non_identifie"
     );
@@ -449,6 +482,18 @@ export default function RoomsPage({
       setValidationBlocked(true);
       setError(
         "Définissez le type de toutes les pièces avant de valider"
+      );
+      return;
+    }
+
+    // Pré-check 2 : toutes les pièces IA doivent être confirmées (Option C)
+    const untouchedAiRooms = currentRooms.filter(
+      (r) => r.source === "ai" && !r.touched
+    );
+    if (untouchedAiRooms.length > 0) {
+      setValidationBlocked(false);
+      setError(
+        "Ajustez ou confirmez chaque pièce IA avant de valider le lot"
       );
       return;
     }
@@ -717,6 +762,7 @@ export default function RoomsPage({
             onDeleteRoom={handleDeleteRoom}
             onValidateLot={handleValidateLot}
             onContinue={handleContinue}
+            onConfirmRoom={handleConfirmRoom}
             allLotsValidated={allLotsValidated}
             isValidating={isValidating}
             currentLotValidated={currentLotValidated}
