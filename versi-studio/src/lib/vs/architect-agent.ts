@@ -6,9 +6,12 @@
  *
  * Flux :
  * 1. gpt-4.1-mini enrichit l'instruction → prompt détaillé
- * 2. gpt-image-1.5 génère la nouvelle version depuis le visuel courant + prompt
+ * 2. gpt-image-1 (Images API — edit) génère la nouvelle version
+ *
+ * Note versi-s22 : migré de responses.create + gpt-image-1.5 vers
+ * images.edit + gpt-image-1 car le modèle n'est pas supporté via Responses API.
  */
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
 import { enrichPromptForIteration } from "@/lib/vs/visual-generator";
 
@@ -74,7 +77,7 @@ IMPORTANT CONSTRAINTS:
 - Photorealistic interior design photograph quality.
 - No text, watermark, or overlay on the image.${surfaceM2 ? `\n- Room is approximately ${surfaceM2}m².` : ""}`;
 
-  // Étape 2 : Générer la nouvelle version via gpt-image-1.5
+  // Étape 2 : Générer la nouvelle version via gpt-image-1 (Images API)
   // Premier essai
   try {
     const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, mimeType, finalPrompt);
@@ -102,7 +105,7 @@ IMPORTANT CONSTRAINTS:
   }
 }
 
-// ─── Appel gpt-image-1.5 pour itération ────────────────────────────
+// ─── Appel gpt-image-1 (Images API — edit) pour itération ─────────
 
 async function callIterationGeneration(
   openai: OpenAI,
@@ -110,31 +113,21 @@ async function callIterationGeneration(
   mimeType: string,
   prompt: string
 ): Promise<string> {
-  const imageDataUrl = `data:${mimeType};base64,${currentVisualBase64}`;
+  const imageBuffer = Buffer.from(currentVisualBase64, "base64");
+  const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "png";
+  const imageFile = await toFile(imageBuffer, `visual.${ext}`, { type: mimeType });
 
-  const response = await openai.responses.create({
-    model: "gpt-image-1.5",
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
-          { type: "input_text", text: prompt },
-        ],
-      },
-    ],
-    tools: [{ type: "image_generation", quality: "high" }],
+  const response = await openai.images.edit({
+    model: "gpt-image-1",
+    image: imageFile,
+    prompt,
+    quality: "high",
+    size: "auto",
   });
 
-  const imageOutput = response.output.find(
-    (o: { type: string }) => o.type === "image_generation_call"
-  );
-  if (!imageOutput || imageOutput.type !== "image_generation_call") {
-    throw new Error("Pas de sortie image dans la réponse gpt-image-1.5");
+  const imageData = response.data?.[0];
+  if (!imageData?.b64_json) {
+    throw new Error("Résultat image vide dans la réponse gpt-image-1");
   }
-  const resultData = (imageOutput as { type: string; result?: string }).result;
-  if (!resultData) {
-    throw new Error("Résultat image vide");
-  }
-  return resultData;
+  return imageData.b64_json;
 }

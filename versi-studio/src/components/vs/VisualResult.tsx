@@ -38,6 +38,9 @@ function translateOpenAIError(raw: string | null | undefined): string {
   if (lower.includes("content policy")) return "Image refusée par le filtre de contenu. Modifiez l'instruction.";
   if (lower.includes("timeout")) return "Délai dépassé. Réessayez dans quelques instants.";
   if (lower.includes("rate limit")) return "Limite de génération atteinte. Réessayez dans une heure.";
+  if (lower.includes("not found") || lower.includes("model")) return "Modèle de génération indisponible. Contactez le support.";
+  if (lower.includes("billing") || lower.includes("quota") || lower.includes("insufficient")) return "Quota de génération épuisé. Contactez le support.";
+  if (lower.includes("invalid") && lower.includes("image")) return "La photo est invalide ou trop petite. Déposez une photo de meilleure qualité.";
   return "La création a échoué — réessayez.";
 }
 

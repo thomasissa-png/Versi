@@ -1,10 +1,14 @@
 /**
- * Génération de visuels post-travaux via gpt-image-1.5.
+ * Génération de visuels post-travaux via gpt-image-1 (Images API — edit).
+ *
+ * Note versi-s22 : ni gpt-image-1.5 ni gpt-image-1 ne fonctionnent via
+ * openai.responses.create. La seule API qui fonctionne est openai.images.edit
+ * avec model="gpt-image-1". Migration vers gpt-image-1.5 quand supporté.
  *
  * Input : photo brute (base64), style de décoration, infos pièce
  * Output : image générée (base64) + prompt utilisé
  */
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
 
 // ─── Singleton OpenAI ──────────────────────────────────────────────
@@ -104,7 +108,7 @@ export async function generateVisual(
   }
 }
 
-// ─── Appel gpt-image-1.5 ──────────────────────────────────────────
+// ─── Appel gpt-image-1 (Images API — edit) ───────────────────────
 
 async function callImageGeneration(
   openai: OpenAI,
@@ -112,35 +116,25 @@ async function callImageGeneration(
   mimeType: string,
   prompt: string
 ): Promise<string> {
-  const imageDataUrl = `data:${mimeType};base64,${photoBase64}`;
+  // Convertir base64 en Uploadable file pour le SDK OpenAI
+  const photoBuffer = Buffer.from(photoBase64, "base64");
+  const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "png";
+  const imageFile = await toFile(photoBuffer, `photo.${ext}`, { type: mimeType });
 
-  const response = await openai.responses.create({
-    model: "gpt-image-1.5",
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
-          { type: "input_text", text: prompt },
-        ],
-      },
-    ],
-    tools: [{ type: "image_generation", quality: "high" }],
+  const response = await openai.images.edit({
+    model: "gpt-image-1",
+    image: imageFile,
+    prompt,
+    quality: "high",
+    size: "auto",
   });
 
-  // Extraire l'image générée
-  const imageOutput = response.output.find(
-    (o: { type: string }) => o.type === "image_generation_call"
-  );
-  if (!imageOutput || imageOutput.type !== "image_generation_call") {
-    throw new Error("Pas de sortie image dans la réponse gpt-image-1.5");
+  // Extraire l'image générée (b64_json par défaut pour gpt-image-1)
+  const imageData = response.data?.[0];
+  if (!imageData?.b64_json) {
+    throw new Error("Résultat image vide dans la réponse gpt-image-1");
   }
-  // Le résultat contient result en base64
-  const resultData = (imageOutput as { type: string; result?: string }).result;
-  if (!resultData) {
-    throw new Error("Résultat image vide");
-  }
-  return resultData;
+  return imageData.b64_json;
 }
 
 // ─── Enrichissement de prompt pour itération ───────────────────────
