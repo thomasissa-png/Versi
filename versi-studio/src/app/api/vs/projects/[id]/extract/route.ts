@@ -37,7 +37,11 @@ function isValidUUID(str: string): boolean {
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<ApiResponse<{ lots_created: number }>>> {
+): Promise<NextResponse<ApiResponse<{
+  lots_created: number;
+  extraction_reason: "success" | "no_units_detected" | "low_confidence";
+  warnings: Array<{ type: string; message: string }>;
+}>>> {
   try {
     await ensureDbReady();
     const { id: projectId } = await params;
@@ -134,13 +138,34 @@ export async function POST(
     //
     // Principe "no AI > bad AI" : si confiance clustering < 0.7,
     // ne rien pré-créer. Thomas démarre sur l'écran vide guidé.
+    //
+    // U2 : filtre ≥ 2 pièces + confidenceMin ≥ 0.5 (sauf studios I10)
+    // I1 : nested map — plus de split "::" fragile
+    // I5 : warning si > 50% des groupes rejetés
+    // I6 : extraction_reason dans la réponse
 
-    const unitGroups = clusterByUnit(allRooms, CLUSTERING_CONFIDENCE_THRESHOLD);
+    const { accepted: unitGroups, candidateCount } = clusterByUnit(
+      allRooms,
+      CLUSTERING_CONFIDENCE_THRESHOLD
+    );
 
-    let lotsCreated = 0;
+    // I5 — Warning si taux de rejet élevé
+    const warnings: Array<{ type: string; message: string }> = [];
+    if (candidateCount > 0) {
+      const rejectionRate = 1 - unitGroups.length / candidateCount;
+      if (rejectionRate > 0.5) {
+        warnings.push({
+          type: "unit_clustering_low_confidence",
+          message: `${Math.round(rejectionRate * 100)}% des groupes IA ont été rejetés (confiance insuffisante).`,
+        });
+      }
+    }
+
+    const lotsCreated: Array<{ name: string; confidenceAvg: number }> = [];
 
     if (unitGroups.length > 0) {
       // Compter les groupes par étage pour le nommage (détection doublon)
+      // I2 : trier par avgX pour affecter positionIndex stable
       const groupsByFloor = new Map<number, typeof unitGroups>();
       for (const g of unitGroups) {
         const existing = groupsByFloor.get(g.floor);
@@ -151,17 +176,23 @@ export async function POST(
         }
       }
 
+      // I2 — Trier chaque liste par avgX pour positionIndex cohérent
+      for (const [, floorList] of groupsByFloor) {
+        floorList.sort((a, b) => computeAvgX(a.rooms) - computeAvgX(b.rooms));
+      }
+
       for (const group of unitGroups) {
         const habitableCount = countHabitableRooms(group.rooms);
         const avgX = computeAvgX(group.rooms);
 
         const floorGroups = groupsByFloor.get(group.floor) || [];
-        const indexOnFloor = floorGroups.indexOf(group);
+        // I2 — positionIndex = rang dans la liste triée par avgX
+        const positionIndex = floorGroups.indexOf(group);
 
         const lotName = generateLotName(
           habitableCount,
           group.floor,
-          indexOnFloor,
+          positionIndex,
           floorGroups.length,
           avgX
         );
@@ -175,26 +206,39 @@ export async function POST(
           0
         );
 
-        // Insérer le lot en base
+        // U1 — Persister confidence_avg dans vs_lots
         await query(
-          `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status)
-           VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested')`,
+          `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
+           VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
           [
             projectId,
             lotName,
             group.floor,
             surfaceM2 > 0 ? surfaceM2 : null,
             JSON.stringify(zoneData),
+            group.confidenceAvg,
           ]
         );
 
-        lotsCreated++;
+        lotsCreated.push({ name: lotName, confidenceAvg: group.confidenceAvg });
       }
     }
 
+    // I6 — Réponse enrichie : extraction_reason + warnings
+    const extractionReason =
+      lotsCreated.length > 0
+        ? "success"
+        : candidateCount === 0
+          ? "no_units_detected"
+          : "low_confidence";
+
     return NextResponse.json({
       success: true,
-      data: { lots_created: lotsCreated },
+      data: {
+        lots_created: lotsCreated.length,
+        extraction_reason: extractionReason,
+        warnings,
+      },
     });
   } catch (err) {
     console.error("[API] POST /api/vs/projects/[id]/extract erreur :", err);

@@ -60,6 +60,7 @@ export interface VsLot {
   zone_data: Record<string, unknown>;
   status: LotStatus;
   source: LotSource;
+  confidence_avg: number | null;
   created_at: string;
 }
 

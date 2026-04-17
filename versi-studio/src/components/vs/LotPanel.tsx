@@ -11,6 +11,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { VsLot } from "@/lib/vs/types";
+import type { ExtractedRoom } from "@/lib/vs/schemas";
 import { getLotColor } from "@/lib/vs/types";
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -34,6 +35,12 @@ interface LotPanelProps {
   // Validation individuelle de lot IA (versi-s21)
   onValidateSingleLot?: (lotId: string) => void;
   onValidateAllAiLots?: () => void;
+  // U3 — État vide différencié (versi-s21 it2)
+  hasAiExtracted?: boolean;
+  // U4 — Annuler validation lot IA (versi-s21 it2)
+  onUnvalidateSingleLot?: (lotId: string) => void;
+  // I7 — Pièces non assignées (versi-s21 it2)
+  unassignedRooms?: ExtractedRoom[];
 }
 
 // ─── Composant LotCard ──────────────────────────────────────────
@@ -46,6 +53,7 @@ function LotCard({
   onRename,
   onDelete,
   onValidateSingle,
+  onUnvalidateSingle,
 }: {
   lot: VsLot;
   index: number;
@@ -54,6 +62,7 @@ function LotCard({
   onRename: (name: string) => void;
   onDelete: () => void;
   onValidateSingle?: () => void;
+  onUnvalidateSingle?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(lot.name);

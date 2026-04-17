@@ -16,6 +16,7 @@ export interface UnitGroup {
   unitId: string;
   rooms: ExtractedRoom[];
   confidenceAvg: number;
+  confidenceMin: number;
 }
 
 export interface EnvelopeBbox {
@@ -36,11 +37,16 @@ export const CLUSTERING_CONFIDENCE_THRESHOLD = 0.7;
 /**
  * Génère le nom d'un lot depuis le nombre de pièces habitables.
  * Ex: 3 pièces habitables → "T3", 1 → "Studio", 0 → "Lot".
+ *
+ * I2 versi-s21 : si 3+ lots sur le même étage, suffixe numérique
+ * triable (#1, #2, #3) par position X croissante au lieu du
+ * binaire gauche/droite qui produisait des collisions.
+ * `positionIndex` = index du groupe trié par avgX sur l'étage.
  */
 export function generateLotName(
   habitableCount: number,
   floor: number,
-  _indexOnFloor: number,
+  positionIndex: number,
   totalOnFloor: number,
   avgX: number
 ): string {
@@ -55,9 +61,12 @@ export function generateLotName(
 
   const floorLabel = floor === 0 ? "RDC" : `Étage ${floor}`;
 
-  // Suffixe position si doublon sur le même étage
+  // Suffixe position si plusieurs lots sur le même étage
   let suffix = "";
-  if (totalOnFloor > 1) {
+  if (totalOnFloor >= 3) {
+    // Numéroter 1..N par position X croissante (positionIndex fourni par le caller)
+    suffix = ` #${positionIndex + 1}`;
+  } else if (totalOnFloor === 2) {
     suffix = avgX < 50 ? " gauche" : " droite";
   }
 
@@ -93,6 +102,13 @@ export function computeEnvelopeBbox(rooms: ExtractedRoom[]): EnvelopeBbox {
   maxX = Math.min(100, maxX);
   maxY = Math.min(100, maxY);
 
+  // I3 versi-s21 : si aucune pièce n'avait de bounding_box valide,
+  // minX/maxX restent à leurs valeurs initiales (100/0) → dimensions négatives.
+  // Fallback plein cadre pour éviter une zone invalide.
+  if (maxX <= minX || maxY <= minY) {
+    return { type: "rect", x_percent: 0, y_percent: 0, width_percent: 100, height_percent: 100 };
+  }
+
   return {
     type: "rect",
     x_percent: minX,
@@ -104,38 +120,66 @@ export function computeEnvelopeBbox(rooms: ExtractedRoom[]): EnvelopeBbox {
 
 /**
  * Groupe les pièces par (floor, unit_id) et calcule la confiance moyenne.
- * Retourne les groupes avec confiance >= seuil.
+ *
+ * U2 versi-s21 : filtre groupes ≥ 2 pièces + confidenceMin ≥ 0.5.
+ * I1 versi-s21 : nested Map<floor, Map<unitId, rooms>> au lieu de
+ *   clé string `floor::unitId` fragile (cassait si unit_id contenait "::").
+ * I10 versi-s21 : exception studios — un groupe de 1 pièce est accepté
+ *   si name_raw contient "studio" ou "t1" (logement complet mono-pièce).
+ *
+ * Retourne :
+ * - `accepted` : groupes retenus (confiance + taille OK)
+ * - `candidateCount` : nombre total de groupes avant filtrage (pour I5 warning)
  */
 export function clusterByUnit(
   rooms: ExtractedRoom[],
   confidenceThreshold: number
-): UnitGroup[] {
-  const groups = new Map<string, ExtractedRoom[]>();
+): { accepted: UnitGroup[]; candidateCount: number } {
+  // I1 — Nested map par floor → unitId (plus de split "::")
+  const byFloor = new Map<number, Map<string, ExtractedRoom[]>>();
 
   for (const room of rooms) {
     if (!room.unit_id || room.floor == null) continue;
-    const key = `${room.floor}::${room.unit_id}`;
-    const existing = groups.get(key);
+    let floorMap = byFloor.get(room.floor);
+    if (!floorMap) {
+      floorMap = new Map<string, ExtractedRoom[]>();
+      byFloor.set(room.floor, floorMap);
+    }
+    const existing = floorMap.get(room.unit_id);
     if (existing) {
       existing.push(room);
     } else {
-      groups.set(key, [room]);
+      floorMap.set(room.unit_id, [room]);
     }
   }
 
-  const result: UnitGroup[] = [];
-  for (const [key, groupRooms] of groups) {
-    const [floorStr, unitId] = key.split("::");
-    const floor = parseInt(floorStr, 10);
-    const confidenceAvg =
-      groupRooms.reduce((sum, r) => sum + r.confidence, 0) / groupRooms.length;
+  const accepted: UnitGroup[] = [];
+  let candidateCount = 0;
 
-    if (confidenceAvg >= confidenceThreshold && groupRooms.length >= 1) {
-      result.push({ floor, unitId, rooms: groupRooms, confidenceAvg });
+  for (const [floor, floorMap] of byFloor) {
+    for (const [unitId, groupRooms] of floorMap) {
+      candidateCount++;
+      const confidenceAvg =
+        groupRooms.reduce((sum, r) => sum + r.confidence, 0) / groupRooms.length;
+      const confidenceMin = Math.min(...groupRooms.map((r) => r.confidence));
+
+      // I10 — Exception studios : 1 pièce acceptée si nom évoque un logement complet
+      const isStudioException =
+        groupRooms.length === 1 &&
+        /\bstudio\b|\bt1\b/i.test(groupRooms[0].name_raw);
+
+      // U2 — Filtre : avg >= seuil, min >= 0.5, et >= 2 pièces (sauf studio)
+      if (
+        confidenceAvg >= confidenceThreshold &&
+        confidenceMin >= 0.5 &&
+        (groupRooms.length >= 2 || isStudioException)
+      ) {
+        accepted.push({ floor, unitId, rooms: groupRooms, confidenceAvg, confidenceMin });
+      }
     }
   }
 
-  return result;
+  return { accepted, candidateCount };
 }
 
 /**
