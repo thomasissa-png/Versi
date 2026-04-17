@@ -13,6 +13,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, use, useMemo } from "react";
+import { useHistory } from "@/hooks/useHistory";
 import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
 import PlanCanvas from "@/components/vs/PlanCanvas";
@@ -82,6 +83,35 @@ export default function LotsPage({
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map()
   );
+
+  // ─── Undo/Redo (versi-s22 P3) ──────────────────────────────
+  const history = useHistory<VsLot[]>();
+  const isUndoRedoRef = useRef(false);
+  const initialSnapshotDoneRef = useRef(false);
+
+  const pushLotsSnapshot = useCallback((newLots: VsLot[], label?: string) => {
+    if (!isUndoRedoRef.current) {
+      history.push(structuredClone(newLots), label);
+    }
+  }, [history]);
+
+  const handleUndo = useCallback(() => {
+    const snapshot = history.undo();
+    if (snapshot) {
+      isUndoRedoRef.current = true;
+      setLots(snapshot);
+      isUndoRedoRef.current = false;
+    }
+  }, [history]);
+
+  const handleRedo = useCallback(() => {
+    const snapshot = history.redo();
+    if (snapshot) {
+      isUndoRedoRef.current = true;
+      setLots(snapshot);
+      isUndoRedoRef.current = false;
+    }
+  }, [history]);
 
   // ─── Chargement initial ───────────────────────────────────────
 
@@ -219,13 +249,16 @@ export default function LotsPage({
       const lotSource = lot?.source ?? "manual";
 
       // Optimistic update
-      setLots((prev) =>
-        prev.map((l) =>
+      setLots((prev) => {
+        const updated = prev.map((l) =>
           l.id === lotId
             ? { ...l, zone_data: zone as unknown as Record<string, unknown> }
             : l
-        )
-      );
+        );
+        // versi-s22 P3 : snapshot pour undo (debounced par le parent)
+        pushLotsSnapshot(updated, "zone_update");
+        return updated;
+      });
 
       // Debounce la sauvegarde
       const existing = saveTimersRef.current.get(lotId);
@@ -238,7 +271,7 @@ export default function LotsPage({
 
       saveTimersRef.current.set(lotId, timer);
     },
-    [saveLotZone, lots]
+    [saveLotZone, lots, pushLotsSnapshot]
   );
 
   // ─── Renommer un lot ──────────────────────────────────────────
@@ -282,7 +315,11 @@ export default function LotsPage({
     const targetLot = lots.find((l) => l.id === lotId);
 
     // Optimistic update
-    setLots((prev) => prev.filter((lot) => lot.id !== lotId));
+    setLots((prev) => {
+      const updated = prev.filter((lot) => lot.id !== lotId);
+      pushLotsSnapshot(updated, "delete_lot");
+      return updated;
+    });
     if (selectedLotId === lotId) setSelectedLotId(null);
 
     try {
@@ -344,7 +381,11 @@ export default function LotsPage({
       const json = (await res.json()) as ApiResponse<VsLot>;
 
       if (json.success) {
-        setLots((prev) => [...prev, json.data]);
+        setLots((prev) => {
+          const updated = [...prev, json.data];
+          pushLotsSnapshot(updated, "add_lot");
+          return updated;
+        });
         setSelectedLotId(json.data.id);
       } else {
         setError(json.error);
@@ -352,7 +393,7 @@ export default function LotsPage({
     } catch {
       setError("Le lot n'a pas pu être créé. Réessayez ou rechargez la page.");
     }
-  }, [lots, selectedFloor, projectId]);
+  }, [lots, selectedFloor, projectId, pushLotsSnapshot]);
 
   // ─── Mode dessin polygone (versi-s20 phase 2) ─────────────────
 
@@ -409,6 +450,51 @@ export default function LotsPage({
     setError(null);
 
     try {
+      // versi-s22 P2 : valider tous les lots IA d'un coup d'abord
+      const aiSuggested = lots.filter(
+        (l) => l.source === "ai" && l.status === "suggested"
+      );
+      if (aiSuggested.length > 0) {
+        // PATCH chaque lot IA en parallèle pour les passer en "validated"
+        const results = await Promise.allSettled(
+          aiSuggested.map((lot) =>
+            fetch(`/api/vs/lots/${lot.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "validated" }),
+            }).then((r) => r.json() as Promise<ApiResponse<VsLot>>)
+          )
+        );
+
+        const failedIds = new Set<string>();
+        results.forEach((r, i) => {
+          if (r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)) {
+            failedIds.add(aiSuggested[i].id);
+          }
+        });
+
+        if (failedIds.size > 0) {
+          setLots((prev) =>
+            prev.map((l) =>
+              failedIds.has(l.id) ? { ...l, status: "suggested" as const } : l
+            )
+          );
+          setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
+          setValidating(false);
+          return;
+        }
+
+        // Optimistic update
+        setLots((prev) =>
+          prev.map((l) =>
+            l.source === "ai" && l.status === "suggested"
+              ? { ...l, status: "validated" as const }
+              : l
+          )
+        );
+      }
+
+      // Puis valider le projet (POST validate endpoint)
       const res = await fetch(`/api/vs/projects/${projectId}/lots/validate`, {
         method: "POST",
       });
@@ -428,7 +514,7 @@ export default function LotsPage({
     } finally {
       setValidating(false);
     }
-  }, [projectId, router]);
+  }, [projectId, router, lots]);
 
   // ─── Valider un lot IA individuellement (versi-s21) ──────────
 
@@ -620,6 +706,33 @@ export default function LotsPage({
     };
   }, []);
 
+  // ─── Snapshot initial pour undo (versi-s22 P3) ─────────────
+  useEffect(() => {
+    if (!loading && lots.length > 0 && !initialSnapshotDoneRef.current) {
+      history.push(structuredClone(lots), "initial");
+      initialSnapshotDoneRef.current = true;
+    }
+  }, [loading, lots, history]);
+
+  // ─── Raccourci clavier Ctrl+Z / Ctrl+Shift+Z (versi-s22 P3) ─
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+      if (!modKey) return;
+
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleUndo, handleRedo]);
+
   // ─── État Loading ─────────────────────────────────────────────
 
   if (loading) {
@@ -691,7 +804,7 @@ export default function LotsPage({
               : "Découpez vos lots"}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-sm">
-            Ajustez chaque lot par glisser-déposer. Zoomez à la molette, Ctrl+glisser pour naviguer.
+            Ajustez chaque lot par glisser-déposer. Zoomez à la molette, puis glissez le fond pour naviguer.
             Utilisez « Dessiner un polygone » pour les formes complexes (appartements en L, retraits, pièces obliques).
           </p>
         </div>
@@ -851,6 +964,10 @@ export default function LotsPage({
               drawingPolygon={drawingPolygon}
               onPolygonComplete={handlePolygonComplete}
               onCancelDrawingPolygon={handleCancelDrawingPolygon}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
             />
           </div>
 

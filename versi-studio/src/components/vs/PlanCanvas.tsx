@@ -81,6 +81,11 @@ interface PlanCanvasProps {
   drawingPolygon?: boolean;
   onPolygonComplete?: (points: ZonePolygonPoint[]) => void;
   onCancelDrawingPolygon?: () => void;
+  // Undo/Redo (versi-s22 P3)
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -243,6 +248,10 @@ export default function PlanCanvas({
   drawingPolygon = false,
   onPolygonComplete,
   onCancelDrawingPolygon,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: PlanCanvasProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lotId: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -263,6 +272,8 @@ export default function PlanCanvas({
   // ─── Viewport (zoom + pan) — versi-s20 ──────────────────────────
   const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const panRef = useRef<PanState | null>(null);
+  // Mode main (pan explicite) — toggle via bouton toolbar (versi-s22 P1)
+  const [handMode, setHandMode] = useState(false);
 
   // ─── Tokens CSSOM mémoïsés (versi-s20 it3 P0 perf) ──────────────
   // Lecture une seule fois au mount au lieu de 5 reads par frame.
@@ -884,11 +895,14 @@ export default function PlanCanvas({
   // un mismatch de dépendances inférées.
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLCanvasElement>) => {
-    // ─── PAN — versi-s20 ─────────────────────────────────────────
+    // ─── PAN — versi-s20 + versi-s22 P1 ──────────────────────────
     // Middle-click (button === 1) OU Ctrl/Cmd + left-click = activer le pan
+    // versi-s22 P1 : OU mode main actif + left-click
+    // versi-s22 P1 : OU zoomé (scale > 1) + left-click sur fond vide (pas sur un lot)
     const isPanTrigger =
       e.button === 1 || (e.button === 0 && (e.ctrlKey || e.metaKey));
-    if (isPanTrigger) {
+    const isHandModePan = handMode && e.button === 0;
+    if (isPanTrigger || isHandModePan) {
       e.preventDefault();
       const raw = getCanvasCoordsRaw(e);
       panRef.current = {
@@ -1005,6 +1019,18 @@ export default function PlanCanvas({
       }
     } else {
       onSelectLot(null);
+      // versi-s22 P1 : si zoomé, clic sur fond vide = pan
+      if (viewport.scale > 1 && e.button === 0 && !drawingPolygon) {
+        const raw = getCanvasCoordsRaw(e);
+        panRef.current = {
+          startMouseX: raw.px,
+          startMouseY: raw.py,
+          originOffsetX: viewport.offsetX,
+          originOffsetY: viewport.offsetY,
+        };
+        const canvas = canvasRef.current;
+        if (canvas) canvas.style.cursor = "grabbing";
+      }
     }
   };
 
@@ -1258,7 +1284,17 @@ export default function PlanCanvas({
 
     const hitLotId = hitTestLot(px, py);
     setHoveredLotId(hitLotId);
-    if (canvas) canvas.style.cursor = getCursor(null, !!hitLotId);
+    if (canvas) {
+      if (handMode) {
+        // Mode main : toujours "grab" sauf sur un lot (où on montre quand même "grab")
+        canvas.style.cursor = "grab";
+      } else if (viewport.scale > 1 && !hitLotId) {
+        // Zoomé + fond vide : curseur "grab" pour indiquer le pan possible
+        canvas.style.cursor = "grab";
+      } else {
+        canvas.style.cursor = getCursor(null, !!hitLotId);
+      }
+    }
   };
 
   const handleMouseUp = useCallback(() => {
@@ -1538,7 +1574,7 @@ export default function PlanCanvas({
         onDoubleClick={handleDoubleClick}
         tabIndex={0}
         role="application"
-        aria-label="Éditeur de plan — molette pour zoomer, Ctrl + glisser pour déplacer, double-clic pour réinitialiser le zoom, flèches pour déplacer un lot, Delete pour supprimer, Échap pour désélectionner"
+        aria-label="Éditeur de plan — molette pour zoomer, glisser le fond pour naviguer une fois zoomé, Ctrl + glisser ou bouton Main pour déplacer, double-clic pour réinitialiser le zoom, flèches pour déplacer un lot, Delete pour supprimer, Échap pour désélectionner"
         className="absolute inset-0 block w-full h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
       />
 
@@ -1579,8 +1615,25 @@ export default function PlanCanvas({
       <div
         className="absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-lg bg-white/95 border border-[var(--color-border-default)] shadow-sm p-1"
         role="toolbar"
-        aria-label="Contrôles de zoom"
+        aria-label="Contrôles de zoom et navigation"
       >
+        {/* Bouton Main (toggle pan) — versi-s22 P1 */}
+        <button
+          type="button"
+          onClick={() => setHandMode((prev) => !prev)}
+          aria-label={handMode ? "Désactiver le mode déplacement" : "Activer le mode déplacement"}
+          aria-pressed={handMode}
+          className={`inline-flex items-center justify-center w-[44px] h-[44px] rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] ${
+            handMode
+              ? "bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]"
+              : "text-[var(--color-text-default)] hover:bg-[var(--color-background-default)]"
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+          </svg>
+        </button>
+        <div className="w-px h-6 bg-[var(--color-border-default)]" aria-hidden="true" />
         <button
           type="button"
           onClick={zoomOut}
@@ -1609,6 +1662,36 @@ export default function PlanCanvas({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-7-7h14" />
           </svg>
         </button>
+        {/* Undo/Redo (versi-s22 P3) */}
+        {(onUndo || onRedo) && (
+          <>
+            <div className="w-px h-6 bg-[var(--color-border-default)]" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              aria-label="Annuler"
+              title="Annuler (Ctrl+Z)"
+              className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={onRedo}
+              disabled={!canRedo}
+              aria-label="Rétablir"
+              title="Rétablir (Ctrl+Maj+Z)"
+              className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
       {/* Menu contextuel clic droit */}
       {contextMenu && onDeleteLot && (

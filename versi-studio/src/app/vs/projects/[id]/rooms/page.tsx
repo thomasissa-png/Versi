@@ -13,6 +13,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, use } from "react";
+import { useHistory } from "@/hooks/useHistory";
 import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
 import RoomCanvas from "@/components/vs/RoomCanvas";
@@ -67,6 +68,11 @@ export default function RoomsPage({
 
   // Debounce timers pour les PATCH individuels
   const patchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // ─── Undo/Redo (versi-s22 P3) ──────────────────────────────
+  const history = useHistory<RoomsByLot>();
+  const isUndoRedoRef = useRef(false);
+  const initialSnapshotDoneRef = useRef(false);
 
   // ─── Chargement initial ───────────────────────────────────────
 
@@ -146,6 +152,55 @@ export default function RoomsPage({
       }
     };
   }, []);
+
+  // ─── Snapshot initial pour undo (versi-s22 P3) ─────────────
+  useEffect(() => {
+    if (!loading && Object.keys(roomsByLot).length > 0 && !initialSnapshotDoneRef.current) {
+      history.push(structuredClone(roomsByLot), "initial");
+      initialSnapshotDoneRef.current = true;
+    }
+  }, [loading, roomsByLot, history]);
+
+  const pushRoomsSnapshot = useCallback((newRooms: RoomsByLot, label?: string) => {
+    if (!isUndoRedoRef.current) {
+      history.push(structuredClone(newRooms), label);
+    }
+  }, [history]);
+
+  const handleUndoRooms = useCallback(() => {
+    const snapshot = history.undo();
+    if (snapshot) {
+      isUndoRedoRef.current = true;
+      setRoomsByLot(snapshot);
+      isUndoRedoRef.current = false;
+    }
+  }, [history]);
+
+  const handleRedoRooms = useCallback(() => {
+    const snapshot = history.redo();
+    if (snapshot) {
+      isUndoRedoRef.current = true;
+      setRoomsByLot(snapshot);
+      isUndoRedoRef.current = false;
+    }
+  }, [history]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+      if (!modKey) return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndoRooms();
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        handleRedoRooms();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleUndoRooms, handleRedoRooms]);
 
   // ─── Helpers dérivés ──────────────────────────────────────────
 
@@ -292,12 +347,14 @@ export default function RoomsPage({
       // Optimistic update — marquer aussi touched=true (Option C)
       setRoomsByLot((prev) => {
         const lotRooms = prev[selectedLotId] ?? [];
-        return {
+        const updated = {
           ...prev,
           [selectedLotId]: lotRooms.map((r) =>
             r.id === roomId ? { ...r, ...updates, touched: true } : r
           ),
         };
+        pushRoomsSnapshot(updated, "update_room");
+        return updated;
       });
 
       // UX-P1-3 : si changement de type sur un lot déjà validé,
@@ -375,10 +432,14 @@ export default function RoomsPage({
       const json = (await res.json()) as ApiResponse<VsRoom>;
 
       if (json.success) {
-        setRoomsByLot((prev) => ({
-          ...prev,
-          [selectedLotId]: [...(prev[selectedLotId] ?? []), json.data],
-        }));
+        setRoomsByLot((prev) => {
+          const updated = {
+            ...prev,
+            [selectedLotId]: [...(prev[selectedLotId] ?? []), json.data],
+          };
+          pushRoomsSnapshot(updated, "add_room");
+          return updated;
+        });
         setSelectedRoomId(json.data.id);
       } else {
         setError(json.error);
@@ -386,7 +447,7 @@ export default function RoomsPage({
     } catch {
       setError("Impossible d'ajouter la pièce.");
     }
-  }, [selectedLotId]);
+  }, [selectedLotId, pushRoomsSnapshot]);
 
   const handleDeleteRoom = useCallback(
     (roomId: string) => {
@@ -401,12 +462,16 @@ export default function RoomsPage({
       if (!selectedLotId) return;
 
       // Optimistic delete
-      setRoomsByLot((prev) => ({
-        ...prev,
-        [selectedLotId]: (prev[selectedLotId] ?? []).filter(
-          (r) => r.id !== roomId
-        ),
-      }));
+      setRoomsByLot((prev) => {
+        const updated = {
+          ...prev,
+          [selectedLotId]: (prev[selectedLotId] ?? []).filter(
+            (r) => r.id !== roomId
+          ),
+        };
+        pushRoomsSnapshot(updated, "delete_room");
+        return updated;
+      });
 
       if (selectedRoomId === roomId) {
         setSelectedRoomId(null);
@@ -757,6 +822,11 @@ export default function RoomsPage({
               onSelectRoom={handleSelectRoom}
               onMoveRoom={handleMoveRoom}
               validationBlocked={validationBlocked}
+              onDeleteRoom={handleDeleteRoom}
+              onUndo={handleUndoRooms}
+              onRedo={handleRedoRooms}
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
             />
           </div>
 

@@ -459,59 +459,42 @@ export default function LotPanel({
           </button>
         )}
 
-        {/* s22 Point 3 — Deux boutons distincts : Valider + Passer aux pièces */}
-        <div className="flex flex-col gap-sm">
-          {/* Bouton 1 : Valider tous les lots (outline/secondaire) */}
-          <button
-            onClick={hasSuggestedLots ? onValidate : undefined}
-            disabled={!canValidate || !hasSuggestedLots}
-            className="
-              w-full flex items-center justify-center gap-sm
-              px-md py-sm rounded-md text-sm font-medium min-h-[44px]
-              border border-[var(--color-border-default)]
-              text-[var(--color-text-default)]
-              hover:border-[var(--color-text-muted)] hover:bg-[var(--color-background-default)]
-              disabled:opacity-50 disabled:cursor-not-allowed
-              transition-all duration-150
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
-            "
-          >
-            {validating ? (
-              <span className="flex items-center justify-center gap-sm">
-                <span className="inline-block w-4 h-4 border-2 border-[var(--color-text-default)]/30 border-t-[var(--color-text-default)] rounded-full animate-spin" />
-                Validation...
-              </span>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Valider tous les lots
-              </>
-            )}
-          </button>
-
-          {/* Bouton 2 : Passer aux pièces (primary) */}
-          <button
-            onClick={onContinue ?? onValidate}
-            disabled={!allLotsValidated || hasOverlap}
-            title={!allLotsValidated ? "Validez tous les lots pour continuer" : undefined}
-            className="
-              w-full flex items-center justify-center gap-sm
-              px-md py-sm rounded-md text-sm font-medium min-h-[44px]
-              bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]
-              hover:opacity-90
-              disabled:opacity-50 disabled:cursor-not-allowed
-              transition-all duration-150
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
-            "
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-            Passer aux pièces
-          </button>
-        </div>
+        {/* versi-s22 P2 — UN SEUL bouton : valide si nécessaire + navigue vers les pièces */}
+        <button
+          onClick={() => {
+            if (hasSuggestedLots) {
+              // Valide tous les lots non validés, puis navigue
+              if (onValidate) onValidate();
+            } else if (onContinue) {
+              // Tous déjà validés : navigation directe
+              onContinue();
+            }
+          }}
+          disabled={!canValidate || hasOverlap}
+          className="
+            w-full flex items-center justify-center gap-sm
+            px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+            bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)]
+            hover:opacity-90
+            disabled:opacity-50 disabled:cursor-not-allowed
+            transition-all duration-150
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
+          "
+        >
+          {validating ? (
+            <span className="flex items-center justify-center gap-sm">
+              <span className="inline-block w-4 h-4 border-2 border-[var(--color-text-inverse)]/30 border-t-[var(--color-text-inverse)] rounded-full animate-spin" />
+              Validation...
+            </span>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              {hasSuggestedLots ? "Valider et passer aux pièces" : "Passer aux pièces"}
+            </>
+          )}
+        </button>
 
         {/* Message d'aide si aucun lot (versi-s20) */}
         {lots.length === 0 && (
