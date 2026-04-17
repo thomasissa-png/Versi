@@ -388,28 +388,63 @@
 - Versi est une entité de la holding Gradient One, mais Gradient One n'apparaît pas sur le site versi.fr.
 - **IMPORTANT : PAS de rôles spécifiques (CEO, COO, CMO).** Les 3 sont présentés strictement comme "Co-fondateur", point. Aucun titre hiérarchique, aucune différenciation de fonction sur le site. Le brief mentionnait des rôles mais c'est annulé par le fondateur.
 - Le fondateur demande explicitement que l'équipe d'agents rechallenge le brief et soit force de proposition sur les choix stratégiques, visuels et structurels.
-- Branche de développement : `claude/versi-s21-clustering-polygones-ia`
+- Branche de développement : `claude/versi-s21-launch-OsqlY` (s21 clôturée — à merger puis créer nouvelle branche s22)
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
-### Mémo de reprise
+### Mémo de reprise versi-s21 → s22
 
-**Branche courante** : `claude/versi-s21-clustering-polygones-ia`
-**Date de début** : 2026-04-17
-**Statut s21** : EN COURS — Clustering IA `unit_id` + Polygones IA dans extraction
+**Branche dernière clôturée** : `claude/versi-s21-launch-OsqlY`
+**Date de clôture** : 2026-04-17
+**Statut s21** : CLÔTURÉE — Clustering IA `unit_id` + Polygones IA implémentés, 3 itérations audit 7.0 → 9.04 → 9.37/10, @moi GO PRODUCTION ferme
 
-**Objectif s21** : Implémenter le clustering IA `unit_id` (regroupement pièces par appartement) + bounding_polygon optionnel par pièce dans extraction GPT-4.1 → lots pré-créés intelligents "1 lot = 1 appartement" avec validation 1-clic Thomas marchand. Tests E2E + unitaires + audit cross-agents obligatoires (exigence explicite fondateur).
+**Résumé session versi-s21 (~22 commits, 7 phases)** :
 
-**Marqueur de contenu validé** : `Grep "ZonePolygon" src/lib/vs/types.ts` (type polygone N côtés ajouté s20)
+1. **Phase 0 propagation learnings s20** : 7/7 propagés (cross-agents 3 iter, @creative-strategy proxy, canvas.width guard, double-clic polygone, PDF→PNG, validation factorisée, no AI > bad AI)
 
-**Phases** :
-- Phase 0 propagation learnings s20 : COMPLETE (7/7 propagés)
-- Phase 1 branche + refs : EN COURS
-- Phase 2 specs @product-manager + @ia : A FAIRE
-- Phase 3 implémentation @fullstack + @ia : A FAIRE
-- Phase 4 audit cross-agents 3 itérations (persona-sensitive) : A FAIRE
-- Phase 5 tests obligatoires @qa : A FAIRE
-- Phase 6 analytics + gate @moi : A FAIRE
-- Phase 7 clôture : A FAIRE
+2. **Phase 1 branche + décision P1 Thomas** : option A+B combinée (clustering unit_id + polygones IA)
+
+3. **Phase 2 specs** : docs/product/clustering-ia-spec.md (US-VS-21/22) + docs/ia/extraction-enrichie-spec.md (schema enrichi + prompt STEP 3b/5b/7)
+
+4. **Phase 3 implémentation** : schemas.ts + plan-extractor.ts + extract/route.ts + clustering.ts + LotPanel.tsx + lots/page.tsx + db.ts (colonne confidence_avg)
+
+5. **Phase 4 audit cross-agents 3 itérations** :
+   - **it1** : 5 audits parallèles (QA 5.8, UX 7.4, PM 7.4, IA 7.2, persona Thomas 7.2) = moyenne 7.0/10, 10 P0
+   - **it2** : 3 bundles parallèles (A backend + B UI + C tests) → re-audits (QA 8.8, UX 9.2, PM 9.2, IA 9.2, persona 8.8) = moyenne 9.04, 0 P0
+   - **it3 mini typist** : 5 fix ciblés en 25 lignes (route.continue→fulfill 404, touch 44px, H1 conditionnel, note bbox, bordure IA) → re-audits QA 9.0 + UX 9.6 + persona 9.5 = moyenne 9.37
+
+6. **Phase 5 tests** : 23 cas Vitest clustering.test.ts + matrice G27 TESTING.md + fix flaky waitForTimeout
+
+7. **Phase 6 gate finale @moi** : GO PRODUCTION ferme (pas conditionnel). Thomas fondateur "renouvelle l'abonnement sans hésitation"
+
+**Priorités pour s22 (proposées, Thomas tranche au démarrage)** :
+
+| # | Priorité | Estimation Tasks |
+|---|---|---|
+| P1 | **Phase 6 Analytics events** (PM-P1-E8 reporté) : `lot_auto_created`, `lot_auto_validated`, `lot_manually_adjusted`, `ia_fallback_triggered` → @data-analyst + @fullstack | 2-3 |
+| P2 | **Test POC OCR auto-calibration en réel** : OPENAI_API_KEY + 5-10 plans + décision V1 | 1-2 |
+| P3 | **Backlog produit suivant** : Auth (D) / Dashboard multi-projets (E) / Export acquéreur (F) / Validation cross-étapes (G) | 5-8 selon option |
+| P4 | **Nettoyage P1 backlog maintenance s21** : bordure IA ternaire (UX-P1-R2), icône ★ SVG (UX-P1-N1), NaN computeAvgX (QA), `.nullable().optional()` Zod (IA), double regex (QA), duplication mock E2E (QA) | 1-2 |
+| P5 | **Hypothèses complexes (si pertinent)** : refonte onboarding Versi Studio / intégration Stripe abonnement / multi-tenants | 8-12 |
+
+**Propagation P0/P1 OBLIGATOIRE s22 (gate de reprise — AVANT tout nouveau travail)** :
+
+6 learnings versi-s21 statut propagation = `à-faire` à propager :
+1. **Orchestrator background n'a PAS Task** (P0) → `CLAUDE.md` règle n°4 exception + `orchestrator.md` STOP
+2. **Pattern audit cross-agents 3 itérations — méthode canonique** (P1) → `orchestrator.md` promotion
+3. **Pattern typist it3 mini** (P1) → `orchestrator.md` section dédiée
+4. **Triple filtre clustering IA** (P1) → `ia.md` patterns clustering
+5. **Anti-pattern route.continue() fallback Playwright** (P1) → `qa.md` patterns E2E
+6. **Bundle P0 unanimes + isolés** (P2) → `orchestrator.md` consolidation post-audits
+
+**Marqueur de contenu validé** : `Grep "clusterByUnit" versi-studio/src/lib/vs/clustering.ts` (clustering IA unit_id ajouté s21)
+
+**Patterns validés à réutiliser** :
+- **Pattern audit cross-agents 3 itérations** (validé 2x : s20 + s21) → méthode canonique refonte persona-sensitive
+- **Pattern typist it3 mini** (nouveau s21) — quand it2 ≥ 9.0 avec ≤5 P1 triviaux, 5 fix ciblés < 80 lignes en 1 @fullstack + re-audit 3 agents
+- **Pattern Express 4 batches** (versi-s19 × 3) — stabilisé pour étapes frontend complexes non persona-sensitive
+- **Pattern @creative-strategy proxy persona** (versi-s20 + s21) — incarner Thomas marchand pour audit valeur métier
+
+**Blocage connu à signaler** : `node_modules` absent dans l'environnement Claude Code web → `tsc --noEmit`, `npm test`, `vitest run`, `playwright test` tous bloqués. Les tests sont VÉRIFIÉS par lecture de code (23 cas Vitest + 5 E2E) mais non exécutés. À exécuter localement ou en CI après merge.
 
 ---
 
