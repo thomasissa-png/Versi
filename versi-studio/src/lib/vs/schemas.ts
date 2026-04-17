@@ -316,6 +316,14 @@ export const VisualGenerationInputSchema = z.object({
     .nullable()
     .optional()
     .describe("Description de l'angle de prise de vue (optionnel)"),
+  structural_instructions: z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .describe(
+      "Instructions de transformations structurelles (mur à supprimer, cloison à ajouter, ouverture à percer). Optionnel — si absent, les éléments structurels sont conservés tels quels."
+    ),
 });
 export type VisualGenerationInput = z.infer<
   typeof VisualGenerationInputSchema
