@@ -1361,6 +1361,42 @@ export default function PlanCanvas({
     setViewport(INITIAL_VIEWPORT);
   }, []);
 
+  /** Zoom bouton + : x1.25 centré sur le milieu du canvas */
+  const zoomIn = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    setViewport((prev) => {
+      const newScale = Math.min(ZOOM_MAX, prev.scale * 1.25);
+      if (newScale === prev.scale) return prev;
+      const ratio = newScale / prev.scale;
+      const newOffsetX = cx - (cx - prev.offsetX) * ratio;
+      const newOffsetY = cy - (cy - prev.offsetY) * ratio;
+      const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
+      return { scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY };
+    });
+  }, [clampViewportOffsets]);
+
+  /** Zoom bouton - : x0.8 centré sur le milieu du canvas */
+  const zoomOut = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    setViewport((prev) => {
+      const newScale = Math.max(ZOOM_MIN, prev.scale * 0.8);
+      if (newScale <= ZOOM_MIN) return INITIAL_VIEWPORT;
+      const ratio = newScale / prev.scale;
+      const newOffsetX = cx - (cx - prev.offsetX) * ratio;
+      const newOffsetY = cy - (cy - prev.offsetY) * ratio;
+      const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
+      return { scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY };
+    });
+  }, [clampViewportOffsets]);
+
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
 
   const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLCanvasElement>) => {
@@ -1539,31 +1575,41 @@ export default function PlanCanvas({
         </div>
       )}
 
-      {/* Bouton « Réinitialiser le zoom » — visible si scale > seuil (versi-s20) */}
-      {viewport.scale > ZOOM_RESET_THRESHOLD && (
+      {/* Barre de zoom permanente — coin bas-droit, pattern Figma/Miro (versi-s22) */}
+      <div
+        className="absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-lg bg-white/95 border border-[var(--color-border-default)] shadow-sm p-1"
+        role="toolbar"
+        aria-label="Contrôles de zoom"
+      >
+        <button
+          type="button"
+          onClick={zoomOut}
+          aria-label="Dézoomer"
+          className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={resetViewport}
           aria-label="Réinitialiser le zoom"
-          className="absolute top-sm right-sm z-20 inline-flex items-center gap-xs px-md py-xs rounded-md bg-white border border-[var(--color-border-default)] text-xs font-medium text-[var(--color-text-default)] shadow-sm hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[44px]"
+          className="inline-flex items-center justify-center min-w-[44px] h-[44px] px-2 rounded-md text-xs font-medium text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors tabular-nums"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-            />
-          </svg>
-          Réinitialiser le zoom ({viewport.scale.toFixed(1)}×)
+          {viewport.scale === 1 ? "100%" : `${Math.round(viewport.scale * 100)}%`}
         </button>
-      )}
+        <button
+          type="button"
+          onClick={zoomIn}
+          aria-label="Zoomer"
+          className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-7-7h14" />
+          </svg>
+        </button>
+      </div>
       {/* Menu contextuel clic droit */}
       {contextMenu && onDeleteLot && (
         <>

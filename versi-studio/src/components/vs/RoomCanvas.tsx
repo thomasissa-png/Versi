@@ -18,6 +18,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
@@ -202,6 +203,9 @@ export default function RoomCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  // Dimensions naturelles de l'image — stockées en state pour éviter d'accéder à imageRef
+  // pendant le render (React Compiler interdit ref.current hors effects/callbacks).
+  const [imageNaturalSize, setImageNaturalSize] = useState({ w: 0, h: 0 });
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   // Drag state (move ou resize)
@@ -233,10 +237,12 @@ export default function RoomCanvas({
     img.crossOrigin = "anonymous";
     img.onload = () => {
       imageRef.current = img;
+      setImageNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
       setImageLoaded(true);
     };
     img.onerror = () => {
       imageRef.current = null;
+      setImageNaturalSize({ w: 0, h: 0 });
       setImageLoaded(false);
     };
     img.src = planImageUrl;
@@ -263,32 +269,81 @@ export default function RoomCanvas({
     return () => observer.disconnect();
   }, []);
 
+  // ─── Layout letterbox/pillarbox — préserve le ratio du lot (versi-s22) ───
+  // Calcule la zone de rendu effective en tenant compte du ratio source (lot crop)
+  // vs le ratio du canvas destination. Évite l'étirement vertical/horizontal.
+
+  const renderLayout = useMemo(() => {
+    const { width, height } = canvasSize;
+
+    if (!imageLoaded || imageNaturalSize.w <= 0 || imageNaturalSize.h <= 0) {
+      // Pas d'image : rendu plein canvas (pas de letterbox)
+      return { renderW: width, renderH: height, offsetX: 0, offsetY: 0 };
+    }
+
+    // Dimensions source en pixels natifs
+    const sw = (lotZone.width_percent / 100) * imageNaturalSize.w;
+    const sh = (lotZone.height_percent / 100) * imageNaturalSize.h;
+
+    if (sw <= 0 || sh <= 0) {
+      return { renderW: width, renderH: height, offsetX: 0, offsetY: 0 };
+    }
+
+    const srcRatio = sw / sh;
+    const dstRatio = width / height;
+
+    let renderW: number;
+    let renderH: number;
+    let offsetX: number;
+    let offsetY: number;
+
+    if (srcRatio > dstRatio) {
+      // Source plus large que destination -> letterbox (bandes haut/bas)
+      renderW = width;
+      renderH = width / srcRatio;
+      offsetX = 0;
+      offsetY = (height - renderH) / 2;
+    } else {
+      // Source plus haute que destination -> pillarbox (bandes gauche/droite)
+      renderH = height;
+      renderW = height * srcRatio;
+      offsetX = (width - renderW) / 2;
+      offsetY = 0;
+    }
+
+    return { renderW, renderH, offsetX, offsetY };
+  }, [canvasSize, lotZone.width_percent, lotZone.height_percent, imageLoaded, imageNaturalSize]);
+
   // ─── Convertir coordonnees lot-local en pixels canvas ─────────
 
   /**
    * Les positions des pieces sont en % RELATIF au lot (pas au plan global).
-   * Le canvas affiche la zone du lot en plein ecran.
+   * Le canvas affiche la zone du lot avec letterbox pour préserver le ratio.
+   * Les coordonnées % sont relatives à la zone de rendu effective (renderW x renderH),
+   * décalée de (offsetX, offsetY) dans le canvas.
    */
   const toCanvasCoords = useCallback(
     (pos: RoomPosition) => {
+      const { renderW, renderH, offsetX, offsetY } = renderLayout;
       return {
-        x: (pos.x_percent / 100) * canvasSize.width,
-        y: (pos.y_percent / 100) * canvasSize.height,
-        w: (pos.width_percent / 100) * canvasSize.width,
-        h: (pos.height_percent / 100) * canvasSize.height,
+        x: (pos.x_percent / 100) * renderW + offsetX,
+        y: (pos.y_percent / 100) * renderH + offsetY,
+        w: (pos.width_percent / 100) * renderW,
+        h: (pos.height_percent / 100) * renderH,
       };
     },
-    [canvasSize]
+    [renderLayout]
   );
 
   const toPercentCoords = useCallback(
     (px: number, py: number): { xPct: number; yPct: number } => {
+      const { renderW, renderH, offsetX, offsetY } = renderLayout;
       return {
-        xPct: (px / canvasSize.width) * 100,
-        yPct: (py / canvasSize.height) * 100,
+        xPct: ((px - offsetX) / renderW) * 100,
+        yPct: ((py - offsetY) / renderH) * 100,
       };
     },
-    [canvasSize]
+    [renderLayout]
   );
 
   // ─── Dessin du canvas ─────────────────────────────────────────
@@ -309,14 +364,15 @@ export default function RoomCanvas({
     ctx.fillStyle = "#F0EDE8";
     ctx.fillRect(0, 0, width, height);
 
-    // Image du plan (zoom sur la zone du lot)
+    // Image du plan (zoom sur la zone du lot) — letterbox pour préserver le ratio (versi-s22)
     if (imageRef.current && imageLoaded) {
       const img = imageRef.current;
       const sx = (lotZone.x_percent / 100) * img.naturalWidth;
       const sy = (lotZone.y_percent / 100) * img.naturalHeight;
       const sw = (lotZone.width_percent / 100) * img.naturalWidth;
       const sh = (lotZone.height_percent / 100) * img.naturalHeight;
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+      const { renderW, renderH, offsetX, offsetY } = renderLayout;
+      ctx.drawImage(img, sx, sy, sw, sh, offsetX, offsetY, renderW, renderH);
     } else {
       // Placeholder quadrillage si pas d'image
       ctx.strokeStyle = "#D9D4CE";
@@ -419,7 +475,7 @@ export default function RoomCanvas({
         }
       }
     }
-  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked]);
+  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked, renderLayout]);
 
   useEffect(() => {
     draw();
