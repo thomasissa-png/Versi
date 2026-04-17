@@ -136,3 +136,45 @@
   2. Checklist statut de chaque priorité : traitée / reportée explicitement avec validation Thomas / en cours
   3. Si au moins une priorité non couverte → continuer la session, NE PAS proposer clôture
 - **Action @moi** : la gate finale valide le livrable PRINCIPAL (P1), pas la session. La clôture de session est une étape distincte qui suit le traitement de toutes les priorités du brief.
+
+## Session versi-s22 (2026-04-17) — Nouvelles préférences fondateur
+
+### Découvrabilité UI : une feature invisible n'existe pas
+Thomas a demandé 3+ fois la même feature (zoom Étape 2 avec boutons +/-) avant qu'elle soit livrée visiblement. Le zoom wheel+pan+reset existait dans le code depuis s20 mais sans boutons UI permanents — résultat : Thomas ne la voyait pas et considérait qu'elle n'existait pas.
+
+**Règle** : quand Thomas demande "je ne vois pas la feature X", vérifier la DÉCOUVRABILITÉ UI (boutons visibles en permanence, pas conditionnels), pas seulement l'existence du code. Une feature non-visible = feature inexistante pour l'utilisateur. Cible : toute fonctionnalité importante doit avoir un point d'entrée UI visible dès l'arrivée sur la page.
+
+### Pas de négociation sur la note cible
+Quand Thomas demande 10/10, c'est 10/10. Pas 8/10 "car c'est déjà bien", pas 9/10 "car on atteint le plafond technique". Refus explicite : "Inutile de me proposer 8/10 merci".
+
+**Règle** : accepter 10/10 comme objectif absolu. Itérer jusqu'à atteinte (ex: prompt v1→v2→v3 sur transformations structurelles) OU documenter précisément le plafond technique avec recommandation de changement d'approche (ex: passer à 2-pass extraction pour dépasser le plafond 1-passe).
+
+### Minimum de clics par défaut
+Thomas a demandé 3 fois avant acceptation que le bouton "Valider tous les lots" et "Passer aux pièces" soient fusionnés en UN seul "Valider et passer aux pièces". Même si logiquement ce sont 2 actions distinctes.
+
+**Règle** : quand 2 actions sont toujours faites séquentiellement par l'utilisateur dans le workflow principal, fusionner en 1 bouton contextuel. Préférer le raccourci au purisme logique. Exception : si les actions peuvent réellement être découplées dans l'usage (ex: "sauvegarder" vs "publier").
+
+### Canvas éditeur = undo/redo obligatoire (Ctrl+Z + boutons UI)
+Thomas demande Ctrl+Z + boutons undo/redo UI (pattern Figma/Miro) sur tout canvas où il peut éditer. Pas d'édition "non réversible" tolérée.
+
+**Règle** : tout canvas éditeur (lots, rooms, futurs visuels si éditables) DOIT avoir :
+- Hook `useHistory<T>` (ou équivalent) pour tracker les opérations
+- Ctrl+Z / Cmd+Z pour undo
+- Ctrl+Shift+Z (ou Ctrl+Y) pour redo
+- Boutons UI ↶ / ↷ dans la toolbar (pas cachés)
+- Stack minimum 50 opérations
+
+### Comparateur avant/après obligatoire sur génération IA
+Thomas veut comparer systématiquement la photo source au visuel généré. Pattern "avant/après" standard immobilier pour convaincre un acheteur.
+
+**Règle** : pour toute feature "génération IA" où Thomas montrera le résultat à un tiers (client, prospect, architecte), afficher comparateur avant/après par défaut. Layout 2 colonnes desktop / stack mobile. Labels explicites "Avant" / "Après". Lightbox pour zoom + download par image.
+
+### Reality check visuel ≠ canvas non-vide
+Validation "10/10" superficielle possible si reality check n'inclut pas comparaison visuelle pixel-près avec référence attendue. Thomas a montré une capture où les rectangles IA ne collaient pas aux murs malgré une note 10/10 claudienne préalable (canvas affichait bien "quelque chose" mais pas "la bonne chose").
+
+**Règle** : un vrai reality check VISUEL exige (1) génération sur vraies données (pas mocks), (2) comparaison œil-à-œil avec la référence attendue (vrais murs, vrais lots, proportions correctes), (3) mesure quantitative si possible (coverage %, confidence score, etc.). Le constat "le canvas affiche quelque chose" n'est PAS un reality check suffisant.
+
+### Pas de modification silencieuse du workflow métier
+Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS revalidation. Un retour en arrière pour consulter ne doit pas casser l'avancée.
+
+**Règle** : quand une étape est complétée (status en DB), le stepper doit la marquer cliquable indéfiniment. Le retour en arrière est consultation, pas modification. L'utilisateur peut avancer de nouveau sans re-cliquer sur "Valider".

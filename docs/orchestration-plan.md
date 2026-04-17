@@ -91,3 +91,40 @@ Claude top-level doit prendre le relais pour :
 | 2 | 0 | n/a | 0 | 0 | ~$0 | EN ATTENTE (verif build) |
 | 3 | 0 (creation directe) | n/a | 0 | 0 | ~$0 | COMPLETE |
 | 4 | 3 (moi + testeur + reviewer) | 3 | 0 | 0 | ~$10 | BLOQUE |
+
+---
+
+## Etat final a la cloture s22 (2026-04-17)
+
+Session s22 **CLOTUREE** apres 8+ feedback loops Thomas.
+
+### Phases completees au-dela du plan initial
+- Phase 1 (3 bugs Etape 3) : COMPLETE + reality check
+- Phase 2 (build) : tsc 0, vitest 58/58, Playwright PASS a chaque commit
+- Phase 3 (agent testeur Thomas marchand) : cree
+- Phase 4 (audits @moi + testeur + @reviewer) : GO PRODUCTION 10/10
+- Phase 5 (iterations correctives) : COMPLETE
+- Phase 6 (gate finale @moi) : GO PRODUCTION ferme
+- **Phase 7** (POC OCR calibration) : 4/4 plans a 0.98 confidence
+- **Phase 8** (polygones IA v3 + v4 2-pass) : 24/24 rooms a 0.98 confidence
+- **Phase 9** (refonte UI) : navigation stepper, layout stack vertical, pan curseur, undo/redo, bouton unique, fix rendu Etape 3 letterbox, comparateur avant/apres
+- **Phase 10** (transformations structurelles Etape 4) : **10/10 unanime** sur 4 transformations
+- **Phase 11** (import Versimo) : 3 agents experts + workflow audit visuel documente
+
+### Commits cles s22
+- f2ce216 POC OCR SUCCES 4/4 plans confidence 0.98
+- 27789ec REALITY CHECK VALIDE - GO PRODUCTION 10/10
+- e585b78 prompt v3 + fallback orphan rooms
+- 73d34b9 extraction 2-pass polygon refinement v4
+- b1eca56 UI option C - rendu polygone + suggestion IA confirmation
+- ec348fd Phase 3 transformations 10/10 UNANIME 4 transformations
+- 2390148 canvas fixes + import agents Versimo + workflow audit visuel
+- 48b9700 navigation sans revalidation + comparateur avant/apres Etape 4
+
+### Travaux reportes en s23
+1. Migration Versimo v61 implementation (analyse faite, code non migre)
+2. Tests non-regression Versimo (1524 tests a adapter)
+3. Modale `isDirty` si modifications non sauvegardees
+4. Pinch-to-zoom tactile + keyboard shortcuts Etape 2 (P5 historique)
+
+Prochain plan d'orchestration : a creer au demarrage s23 selon priorite retenue par Thomas (voir memo de reprise `project-context.md` section "Priorites proposees pour s23").

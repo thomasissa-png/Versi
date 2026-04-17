@@ -234,8 +234,18 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
-| @ux | 2026-04-17 | `docs/ux/vs-s22-navigation-sans-revalidation-et-comparateur.md` | **Point 1 — Navigation sans revalidation** : bug identifié — `lots/page.tsx` ligne 780 passe `completedSteps={[1]}` en dur, jamais lu depuis `project.status`. Fix : calculer `completedSteps` dynamiquement (même pattern que `rooms/page.tsx` lignes 250–268). Bouton "Revenir aux pièces" conditionnel si étape 3 déjà complétée. **Point 2 — Comparateur avant/après** : layout 2 colonnes 50/50, prop `sourceImageUrl` optionnelle, modale lightbox native, Escape+clic extérieur, téléchargement par colonne. Sélecteur multi-itérations réutilise le carousel existant (renommé "Autres versions"). | **Point 1** : `completedSteps` statique `[1]` est l'unique cause du bug — le `Stepper.tsx` est correct (isClickable fonctionne si completedSteps est correct). Le pattern rooms/page.tsx est la référence. Alternative écartée : modifier Stepper pour relire la DB — couplage excessif. **Point 2** : layout 2 colonnes natif CSS Grid retenu vs slider superposé (V2 possible) — V1 plus rapide à implémenter, moins de JS, accessible clavier. Modale native sans dépendance externe (react-lightbox etc.) — stack minimaliste validée sur ce projet. sourceImageUrl nullable pour ne pas bloquer l'implémentation si room.photo_path absent du schéma. |
-| @product-manager | 2026-04-17 | `docs/product/vs-s22-etape4-visuels-transformations-spec.md` | Toutes les transformations structurelles principales (supprimer mur, ajouter cloison, percer ouverture, déplacer cuisine, agrandir fenêtre) sont V1 — valeur persona Thomas directe, coût marginal IA nul. Injection des instructions structurelles dès la génération initiale (pas seulement dans le chat itération). Champ "Travaux structurels prévus" optionnel inséré entre dépôt photo et grille de styles. Bouton "Modifier" renommé "Affiner le visuel". Suggestions cliquables dans le chat. La règle `STRICT RULE 1` de `buildVisualPrompt()` (conserve tous les éléments structurels) doit devenir conditionnelle — modification la plus critique, sans elle les instructions de transformation sont ignorées. | Injection V1 (dès la génération) retenue vs injection V2 (chat uniquement) : Thomas veut voir directement l'after-travaux, pas un visuel décoratif qu'il doit ensuite corriger — itération supplémentaire inutile. Toutes les transformations en V1 car critère d'exclusion = absence de valeur persona, pas difficulté technique (CLAUDE.md règle n°5 mindset IA). Extension/véranda et modifications 3D complexes en V2 car gpt-image-1 ne maîtrise pas la géométrie hors cadre photo. 2 questions en suspens documentées pour validation Thomas avant implémentation. |
+| @fullstack (nav + comparateur s22 tour 3) | 2026-04-17 | `versi-studio/src/app/vs/projects/[id]/lots/page.tsx` (completedSteps dynamique) + `VisualResult.tsx` (layout 2 colonnes 50/50 + lightbox + download + carousel) + `VisualRoom.tsx` (prop sourceImageUrl depuis photos[0]) | **Fix navigation sans revalidation** : `completedSteps={[1]}` hardcodé remplacé par calcul dynamique depuis `project.status` (pattern rooms/page.tsx:250-268). Stepper latéral désormais cliquable sur toutes étapes déjà complétées. **Comparateur avant/après Étape 4** : CSS Grid 2 colonnes desktop / stack mobile / lightbox native Escape+clic extérieur / carousel multi-versions préservé. `sourceImageUrl` nullable (pas de nouveau champ DB). | Cause racine nav identifiée par @ux avec précision (ligne exacte). Fix = 8 lignes recopiage pattern existant, pas de refonte. Comparateur : layout natif CSS Grid vs slider superposé (V2) — V1 plus rapide, accessible clavier, moins de JS. Modale native sans react-lightbox — stack minimaliste. Tests : tsc 0, lint 0 nouvelle, Playwright 3/3 PASS. |
+| @ux (navigation + comparateur s22 tour 3) | 2026-04-17 | `docs/ux/vs-s22-navigation-sans-revalidation-et-comparateur.md` | Diagnostic bug nav sur `lots/page.tsx:780` `completedSteps={[1]}` hardcodé. Fix précis : recopiage pattern `rooms/page.tsx:250-268`. Spec comparateur avant/après : CSS Grid 2 cols 50/50, labels "Avant (photo actuelle)" / "Après (visuel IA)", lightbox native, carousel multi-versions renommé "Autres versions", prop `sourceImageUrl` nullable. | Fix nav = recopiage pattern existant (pas modifier Stepper — couplage excessif). Comparateur layout natif retenu (V1 rapide, responsive auto). `sourceImageUrl` nullable pour ne pas bloquer si `VsRoom.photo_path` absent du schéma. |
+| @fullstack (canvas fixes s22 tour 2) | 2026-04-17 | `PlanCanvas.tsx` (handMode + pan curseur + undo/redo) + `RoomCanvas.tsx` (5% margin + viewport complet + context menu + keyboard) + `LotPanel.tsx` (bouton unique "Valider et passer aux pièces") + `useHistory.ts` (hook générique, 50 ops) + Ctrl+Z/Shift+Z dans pages lots+rooms | **Pan Étape 2** : left-drag fond vide quand zoomé >1 + bouton handMode toggle ; **Bouton unique Étape 2** : fusion "Valider" + "Passer" en 1 clic ; **Undo/Redo** : hook générique intégré dans les 2 pages + keyboard shortcuts ; **Rendu Étape 3** : margin 5% autour crop source (fix plan coupé) + viewport complet aligné PlanCanvas (zoom, pan, context menu clic-droit, keyboard Delete). | Bouton unique = option C (fusion) imposée par Thomas après rejet option A+B (2 boutons). margin 5% crop est la cause du plan coupé — fix chirurgical. Factorisation complète `RoomCanvas` sur `PlanCanvas` (alignement demandé par Thomas). Tests : tsc 0, lint 0 nouvelle. |
+| Claude top-level (fallback, import Versimo + audit visuel) | 2026-04-17 | `.claude/agents/interior-architect.md` + `.claude/agents/ai-image-expert.md` + `.claude/agents/paysagiste.md` (copiés depuis `thomasissa-png/Architecture`) + section "Workflow d'audit visuel des générations" ajoutée à CLAUDE.md | Import 3 agents experts Versimo (Yann Duval, Lucas Moreau, Camille Verdier) + documentation complète du workflow de pré-fetch obligatoire (agents audit n'ont pas WebFetch). | Agents Versimo = 38+ sessions de maturité sur audit image. Adoptés tel quel pour éviter de redévelopper. Workflow pré-fetch validé : le parent fetch logs + images, passe chemins locaux aux agents qui lisent via `Read`. |
+| @ia (migration Versimo v61 partielle s22 tour 2) | 2026-04-17 | `docs/ia/versimo-v61-migration.md` (79 lignes — timeout avant implémentation) | Analyse comparative 12 features Versi actuel vs Versimo v61 (builders par pièce, style-resolver, style-variants, equipment preservation, cleanup temporaires, bathroom hierarchy STEP 1/2/3, anti wall-art hallucination). Recommandations documentées. | Transformations 10/10 s22 CONSERVÉES (validation stricte non-régression). Migration implémentation reportée (timeout @ia après analyse). Pipeline Versimo 2 passes (Responses API + gpt-image-1.5) incompatible avec Versi Studio 1 passe (images.edit + gpt-image-1) — adoption partielle uniquement (style-resolver + directives métier). |
+| @qa (Phase 3 transformations 10/10 s22 tour 1) | 2026-04-17 | `docs/reviews/vs-s22-phase3-test-transformations-10-10.md` + 12 screenshots `phase3/T{1-4}-*-iter{1-3}.png` + prompt v3 `visual-generator.ts` | Test 4 transformations V1 (casser mur / ajouter cloison / percer porte / déplacer cuisine) sur vraie photo + vrai gpt-image-1. Progression 3 itérations : 8.15 → 9.6 → **10/10 unanime**. 3 modifications clés prompt : (1) bloc STRUCTURAL TRANSFORMATIONS avant règles de style, (2) priorité explicite "#1 PRIORITY", (3) règles négatives "no remnant/archway/pillar/partial wall". Coût $0.48/$0.50. | Itération prompt nécessaire — v1 trop permissive (mur avec résidu), v2 meilleure sans être parfaite, v3 avec règles négatives = 10/10. Règles négatives plus efficaces que positives pour gpt-image-1. Non-régression : sans `structural_instructions`, comportement identique à avant. Budget respecté. |
+| @fullstack (UI transformations s22 tour 1) | 2026-04-17 | `VisualRoom.tsx` (textarea travaux + 5 badges cliquables) + `VisualResult.tsx` (rename "Modifier"→"Affiner le visuel" + icône crayon) + `ChatAgent.tsx` (6 suggestions cliquables) + `visuals/page.tsx` (micro-copy sous h1) | Textarea "Travaux structurels prévus (optionnel)" avec placeholder + 5 badges exemples (casser mur, ajouter cloison, percer porte, déplacer cuisine, agrandir fenêtre) qui insèrent le texte dans le textarea. Chat suggestions cliquables insèrent sans envoyer. | Injection dès génération initiale (pas seulement dans chat) — Thomas veut voir l'after-travaux directement. Badges = découvrabilité UX + démonstration des intentions possibles. Tests 3/3 Playwright PASS. |
+| @ia (prompts transformations s22 tour 1) | 2026-04-17 | `visual-generator.ts` (STRICT RULE 1 conditionnelle + bloc STRUCTURAL TRANSFORMATIONS) + `architect-agent.ts` (détection regex mots-clés structurels) + `schemas.ts` (+ `structural_instructions: z.string().max(500).nullable().optional()`) + route `generate` (validation 500 chars + propagation) + screenshot preuve | Rendre `STRICT RULE 1` conditionnelle : si `structural_instructions` présentes → assouplir "KEEP all structural elements" + injecter bloc dédié avec règles physiques. Test réel OpenAI : chambre avec mur supprimé visible (ouverture large vers salon). | Sans `structural_instructions` = comportement strictement identique. Avec = transformation appliquée. Test POST curl 500 chars validé (400 bien retourné). Non-régression absolue. Coût = même qu'avant ($0.04-0.08). |
+| @product-manager (spec Étape 4 transformations s22) | 2026-04-17 | `docs/product/vs-s22-etape4-visuels-transformations-spec.md` | Scope V1 : toutes les transformations se décrivant en "action + localisation + résultat" (casser mur, ajouter cloison, percer ouverture, déplacer pièce, agrandir fenêtre, ouvrir cuisine sur séjour). V2 : extensions surface 3D (véranda, mezzanine). Flow : textarea AVANT génération (pas seulement chat). 5 critères qualité binaires. Point critique : STRICT RULE 1 à rendre conditionnelle. | Injection V1 (dès génération) vs V2 (chat) — Thomas veut l'after-travaux direct, pas un visuel à corriger. Toutes transformations V1 car critère d'exclusion = absence valeur persona. Extension 3D V2 car gpt-image-1 ne gère pas la géométrie hors cadre photo. |
+| @fullstack (reality check s22 + corrections diverses) | 2026-04-17 | Reality check Étape 3 (fix bug 1 plan gris via `/api/vs/files?path=` + bug 2 INSERT vs_rooms extract/route.ts + bug 3 RoomCanvas 8 poignées resize) + fix drag vertical letterbox + fix Étape 4 "création échoue" (migration `openai.images.edit()` + gpt-image-1) + port playwright 3000→5000 + letterbox RoomCanvas (ratio preserved) + zoom buttons +/- Reset permanents + polygones IA rendu beginPath + Option C UI (badges IA + bouton Confirmer + blocage "Valider ce lot") + flag `touched` DB | **Session s22 massive** — 5+ phases correctives sur feedbacks Thomas successifs. Tous tests automatisés verts tout le long (tsc 0, vitest 58/58, Playwright multiples PASS, lint 0 nouvelle). | Pattern "feedback Thomas → fix direct → commit → nouveau feedback" adopté vu la vélocité IA. Règle n°21 (tests exécutés) respectée : preuves console à chaque commit. Règle n°22 (pas de clôture prématurée) : session ré-ouverte plusieurs fois sur feedbacks Thomas. |
+| @ia (polygones v3 + v4 2-pass s22) | 2026-04-17 | `plan-extractor.ts` (prompt v3 NO-OVERLAP + NO-SWALLOW + EXTERIOR-EXCLUSION + POLYGON NO-SWALLOW + few-shot + 4 nouveaux SELF-REVIEW checks) + `clustering.ts` (fallback orphan rooms) + `polygon-refiner.ts` (NEW — 2-pass extraction) + route `extract` (intégration passe 2) + screenshots v3 + v4 | **v3 prompt** : règles anti-débordement explicites + DEFAULT-U1 rule + fallback orphan rooms (si candidateCount=0 mais 2+ rooms → lot par étage). **v4 2-pass** : après passe 1 (identification pièces), passe 2 fait un appel GPT-4.1 dédié PAR PIÈCE avec image cropped (+15% marge). Résolution 4-8× supérieure. 24/24 rooms raffinées à confidence ≥0.98. Coût $0.22. | v3 seul insuffisant : GPT-4.1 ignore les règles NO-SWALLOW sur image complète (résolution limitée). v4 2-pass = vrai 10/10 — crop centré sur une pièce = chaque mur occupe plus de pixels = polygone précis. Coût +6× appels acceptable (~$0.05/plan). Timing 27-42s/plan (vs 15s sans passe 2) acceptable pour la précision. |
+| Claude top-level + @ia (POC OCR calibration s22) | 2026-04-17 | `plan-scale-detector.ts` (Structured Outputs `zodResponseFormat`) + `scripts/test-ocr-plans.ts` + `scripts/test-ocr-plans.result.json` + `docs/ia/poc-ocr-resultats.md` | POC OCR auto-calibration GPT-4.1 vision sur 4 plans P00-P03 : **4/4 PASS** avec confidence 0.98 (échelle 1:50 détectée sur tous). Cause racine bug initial : `response_format: { type: "json_object" }` sans schema contraint — GPT inventait des noms de champs. Fix : migration vers `zodResponseFormat` (Structured Outputs SDK v5). Coût $0.016. | `zodResponseFormat` obligatoire pour JSON structuré strict — `{type: "json_object"}` trop permissif. GO seuil actuel 0.9 (4/4 au-dessus). Limite : 4 plans = même projet/échelle. V2 : tester 1:100 / 1:200. |
 | @orchestrator + agents spécialisés (synthèse versi-s21) | 2026-04-17 | `docs/product/clustering-ia-spec.md` + `docs/ia/extraction-enrichie-spec.md` + `docs/analytics/vs-s21-clustering-events.md` + 11 audits `docs/reviews/vs-s21-*` + code prod : `versi-studio/src/lib/vs/{clustering.ts, analytics.ts}` (NEW) + modifications `extract/route.ts`, `LotPanel.tsx`, `lots/page.tsx`, `schemas.ts`, `plan-extractor.ts`, `db.ts`, `types.ts` + tests `tests/unit/{clustering.test.ts, zone-validation.test.ts}` (NEW 58 cas) + `tests/e2e/clustering-ia.spec.ts` (5/5 PASS) | **Option A+B Clustering IA `unit_id` + Polygones IA** : pré-création lots = 1 appartement (filtre triple : avg ≥0.7 + min ≥0.5 + count ≥2 + exception studios) avec validation 1-clic Thomas. Pattern audit cross-agents 3 itérations 7.0 → 9.04 → 9.37/10 (QA, UX, PM, IA, persona Thomas proxy @creative-strategy). Pattern typist it3 mini (25 lignes de fix ciblés). Gate @moi GO PRODUCTION ferme. P3 exécution réelle tests : vitest 58/58 + tsc 0 + ESLint 0 prod + playwright 5/5 PASS. P5 isValidZone 30/30 cas, 0 bug types.ts. P4 4 events analytics (lot_auto_created, lot_auto_validated, lot_manually_adjusted, ia_fallback_triggered) instrumentés via helper analytics.ts isomorphe. | **Triple filtre clustering IA validé** (avg seul masque pièces à risque : 1 pièce à 0.4 noyée dans 3 à 0.9 = avg 0.78 acceptée à tort). **Règle n°5 "no AI > bad AI" appliquée** (seuil 0.7 strict, 0 lot pré-créé sinon). **Pattern audit cross-agents 3 itérations validé 2x consécutif** (s20 + s21) → méthode canonique refonte persona-sensitive. **Pattern typist it3 mini** (< 80 lignes, it2 ≥ 9.0) économise une itération complète. **Alternative écartée** : arrêter à it2 GO-CONDITIONNEL 9.04 — it3 mini a corrigé route.continue() → route.fulfill() qui bloquait CI E2E, ROI maximum. **Anti-pattern orchestrator background sans Task** (P0 learning s21) : l'orchestrator en `run_in_background` n'a pas l'outil Task, d'où délégation directe Agent() depuis Claude top-level. **Stack analytics V1 sans SDK externe** (logging JSON structuré) : évite dépendance PostHog/Mixpanel pour MVP, migration future via `/api/vs/analytics` documentée s22. |
 | @qa | 2026-04-16 | `versi-studio/tests/e2e/lots-visual.spec.ts` (NEW 333L) + `versi-studio/tests/e2e/rooms-visual.spec.ts` (NEW 415L) + `docs/qa/visual-regression-bundle.md` (NEW 100L) + 39 baselines screenshots (18 lots + 21 rooms) | P4 versi-s18 boucle visuelle G26 BUNDLE Studio (Étapes 2 Lots + 3 Pièces). 3 viewports manuels (iphone13 375px / ipad 768px / desktop 1280px) sans projects Playwright multiples (pattern aligné upload-visual.spec.ts). Lots = 6 états (default, lots-detected, lot-selected, lot-validated, modal-delete, error). Rooms = 7 états (default, rooms-detected, room-selected, lot-validated, validation-blocked, modal-delete, all-lots-validated). 18/18 lots + 21/21 rooms PASS. APIs mockées via `page.route()` ordre wildcard→spécifique (learning versi-s13 P1 #2). Locators robustes via `getByRole({name: /pièce \d+ : salon/i})` (aria-label RoomPanel) plutôt que `getByText(/salon/i)` (interceptions canvas). Adaptation des assertions à 2 réalités UI : (1) état error Lots = "Opération introuvable" (page rend fallback car `if(!project)` avant `if(error)`), (2) état lot-validated Rooms = pièce cuisine visible (l'app sélectionne automatiquement le premier lot non-validé). | Pattern viewports manuels (boucle for) retenu vs multi-projects Playwright : cohérence stricte avec `upload-visual.spec.ts` existant + nommage stable des PNG (`{viewport}-{état}.png`) sans suffixe project. Pré-requis identifié : `npm install` versi-studio absent + `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright install chromium` requis avant exécution → documenté dans procédure refresh. Mock pattern `success: false` retourné en status 200 (pas 5xx) car l'API Versi Studio lit `json.success` pas le status HTTP — alignement réalité. Locators aria-label cibles privilégiés vs getByText : robustesse face aux occurrences multiples (canvas + panel) + alignement règle interne `getByRole > getByText`. Alternative écartée : forcer la sélection lot 1 via clic onglet pour test "lot-validated" — adapter l'assertion à la réalité (cuisine visible) plus simple et reflète vraiment l'état UI produit. Total 39 baselines, durée run ~10 min (lots 80s + rooms 6 min). 0 modification source, uniquement specs et baselines. |
 | @copywriter | 2026-04-16 | `docs/reviews/copy-rooms-us-vs-13-15-v1.md` | Audit copy Étape 3 Pièces (US-VS-13/14/15) v1. Score **7,6/10 — GO CONDITIONNEL**. G33 anglicismes : PASS (10/10) — zéro occurrence dans les 5 fichiers. Règle n°13 UTF-8 : 1 P0 bloquant (page.tsx:317 — `"piece"` + `"irreversible"` sans accents dans `confirm()`). Conformité spec §5 : 2/5 messages conformes (erreur validation PASS exact, reste FAIL ou absent — loading générique, vide sans "L'IA", succès absent, warning lot invalidé absent). Registre G24 : cohérent "vous impératif neutre", impératifs canoniques respectés. ARIA : bon niveau (canvas, tabs, selects labelisés), P1 aria-describedby manquant sur bouton désactivé. 6 corrections P0/P1 documentées avec code exact. | Audit direct demandé (sans @orchestrator). Décision clé : note 7,6 honnête et non gonflée — le critère spec §5 (6/10) tire la moyenne malgré un G33 parfait et un ARIA au-dessus de la moyenne. La `confirm()` native (page.tsx:317) cumule P0 UTF-8 et dette UX — signalée mais hors périmètre copy strict. Alternative écartée : noter 8/10 "car l'essentiel fonctionne" — non, 4/5 messages spec absents est un vrai écart de conformité. |
@@ -395,7 +405,29 @@
 - Branche de développement : `claude/versi-s21-launch-OsqlY` (s21 clôturée — à merger puis créer nouvelle branche s22)
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
-### Mémo de reprise versi-s21 → s22
+### Mémo de reprise versi-s22 → s23
+
+**Branche dernière clôturée** : `claude/extract-project-context-wh51y`
+**Date de clôture** : 2026-04-17 (fin de journée)
+**Numéro de session** : 22 (session 23 à venir)
+**Statut s22** : CLÔTURÉE — session massive multi-tours (8+ feedback loops Thomas) : corrections 3 bugs P0 Étape 3 + POC OCR + polygones v4 2-pass + UI refonte (nav+layout+bouton unique+undo/redo+comparateur) + transformations structurelles Étape 4 à **10/10 unanime** + import agents Versimo + workflow audit visuel
+
+**Résumé session s22** :
+- **Phase 1** — 3 bugs Étape 3 (plan gris, IA vide, rectangle fixe) corrigés + POC OCR GO (4/4 plans à 0.98)
+- **Phase 2** — Polygones IA v3 + v4 2-pass (24/24 rooms confidence 0.98)
+- **Phase 3** — Refonte UI : navigation stepper cliquable, layout stack vertical Étapes 2+3, pan curseur, undo/redo, bouton unique "Valider et passer aux pièces", fix rendu Étape 3 letterbox, comparateur avant/après Étape 4
+- **Phase 4** — Transformations structurelles Étape 4 (casser mur / ajouter cloison / percer porte / déplacer cuisine) : prompt v3 + textarea UI + badges → **10/10 unanime 4 transformations**
+- **Phase 5** — Import 3 agents experts Versimo (Yann Duval @interior-architect, Lucas Moreau @ai-image-expert, Camille Verdier @paysagiste) + workflow audit visuel documenté dans CLAUDE.md
+
+**Travaux en cours (non terminés)** :
+1. **Migration prompt Versimo v61** — @ia a produit l'analyse comparative mais timeout avant implémentation. Fichiers `style-resolver.ts` + `style-variants.ts` + builders par pièce NON créés dans Versi Studio. Rapport : `docs/ia/versimo-v61-migration.md`. **Priorité s23** si Thomas veut bénéficier de la maturité 38+ sessions Versimo.
+2. **Tests non-régression Versimo** — `prompt-regression-v60-gates.test.ts` (1524 tests) non migré. À adapter au visual-generator Versi Studio.
+
+**Statut s21** (archivé) : CLÔTURÉE — Clustering IA `unit_id` + Polygones IA implémentés, 3 itérations audit 7.0 → 9.04 → 9.37/10, @moi GO PRODUCTION ferme
+
+---
+
+### Mémo de reprise versi-s21 (archive)
 
 **Branche dernière clôturée** : `claude/versi-s21-launch-OsqlY`
 **Date de clôture** : 2026-04-17
@@ -459,17 +491,91 @@
 
 **Blocage résolu en fin de session** : `node_modules` absent en début de session, installé via `npm install` (versi-studio) + `npm install -D vitest` + `npx playwright install chromium` (browsers dans `/opt/pw-browsers`). Environnement de test complet et fonctionnel. Pour Playwright, lancer le serveur dev sur **port 3000** (pas 5000 par défaut) : `npx next dev -p 3000 -H 0.0.0.0 &` puis `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npx playwright test`.
 
-**Commande de reprise suggérée pour s22** :
+**Commande de reprise suggérée pour s22** (archivée, s22 clôturée) :
 
 ```
 @orchestrator session versi-s22. Lire project-context.md mémo reprise s21→s22 (priorités P1-P5 + 10 learnings à propager).
+```
 
-Gate de reprise obligatoire (AVANT tout nouveau travail) : propager les 10 learnings P0/P1 versi-s21 non-propagés (détails dans docs/lessons-learned.md section s21). Séquencement :
-1. Propagation (0 Task producteur — édits directs CLAUDE.md + agents)
-2. Question Thomas : quelle priorité s22 parmi P1 (POC OCR réel — nécessite OPENAI_API_KEY + plans), P2 (backlog produit D/E/F/G/H), P3 (stack analytics V2), P4 (nettoyage 7 P1 maintenance), P5 (hypothèses complexes) ?
-3. Plan d'exécution selon scope retenu (Pattern Express / Audit cross-agents 3 itérations / Typist it3 mini selon complexité)
+---
 
-Compteur Task producteurs initial : 0/18. Contraintes : anti-timeout n°3, règle n°4 délégation, règle n°5 mindset IA, G33/G34 BLOQUANT, node_modules installé (tests réels exécutables).
+### Propagation P0/P1 OBLIGATOIRE s23 (gate de reprise — AVANT tout nouveau travail)
+
+16 learnings s22 statut propagation = `à-propager` (corrections source faites, propagation dans agents/CLAUDE.md restante) :
+
+**Learnings P0** (4 items) :
+1. **Reality check E2E obligatoire avant GO PRODUCTION** → CLAUDE.md règle n°21 + qa.md + moi.md + orchestrator.md
+2. **Découvrabilité UI : feature invisible = feature inexistante** → CLAUDE.md règle discoverability + ux.md + founder-preferences.md
+3. **Pas de négociation sur la note cible** (Thomas refuse 8/10) → founder-preferences.md + moi.md + ia.md
+4. **Validation "10/10" superficielle** (Canvas non-vide ≠ reality check) → CLAUDE.md règle n°21 renforcée + qa.md + moi.md
+5. **Canvas éditeur = undo/redo obligatoire** (Ctrl+Z + boutons UI) → ux.md + fullstack.md + founder-preferences.md
+
+**Learnings P1** (7 items) :
+6. **Pattern typist parallèle 3 Task** → orchestrator.md
+7. **Pattern 2-pass extraction polygones** → ia.md section patterns IA vision
+8. **Règles négatives > positives pour gpt-image-1** → ia.md section prompt engineering image
+9. **Minimum de clics par défaut** (bouton unique préféré) → ux.md + founder-preferences.md
+10. **`openai.responses.create()` ne supporte pas gpt-image-1** → ia.md section OpenAI API endpoints
+11. **Comparateur avant/après obligatoire sur génération IA** → ux.md + founder-preferences.md
+12. **Import agents Versimo + workflow audit visuel** → orchestrator.md rappel utilisation
+
+**Learnings P2** (3 items) :
+13. **Orchestrator subagent faux négatif sur outil Task** → orchestrator.md (déjà en partie dans s21, renforcer)
+14. **@ia timeout sur briefs > 2000 mots** → CLAUDE.md règle n°3 section @ia + ia.md
+15. **Pattern fallback orphan rooms clustering** → ia.md section clustering
+
+**Bonus** (cas particulier) :
+16. **Pas de modification silencieuse du workflow métier** (nav sans revalidation) → ux.md + founder-preferences.md
+
+**Format propagation** : pour chaque learning, Edit le fichier cible avec section/règle correspondante. Après propagation, passer statut à `propagé` dans `docs/lessons-learned.md`.
+
+### Priorités proposées pour s23 (Thomas tranche au démarrage)
+
+| # | Priorité | Estimation Tasks | Notes |
+|---|---|---|---|
+| P1 | **Migration Versimo v61 — implémentation** : adopter style-resolver + style-variants + builders par pièce (kitchen/bathroom/bedroom/living-room) + equipment preservation + cleanup temporaires. Référence `/tmp/versimo-ref/` (cloner si nécessaire depuis `thomasissa-png/Architecture` branche `claude/session-recovery-analysis-SoNoa`). | 3-5 (1 @ia + 2-3 @fullstack typist) | Rapport d'analyse déjà fait `docs/ia/versimo-v61-migration.md`. NON-RÉGRESSION OBLIGATOIRE : les 4 transformations 10/10 s22 doivent rester 10/10. |
+| P2 | **Tests audit visuel via les 3 agents Versimo** : utiliser le workflow pré-fetch documenté dans CLAUDE.md pour faire auditer 6 générations Versi Studio récentes par Yann / Lucas / Camille. Identifier les régressions persona métier. | 2-3 (fetch + lancement agents + consolidation) | Agents @interior-architect + @ai-image-expert + @paysagiste disponibles. Nécessite DB + OpenAI + plans test. |
+| P3 | **Finitions UX restantes s22** : (1) modale `isDirty` si modifications non sauvegardées avant retour (reportée par @fullstack s22), (2) pinch-to-zoom tactile Étape 2 (P5 historique), (3) boutons +/-/0 keyboard shortcuts Étape 2 (P5 historique). | 1-2 (@fullstack) | Tous en P5 historique, à faire uniquement si Thomas les demande explicitement. |
+| P4 | **Stack analytics V2** (reporté s21) : migration logging JSON → SDK (PostHog self-hosted ou Plausible) + endpoint `/api/vs/analytics` + dashboard KPI North Star "taux validation 1-clic". | 3-5 | Stack V1 (JSON logging) validé s21. V2 = infra robuste pour Thomas quand volume >10 projets/mois. |
+| P5 | **Backlog produit suivant** : Auth / Dashboard multi-projets / Export acquéreur PDF+lien / Validation cross-étapes KPI NS / Onboarding. | 5-8 | Hors scope pour s23 — à discuter roadmap. |
+
+**Marqueur de contenu validé** (s22) :
+- `Grep "refineRoomPolygon" versi-studio/src/lib/vs/polygon-refiner.ts` (2-pass polygones s22)
+- `Grep "structural_instructions" versi-studio/src/lib/vs/visual-generator.ts` (transformations conditionnelles s22)
+- `Grep "STRUCTURAL TRANSFORMATIONS" versi-studio/src/lib/vs/visual-generator.ts` (bloc dédié s22)
+- `Grep "useHistory" versi-studio/src/hooks/useHistory.ts` (undo/redo s22)
+- `ls .claude/agents/interior-architect.md` (agent Versimo importé s22)
+
+**Nom de branche recommandé pour s23** : `claude/versi-s23-<description>-<suffix-auto>`
+- Exemples selon la priorité retenue :
+  - Si P1 Versimo → `claude/versi-s23-versimo-v61-migration-<suffix>`
+  - Si P2 Audit → `claude/versi-s23-audit-versimo-agents-<suffix>`
+  - Si P3 Finitions → `claude/versi-s23-ux-finishes-<suffix>`
+- Le `<suffix-auto>` est généré automatiquement par Claude Code au démarrage
+
+**Environnement disponible pour s23** :
+- PostgreSQL 16 local (`versi_studio`, user `versi`/`versi_dev`) — relancer via `service postgresql start`
+- Serveur Next.js dev port 5000 : `cd versi-studio && npm run dev`
+- Clé OpenAI dans `versi-studio/.env.local`
+- Playwright chromium dans `/opt/pw-browsers/chromium-1217` (exporter `PLAYWRIGHT_BROWSERS_PATH`)
+- Repo Versimo cloné dans `/tmp/versimo-ref/` (éphémère, re-clone si nécessaire)
+- 4 projets test en DB (P00 RDC, P01 R+1, P02 R+2, P03 R+3)
+
+**Commande de reprise suggérée pour s23** :
+
+```
+@orchestrator session versi-s23. Lire project-context.md mémo reprise s22→s23 (5 priorités + 2 travaux en cours).
+
+Gate de reprise obligatoire : propager les learnings P0/P1 s22 non-propagés (détails docs/lessons-learned.md).
+
+Quelle priorité s23 parmi :
+- P1 Migration Versimo v61 implémentation (rapport analyse déjà fait, implémentation restante)
+- P2 Audit visuel via 3 agents Versimo (@interior-architect/@ai-image-expert/@paysagiste)
+- P3 Finitions UX restantes (isDirty modale, pinch-to-zoom, keyboard shortcuts)
+- P4 Stack analytics V2
+- P5 Backlog produit suivant
+
+Compteur Task producteurs initial : 0/18. Contraintes : anti-timeout n°3, règle n°4 délégation, règle n°5 mindset IA, règles n°19/20/21/22 BLOQUANT, node_modules installé (tests réels exécutables).
 ```
 
 ---
