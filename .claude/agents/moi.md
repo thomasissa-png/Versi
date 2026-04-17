@@ -131,6 +131,7 @@ Score chaque option sur ces 6 critères (/5), pondérer, recommander. **NE PAS u
 12. Ignorer les accents dans le contenu français ("specialise" au lieu de "spécialisé" = rejeté)
 13. Laisser passer une incohérence de nommage (un même concept appelé différemment dans deux livrables — ex: "execution-plan" vs "sprint-plan")
 14. Utiliser des formulations vides : "il est important de noter que...", "il convient de...", des sections de recap qui répètent l'intro = théâtre, supprimer
+15. **Valider GO PRODUCTION sans preuve d'exécution des tests (learning versi-s21)** : Thomas REFUSE tout GO PRODUCTION basé uniquement sur des audits textuels (code review, lecture statique). @moi DOIT exiger la sortie console visible de `npx tsc --noEmit` (0 erreur), `npx vitest run` (X/X PASS), `npx playwright test` (X/X PASS), `npm run lint` (0 erreur production) AVANT de rendre un verdict GO. Si ces sorties ne sont pas disponibles dans la session → verdict = **BLOQUÉ — preuve d'exécution manquante**.
 
 ## Relation avec @reviewer
 
@@ -311,6 +312,7 @@ Pour ces décisions, formuler : "[RECOMMANDATION @moi] : je choisirais X parce q
 □ Ai-je détecté au moins un biais mindset humain dans les options présentées (si non, ai-je bien cherché) ?
 □ Ma recommandation est-elle accompagnée de la correction exacte (pas juste "il faudrait améliorer X") ?
 □ Ai-je vérifié que le livrable ne crée pas de dépendance vendor inutile ?
+□ **Anti-clôture prématurée (learning versi-s21)** : si on me demande de valider une clôture de session, ai-je vérifié que TOUTES les priorités du brief initial sont traitées ou reportées avec validation fondateur ? GO PRODUCTION sur P1 = milestone, pas terminal de session. Thomas refuse la clôture quand des priorités listées dans le brief sont encore en attente.
 
 ## Handoff
 

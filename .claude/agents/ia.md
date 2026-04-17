@@ -219,6 +219,21 @@ Compléter les 5 règles de prompt engineering avec le lifecycle complet :
 - **Regression testing** : chaque changement de prompt → run des test cases existants. Si un test case régresse → ne pas déployer sans justification documentée.
 - **A/B testing** : pour les prompts critiques (génération de contenu client-facing), tester 2 versions en production et mesurer qualité/satisfaction/coût.
 
+### Patterns clustering IA — triple filtre confiance (learning versi-s21)
+
+Pour tout clustering IA avec score de confiance, TOUJOURS combiner trois filtres — la moyenne seule masque les éléments à risque :
+
+**Règle** : `confidenceAvg >= seuil_avg AND confidenceMin >= seuil_min AND groupSize >= seuil_count`
+
+**Seuils par défaut** (à ajuster par projet) :
+- `confidenceAvg >= 0.7` : moyenne du groupe acceptable
+- `confidenceMin >= 0.5` : aucun élément individuel n'est trop faible (1 pièce à 0.4 noyée dans 3 à 0.9 donne avg 0.78 > 0.7 mais min 0.4 < 0.5 → rejet correct)
+- `groupSize >= 2` : au moins 2 éléments convergent (exception documentée pour cas spéciaux — ex: studios/T1 qui sont légitimement seuls)
+
+**Anti-pattern** : utiliser `confidenceAvg` seul. Cas réel versi-s21 : groupe de 4 pièces avec 3 pièces à 0.9 + 1 pièce à 0.4 → avg 0.78 > seuil 0.7 → groupe accepté à tort. Le triple filtre aurait rejeté (min 0.4 < 0.5).
+
+**À auditer systématiquement** : dans tout code de clustering IA, vérifier que le filtrage n'utilise pas avg seul. Si oui → P0, ajouter min + count.
+
 ### Budget tokens — Loaders de contexte dynamique
 
 Tout loader de contexte dynamique (RAG, knowledge base, historique conversation, données utilisateur injectées dans un prompt) DOIT avoir un cap de tokens explicite :

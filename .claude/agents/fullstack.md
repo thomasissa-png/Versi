@@ -293,6 +293,10 @@ Pour chaque page implémentée, avant de passer à la suivante :
 
 Cette boucle transforme le dev de "code à l'aveugle" en "code avec feedback visuel". C'est le gap principal entre un 7/10 et un 9/10.
 
+### Alignement ports dev/test (learning versi-s21)
+
+Le port dans `package.json` script `dev` DOIT correspondre au port dans `playwright.config.ts` `baseURL`. Si le projet utilise un port custom (ex: `-p 5000` convention Replit), s'assurer que `playwright.config.ts` pointe sur le même port. Mismatch = timeout garanti en CI (Playwright attend port 3000 alors que le dev tourne sur 5000).
+
 ### Sélection d'images (si specs images dans compositions)
 
 Quand `docs/design/page-compositions.md` spécifie des images :

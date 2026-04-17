@@ -150,6 +150,16 @@ Certains subagent_type n'ont pas les permissions Write/Edit au runtime même si 
 3. Documenter le subagent_type problématique dans le handoff pour éviter la répétition
 Ne PAS perdre 3 tentatives — switcher dès le premier refus.
 
+### Limitation critique — Orchestrator en background sans Task (learning versi-s21)
+
+Quand l'orchestrator est lancé via `Agent()` avec `run_in_background: true`, il n'a accès qu'à Read/Write/Edit/Glob/Grep — **PAS à Task**. Il ne peut donc PAS déléguer aux sous-agents.
+
+**Comportement obligatoire si détecté** : STOP immédiat. Signaler le blocage : "Je suis en mode background sans accès à Task. Je ne peux pas orchestrer. Claude top-level doit lancer les sous-agents directement via Agent()."
+
+**Ne JAMAIS** écrire les livrables soi-même en fallback (anti-pattern règle n4). Le premier orchestrator versi-s21 a timeout après avoir écrit les Phases 2-3 en fallback — livrable de qualité insuffisante sans calibration agent.
+
+**Pattern de récupération** : Claude top-level lance directement les sous-agents via Agent() depuis son propre niveau, en suivant le plan d'orchestration produit.
+
 **Seuil d'alerte :**
 
 **ALERTE ROUGE** — Après 6 phases complétées OU 18 Task producteurs lancés :
@@ -380,6 +390,44 @@ Pour les itérations post-V1 ou quand Thomas est le designer, la séquence ux �
 - **@reviewer** intervient sur le code déployé, pas sur chaque intermédiaire
 
 Déclencheur : mode hotfix, itérations post-V1, ou demande explicite de Thomas. Ne PAS fusionner en Phase 1 d'un nouveau projet (les fondations ux et design doivent être posées séparément).
+
+### Pattern audit cross-agents 3 itérations — méthode canonique (learning versi-s20, confirmé versi-s21)
+
+Pour les features **persona-sensitive** (UX critique, refonte data model, feature quotidienne du persona), le protocole Express 4 batches ne suffit pas. Utiliser le protocole audit cross-agents **3 itérations** avec 5 agents multi-critères :
+
+**Composition obligatoire (5 agents)** :
+1. **@qa** : audit technique (code review + test strategy + edge cases)
+2. **@ux** : audit parcours (flow, affordance, feedback, cohérence)
+3. **@product-manager** : audit spec vs implémentation (conformité, complétude, AC)
+4. **@ia** : audit qualité IA (schema, prompts, fallback, confidence)
+5. **@creative-strategy proxy persona** : audit valeur persona
+
+**Séquence** :
+1. **Itération 1** : 5 audits parallèles (Wave A 3 agents + Wave B 2 agents) → consolidation P0 unanimes (mentionnés par >= 2 agents = signal fort, corrections sans discussion) + P0 isolés (1 seul agent = arbitrage orchestrator sur criticité) → 2-3 @fullstack scope disjoint (Bundle A backend + B UI + C tests)
+2. **Itération 2** : re-audit 5 agents (mêmes agents, brief "delta vs itération 1") → consolidation P0 restants → @fullstack bundle 2
+3. **Itération 3** : si it2 >= 9.0/10 avec <= 5 P1 triviaux → **pattern typist it3 mini** (voir ci-dessous). Sinon re-audit complet. Cible 10/10 unanime ou GO production-ready >= 9.5/10.
+
+**Critère d'arrêt** : 4/5 agents en GO 10/10 + 1 résiduel corrigeable en < 5 lignes = GO. Si < 9.5/10 moyenne après 3 itérations → escalade utilisateur.
+
+**Validation** : versi-s20 (7.34 → 8.66 → 9.68, 4/5 GO 10/10) + versi-s21 (7.0 → 9.04 → 9.37, 10 P0 éliminés it1→it2). Le pattern scale et est reproductible.
+
+**Quand l'invoquer** (au lieu du Pattern Express) :
+- Feature persona-sensitive (le persona l'utilise quotidiennement, UX critique)
+- Refonte data model (impact systémique, risque de régression)
+- Audit post-implémentation d'une feature complexe avec 3+ composants interactifs
+
+### Pattern typist it3 mini (learning versi-s21)
+
+Quand l'itération 2 atteint 9.0-9.2/10 avec <= 5 P1 critiques triviaux (< 5 lignes par fix, pas de logique nouvelle), on évite une itération 3 lourde :
+
+**Condition d'activation** : it2 >= 9.0/10 ET <= 5 P1 triviaux ET chaque fix < 5 lignes de code.
+
+**Procédure** :
+1. Brief UN seul @fullstack avec le code EXACT à appliquer pour chaque fix (pattern typist strict — pas d'instructions, du code)
+2. Re-audit ciblé : uniquement les agents qui avaient les P1 (pas les 5 agents) — brief "delta vs it2, uniquement les P1 listés"
+3. Si tous les P1 corrigés → GO. Sinon → itération 3 complète obligatoire.
+
+**Gain** : ~12 min @fullstack + ~3 min/agent re-audit vs ~40 min it3 complète. Validé versi-s21 : 5 fix en 25 lignes, re-audit 3 agents, GO 9.37/10.
 
 ## Étape 0b — Détection du mode d'exécution (standard vs autopilot)
 
@@ -858,6 +906,7 @@ Les questions génériques s'appliquent (voir _base-agent-protocol.md). Question
 □ Les stratégies contenu incluent-elles des workflows d'automatisation IA ?
 □ Le project-context.md a-t-il été enrichi avec les découvertes de chaque phase terminée ?
 □ Le mode projet (nouveau vs existant) a-t-il été correctement détecté ?
+□ **Anti-clôture prématurée (learning versi-s21)** : TOUTES les priorités du brief initial sont-elles traitées ou explicitement reportées avec validation fondateur ? GO PRODUCTION sur P1 = milestone, pas terminal de session. Avant toute proposition de clôture : (1) Grep "P[1-9]" dans le brief initial, (2) checklist statut de chaque priorité (traitée / reportée validée / en cours), (3) si au moins une priorité non couverte → continuer, NE PAS proposer clôture.
 
 Si une réponse est non → reprendre avant de livrer.
 

@@ -24,7 +24,7 @@ Le timeout vient d'un agent qui **lit trop avant d'écrire**. Règles :
 
 ## 4. Toujours déléguer aux agents spécialisés
 
-Ne JAMAIS produire un livrable à la place d'un agent. Invoquer l'agent via `subagent_type`. Exceptions : éditions mineures, réponses aux questions, opérations git, modifications de project-context.md.
+Ne JAMAIS produire un livrable à la place d'un agent. Invoquer l'agent via `subagent_type`. Exceptions : éditions mineures, réponses aux questions, opérations git, modifications de project-context.md, propagation de learnings (édits directs dans les fichiers cibles). Si l'orchestrator est lancé en background (`run_in_background: true`) et n'a pas accès à Task → Claude top-level DOIT lancer directement les sous-agents via Agent(). Ce n'est PAS une violation de la règle n4.
 
 ## 5. Mindset IA, pas équipe humaine
 

@@ -53,6 +53,29 @@ Exploiter les 3 agents IA natifs de Playwright pour accélérer la création et 
 - Locators résilients : privilégier `getByRole()`, `getByLabel()`, `getByText()` sur les sélecteurs CSS/XPath. Ordre : role > label > text > data-testid > CSS. Les sélecteurs fragiles (classes CSS générées, IDs dynamiques) sont interdits dans les tests E2E
 - Self-healing en CI : activer le Playwright Healer en pipeline. Si un test échoue à cause d'un locator cassé, le Healer tente une réparation automatique. Si réussi → committer le fix et signaler le changement UI à @fullstack. Si échec → bug bloquant.
 
+### Anti-pattern route.continue() en Playwright E2E (learning versi-s21)
+
+Le fallback d'un handler `page.route()` DOIT être un `route.fulfill()` explicite (404 ou mock), **jamais** `route.continue()` sauf si un autre handler mock est garanti en amont.
+
+**Anti-pattern** :
+```typescript
+// INTERDIT — en CI sans backend, les requêtes non-matchées timeout
+page.route("**/api/**", route => {
+  if (matchers) route.fulfill(...);
+  else route.continue(); // → requête réseau réelle → timeout flaky
+});
+```
+
+**Pattern correct** :
+```typescript
+page.route("**/api/**", route => {
+  if (matchers) route.fulfill(...);
+  else route.fulfill({ status: 404, body: JSON.stringify({ error: 'Mock not found' }) });
+});
+```
+
+**Pourquoi** : `route.continue()` envoie les requêtes non-matchées au backend réel. En CI sans backend, timeouts flaky garantis. Le pattern `route.fulfill({ status: 404 })` rend les tests déterministes et activables en CI.
+
 ### Contract testing (APIs et services tiers)
 
 - Consumer-driven contracts : pour chaque API externe (Stripe, Resend, OAuth providers), définir un contrat (schema JSON expected) et le tester à chaque CI run
@@ -273,6 +296,9 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Bug découvert pendant les tests → **corriger immédiatement** sans demander confirmation. La perfection est le standard, pas l'option. Si le fix est trivial (typo, import manquant, état UI), le corriger directement. Si le fix est structurel (architecture, schéma DB, logique métier), le corriger ET signaler à @fullstack dans le handoff. Ne JAMAIS laisser un bug identifié "en attente" — chaque bug non corrigé est une régression potentielle pour le prochain agent
 - **Bug récurrent 3+ fois = STOP patches** : si un bug de même nature apparaît 3+ fois dans une session (ou si l'utilisateur signale 3+ fois le même symptôme), arrêter les correctifs ponctuels et signaler à @fullstack pour une investigation root cause. Les bugs récurrents cachent un problème d'architecture ou une mauvaise abstraction — les patcher 4 fois coûte plus que 1 investigation ciblée.
 - **Testing honesty — déclaration obligatoire dans chaque handoff** : préciser pour chaque validation si elle est `[STATIQUE]` (Grep/Read/tsc/lint/unit tests sans exécution réelle) ou `[LIVE]` (API/browser/payload réel avec sortie observée). Ne JAMAIS écrire "fix validé" sans préciser. Si les conditions ne permettent pas un test live (pas d'accès prod, pas de credentials), dire explicitement `[STATIQUE UNIQUEMENT — test live impossible : raison]`.
+- **Tests exécutés, pas juste écrits (learning versi-s21)** : avant de déclarer une feature "terminée" ou de valider un verdict GO, les tests DOIVENT être exécutés réellement avec sortie console visible : `npx tsc --noEmit` (0 erreur), `npx vitest run` (X/X PASS), `npx playwright test` (X/X PASS), `npm run lint` (0 erreur production). Les audits textuels (code review, lecture statique) sont NÉCESSAIRES mais PAS suffisants. Si `node_modules` est absent → exécuter `npm install` AVANT tout audit. Ne JAMAIS écrire "tests PASS" dans un handoff sans avoir vu la sortie console.
+- **Checklist création tests Vitest (learning versi-s21)** : lors de la création de fichiers `tests/unit/*.test.ts`, TOUJOURS vérifier que `vitest` et `@vitest/ui` sont dans les `devDependencies` du `package.json`. Si absents → `npm install -D vitest @vitest/ui` et épingler la version. Ne jamais dépendre d'un `npx install` runtime.
+- **Alignement ports dev/test (learning versi-s21)** : vérifier que le port dans `playwright.config.ts` (`baseURL`) correspond au port dans `package.json` script `dev`. Si `package.json` a `next dev -p 5000` (convention Replit), `playwright.config.ts` DOIT avoir `baseURL: "http://localhost:5000"`. Mismatch = timeout garanti en CI. Vérifier aussi le script `test:e2e` si existant.
 - Faille de sécurité détectée → signaler immédiatement à @infrastructure et @legal
 - Performance en dessous des seuils → signaler à @infrastructure avec le rapport Lighthouse
 - Spec ambiguë qui rend le test impossible → signaler à @product-manager
