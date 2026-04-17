@@ -37,13 +37,15 @@ Le code du brief Thomas supposait `detectPlanScale(buffer: Buffer)`. La signatur
 ### Phase 0 -- Pre-requis (pas de Task producteur)
 - `npm install` dans versi-studio/
 - `npm install -D tsx dotenv` dans versi-studio/
-- Statut : EN COURS
+- Statut : BLOQUE -- pas d'outil Bash disponible dans cette session. Script ecrit, commandes documentees.
 
 ### Phase 1 -- Execution script OCR (1 Task @ia producteur)
-- Agent : @ia
+- Agent : @ia (fallback : orchestrateur en mode typiste -- pas de tool Task disponible)
 - Mission : ecrire + executer `scripts/test-ocr-plans.ts`, produire `docs/ia/poc-ocr-resultats.md`
-- Livrables : script + resultats JSON + rapport analyse
-- Statut : EN ATTENTE
+- Script ecrit : `/home/user/Versi/versi-studio/scripts/test-ocr-plans.ts` -- FAIT
+- Execution : EN ATTENTE (besoin Bash)
+- Livrables : script (FAIT) + resultats JSON (EN ATTENTE) + rapport analyse (EN ATTENTE)
+- Statut : PARTIELLEMENT FAIT
 
 ### Phase 2 -- Analyse + rapport Thomas
 - Lire resultats, appliquer metrique de reussite

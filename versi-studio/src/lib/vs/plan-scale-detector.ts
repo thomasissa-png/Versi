@@ -118,13 +118,60 @@ Règles strictes :
     throw new PlanScaleError("PARSING_FAILED", "Réponse OpenAI vide.");
   }
 
+  // Debug : log brut pour diagnostiquer les erreurs de parsing
+  if (process.env.DEBUG_OCR === "1") {
+    console.log("[DEBUG OCR] Réponse brute OpenAI:", raw);
+  }
+
+  // Tokens consommés (pour suivi coût)
+  const usage = response.usage;
+  if (process.env.DEBUG_OCR === "1" && usage) {
+    console.log(
+      `[DEBUG OCR] Tokens — input: ${usage.prompt_tokens}, output: ${usage.completion_tokens}, total: ${usage.total_tokens}`
+    );
+  }
+
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw);
-    return PlanScaleResultSchema.parse(parsed);
-  } catch (err) {
+    parsed = JSON.parse(raw);
+  } catch {
     throw new PlanScaleError(
       "PARSING_FAILED",
-      `Parsing échoué : ${err instanceof Error ? err.message : "format inattendu"}`
+      `JSON invalide depuis OpenAI. Brut (500 premiers chars) : ${raw.slice(0, 500)}`
+    );
+  }
+
+  // GPT-4.1 peut wrapper dans un objet parent (ex: { "result": { ... } })
+  // Tenter d'extraire si le top-level ne matche pas directement
+  let candidate = parsed as Record<string, unknown>;
+  if (
+    candidate &&
+    typeof candidate === "object" &&
+    !("confidence" in candidate) &&
+    !("scale_text" in candidate)
+  ) {
+    // Chercher un sous-objet qui contiendrait les champs attendus
+    const keys = Object.keys(candidate);
+    for (const key of keys) {
+      const sub = candidate[key];
+      if (sub && typeof sub === "object" && ("confidence" in (sub as Record<string, unknown>) || "scale_text" in (sub as Record<string, unknown>))) {
+        candidate = sub as Record<string, unknown>;
+        if (process.env.DEBUG_OCR === "1") {
+          console.log(`[DEBUG OCR] Extraction depuis clé "${key}"`);
+        }
+        break;
+      }
+    }
+  }
+
+  try {
+    return PlanScaleResultSchema.parse(candidate);
+  } catch (err) {
+    // Log le contenu parsé pour diagnostic même sans DEBUG_OCR
+    const candidateStr = JSON.stringify(candidate).slice(0, 500);
+    throw new PlanScaleError(
+      "PARSING_FAILED",
+      `Parsing échoué. Contenu reçu : ${candidateStr}. Erreurs Zod : ${err instanceof Error ? err.message : "format inattendu"}`
     );
   }
 }

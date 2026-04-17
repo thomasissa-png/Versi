@@ -1,0 +1,38 @@
+[
+  {
+    "plan": "P 00 - Pr2_plan RDC_ projet2.pdf",
+    "scale_text": null,
+    "scale_ratio": null,
+    "ref_dim": null,
+    "confidence": null,
+    "reasoning": null,
+    "error": "Parsing échoué : [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_ratio\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reference_dimension\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reasoning\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+  },
+  {
+    "plan": "P 01 - Pr2_plan R+1_ projet2.pdf",
+    "scale_text": null,
+    "scale_ratio": null,
+    "ref_dim": null,
+    "confidence": null,
+    "reasoning": null,
+    "error": "Parsing échoué : [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_text\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_ratio\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reference_dimension\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reasoning\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+  },
+  {
+    "plan": "P 02 - Pr2_plan R+2_ projet2.pdf",
+    "scale_text": null,
+    "scale_ratio": null,
+    "ref_dim": null,
+    "confidence": null,
+    "reasoning": null,
+    "error": "Parsing échoué : [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_text\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_ratio\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reference_dimension\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reasoning\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+  },
+  {
+    "plan": "P 03 - Pr02_plan R+3_ projet02.pdf",
+    "scale_text": null,
+    "scale_ratio": null,
+    "ref_dim": null,
+    "confidence": null,
+    "reasoning": null,
+    "error": "Parsing échoué : [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_text\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"number\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"scale_ratio\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reference_dimension\"\n    ],\n    \"message\": \"Required\"\n  },\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"reasoning\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+  }
+]

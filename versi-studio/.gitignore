@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 audit-screenshots/
+
+# scripts console logs (runtime artifacts)
+scripts/*.console.log
