@@ -328,12 +328,11 @@ test.describe("Clustering IA — lots pre-crees", () => {
     // Cliquer sur "Tout valider"
     await page.getByRole("button", { name: /Tout valider/ }).click();
 
-    // Attendre que les PATCH soient envoyes
-    await page.waitForTimeout(500);
-
-    // Les lots de l'etage affiche (0) doivent etre patches
+    // Attendre que les PATCH soient envoyes (polling au lieu de waitForTimeout flaky — I8 s21)
     // Note : "Tout valider" valide TOUS les lots IA, pas seulement ceux de l'etage filtre
-    expect(patchedLotIds.length).toBeGreaterThanOrEqual(2);
+    await expect(() => {
+      expect(patchedLotIds.length).toBeGreaterThanOrEqual(2);
+    }).toPass({ timeout: 5000 });
   });
 
   test("fallback etat vide si 0 lot IA (confiance faible)", async ({ page }) => {

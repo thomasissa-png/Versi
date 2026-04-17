@@ -28,6 +28,7 @@ import type {
   ZonePolygonPoint,
   ApiResponse,
 } from "@/lib/vs/types";
+import type { ExtractedRoom } from "@/lib/vs/schemas";
 import { parseZone, zonesOverlap as zonesOverlapShared } from "@/lib/vs/types";
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -443,6 +444,46 @@ export default function LotsPage({
     []
   );
 
+  // ─── U4 — Annuler la validation d'un lot IA (versi-s21 it2) ──
+
+  const handleUnvalidateSingleLot = useCallback(
+    async (lotId: string) => {
+      // Optimistic update
+      setLots((prev) =>
+        prev.map((l) =>
+          l.id === lotId ? { ...l, status: "suggested" as const } : l
+        )
+      );
+
+      try {
+        const res = await fetch(`/api/vs/lots/${lotId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "suggested" }),
+        });
+        const json = (await res.json()) as ApiResponse<VsLot>;
+        if (!json.success) {
+          // Rollback
+          setLots((prev) =>
+            prev.map((l) =>
+              l.id === lotId ? { ...l, status: "validated" as const } : l
+            )
+          );
+          setError("Impossible d'annuler la validation. Réessayez.");
+        }
+      } catch {
+        // Rollback
+        setLots((prev) =>
+          prev.map((l) =>
+            l.id === lotId ? { ...l, status: "validated" as const } : l
+          )
+        );
+        setError("Impossible d'annuler la validation. Réessayez.");
+      }
+    },
+    []
+  );
+
   // ─── Valider tous les lots IA d'un coup (versi-s21) ──────────
 
   const handleValidateAllAiLots = useCallback(async () => {
@@ -488,6 +529,31 @@ export default function LotsPage({
       setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
     }
   }, [lots]);
+
+  // ─── U3 — Extraction IA déjà tentée ? (versi-s21 it2) ────────
+
+  const hasAiExtracted = useMemo(() => {
+    // Si au moins un plan a extraction_status === "done" ou "failed", l'IA a tourné
+    return plans.some(
+      (p) => p.extraction_status === "done" || p.extraction_status === "failed"
+    );
+  }, [plans]);
+
+  // ─── U5 — Lots IA suggérés pour bannière feedback (versi-s21 it2)
+
+  const aiSuggestedLots = useMemo(
+    () => lots.filter((l) => l.source === "ai" && l.status === "suggested"),
+    [lots]
+  );
+
+  // ─── I7 — Pièces non assignées depuis extraction_data (versi-s21 it2)
+
+  const unassignedRooms = useMemo(() => {
+    if (!currentPlan?.extraction_data) return [];
+    const data = currentPlan.extraction_data as { rooms?: ExtractedRoom[] };
+    if (!Array.isArray(data.rooms)) return [];
+    return data.rooms.filter((r) => r.unit_id == null);
+  }, [currentPlan]);
 
   // ─── Cleanup timers ───────────────────────────────────────────
 
@@ -686,6 +752,21 @@ export default function LotsPage({
           </div>
         )}
 
+        {/* U5 — Bannière feedback post-extraction IA (versi-s21 it2) */}
+        {aiSuggestedLots.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-md mb-md flex items-start gap-sm">
+            <span className="text-blue-600 text-xl flex-shrink-0" aria-hidden="true">&#9733;</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900">
+                L'IA a pré-créé {aiSuggestedLots.length} lot{aiSuggestedLots.length > 1 ? "s" : ""} depuis votre plan.
+              </p>
+              <p className="text-xs text-blue-700 mt-xs">
+                Vérifiez chaque lot et validez en 1 clic ou globalement.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Canvas + Panneau latéral */}
         <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
           {/* Canvas */}
@@ -723,6 +804,9 @@ export default function LotsPage({
             onCancelDrawingPolygon={handleCancelDrawingPolygon}
             onValidateSingleLot={handleValidateSingleLot}
             onValidateAllAiLots={handleValidateAllAiLots}
+            hasAiExtracted={hasAiExtracted}
+            onUnvalidateSingleLot={handleUnvalidateSingleLot}
+            unassignedRooms={unassignedRooms}
           />
         </div>
       </div>

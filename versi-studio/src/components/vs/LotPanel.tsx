@@ -180,6 +180,21 @@ function LotCard({
               )}
             </span>
           )}
+          {/* U1 — Badge confiance IA (versi-s21 it2) */}
+          {lot.confidence_avg != null && (
+            <span
+              className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                lot.confidence_avg < 0.75
+                  ? "bg-red-100 text-red-700"
+                  : lot.confidence_avg < 0.85
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-green-100 text-green-700"
+              }`}
+              title={`Confiance IA : ${Math.round(lot.confidence_avg * 100)} %`}
+            >
+              {Math.round(lot.confidence_avg * 100)} %
+            </span>
+          )}
           {lot.source === "manual" && (
             <span className="text-xs text-[var(--color-text-muted)]">
               (manuel)
@@ -197,6 +212,20 @@ function LotCard({
             aria-label={`Valider ${lot.name}`}
           >
             Valider ce lot
+          </button>
+        )}
+        {/* U4 — Bouton annuler validation pour lots IA validés (versi-s21 it2) */}
+        {lot.source === "ai" && lot.status === "validated" && onUnvalidateSingle && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnvalidateSingle();
+            }}
+            className="mt-xs px-sm py-xs text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-default)] underline min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+            aria-label={`Annuler la validation de ${lot.name}`}
+          >
+            Annuler la validation
           </button>
         )}
       </div>
@@ -247,6 +276,9 @@ export default function LotPanel({
   onCancelDrawingPolygon,
   onValidateSingleLot,
   onValidateAllAiLots,
+  hasAiExtracted = false,
+  onUnvalidateSingleLot,
+  unassignedRooms,
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
   const aiSuggestedLots = lots.filter((l) => l.source === "ai" && l.status === "suggested");
@@ -263,10 +295,18 @@ export default function LotPanel({
       {/* Liste des lots */}
       <div className="flex-1 overflow-y-auto px-sm py-sm">
         {lots.length === 0 ? (
-          <div className="text-center py-2xl px-md">
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Aucun lot détecté — utilisez le bouton « Ajouter un lot » ci-dessous.
-            </p>
+          <div className="text-center text-sm text-[var(--color-text-muted)] py-2xl px-md">
+            {hasAiExtracted ? (
+              <>
+                <p>L'IA n'a pas détecté de lots fiables sur ce plan.</p>
+                <p className="mt-sm">Dessinez vos lots manuellement avec le bouton ci-dessous.</p>
+              </>
+            ) : (
+              <>
+                <p>Aucun lot pour le moment.</p>
+                <p className="mt-sm">Lancez l'extraction IA ou dessinez un lot manuellement.</p>
+              </>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2xs">
@@ -284,11 +324,35 @@ export default function LotPanel({
                     ? () => onValidateSingleLot(lot.id)
                     : undefined
                 }
+                onUnvalidateSingle={
+                  onUnvalidateSingleLot
+                    ? () => onUnvalidateSingleLot(lot.id)
+                    : undefined
+                }
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* I7 — Pièces non assignées (versi-s21 it2) */}
+      {unassignedRooms && unassignedRooms.length > 0 && (
+        <div className="mx-sm mb-sm p-sm bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-sm font-medium text-[var(--color-text-default)] mb-xs">
+            Pièces non assignées ({unassignedRooms.length})
+          </h3>
+          <ul className="text-xs text-[var(--color-text-muted)] space-y-xs">
+            {unassignedRooms.map((room, idx) => (
+              <li key={idx}>
+                {room.name_raw} · {room.surface_m2 ? `${room.surface_m2.toFixed(1)} m²` : "surface inconnue"} · étage {room.floor ?? "?"}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-[var(--color-text-muted)] mt-xs italic">
+            Ces pièces n'ont pas été rattachées à un lot (parties communes, couloirs, locaux techniques).
+          </p>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-lg py-md border-t border-[var(--color-border-default)] flex flex-col gap-sm">

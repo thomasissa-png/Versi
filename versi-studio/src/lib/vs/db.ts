@@ -172,9 +172,13 @@ export async function ensureVsTables(): Promise<void> {
         CHECK (status IN ('suggested','validated','overlap_error')),
       source VARCHAR(10) NOT NULL DEFAULT 'ai'
         CHECK (source IN ('ai','manual')),
+      confidence_avg NUMERIC(4,3),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_vs_lots_project ON vs_lots(project_id);
+
+    -- U1 versi-s21 : ajout colonne confidence_avg pour bases existantes
+    ALTER TABLE vs_lots ADD COLUMN IF NOT EXISTS confidence_avg NUMERIC(4,3);
 
     CREATE TABLE IF NOT EXISTS vs_rooms (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
