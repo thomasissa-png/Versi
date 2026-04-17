@@ -55,25 +55,27 @@ export function buildVisualPrompt(
 
   // STRICT RULE 1 : conditionnelle selon la présence de transformations structurelles
   const structuralRule = hasTransformations
-    ? `1. KEEP the base room characteristics (camera framing, proportions, natural light direction) while APPLYING the structural transformations described below. Adapt walls, partitions, and openings as instructed.`
+    ? `1. APPLY the structural transformations described below AS THE PRIMARY OBJECTIVE. The transformation must be clearly visible and unmistakable. Adapt walls, partitions, and openings exactly as instructed. Keep camera framing and natural light direction.`
     : `1. KEEP all structural elements EXACTLY as they are: walls, windows, doors, ceiling, floor shape, room proportions. Do NOT move, add, or remove any window or door.`;
 
   // Bloc optionnel de transformations structurelles
   const transformationsBlock = hasTransformations
     ? `
 
-STRUCTURAL TRANSFORMATIONS (apply these modifications):
+STRUCTURAL TRANSFORMATIONS — THIS IS THE #1 PRIORITY OF THIS IMAGE:
 ${structuralInstructions!.trim()}
 
-Rules for transformations:
-- Respect physics: keep the visual plausible (walls meet floors and ceilings, doors are human-sized, etc.)
-- If a wall is removed: show the new open space with continuous flooring and ceiling.
-- If a partition is added: show a thin new wall (15cm) with matching finishes.
-- If an opening is created: show a clean door frame or window opening.
+CRITICAL rules for structural transformations (MUST be followed):
+- The structural change described above is the MOST IMPORTANT aspect of this image. The viewer must immediately see the transformation.
+- If a wall is REMOVED: the wall must be COMPLETELY GONE — no remnant, no archway, no pillar, no column, no partial wall. There must be ZERO vertical separation between the two spaces. Show a single wide-open continuous space where two rooms merge seamlessly. The flooring and ceiling must be uninterrupted across the full width. The adjacent room/space must be clearly visible and furnished. Do NOT show any trace of the former wall.
+- If a PARTITION/WALL is ADDED: a NEW vertical wall must be clearly visible, dividing the space into two distinct rooms. The new wall should be thin (~15cm), freshly finished, and extend from floor to ceiling. Both resulting spaces should be visible or implied.
+- If an OPENING/DOOR is CREATED: show a clean rectangular opening with a proper door frame cut into an existing wall. The room beyond the opening must be visible through it.
+- If a KITCHEN is RELOCATED: show kitchen cabinets, countertop, sink, and appliances positioned exactly where described (e.g., against the exterior wall with a window above the sink).
+- Respect physics: walls meet floors and ceilings at right angles, doors are human-sized (~2m), furniture is proportional.
 - Keep the camera angle and lighting from the source photo.`
     : "";
 
-  return `Transform this empty, unfurnished ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style.
+  return `Transform this empty, unfurnished ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style.${transformationsBlock}
 
 STYLE DETAILS: ${styleHint}.
 
@@ -85,7 +87,7 @@ ${structuralRule}
 5. Do NOT add any text, watermark, logo, or overlay to the image.
 6. Do NOT change the camera perspective or angle. ${angleNote}
 7. Walls should be freshly painted or finished. Floors should have appropriate flooring (hardwood, tiles, etc.) matching the style.
-8. Add subtle decorative elements: plants, books, artwork, cushions — appropriate for the style.${transformationsBlock}`;
+8. Add subtle decorative elements: plants, books, artwork, cushions — appropriate for the style.`;
 }
 
 // ─── Main generation function ──────────────────────────────────────
