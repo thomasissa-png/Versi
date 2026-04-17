@@ -347,6 +347,24 @@ export default function RoomCanvas({
     [renderLayout]
   );
 
+  /**
+   * Convertit un delta en pixels (mouvement souris) en delta en % lot-local.
+   * Contrairement à toPercentCoords, ne soustrait PAS l'offset letterbox —
+   * un delta est relatif, pas absolu. Bug critique versi-s22 :
+   * toPercentCoords(dx, dy) soustrayait offsetX/offsetY d'un delta,
+   * rendant le drag/resize vertical inutilisable quand offsetY > 0 (letterbox).
+   */
+  const toDeltaPercent = useCallback(
+    (dxPx: number, dyPx: number): { dxPct: number; dyPct: number } => {
+      const { renderW, renderH } = renderLayout;
+      return {
+        dxPct: (dxPx / renderW) * 100,
+        dyPct: (dyPx / renderH) * 100,
+      };
+    },
+    [renderLayout]
+  );
+
   // ─── Conversion polygone lot-local % → pixels canvas ─────────
 
   const toCanvasPolygonPoints = useCallback(
@@ -763,7 +781,8 @@ export default function RoomCanvas({
 
         const dx = e.clientX - dragging.startX;
         const dy = e.clientY - dragging.startY;
-        const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
+        // Fix versi-s22 : utiliser toDeltaPercent (pas toPercentCoords) pour les deltas
+        const { dxPct, dyPct } = toDeltaPercent(dx, dy);
 
         const newPos = computeResize(dragging.origPos, dragging.handle, dxPct, dyPct);
         onMoveRoom(dragging.roomId, newPos);
@@ -775,7 +794,8 @@ export default function RoomCanvas({
 
         const dx = e.clientX - dragging.startX;
         const dy = e.clientY - dragging.startY;
-        const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
+        // Fix versi-s22 : utiliser toDeltaPercent (pas toPercentCoords) pour les deltas
+        const { dxPct, dyPct } = toDeltaPercent(dx, dy);
 
         const newPos: RoomPosition = {
           x_percent: Math.max(
@@ -799,7 +819,7 @@ export default function RoomCanvas({
         onMoveRoom(dragging.roomId, newPos);
       }
     },
-    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toPercentCoords]
+    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent]
   );
 
   const handleMouseUp = useCallback(() => {
