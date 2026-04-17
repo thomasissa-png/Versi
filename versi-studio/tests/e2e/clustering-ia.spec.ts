@@ -195,8 +195,8 @@ test.describe("Clustering IA — lots pre-crees", () => {
     // Verifier le bouton "Tout valider"
     await expect(page.getByRole("button", { name: /Tout valider/ })).toBeVisible();
 
-    // Verifier les boutons "Valider ce lot"
-    const validateButtons = page.getByRole("button", { name: /Valider ce lot/ });
+    // Verifier les boutons de validation individuelle (aria-label = "Valider {nom du lot}")
+    const validateButtons = page.getByRole("button", { name: /^Valider .+/ });
     await expect(validateButtons.first()).toBeVisible();
   });
 
@@ -266,8 +266,8 @@ test.describe("Clustering IA — lots pre-crees", () => {
 
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
-    // Cliquer sur "Valider ce lot" du premier lot
-    const validateBtn = page.getByRole("button", { name: /Valider ce lot/ }).first();
+    // Cliquer sur le bouton de validation du premier lot (aria-label = "Valider {nom}")
+    const validateBtn = page.getByRole("button", { name: /^Valider .+/ }).first();
     await validateBtn.click();
 
     // Verifier que PATCH a ete appele avec status: "validated"
@@ -351,8 +351,10 @@ test.describe("Clustering IA — lots pre-crees", () => {
     await setupMockRoutes(page, []);
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
-    // Verifier l'etat vide guide
-    await expect(page.getByText(/Aucun lot/)).toBeVisible();
+    // Verifier l'etat vide guide — U3 etat vide differencie (versi-s21 it2)
+    // hasAiExtracted = true car MOCK_PLANS_EXTRACTED a extraction_status: "done"
+    // → message = "L'IA n'a pas detecte de lots fiables sur ce plan."
+    await expect(page.locator("main").getByText(/n'a pas détecté de lots fiables/)).toBeVisible();
 
     // Le bouton "Tout valider" ne doit pas etre visible
     await expect(page.getByRole("button", { name: /Tout valider/ })).not.toBeVisible();
