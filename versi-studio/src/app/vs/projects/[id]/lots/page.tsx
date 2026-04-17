@@ -403,6 +403,92 @@ export default function LotsPage({
     }
   }, [projectId, router]);
 
+  // ─── Valider un lot IA individuellement (versi-s21) ──────────
+
+  const handleValidateSingleLot = useCallback(
+    async (lotId: string) => {
+      // Optimistic update
+      setLots((prev) =>
+        prev.map((l) =>
+          l.id === lotId ? { ...l, status: "validated" as const } : l
+        )
+      );
+
+      try {
+        const res = await fetch(`/api/vs/lots/${lotId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "validated" }),
+        });
+        const json = (await res.json()) as ApiResponse<VsLot>;
+        if (!json.success) {
+          // Rollback
+          setLots((prev) =>
+            prev.map((l) =>
+              l.id === lotId ? { ...l, status: "suggested" as const } : l
+            )
+          );
+          setError("Impossible de valider ce lot.");
+        }
+      } catch {
+        // Rollback
+        setLots((prev) =>
+          prev.map((l) =>
+            l.id === lotId ? { ...l, status: "suggested" as const } : l
+          )
+        );
+        setError("Impossible de valider ce lot.");
+      }
+    },
+    []
+  );
+
+  // ─── Valider tous les lots IA d'un coup (versi-s21) ──────────
+
+  const handleValidateAllAiLots = useCallback(async () => {
+    const aiSuggested = lots.filter(
+      (l) => l.source === "ai" && l.status === "suggested"
+    );
+    if (aiSuggested.length === 0) return;
+
+    // Optimistic update
+    setLots((prev) =>
+      prev.map((l) =>
+        l.source === "ai" && l.status === "suggested"
+          ? { ...l, status: "validated" as const }
+          : l
+      )
+    );
+
+    // PATCH chaque lot en parallèle
+    const results = await Promise.allSettled(
+      aiSuggested.map((lot) =>
+        fetch(`/api/vs/lots/${lot.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "validated" }),
+        }).then((r) => r.json() as Promise<ApiResponse<VsLot>>)
+      )
+    );
+
+    // Rollback les échecs
+    const failedIds = new Set<string>();
+    results.forEach((r, i) => {
+      if (r.status === "rejected" || (r.status === "fulfilled" && !r.value.success)) {
+        failedIds.add(aiSuggested[i].id);
+      }
+    });
+
+    if (failedIds.size > 0) {
+      setLots((prev) =>
+        prev.map((l) =>
+          failedIds.has(l.id) ? { ...l, status: "suggested" as const } : l
+        )
+      );
+      setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
+    }
+  }, [lots]);
+
   // ─── Cleanup timers ───────────────────────────────────────────
 
   useEffect(() => {
@@ -635,6 +721,8 @@ export default function LotsPage({
             onStartDrawingPolygon={handleStartDrawingPolygon}
             drawingPolygon={drawingPolygon}
             onCancelDrawingPolygon={handleCancelDrawingPolygon}
+            onValidateSingleLot={handleValidateSingleLot}
+            onValidateAllAiLots={handleValidateAllAiLots}
           />
         </div>
       </div>

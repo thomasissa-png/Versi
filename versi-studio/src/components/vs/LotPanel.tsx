@@ -31,6 +31,9 @@ interface LotPanelProps {
   onStartDrawingPolygon?: () => void;
   drawingPolygon?: boolean;
   onCancelDrawingPolygon?: () => void;
+  // Validation individuelle de lot IA (versi-s21)
+  onValidateSingleLot?: (lotId: string) => void;
+  onValidateAllAiLots?: () => void;
 }
 
 // ─── Composant LotCard ──────────────────────────────────────────
@@ -42,6 +45,7 @@ function LotCard({
   onSelect,
   onRename,
   onDelete,
+  onValidateSingle,
 }: {
   lot: VsLot;
   index: number;
@@ -49,6 +53,7 @@ function LotCard({
   onSelect: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onValidateSingle?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(lot.name);
@@ -98,6 +103,8 @@ function LotCard({
       aria-label={`Sélectionner ${lot.name}`}
       className={`
         group flex items-start gap-sm p-md rounded-md cursor-pointer transition-colors duration-150
+        ${lot.source === "ai" && lot.status === "suggested" ? "border border-dashed border-[var(--color-interactive-primary)]/40" : ""}
+        ${lot.source === "ai" && lot.status === "validated" ? "border border-solid border-[var(--color-success,#16A34A)]/40" : ""}
         ${isSelected ? "bg-[var(--color-background-default)] border border-[var(--color-border-default)]" : "hover:bg-[var(--color-background-default)]"}
       `}
     >
@@ -150,14 +157,39 @@ function LotCard({
             </button>
           </div>
         )}
-        <p className="text-xs text-[var(--color-text-muted)] mt-2xs">
-          {surfaceLabel}
+        <div className="flex items-center gap-xs mt-2xs flex-wrap">
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {surfaceLabel}
+          </p>
+          {lot.source === "ai" && (
+            <span className="inline-flex items-center gap-2xs px-xs py-2xs rounded text-[10px] font-medium bg-[var(--color-interactive-primary)]/10 text-[var(--color-interactive-primary)]">
+              IA
+              {lot.status === "validated" && (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </span>
+          )}
           {lot.source === "manual" && (
-            <span className="ml-sm text-[var(--color-text-muted)]">
+            <span className="text-xs text-[var(--color-text-muted)]">
               (manuel)
             </span>
           )}
-        </p>
+        </div>
+        {/* Bouton valider pour lots IA suggérés */}
+        {lot.source === "ai" && lot.status === "suggested" && onValidateSingle && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onValidateSingle();
+            }}
+            className="mt-xs px-sm py-2xs rounded text-xs font-medium bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] hover:bg-[var(--color-success,#16A34A)]/20 transition-colors min-h-[32px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+            aria-label={`Valider ${lot.name}`}
+          >
+            Valider ce lot
+          </button>
+        )}
       </div>
 
       {/* Bouton supprimer */}
@@ -204,8 +236,11 @@ export default function LotPanel({
   onStartDrawingPolygon,
   drawingPolygon = false,
   onCancelDrawingPolygon,
+  onValidateSingleLot,
+  onValidateAllAiLots,
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
+  const aiSuggestedLots = lots.filter((l) => l.source === "ai" && l.status === "suggested");
 
   return (
     <aside className="w-80 flex-shrink-0 flex flex-col bg-white border-l border-[var(--color-border-default)] h-full">
@@ -235,6 +270,11 @@ export default function LotPanel({
                 onSelect={() => onSelectLot(lot.id)}
                 onRename={(name) => onRenameLot(lot.id, name)}
                 onDelete={() => onDeleteLot(lot.id)}
+                onValidateSingle={
+                  onValidateSingleLot
+                    ? () => onValidateSingleLot(lot.id)
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -263,6 +303,23 @@ export default function LotPanel({
               Annuler le tracé
             </button>
           </div>
+        )}
+
+        {/* Bouton tout valider — lots IA (versi-s21) */}
+        {aiSuggestedLots.length > 0 && onValidateAllAiLots && (
+          <button
+            onClick={onValidateAllAiLots}
+            className="
+              w-full px-md py-sm rounded-md text-sm font-medium
+              bg-[var(--color-success,#16A34A)] text-white
+              hover:opacity-90
+              transition-all duration-150
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]
+              min-h-[44px]
+            "
+          >
+            Tout valider ({aiSuggestedLots.length} lot{aiSuggestedLots.length !== 1 ? "s" : ""} IA)
+          </button>
         )}
 
         {/* Bouton ajouter */}

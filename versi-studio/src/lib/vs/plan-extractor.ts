@@ -164,6 +164,16 @@ For each enclosed space bounded by walls/partitions:
   d. Exclude: outdoor terraces, balconies, gardens, staircases.
   e. Open-plan rooms (e.g., "Séjour/Cuisine" with no dividing wall): ONE room, not two.
 
+STEP 3b — UNIT IDENTIFICATION (mandatory for "immeuble" type):
+  For multi-unit buildings (immeubles de rapport), identify which rooms belong to the same residential unit (apartment/logement).
+  RULES:
+  1. Assign a unit_id (u1, u2, u3...) to each room that clearly belongs to a specific unit.
+  2. Rooms sharing the same unit_id MUST be on the same floor, physically connected, and form a coherent residential unit (at minimum: 1 living space + 1 wet room).
+  3. If the plan labels units (e.g., "Appartement 1", "Lot A", "T3 gauche"), use that information.
+  4. If units are NOT labeled but rooms cluster spatially: look for entrance doors on exterior walls or landing. Rooms accessible only from each other = 1 unit. Separate entrances = separate units.
+  5. Set unit_id = null if: common area (staircase, hall, cellar, trash room), cannot determine with confidence > 0.6, or single-unit building.
+  6. For "maison" or single "appartement": all rooms get unit_id = "u1" (or null if common area).
+
 STEP 4 — SURFACES (READ from plan, do NOT calculate):
   Priority A (MANDATORY): Look for the surface value PRINTED on the plan next to or inside the room. Use this value AS-IS.
   COMMON MISREAD ERRORS — check yourself:
@@ -187,6 +197,13 @@ STEP 5 — BOUNDING BOXES (critical — anchor to wall positions):
   6. CONTAINMENT: every box inside building_outline.
   7. BOUNDS: x_percent + width_percent <= 100, y_percent + height_percent <= 100, all >= 0.
 
+STEP 5b — BOUNDING POLYGON (for non-rectangular rooms only):
+  If a room's shape is "L-shaped", "irregular", or the bounding_box area is significantly larger than the actual room:
+  - Provide bounding_polygon: an array of 4-8 vertices (clockwise order, % of image) tracing the room outline more closely.
+  - The polygon MUST follow the room's walls. Vertices at wall corners.
+  - For rectangular/square rooms: bounding_polygon = null (bounding_box suffices).
+  - Minimum 3 points, maximum 8 points. All coordinates 0-100%. No self-intersecting edges.
+
 STEP 6 — METADATA:
   - windows_count / doors_count: count per room.
   - floor: 0 = RDC, default 0 if single level.
@@ -203,6 +220,9 @@ STEP 7 — SELF-REVIEW (mandatory — do NOT skip):
   5. Small rooms (WC, SdB) have smaller boxes than large rooms (Séjour)?
   6. Did I use the EXACT room names from the plan?
   7. Did I invent a room that is NOT visible on the plan? If yes, remove it.
+  8. If type_bien = "immeuble": do rooms with the same unit_id form coherent apartments? (connected, same floor, livable with at least 1 living + 1 wet room)
+  9. If bounding_polygon provided: is it tighter than bounding_box? Does it follow the walls?
+  10. Are there orphan rooms (no unit_id) that should belong to a unit? Re-check.
 
 TYPE DE BIEN: "${typeBien}". If "immeuble", there may be multiple units — identify them if possible.
 
@@ -280,6 +300,31 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
                 { type: "null" as const },
               ],
             },
+            unit_id: {
+              anyOf: [
+                { type: "string" as const },
+                { type: "null" as const },
+              ],
+            },
+            bounding_polygon: {
+              anyOf: [
+                {
+                  type: "array" as const,
+                  items: {
+                    type: "object" as const,
+                    properties: {
+                      x_percent: { type: "number" as const, minimum: 0, maximum: 100 },
+                      y_percent: { type: "number" as const, minimum: 0, maximum: 100 },
+                    },
+                    required: ["x_percent", "y_percent"] as const,
+                    additionalProperties: false,
+                  },
+                  minItems: 3,
+                  maxItems: 8,
+                },
+                { type: "null" as const },
+              ],
+            },
           },
           required: [
             "temp_id",
@@ -294,6 +339,8 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
             "shape",
             "notes",
             "bounding_box",
+            "unit_id",
+            "bounding_polygon",
           ],
           additionalProperties: false,
         },
@@ -331,6 +378,7 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
             "partial_occlusion",
             "no_scale_reference",
             "technical_symbols_ignored",
+            "unit_clustering_low_confidence",
           ],
         },
       },

@@ -64,6 +64,7 @@ export const ExtractionWarningEnum = z.enum([
   "partial_occlusion",
   "no_scale_reference",
   "technical_symbols_ignored",
+  "unit_clustering_low_confidence",
 ]);
 export type ExtractionWarning = z.infer<typeof ExtractionWarningEnum>;
 
@@ -188,6 +189,29 @@ export const ExtractedRoomSchema = z.object({
     .optional()
     .describe(
       "Position estimée de la pièce sur le plan (pourcentages 0-100)"
+    ),
+  unit_id: z
+    .string()
+    .nullable()
+    .describe(
+      "Identifiant de l'unité logique (appartement/logement). " +
+      "Pièces partageant le même unit_id forment un même lot. " +
+      "Format: 'u1', 'u2', ... null si indéterminé ou partie commune."
+    ),
+  bounding_polygon: z
+    .array(
+      z.object({
+        x_percent: z.number().min(0).max(100),
+        y_percent: z.number().min(0).max(100),
+      })
+    )
+    .min(3)
+    .max(8)
+    .nullable()
+    .optional()
+    .describe(
+      "Contour polygonal de la pièce en % de l'image (3-8 points). " +
+      "Fourni uniquement si la pièce est non-rectangulaire. null si rectangulaire."
     ),
 });
 export type ExtractedRoom = z.infer<typeof ExtractedRoomSchema>;

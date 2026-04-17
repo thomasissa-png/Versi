@@ -1,9 +1,12 @@
 /**
  * API Route — /api/vs/projects/[id]/extract
- * POST : Lance l'extraction IA sur tous les plans du projet.
+ * POST : Lance l'extraction IA sur tous les plans du projet,
+ *        puis clustering par unit_id pour pré-créer les lots.
  *
- * Lit chaque plan depuis le filesystem, appelle le plan-extractor,
- * puis crée les lots suggérés en base (vs_lots).
+ * Stratégie versi-s21 :
+ * - L'IA retourne `unit_id` par pièce (appartement identifié)
+ * - Backend groupe par (floor, unit_id) → 1 lot = 1 appartement
+ * - Si confiance < 0.7 → "no AI > bad AI", 0 lot pré-créé
  *
  * V1 sans auth — tout est public.
  */
@@ -13,7 +16,15 @@ import { query, ensureDbReady } from "@/lib/vs/db";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
 import { extractPlanData } from "@/lib/vs/plan-extractor";
-import type { PlanExtractionResult } from "@/lib/vs/schemas";
+import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
+import {
+  clusterByUnit,
+  computeEnvelopeBbox,
+  generateLotName,
+  countHabitableRooms,
+  computeAvgX,
+  CLUSTERING_CONFIDENCE_THRESHOLD,
+} from "@/lib/vs/clustering";
 
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -69,18 +80,14 @@ export async function POST(
       [projectId]
     );
 
-    // Stratégie versi-s20 : NE PAS pré-créer de lots génériques.
-    // Un rectangle englobant aléatoire des pièces produit un découpage faux qui pollue
-    // l'écran et oblige Thomas (marchand) à supprimer avant de redessiner. L'état vide
-    // guidé est meilleur — l'utilisateur arrive sur l'Étape 2 avec 0 lot et utilise
-    // « Dessiner un polygone » ou « + Ajouter un lot » pour partir d'une page blanche.
-    //
-    // La stratégie clustering `unit_id` (IA) est documentée pour s21 (audit @ia P0 #1) :
-    // l'IA produira directement des suggestions de lots fiables (un lot = un appartement
-    // identifié), avec polygones IA (P0 #2) et gate cohérence surface (P0 #3).
-    //
-    // Les `extraction_data` (avec rooms et bounding_box) restent extraites et utilisées
-    // en Étape 3 (Pièces).
+    // Supprimer les anciens lots IA du projet (re-extraction propre)
+    await query(
+      "DELETE FROM vs_lots WHERE project_id = $1 AND source = 'ai'",
+      [projectId]
+    );
+
+    // Collecter toutes les pièces extraites de tous les plans
+    const allRooms: ExtractedRoom[] = [];
 
     // Extraire chaque plan
     for (const plan of plansResult.rows) {
@@ -89,7 +96,7 @@ export async function POST(
         const fileBuffer = await readFile(plan.file_path);
         const base64 = fileBuffer.toString("base64");
 
-        // Appeler le plan-extractor
+        // Appeler le plan-extractor (retourne maintenant unit_id + bounding_polygon)
         const extraction: PlanExtractionResult = await extractPlanData(
           base64,
           plan.mime_type,
@@ -101,6 +108,15 @@ export async function POST(
           "UPDATE vs_plans SET extraction_data = $1, extraction_status = 'done' WHERE id = $2",
           [JSON.stringify(extraction), plan.id]
         );
+
+        // Collecter les pièces pour le clustering
+        // Assigner le floor_number du plan si la pièce n'en a pas
+        for (const room of extraction.rooms) {
+          if (room.floor == null) {
+            room.floor = plan.floor_number;
+          }
+          allRooms.push(room);
+        }
       } catch (planErr) {
         console.error(
           `[API] Extraction plan ${plan.id} échouée :`,
@@ -114,10 +130,71 @@ export async function POST(
       }
     }
 
-    // 0 lot pré-créé : l'utilisateur démarre sur l'écran vide guidé.
+    // ─── Clustering par unit_id (versi-s21) ───────────────────────
+    //
+    // Principe "no AI > bad AI" : si confiance clustering < 0.7,
+    // ne rien pré-créer. Thomas démarre sur l'écran vide guidé.
+
+    const unitGroups = clusterByUnit(allRooms, CLUSTERING_CONFIDENCE_THRESHOLD);
+
+    let lotsCreated = 0;
+
+    if (unitGroups.length > 0) {
+      // Compter les groupes par étage pour le nommage (détection doublon)
+      const groupsByFloor = new Map<number, typeof unitGroups>();
+      for (const g of unitGroups) {
+        const existing = groupsByFloor.get(g.floor);
+        if (existing) {
+          existing.push(g);
+        } else {
+          groupsByFloor.set(g.floor, [g]);
+        }
+      }
+
+      for (const group of unitGroups) {
+        const habitableCount = countHabitableRooms(group.rooms);
+        const avgX = computeAvgX(group.rooms);
+
+        const floorGroups = groupsByFloor.get(group.floor) || [];
+        const indexOnFloor = floorGroups.indexOf(group);
+
+        const lotName = generateLotName(
+          habitableCount,
+          group.floor,
+          indexOnFloor,
+          floorGroups.length,
+          avgX
+        );
+
+        // Calculer la zone englobante
+        const zoneData = computeEnvelopeBbox(group.rooms);
+
+        // Calculer la surface totale estimée
+        const surfaceM2 = group.rooms.reduce(
+          (sum, r) => sum + (r.surface_m2 || 0),
+          0
+        );
+
+        // Insérer le lot en base
+        await query(
+          `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status)
+           VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested')`,
+          [
+            projectId,
+            lotName,
+            group.floor,
+            surfaceM2 > 0 ? surfaceM2 : null,
+            JSON.stringify(zoneData),
+          ]
+        );
+
+        lotsCreated++;
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: { lots_created: 0 },
+      data: { lots_created: lotsCreated },
     });
   } catch (err) {
     console.error("[API] POST /api/vs/projects/[id]/extract erreur :", err);

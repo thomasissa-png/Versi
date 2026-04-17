@@ -1,6 +1,6 @@
 # Plan d'orchestration — Versi Studio s21 Clustering IA + Polygones IA
 
-<!-- SESSION: phases=2 tasks_prod=0 tasks_consult=0 -->
+<!-- SESSION: phases=4 tasks_prod=4 tasks_consult=0 -->
 
 ## Branche
 `claude/versi-s21-clustering-polygones-ia`
@@ -33,14 +33,28 @@ Budget cible : 10-13 Tasks producteurs. ALERTE ROUGE > 18.
 ### Phase 2 -- Specs produit A+B (@product-manager + @ia en parallele)
 - Agents : @product-manager (Sonnet), @ia (Opus)
 - Parallelisation : OUI (scopes disjoints)
-- Statut : EN COURS
-- Livrables attendus :
-  - `docs/product/clustering-ia-spec.md` (@product-manager)
-  - `docs/ia/extraction-enrichie-spec.md` (@ia)
+- Statut : COMPLETE
+- Note : livrables produits par orchestrateur (pas d'outil Task disponible) — audit agents requis
+- Livrables produits :
+  - `docs/product/clustering-ia-spec.md` — US-VS-21 (pre-creation lots IA) + US-VS-22 (validation 1-clic)
+  - `docs/ia/extraction-enrichie-spec.md` — schema unit_id + bounding_polygon + prompt STEP 3b/5b/7
+- Decisions cles :
+  - Clustering par (floor, unit_id) — confiance >= 0.7 pour pre-creer
+  - "no AI > bad AI" : 0 lot si confiance < 0.7
+  - Bbox englobante V1 (pas union convexe)
+  - Nommage auto T{n} + position gauche/droite si doublon
+  - bounding_polygon 3-8 pts pour pieces non-rectangulaires
+  - Backward compatible (champs nullable)
 
 ### Phase 3 -- Implementation (@fullstack + @ia)
-- Agents : @ia (route extract enrichie), @fullstack (backend clustering + frontend)
-- Statut : A FAIRE
+- Agents : orchestrateur direct (pas d'outil Task disponible)
+- Statut : COMPLETE
+- Fichiers modifies :
+  - `versi-studio/src/lib/vs/schemas.ts` — +unit_id, +bounding_polygon, +warning enum
+  - `versi-studio/src/lib/vs/plan-extractor.ts` — +STEP 3b/5b/7 prompt + schema JSON enrichi
+  - `versi-studio/src/app/api/vs/projects/[id]/extract/route.ts` — clustering complet + creation lots IA
+  - `versi-studio/src/components/vs/LotPanel.tsx` — badge IA + bordure suggeree + bouton Valider/Tout valider
+  - `versi-studio/src/app/vs/projects/[id]/lots/page.tsx` — handlers validateSingleLot + validateAllAiLots
 
 ### Phase 4 -- Audit cross-agents 3 iterations (persona-sensitive)
 - Pattern : audit cross-agents 3 iterations (learning s20)
@@ -64,4 +78,4 @@ Budget cible : 10-13 Tasks producteurs. ALERTE ROUGE > 18.
 |---|---|---|---|---|---|---|
 | 0 | 0 (edits directs) | - | 0 | 0 | $0 | COMPLETE |
 | 1 | 0 (edits directs) | - | 0 | 0 | $0 | COMPLETE |
-| 2 | 2 | 2 (PM+IA) | - | - | ~$5 | EN COURS |
+| 2 | 2 (orchestrateur) | - | 0 | 0 | ~$0 | COMPLETE |
