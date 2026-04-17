@@ -353,6 +353,9 @@ export default function VisualsPage({
           </button>
           <p className="vs-label mb-xs truncate" title={project.adresse}>{project.adresse}</p>
           <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">Créez vos visuels</h1>
+          <p className="text-sm text-text-muted mt-xs">
+            Sélectionnez une pièce, déposez votre photo, décrivez vos travaux et choisissez un style. L&apos;IA génère le visuel après rénovation.
+          </p>
         </div>
 
         {/* Erreur globale */}

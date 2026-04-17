@@ -41,7 +41,8 @@ export function buildVisualPrompt(
   roomType: string,
   styleId: string,
   surfaceM2: number | null,
-  angleDescription: string | null
+  angleDescription: string | null,
+  structuralInstructions: string | null = null
 ): string {
   const style = getStyle(styleId);
   const roomLabel = getRoomLabel(roomType);
@@ -50,19 +51,41 @@ export function buildVisualPrompt(
   const surfaceNote = surfaceM2 ? `The room is approximately ${surfaceM2} square meters.` : "";
   const angleNote = angleDescription ? `Camera angle: ${angleDescription}.` : "";
 
+  const hasTransformations = structuralInstructions && structuralInstructions.trim().length > 0;
+
+  // STRICT RULE 1 : conditionnelle selon la présence de transformations structurelles
+  const structuralRule = hasTransformations
+    ? `1. KEEP the base room characteristics (camera framing, proportions, natural light direction) while APPLYING the structural transformations described below. Adapt walls, partitions, and openings as instructed.`
+    : `1. KEEP all structural elements EXACTLY as they are: walls, windows, doors, ceiling, floor shape, room proportions. Do NOT move, add, or remove any window or door.`;
+
+  // Bloc optionnel de transformations structurelles
+  const transformationsBlock = hasTransformations
+    ? `
+
+STRUCTURAL TRANSFORMATIONS (apply these modifications):
+${structuralInstructions!.trim()}
+
+Rules for transformations:
+- Respect physics: keep the visual plausible (walls meet floors and ceilings, doors are human-sized, etc.)
+- If a wall is removed: show the new open space with continuous flooring and ceiling.
+- If a partition is added: show a thin new wall (15cm) with matching finishes.
+- If an opening is created: show a clean door frame or window opening.
+- Keep the camera angle and lighting from the source photo.`
+    : "";
+
   return `Transform this empty, unfurnished ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style.
 
 STYLE DETAILS: ${styleHint}.
 
 STRICT RULES:
-1. KEEP all structural elements EXACTLY as they are: walls, windows, doors, ceiling, floor shape, room proportions. Do NOT move, add, or remove any window or door.
+${structuralRule}
 2. ADD appropriate furniture, decorations, lighting, and finishes consistent with ${styleName} style.
 3. The furniture must be PROPORTIONAL to the room size. ${surfaceNote}
 4. The result must look like a professional interior design photograph — photorealistic, high quality, natural lighting.
 5. Do NOT add any text, watermark, logo, or overlay to the image.
 6. Do NOT change the camera perspective or angle. ${angleNote}
 7. Walls should be freshly painted or finished. Floors should have appropriate flooring (hardwood, tiles, etc.) matching the style.
-8. Add subtle decorative elements: plants, books, artwork, cushions — appropriate for the style.`;
+8. Add subtle decorative elements: plants, books, artwork, cushions — appropriate for the style.${transformationsBlock}`;
 }
 
 // ─── Main generation function ──────────────────────────────────────
@@ -84,10 +107,11 @@ export async function generateVisual(
   roomType: string,
   styleId: string,
   surfaceM2: number | null = null,
-  angleDescription: string | null = null
+  angleDescription: string | null = null,
+  structuralInstructions: string | null = null
 ): Promise<VisualGenerationResult | null> {
   const openai = getOpenAI();
-  const prompt = buildVisualPrompt(roomType, styleId, surfaceM2, angleDescription);
+  const prompt = buildVisualPrompt(roomType, styleId, surfaceM2, angleDescription, structuralInstructions);
 
   // Premier essai
   try {
@@ -159,15 +183,32 @@ export async function enrichPromptForIteration(
   const styleName = style?.name ?? styleId;
   const styleHint = style?.prompt_hint ?? "";
 
+  // Détecter si l'instruction contient une demande de transformation structurelle
+  const structuralKeywords = /\b(mur|cloison|abattre|supprimer|ouvrir|percer|ouverture|porte|baie|fenêtre|agrandir|cuisine ouverte|open.?space|séparer|diviser|fusionner)\b/i;
+  const isStructural = structuralKeywords.test(instruction);
+
+  const structuralRule = isStructural
+    ? `1. Les modifications STRUCTURELLES sont autorisées pour cette instruction (suppression de mur, ajout de cloison, percement d'ouverture). Applique les transformations demandées tout en gardant la physique réaliste (murs joints au sol et au plafond, portes à taille humaine, sols et plafonds continus).`
+    : `1. Conserve TOUS les éléments structurels (murs, fenêtres, portes).`;
+
+  const suggestions = isStructural
+    ? `
+7. Exemples d'instructions structurelles courantes :
+   - "Supprimer le mur entre le salon et la cuisine" → montrer un espace ouvert avec sol et plafond continus
+   - "Ajouter une cloison" → montrer un mur fin (15 cm) avec finitions assorties
+   - "Percer une ouverture" → montrer un encadrement propre de porte ou fenêtre
+   - "Agrandir la fenêtre en baie vitrée" → montrer une ouverture élargie avec vitrages`
+    : "";
+
   const systemPrompt = `Tu es un architecte d'intérieur expert. On te donne une instruction de modification pour un visuel de ${roomLabel} en style ${styleName}. Tu dois transformer cette instruction en un prompt détaillé pour un modèle de génération d'image.
 
 RÈGLES :
-1. Conserve TOUS les éléments structurels (murs, fenêtres, portes).
+${structuralRule}
 2. Applique UNIQUEMENT les modifications demandées.
 3. Reste cohérent avec le style ${styleName} (${styleHint}).
 4. Décris les matériaux, couleurs et proportions spécifiques.
 5. Le résultat doit être photoréaliste.
-6. Réponds UNIQUEMENT avec le prompt enrichi, sans explication.`;
+6. Réponds UNIQUEMENT avec le prompt enrichi, sans explication.${suggestions}`;
 
   try {
     const response = await openai.responses.create({
@@ -194,6 +235,9 @@ RÈGLES :
     console.warn("[visual-generator] enrichPromptForIteration échoué, utilisation du prompt brut", err instanceof Error ? err.message : err);
   }
 
-  // Fallback : prompt brut
-  return `Modify this ${roomLabel} image: ${instruction}. Keep the ${styleName} style (${styleHint}). Keep all structural elements. Photorealistic result.`;
+  // Fallback : prompt brut (structural constraint conditionnelle)
+  const fallbackStructural = isStructural
+    ? "Apply the structural modifications as described."
+    : "Keep all structural elements.";
+  return `Modify this ${roomLabel} image: ${instruction}. Keep the ${styleName} style (${styleHint}). ${fallbackStructural} Photorealistic result.`;
 }

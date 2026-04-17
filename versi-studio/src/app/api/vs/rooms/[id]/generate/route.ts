@@ -37,7 +37,11 @@ export async function POST(
     }
 
     // Lire le body
-    const body = await request.json() as { photo_id: string; style_id: string };
+    const body = await request.json() as {
+      photo_id: string;
+      style_id: string;
+      structural_instructions?: string | null;
+    };
 
     if (!body.photo_id || !isValidUUID(body.photo_id)) {
       return NextResponse.json(
@@ -49,6 +53,15 @@ export async function POST(
     if (!body.style_id || !getStyle(body.style_id)) {
       return NextResponse.json(
         { success: false, error: "Style de décoration invalide." },
+        { status: 400 }
+      );
+    }
+
+    // Valider structural_instructions (optionnel, max 500 caractères)
+    const structuralInstructions = body.structural_instructions?.trim() || null;
+    if (structuralInstructions && structuralInstructions.length > 500) {
+      return NextResponse.json(
+        { success: false, error: "La description des travaux ne peut pas dépasser 500 caractères." },
         { status: 400 }
       );
     }
@@ -99,7 +112,7 @@ export async function POST(
     // IMPORTANT : sur Replit autoscale, on doit await avant la réponse.
     // Mais la génération prend ~90s, donc on lance et on attend via polling.
     // Compromis V1 : on lance sans await, le frontend poll le statut.
-    generateVisualAsync(visual.id, photo, room, body.style_id);
+    generateVisualAsync(visual.id, photo, room, body.style_id, structuralInstructions);
 
     return NextResponse.json(
       { success: true, data: { visual_id: visual.id } },
@@ -120,7 +133,8 @@ async function generateVisualAsync(
   visualId: string,
   photo: VsPhoto,
   room: VsRoom,
-  styleId: string
+  styleId: string,
+  structuralInstructions: string | null = null
 ): Promise<void> {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -152,14 +166,15 @@ async function generateVisualAsync(
     };
     const mimeType = mimeMap[ext] || "image/jpeg";
 
-    // Appeler le générateur
+    // Appeler le générateur (avec transformations structurelles si renseignées)
     const result = await generateVisual(
       photoBase64,
       mimeType,
       room.room_type,
       styleId,
       room.surface_m2 ? Number(room.surface_m2) : null,
-      photo.angle_description
+      photo.angle_description,
+      structuralInstructions
     );
 
     if (!result) {

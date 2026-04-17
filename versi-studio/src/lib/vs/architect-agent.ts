@@ -67,11 +67,19 @@ export async function iterateVisual(
     enrichedPrompt = `Modify this ${roomLabel}: ${instruction}. Style: ${styleName} (${styleHint}). Keep structural elements. Photorealistic.`;
   }
 
-  // Ajouter les contraintes structurelles au prompt enrichi
+  // Détecter si l'instruction contient une demande de transformation structurelle
+  const structuralKeywords = /\b(mur|cloison|abattre|supprimer|ouvrir|percer|ouverture|porte|baie|fenêtre|agrandir|cuisine ouverte|open.?space|séparer|diviser|fusionner)\b/i;
+  const isStructural = structuralKeywords.test(instruction);
+
+  // Contraintes structurelles conditionnelles
+  const structuralConstraint = isStructural
+    ? `- APPLY the structural modifications as instructed (remove walls, add partitions, create openings). Keep physics plausible: walls meet floors and ceilings, doors are human-sized, continuous flooring and ceiling in open spaces.`
+    : `- Keep ALL structural elements exactly as they are (walls, windows, doors, ceiling).`;
+
   const finalPrompt = `${enrichedPrompt}
 
 IMPORTANT CONSTRAINTS:
-- Keep ALL structural elements exactly as they are (walls, windows, doors, ceiling).
+${structuralConstraint}
 - Apply ONLY the requested modifications. Do not change anything else.
 - The result must remain consistent with ${styleName} style.
 - Photorealistic interior design photograph quality.

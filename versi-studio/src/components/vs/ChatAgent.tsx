@@ -30,6 +30,17 @@ interface ChatAgentProps {
 
 const MAX_CHARS = 500;
 
+// ─── Suggestions rapides pour le chat ───────────────────────────
+
+const CHAT_SUGGESTIONS = [
+  { label: "Plus de lumière naturelle", text: "Ajoutez plus de lumière naturelle — agrandissez ou ajoutez des fenêtres si possible" },
+  { label: "Changer le sol", text: "Changez le revêtement de sol par du parquet chêne clair" },
+  { label: "Supprimer la cloison", text: "Supprimez la cloison visible pour ouvrir l'espace" },
+  { label: "Ajouter une verrière", text: "Ajoutez une verrière entre la cuisine et le séjour" },
+  { label: "Cuisine plus ouverte", text: "Ouvrez la cuisine sur le séjour en supprimant le mur séparatif" },
+  { label: "Peinture murale blanche", text: "Repeignez tous les murs en blanc mat" },
+];
+
 export default function ChatAgent({
   messages,
   onSendInstruction,
@@ -105,29 +116,35 @@ export default function ChatAgent({
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-md space-y-md"
       >
+        {/* Message d'introduction agent */}
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <svg
-                className="w-10 h-10 text-text-muted mx-auto mb-sm"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
-                />
-              </svg>
-              <p className="text-sm text-text-muted">
-                Lancez une conversation avec l&apos;agent
-              </p>
-              <p className="text-xs text-text-muted mt-2xs">
-                Exemple : « Ajoutez un tapis beige et des rideaux en lin »
-              </p>
+          <div>
+            <div className="flex justify-start mb-md">
+              <div className="max-w-[85%] rounded-lg p-sm bg-bg-default text-text-default border border-border-default">
+                <p className="text-sm">
+                  Voici votre visuel post-travaux. Décrivez une modification structurelle (mur, cloison, ouverture) ou une retouche décorative — l&apos;agent architecte met à jour le visuel.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Suggestions rapides (affichées quand pas encore de messages utilisateur) */}
+        {!messages.some((m) => m.role === "user") && (
+          <div className="mb-md">
+            <p className="text-xs text-text-muted mb-sm">Suggestions :</p>
+            <div className="flex flex-wrap gap-sm">
+              {CHAT_SUGGESTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => setInput(s.text)}
+                  disabled={isProcessing}
+                  className="rounded-full border border-border-default bg-bg-default px-sm py-2xs text-xs text-text-muted hover:bg-bg-card hover:text-text-default transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
           </div>
         )}

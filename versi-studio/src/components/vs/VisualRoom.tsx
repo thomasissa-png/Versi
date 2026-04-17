@@ -37,6 +37,16 @@ type RoomSubState =
 
 const POLL_INTERVAL = 5000;
 
+// ─── Exemples de transformations structurelles ──────────────────
+
+const TRANSFORMATION_EXAMPLES = [
+  { label: "Supprimer un mur", text: "supprimer le mur entre [pièce A] et [pièce B] pour créer un espace ouvert" },
+  { label: "Ajouter une cloison", text: "ajouter une cloison pour diviser la pièce en deux espaces distincts" },
+  { label: "Percer une porte", text: "percer une ouverture de porte sur le mur de droite" },
+  { label: "Cuisine ouverte", text: "ouvrir la cuisine sur le séjour en supprimant le mur séparatif" },
+  { label: "Agrandir une fenêtre", text: "agrandir la fenêtre existante en baie vitrée sur le mur du fond" },
+];
+
 // ─── Mapping erreurs API → messages utilisateur ─────────────────
 
 const errorMessages: Record<string, string> = {
@@ -61,6 +71,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
   const [error, setError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [transformations, setTransformations] = useState("");
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -297,6 +308,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         body: JSON.stringify({
           photo_id: photos[0].id,
           style_id: selectedStyleId,
+          structural_instructions: transformations.trim() || null,
         }),
       });
       const json = (await res.json()) as ApiResponse<{ visual_id: string }>;
@@ -611,6 +623,42 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
                 </div>
               </div>
             )}
+
+            {/* ─── Champ travaux structurels (optionnel) ──────── */}
+            <div className="mb-lg">
+              <label htmlFor="transformations" className="block text-sm font-medium text-text-default mb-xs">
+                Travaux structurels prévus (optionnel)
+              </label>
+              <p className="text-xs text-text-muted mb-sm">
+                Décrivez comme à un architecte : mur à supprimer, cloison à ajouter, ouverture à percer. L&apos;IA intègre ces modifications dans le visuel.
+              </p>
+              <textarea
+                id="transformations"
+                value={transformations}
+                onChange={(e) => setTransformations(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="Ex : supprimer le mur entre le salon et la cuisine, ajouter une cloison côté couloir..."
+                className="
+                  w-full rounded-md border border-border-default px-md py-sm text-sm
+                  text-text-default placeholder:text-text-muted bg-bg-default
+                  focus-visible:outline-none focus-visible:border-interactive-primary
+                  resize-y transition-colors duration-200
+                "
+              />
+              <div className="mt-sm flex flex-wrap gap-sm">
+                {TRANSFORMATION_EXAMPLES.map((ex) => (
+                  <button
+                    key={ex.label}
+                    type="button"
+                    onClick={() => setTransformations((prev) => (prev ? prev + ", " : "") + ex.text)}
+                    className="rounded-full border border-border-default bg-bg-default px-sm py-2xs text-xs text-text-muted hover:bg-bg-card hover:text-text-default transition-colors duration-200"
+                  >
+                    + {ex.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <p className="text-sm text-text-muted mb-md">
               Choisissez un style
