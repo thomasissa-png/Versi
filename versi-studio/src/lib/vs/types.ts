@@ -73,6 +73,10 @@ export interface VsRoom {
   custom_label: string | null;
   surface_m2: number | null;
   position: Record<string, unknown> | null;
+  /** Contour polygonal de la piece (lot-local %). 4-8 sommets aux coins des murs. */
+  polygon: Array<{ x_percent: number; y_percent: number }> | null;
+  /** true si l'utilisateur a modifié, déplacé ou confirmé cette pièce IA */
+  touched: boolean;
   status: RoomStatus;
   source: LotSource;
   created_at: string;

@@ -186,23 +186,55 @@ STEP 4 — SURFACES (READ from plan, do NOT calculate):
     WC 1-4 m² | SdB 3-12 m² | Chambre 8-25 m² | Cuisine 5-25 m² | Séjour 15-60 m² | Couloir 2-12 m² | Cellier/Rangement 1-8 m²
   If a value falls outside these ranges, RE-READ the plan.
 
-STEP 5 — BOUNDING BOXES (critical — anchor to wall positions):
-  Each bounding_box = tightest axis-aligned rectangle enclosing one room.
-  RULES:
-  1. ANCHOR TO WALLS: x_percent/y_percent = top-left WHERE THE ROOM'S WALLS BEGIN on the image.
-  2. NON-RECTANGULAR (L-shape, irregular): tightest rectangle containing the entire room.
-  3. ADJACENCY: shared-wall rooms MUST have touching boxes (within 1%).
-  4. PROPORTIONALITY: box area proportional to surface_m2.
-  5. COVERAGE: union of all boxes fills the building_outline.
-  6. CONTAINMENT: every box inside building_outline.
-  7. BOUNDS: x_percent + width_percent <= 100, y_percent + height_percent <= 100, all >= 0.
+STEP 5 — BOUNDING BOXES (critical — anchor to WALL POSITIONS, not text labels):
+  Each bounding_box = tightest axis-aligned rectangle enclosing one room's FLOOR AREA.
 
-STEP 5b — BOUNDING POLYGON (for non-rectangular rooms only):
-  If a room's shape is "L-shaped", "irregular", or the bounding_box area is significantly larger than the actual room:
-  - Provide bounding_polygon: an array of 4-8 vertices (clockwise order, % of image) tracing the room outline more closely.
-  - The polygon MUST follow the room's walls. Vertices at wall corners.
-  - For rectangular/square rooms: bounding_polygon = null (bounding_box suffices).
-  - Minimum 3 points, maximum 8 points. All coordinates 0-100%. No self-intersecting edges.
+  WALL IDENTIFICATION METHOD (follow this procedure for EACH room):
+  a. Find the room name text on the plan (e.g., "Chambre", "SdB").
+  b. Starting from that text, look OUTWARD in all 4 directions until you hit a WALL LINE.
+     A wall is a thick solid line (typically 2-10px thick on the image), often filled black or grey.
+     Do NOT confuse dimension lines (thin, with arrows/numbers) or furniture outlines with walls.
+  c. The bounding_box edges MUST align with the INNER FACE of the walls surrounding the room.
+     - x_percent = left wall inner edge (where the floor begins, not the wall center or outer face)
+     - y_percent = top wall inner edge
+     - x_percent + width_percent = right wall inner edge
+     - y_percent + height_percent = bottom wall inner edge
+  d. CRITICAL: do NOT place the bbox around the text label itself. The text is typically at the CENTER
+     of the room. The bbox must extend from wall to wall, which is MUCH LARGER than the text area.
+
+  ANTI-LABEL RULE: If your bbox width or height is less than 10% of the building outline dimension,
+  you are likely boxing the text label, not the room. A real room is bounded by walls, not by its name.
+  Re-examine the plan and extend to the actual wall lines.
+
+  VALIDATION RULES:
+  1. ADJACENCY: rooms sharing a wall MUST have bounding boxes that TOUCH or overlap by 0-2%
+     (the wall thickness). If two adjacent rooms have a gap > 2% between their boxes, something is wrong.
+  2. PROPORTIONALITY: bbox area should be roughly proportional to surface_m2.
+     Cross-check: (room_bbox_area / building_outline_area) should approximate (room_surface / total_surface).
+     If the ratio differs by more than 2x, re-examine the bbox placement.
+  3. COVERAGE: the union of all room bboxes should fill approximately 85-100% of the building_outline.
+     Large uncovered gaps inside the outline indicate missing rooms or too-small bboxes.
+  4. CONTAINMENT: every bbox must be inside building_outline (with 1% tolerance).
+  5. BOUNDS: x_percent + width_percent <= 100, y_percent + height_percent <= 100, all >= 0.
+  6. MINIMUM SIZE: no bbox should have width_percent < 3 or height_percent < 3 (even a WC is visible).
+
+STEP 5b — BOUNDING POLYGON (for ALL rooms, recommended):
+  For EVERY room, provide bounding_polygon: an array of 4-8 vertices (clockwise order, % of image)
+  tracing the room's wall outline. Place each vertex at a wall CORNER (where two walls meet).
+
+  HOW TO TRACE:
+  a. Start at the top-left corner of the room (where the top wall meets the left wall, INNER face).
+  b. Follow the walls clockwise, placing a vertex at each corner.
+  c. For rectangular rooms: exactly 4 vertices (the 4 corners).
+  d. For L-shaped rooms: 6 vertices (the 6 corners of the L).
+  e. For irregular rooms: up to 8 vertices to approximate the shape.
+
+  RULES:
+  - Vertices at wall INNER FACE corners, not wall centers or outer faces.
+  - All coordinates 0-100% of image. No self-intersecting edges.
+  - Minimum 4 points for any room. Maximum 8 points.
+  - bounding_polygon = null ONLY if you truly cannot determine the room outline.
+  - The polygon should be TIGHTER than bounding_box for non-rectangular rooms.
 
 STEP 6 — METADATA:
   - windows_count / doors_count: count per room.
@@ -216,13 +248,16 @@ STEP 7 — SELF-REVIEW (mandatory — do NOT skip):
   1. Does each surface_m2 match what is PRINTED on the plan? Re-read each number.
   2. Sum of surfaces: does it make sense for a ${typeBien}? Typical apartment = 40-120 m².
   3. Every bounding box inside building_outline?
-  4. Adjacent rooms sharing a wall → their boxes touch?
+  4. Adjacent rooms sharing a wall → their boxes touch? If there is a gap > 2% between adjacent rooms, FIX IT.
   5. Small rooms (WC, SdB) have smaller boxes than large rooms (Séjour)?
   6. Did I use the EXACT room names from the plan?
   7. Did I invent a room that is NOT visible on the plan? If yes, remove it.
   8. If type_bien = "immeuble": do rooms with the same unit_id form coherent apartments? (connected, same floor, livable with at least 1 living + 1 wet room)
-  9. If bounding_polygon provided: is it tighter than bounding_box? Does it follow the walls?
-  10. Are there orphan rooms (no unit_id) that should belong to a unit? Re-check.
+  9. BBOX vs WALLS CHECK: for each room, verify that x_percent aligns with the LEFT wall, not the left edge of the room name text. The bbox should span the entire floor area, wall-to-wall.
+  10. COVERAGE CHECK: compute the total bbox area as a fraction of building_outline area. If < 70%, your bboxes are too small (likely anchored to text labels). Enlarge them to wall positions.
+  11. If bounding_polygon provided: does each vertex sit on a wall corner? Is it tighter than bounding_box for non-rectangular rooms?
+  12. Are there orphan rooms (no unit_id) that should belong to a unit? Re-check.
+  13. PROPORTIONALITY CHECK: the largest room by surface_m2 should have the largest (or near-largest) bbox. If a 25m² room has a smaller bbox than a 5m² room, the bbox is wrong.
 
 TYPE DE BIEN: "${typeBien}". If "immeuble", there may be multiple units — identify them if possible.
 
@@ -319,7 +354,7 @@ const PLAN_EXTRACTION_JSON_SCHEMA = {
                     required: ["x_percent", "y_percent"] as const,
                     additionalProperties: false,
                   },
-                  minItems: 3,
+                  minItems: 4,
                   maxItems: 8,
                 },
                 { type: "null" as const },
@@ -418,7 +453,7 @@ async function callVisionExtraction(
             type: "input_text",
             text:
               retryContext ||
-              "Extract all rooms from this floor plan.",
+              "Extract all rooms from this floor plan. For each room, place the bounding_box edges at the INNER FACE of the surrounding walls — not around the room name text. Also provide bounding_polygon with vertices at wall corners for every room.",
           },
         ],
       },

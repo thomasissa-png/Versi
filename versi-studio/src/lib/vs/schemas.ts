@@ -205,13 +205,13 @@ export const ExtractedRoomSchema = z.object({
         y_percent: z.number().min(0).max(100),
       })
     )
-    .min(3)
+    .min(4)
     .max(8)
     .nullable()
     .optional()
     .describe(
-      "Contour polygonal de la pièce en % de l'image (3-8 points). " +
-      "Fourni uniquement si la pièce est non-rectangulaire. null si rectangulaire."
+      "Contour polygonal de la pièce en % de l'image (4-8 sommets aux coins des murs). " +
+      "Recommandé pour toutes les pièces. null uniquement si contour indéterminable."
     ),
 });
 export type ExtractedRoom = z.infer<typeof ExtractedRoomSchema>;

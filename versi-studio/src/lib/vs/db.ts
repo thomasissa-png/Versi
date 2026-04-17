@@ -189,6 +189,7 @@ export async function ensureVsTables(): Promise<void> {
       custom_label VARCHAR(50),
       surface_m2 NUMERIC(6,2),
       position JSONB,
+      polygon JSONB,
       status VARCHAR(20) NOT NULL DEFAULT 'suggested'
         CHECK (status IN ('suggested','validated')),
       source VARCHAR(10) NOT NULL DEFAULT 'ai'
@@ -196,6 +197,10 @@ export async function ensureVsTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_vs_rooms_lot ON vs_rooms(lot_id);
+    -- S24 : ajout colonne polygon JSONB pour contour precis des pieces
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon JSONB;
+    -- S22 : ajout colonne touched pour flag confirmation utilisateur (option C)
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS touched BOOLEAN NOT NULL DEFAULT false;
 
     CREATE TABLE IF NOT EXISTS vs_photos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

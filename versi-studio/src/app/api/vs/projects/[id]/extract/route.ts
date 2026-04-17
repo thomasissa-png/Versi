@@ -255,9 +255,18 @@ export async function POST(
 
           const roomType = inferRoomTypeFromName(room.name_raw);
 
+          // Convertir bounding_polygon plan-global → lot-local (même re-normalisation que position)
+          let polygonLocal: Array<{ x_percent: number; y_percent: number }> | null = null;
+          if (room.bounding_polygon && room.bounding_polygon.length >= 4 && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
+            polygonLocal = room.bounding_polygon.map((pt) => ({
+              x_percent: Math.max(0, Math.min(100, ((pt.x_percent - zoneData.x_percent) / zoneData.width_percent) * 100)),
+              y_percent: Math.max(0, Math.min(100, ((pt.y_percent - zoneData.y_percent) / zoneData.height_percent) * 100)),
+            }));
+          }
+
           await query(
-            `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, source, status)
-             VALUES ($1, $2, $3, $4, $5, $6, 'ai', 'suggested')`,
+            `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, polygon, source, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'ai', 'suggested')`,
             [
               lotId,
               planIdForFloor,
@@ -265,6 +274,7 @@ export async function POST(
               roomType,
               room.surface_m2,
               position ? JSON.stringify(position) : null,
+              polygonLocal ? JSON.stringify(polygonLocal) : null,
             ]
           );
         }
