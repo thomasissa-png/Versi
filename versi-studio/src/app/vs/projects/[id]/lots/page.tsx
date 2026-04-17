@@ -760,7 +760,7 @@ export default function LotsPage({
             <span className="text-blue-600 text-xl flex-shrink-0" aria-hidden="true">&#9733;</span>
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-900">
-                L'IA a pré-créé {aiSuggestedLots.length} lot{aiSuggestedLots.length > 1 ? "s" : ""} depuis votre plan.
+                L&apos;IA a pré-créé {aiSuggestedLots.length} lot{aiSuggestedLots.length > 1 ? "s" : ""} depuis votre plan.
               </p>
               <p className="text-xs text-blue-700 mt-xs">
                 Vérifiez chaque lot et validez en 1 clic ou globalement.

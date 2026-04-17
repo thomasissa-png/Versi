@@ -294,7 +294,7 @@ export default function LotPanel({
         </h2>
         {lots.some((l) => l.source === "ai") && (
           <p className="text-xs text-[var(--color-text-muted)] italic mt-2xs">
-            Les zones sont une approximation rectangulaire de l'union des pièces détectées.
+            Les zones sont une approximation rectangulaire de l&apos;union des pièces détectées.
           </p>
         )}
       </div>
@@ -305,13 +305,13 @@ export default function LotPanel({
           <div className="text-center text-sm text-[var(--color-text-muted)] py-2xl px-md">
             {hasAiExtracted ? (
               <>
-                <p>L'IA n'a pas détecté de lots fiables sur ce plan.</p>
+                <p>L&apos;IA n&apos;a pas détecté de lots fiables sur ce plan.</p>
                 <p className="mt-sm">Dessinez vos lots manuellement avec le bouton ci-dessous.</p>
               </>
             ) : (
               <>
                 <p>Aucun lot pour le moment.</p>
-                <p className="mt-sm">Lancez l'extraction IA ou dessinez un lot manuellement.</p>
+                <p className="mt-sm">Lancez l&apos;extraction IA ou dessinez un lot manuellement.</p>
               </>
             )}
           </div>
@@ -356,7 +356,7 @@ export default function LotPanel({
             ))}
           </ul>
           <p className="text-xs text-[var(--color-text-muted)] mt-xs italic">
-            Ces pièces n'ont pas été rattachées à un lot (parties communes, couloirs, locaux techniques).
+            Ces pièces n&apos;ont pas été rattachées à un lot (parties communes, couloirs, locaux techniques).
           </p>
         </div>
       )}

@@ -379,7 +379,7 @@ test.describe("Clustering IA — lots pre-crees", () => {
       },
     ];
 
-    await setupMockRoutes(page, manualLots as typeof MOCK_LOTS_AI_SUGGESTED);
+    await setupMockRoutes(page, manualLots as unknown as typeof MOCK_LOTS_AI_SUGGESTED);
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
     // Verifier que le lot est affiche
