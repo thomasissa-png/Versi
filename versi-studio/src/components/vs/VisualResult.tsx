@@ -28,6 +28,8 @@ interface VisualResultProps {
   onSelectVisual: (visual: VsVisual) => void;
   /** Est-ce que la validation est en cours */
   isValidating?: boolean;
+  /** URL de la photo source (photo de la pièce avant génération) */
+  sourceImageUrl?: string | null;
 }
 
 // ─── Mapping erreurs OpenAI brutes → messages utilisateur ────────
@@ -93,7 +95,19 @@ export default function VisualResult({
   onRetry,
   onSelectVisual,
   isValidating = false,
+  sourceImageUrl = null,
 }: VisualResultProps) {
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  // Fermer la modale avec Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxSrc(null);
+    };
+    if (lightboxSrc) window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxSrc]);
+
   const isProcessing = activeVisual?.status === "processing";
   const isFailed = activeVisual?.status === "failed";
   const isGenerated = activeVisual?.status === "generated";
@@ -202,39 +216,133 @@ export default function VisualResult({
             )}
           </div>
 
-          {/* Image du visuel */}
-          <div className="relative rounded-lg overflow-hidden bg-bg-card border border-border-default">
-            {activeVisual.file_path && activeVisual.file_path !== "placeholder" ? (
-              <img
-                src={`/api/vs/files?path=${encodeURIComponent(activeVisual.file_path)}`}
-                alt={`Visuel ${styleName}`}
-                className="w-full h-auto max-h-[500px] object-contain"
-              />
-            ) : (
-              <div className="w-full h-64 bg-bg-canvas flex items-center justify-center">
-                <div className="text-center">
-                  <svg
-                    className="w-12 h-12 text-text-muted mx-auto mb-sm"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1}
-                    aria-hidden="true"
+          {/* ─── Comparateur avant/après ───────────────────────── */}
+          {(() => {
+            const generatedImageUrl = (activeVisual.file_path && activeVisual.file_path !== "placeholder")
+              ? `/api/vs/files?path=${encodeURIComponent(activeVisual.file_path)}`
+              : null;
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                {/* Colonne Avant */}
+                <div className="flex flex-col gap-xs">
+                  <div
+                    className="relative rounded-lg overflow-hidden bg-bg-canvas border border-border-default cursor-zoom-in"
+                    onClick={() => sourceImageUrl && setLightboxSrc(sourceImageUrl)}
+                    role="button"
+                    aria-label="Agrandir la photo actuelle"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && sourceImageUrl && setLightboxSrc(sourceImageUrl)}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                    />
-                  </svg>
-                  <p className="text-sm text-text-muted">Visuel de démonstration</p>
-                  <p className="text-xs text-text-muted mt-2xs">
-                    La clé de génération n&apos;est pas configurée.
-                  </p>
+                    {sourceImageUrl ? (
+                      <img
+                        src={sourceImageUrl}
+                        alt="Photo actuelle de la pièce"
+                        className="w-full h-48 sm:h-64 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-48 sm:h-64 flex items-center justify-center">
+                        <p className="text-xs text-text-muted text-center px-md">Photo source non disponible</p>
+                      </div>
+                    )}
+                    {sourceImageUrl && (
+                      <div className="absolute top-sm right-sm">
+                        <span className="bg-bg-dark/70 text-text-inverse text-xs px-xs py-2xs rounded">
+                          <svg className="w-3 h-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-muted">Avant — photo actuelle</span>
+                    {sourceImageUrl && (
+                      <a
+                        href={sourceImageUrl}
+                        download
+                        className="inline-flex items-center gap-2xs text-xs text-text-muted hover:text-text-default transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
+                        aria-label="Télécharger la photo actuelle"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Télécharger
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Colonne Après */}
+                <div className="flex flex-col gap-xs">
+                  <div
+                    className="relative rounded-lg overflow-hidden bg-bg-canvas border border-border-default cursor-zoom-in"
+                    onClick={() => generatedImageUrl && setLightboxSrc(generatedImageUrl)}
+                    role="button"
+                    aria-label="Agrandir le visuel IA"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && generatedImageUrl && setLightboxSrc(generatedImageUrl)}
+                  >
+                    {generatedImageUrl ? (
+                      <img
+                        src={generatedImageUrl}
+                        alt={`Visuel IA — ${styleName}`}
+                        className="w-full h-48 sm:h-64 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-48 sm:h-64 flex items-center justify-center">
+                        <div className="text-center">
+                          <svg
+                            className="w-12 h-12 text-text-muted mx-auto mb-sm"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={1}
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+                            />
+                          </svg>
+                          <p className="text-sm text-text-muted">Visuel de démonstration</p>
+                          <p className="text-xs text-text-muted mt-2xs">
+                            La clé de génération n&apos;est pas configurée.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {generatedImageUrl && (
+                      <div className="absolute top-sm right-sm">
+                        <span className="bg-bg-dark/70 text-text-inverse text-xs px-xs py-2xs rounded">
+                          <svg className="w-3 h-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-muted">Après — visuel IA</span>
+                    {generatedImageUrl && (
+                      <a
+                        href={generatedImageUrl}
+                        download
+                        className="inline-flex items-center gap-2xs text-xs text-text-muted hover:text-text-default transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
+                        aria-label="Télécharger le visuel IA"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Télécharger
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Boutons d'action */}
           <div className="flex gap-sm">
@@ -319,7 +427,7 @@ export default function VisualResult({
       {historyVisuals.length > 1 && (
         <div className="mt-md">
           <p className="text-xs uppercase tracking-widest text-text-muted mb-sm">
-            Historique
+            Autres versions
           </p>
           <div className="flex gap-sm overflow-x-auto pb-sm">
             {historyVisuals.map((visual) => {
@@ -373,6 +481,33 @@ export default function VisualResult({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ─── Modale plein écran (lightbox) ──────────────────────── */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-bg-dark/90 flex items-center justify-center p-md"
+          onClick={() => setLightboxSrc(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image agrandie"
+        >
+          <button
+            className="absolute top-md right-md text-text-inverse hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px] min-w-[44px]"
+            onClick={() => setLightboxSrc(null)}
+            aria-label="Fermer"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Vue agrandie"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

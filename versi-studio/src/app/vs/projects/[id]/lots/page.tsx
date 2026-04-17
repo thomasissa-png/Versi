@@ -771,13 +771,26 @@ export default function LotsPage({
     );
   }
 
+  // ─── Étapes complétées pour le stepper ───────────────────────
+  const completedSteps: (1 | 2 | 3 | 4)[] = [1]; // étape 1 toujours complète ici
+  if (
+    project.status === "step_2_complete" ||
+    project.status === "step_3_complete" ||
+    project.status === "completed"
+  ) {
+    completedSteps.push(2);
+  }
+  if (project.status === "step_3_complete" || project.status === "completed") {
+    completedSteps.push(3);
+  }
+
   // ─── Rendu principal ──────────────────────────────────────────
 
   return (
     <div className="flex gap-2xl">
       {/* Stepper latéral */}
       <aside className="w-64 flex-shrink-0">
-        <Stepper currentStep={2} projectId={projectId} completedSteps={[1]} />
+        <Stepper currentStep={2} projectId={projectId} completedSteps={completedSteps} />
       </aside>
 
       {/* Contenu principal */}

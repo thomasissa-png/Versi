@@ -700,6 +700,7 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
             onRetry={handleRetry}
             onSelectVisual={handleSelectVisual}
             isValidating={isValidating}
+            sourceImageUrl={photos.length > 0 ? `/api/vs/files?path=${encodeURIComponent(photos[0].file_path)}` : null}
           />
         )}
       </div>

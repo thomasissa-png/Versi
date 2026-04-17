@@ -1,90 +1,79 @@
 /**
  * Screenshots de validation — Session s22
- * Transformations structurelles Etape 4
+ * Navigation stepper + comparateur avant/après
  */
-import { test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-const PROJECT_URL =
-  "http://localhost:5000/vs/projects/63ad6de2-9df8-4acd-b4df-5e1889c03a18/visuals";
+const PROJECT_ID = "63ad6de2-9df8-4acd-b4df-5e1889c03a18";
+const BASE_URL = "http://localhost:5000";
+const SCREENSHOT_DIR = "/home/user/Versi/docs/screenshots/s22";
 
-const SCREENSHOT_DIR = "../docs/screenshots/s22";
+test("stepper lots page — completedSteps dynamique", async ({ page }) => {
+  await page.goto(`${BASE_URL}/vs/projects/${PROJECT_ID}/lots`, {
+    waitUntil: "networkidle",
+    timeout: 30000,
+  });
 
-test("Etape 4 — page visuels avec micro-copy", async ({ page }) => {
-  await page.goto(PROJECT_URL, { waitUntil: "networkidle" });
-  await page.waitForTimeout(2000);
+  // Attendre que le stepper soit rendu
+  await page.waitForSelector('nav[aria-label="Étapes du projet"]', {
+    timeout: 10000,
+  });
+
+  const stepperNav = page.locator('nav[aria-label="Étapes du projet"]');
+  await expect(stepperNav).toBeVisible();
+
   await page.screenshot({
-    path: `${SCREENSHOT_DIR}/etape4-page-visuels.png`,
-    fullPage: true,
+    path: `${SCREENSHOT_DIR}/navigation-stepper-clickable.png`,
+    fullPage: false,
   });
 });
 
-test("Etape 4 — clic sur premiere piece, textarea transformations visible", async ({
-  page,
-}) => {
-  await page.goto(PROJECT_URL, { waitUntil: "networkidle" });
-  await page.waitForTimeout(2000);
-
-  // Cliquer sur la premiere piece disponible dans le panneau lateral
-  const roomButton = page.locator('[data-testid="room-card"]').first();
-  if (await roomButton.isVisible()) {
-    await roomButton.click();
-    await page.waitForTimeout(2000);
-  } else {
-    // Essayer un bouton dans la grille des pieces
-    const anyRoomButton = page.locator("button").filter({ hasText: /salon|chambre|cuisine|séjour|salle/i }).first();
-    if (await anyRoomButton.isVisible()) {
-      await anyRoomButton.click();
-      await page.waitForTimeout(2000);
-    }
-  }
-
-  await page.screenshot({
-    path: `${SCREENSHOT_DIR}/etape4-textarea-transformations.png`,
-    fullPage: true,
+test("visuals page — comparateur avant/après desktop", async ({ page }) => {
+  await page.goto(`${BASE_URL}/vs/projects/${PROJECT_ID}/visuals`, {
+    waitUntil: "networkidle",
+    timeout: 30000,
   });
-});
 
-test("Etape 4 — piece Chambre: bouton Affiner le visuel visible", async ({
-  page,
-}) => {
-  await page.goto(PROJECT_URL, { waitUntil: "networkidle" });
-  await page.waitForTimeout(2000);
+  await page.waitForSelector("h1", { timeout: 10000 });
 
-  // Cliquer sur la piece "Chambre" qui a deja un visuel genere
-  const chambreButton = page.locator("button").filter({ hasText: /Chambre/i }).first();
+  // Cliquer sur une pièce qui a un visuel pour voir le comparateur
+  const chambreButton = page
+    .locator("button")
+    .filter({ hasText: /Chambre/i })
+    .first();
   if (await chambreButton.isVisible()) {
     await chambreButton.click();
     await page.waitForTimeout(3000);
   }
 
-  // Screenshot de la zone result avec bouton "Affiner le visuel"
   await page.screenshot({
-    path: `${SCREENSHOT_DIR}/etape4-affiner-le-visuel.png`,
+    path: `${SCREENSHOT_DIR}/etape4-comparateur-avant-apres.png`,
     fullPage: true,
   });
+});
 
-  // Cliquer "Essayer un autre style" pour revenir a select-style (ou le textarea apparait)
-  const autreStyleBtn = page.locator("button").filter({ hasText: /autre style/i }).first();
-  if (await autreStyleBtn.isVisible()) {
-    await autreStyleBtn.click();
-    await page.waitForTimeout(2000);
-  }
+test("visuals page — comparateur mobile 375px", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
 
-  // Maintenant on est en select-style avec le textarea visible
-  await page.screenshot({
-    path: `${SCREENSHOT_DIR}/etape4-textarea-transformations-visible.png`,
-    fullPage: true,
+  await page.goto(`${BASE_URL}/vs/projects/${PROJECT_ID}/visuals`, {
+    waitUntil: "networkidle",
+    timeout: 30000,
   });
 
-  // Cliquer sur un badge exemple
-  const badge = page.locator("button").filter({ hasText: /Supprimer un mur/ }).first();
-  if (await badge.isVisible()) {
-    await badge.click();
-    await page.waitForTimeout(500);
+  await page.waitForSelector("h1", { timeout: 10000 });
+
+  // Cliquer sur une pièce qui a un visuel
+  const chambreButton = page
+    .locator("button")
+    .filter({ hasText: /Chambre/i })
+    .first();
+  if (await chambreButton.isVisible()) {
+    await chambreButton.click();
+    await page.waitForTimeout(3000);
   }
 
   await page.screenshot({
-    path: `${SCREENSHOT_DIR}/etape4-badges-suggestions.png`,
+    path: `${SCREENSHOT_DIR}/etape4-comparateur-mobile.png`,
     fullPage: true,
   });
 });
