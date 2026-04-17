@@ -43,3 +43,4 @@ audit-screenshots/
 
 # scripts console logs (runtime artifacts)
 scripts/*.console.log
+scripts/*-debug*.log

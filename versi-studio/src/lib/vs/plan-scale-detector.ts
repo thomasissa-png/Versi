@@ -7,6 +7,7 @@
  * - confidence < 0.9 : fallback modale manuelle V1 (zéro régression)
  */
 import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
 let _openaiClient: OpenAI | null = null;
@@ -84,15 +85,15 @@ Règles strictes :
 2. À DÉFAUT : cherche une dimension cotée explicite sur un mur (ex: "5,80 m", "4.20m", "580 cm")
 3. Si AUCUNE indication fiable, retourne confidence < 0.7 et explique pourquoi.
 4. Sois CONSERVATEUR sur la confiance : un doute = confiance plus basse. Mieux vaut tomber en fallback manuel qu'induire l'utilisateur en erreur sur des surfaces ÷4 ou ×2.
-5. Réponds STRICTEMENT au format JSON Zod. Pas de markdown, pas de commentaire avant/après.`;
+5. scale_ratio = le dénominateur de l'échelle (ex: 100 pour 1:100, 50 pour 1:50, 200 pour 1:200).`;
 
-  const userPrompt = `Analyse ce plan d'architecte et détecte son échelle. Réponds en JSON strict conforme au schéma fourni.`;
+  const userPrompt = `Analyse ce plan d'architecte et détecte son échelle.`;
 
   let response;
   try {
-    response = await client.chat.completions.create({
+    response = await client.chat.completions.parse({
       model: "gpt-4.1",
-      response_format: { type: "json_object" },
+      response_format: zodResponseFormat(PlanScaleResultSchema, "plan_scale_result"),
       messages: [
         { role: "system", content: systemPrompt },
         {
@@ -113,13 +114,9 @@ Règles strictes :
     );
   }
 
-  const raw = response.choices[0]?.message?.content;
-  if (!raw) {
-    throw new PlanScaleError("PARSING_FAILED", "Réponse OpenAI vide.");
-  }
-
   // Debug : log brut pour diagnostiquer les erreurs de parsing
-  if (process.env.DEBUG_OCR === "1") {
+  const raw = response.choices[0]?.message?.content;
+  if (process.env.DEBUG_OCR === "1" && raw) {
     console.log("[DEBUG OCR] Réponse brute OpenAI:", raw);
   }
 
@@ -131,49 +128,22 @@ Règles strictes :
     );
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new PlanScaleError(
-      "PARSING_FAILED",
-      `JSON invalide depuis OpenAI. Brut (500 premiers chars) : ${raw.slice(0, 500)}`
-    );
-  }
-
-  // GPT-4.1 peut wrapper dans un objet parent (ex: { "result": { ... } })
-  // Tenter d'extraire si le top-level ne matche pas directement
-  let candidate = parsed as Record<string, unknown>;
-  if (
-    candidate &&
-    typeof candidate === "object" &&
-    !("confidence" in candidate) &&
-    !("scale_text" in candidate)
-  ) {
-    // Chercher un sous-objet qui contiendrait les champs attendus
-    const keys = Object.keys(candidate);
-    for (const key of keys) {
-      const sub = candidate[key];
-      if (sub && typeof sub === "object" && ("confidence" in (sub as Record<string, unknown>) || "scale_text" in (sub as Record<string, unknown>))) {
-        candidate = sub as Record<string, unknown>;
-        if (process.env.DEBUG_OCR === "1") {
-          console.log(`[DEBUG OCR] Extraction depuis clé "${key}"`);
-        }
-        break;
-      }
+  // Structured Outputs : le SDK parse automatiquement via le schéma Zod
+  const parsed = response.choices[0]?.message?.parsed;
+  if (!parsed) {
+    // Refusal ou réponse vide
+    const refusal = response.choices[0]?.message?.refusal;
+    if (refusal) {
+      throw new PlanScaleError("PARSING_FAILED", `Modèle a refusé : ${refusal}`);
     }
-  }
-
-  try {
-    return PlanScaleResultSchema.parse(candidate);
-  } catch (err) {
-    // Log le contenu parsé pour diagnostic même sans DEBUG_OCR
-    const candidateStr = JSON.stringify(candidate).slice(0, 500);
     throw new PlanScaleError(
       "PARSING_FAILED",
-      `Parsing échoué. Contenu reçu : ${candidateStr}. Erreurs Zod : ${err instanceof Error ? err.message : "format inattendu"}`
+      `Réponse OpenAI vide ou non parseable. Brut : ${raw?.slice(0, 500) ?? "(null)"}`
     );
   }
+
+  // Le SDK a déjà validé via Zod — retourner directement
+  return parsed;
 }
 
 /**
