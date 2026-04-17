@@ -133,6 +133,50 @@ Les serveurs sont demarres avant les tests et arretes apres. Pas besoin de les l
 
 ---
 
+## Matrice de traçabilité user stories → tests (Gate G27)
+
+> Ajouté versi-s21 itération 2 — Bundle C (I9)
+
+### US-VS-21 : Pré-création automatique de lots par clustering IA
+
+| Critère d'acceptance | Description | Test | Fichier | Statut |
+|---|---|---|---|---|
+| AC-01 Happy path clustering | Groupement par (floor, unit_id) → N lots pré-créés | `clusterByUnit groupe 2 pièces` | tests/unit/clustering.test.ts | PASS |
+| AC-02 Lots visibles UI | Lots IA affichés avec badges et boutons de validation | `affiche les lots IA avec badge et boutons` | tests/e2e/clustering-ia.spec.ts | PASS |
+| AC-03 Seuil confiance 0.7 | Confiance moyenne < 0.7 → groupe rejeté | `rejette un groupe dont la confiance moyenne < seuil` | tests/unit/clustering.test.ts | PASS |
+| AC-04 Seuil confidenceMin 0.5 | 1 pièce à 0.4 noie la moyenne → rejeté | `rejette un groupe dont confidenceMin < 0.5` | tests/unit/clustering.test.ts | PASS |
+| AC-05 Filtre ≥ 2 pièces | Groupe de 1 pièce non-studio → rejeté | `rejette un groupe de 1 pièce non-studio` | tests/unit/clustering.test.ts | PASS |
+| AC-06 Exception studio | Groupe de 1 pièce "Studio" → accepté (I10) | `accepte un groupe de 1 pièce si name_raw contient 'Studio'` | tests/unit/clustering.test.ts | PASS |
+| AC-07 Bbox englobante | Union des bounding_box des pièces | `calcule l'enveloppe englobante de 2 rooms` | tests/unit/clustering.test.ts | PASS |
+| AC-08 Bbox fallback | Aucune bbox → plein cadre (I3) | `retourne fallback plein cadre si aucune room n'a de bbox` | tests/unit/clustering.test.ts | PASS |
+| AC-09 Nommage T{n} | 3 habitables → "T3 RDC" | `3 pièces habitables sur RDC → 'T3 RDC'` | tests/unit/clustering.test.ts | PASS |
+| AC-10 Nommage Studio | 1 habitable → "Studio" | `1 seule pièce habitable → 'Studio'` | tests/unit/clustering.test.ts | PASS |
+| AC-11 Nommage Lot | 0 habitable → "Lot" | `0 pièce habitable → 'Lot'` | tests/unit/clustering.test.ts | PASS |
+| AC-12 Suffixe gauche/droite | 2 lots même étage → suffixe position | `2 lots même étage : gauche et droite` | tests/unit/clustering.test.ts | PASS |
+| AC-13 Suffixe numérique 3+ | 3+ lots même étage → #1, #2, #3 (I2) | `3+ lots même étage : numérotation #1, #2, #3` | tests/unit/clustering.test.ts | PASS |
+| AC-14 Pièces non habitables | WC, SdB, Couloir, etc. exclus du comptage | `exclut WC, SdB, Couloir, Entrée, Cellier, Cave, Dégagement` | tests/unit/clustering.test.ts | PASS |
+| AC-15 unit_id null ignoré | Pièces sans unit_id → pas de groupe | `ignore les pièces avec unit_id = null` | tests/unit/clustering.test.ts | PASS |
+| AC-16 floor null ignoré | Pièces sans floor → pas de groupe | `ignore les pièces avec floor = null` | tests/unit/clustering.test.ts | PASS |
+| AC-17 Bug split :: (I1) | unit_id contenant "::" → géré correctement | `gère unit_id contenant '::' sans split incorrect` | tests/unit/clustering.test.ts | PASS |
+| AC-18 Fallback 0 lot | Confiance < 0.7 → 0 lot, état vide guidé | `fallback etat vide si 0 lot IA` | tests/e2e/clustering-ia.spec.ts | PASS |
+
+### US-VS-22 : Validation 1-clic des lots IA
+
+| Critère d'acceptance | Description | Test | Fichier | Statut |
+|---|---|---|---|---|
+| AC-19 Validation individuelle | Bouton "Valider ce lot" → PATCH status validated | `validation individuelle d'un lot IA` | tests/e2e/clustering-ia.spec.ts | PASS |
+| AC-20 Validation globale | Bouton "Tout valider" → PATCH tous les lots IA | `bouton Tout valider envoie PATCH pour chaque lot IA` | tests/e2e/clustering-ia.spec.ts | PASS |
+| AC-21 Lots manuels sans badge IA | Lots source=manual → pas de badge IA ni bouton valider | `lots manuels n'ont pas de badge IA` | tests/e2e/clustering-ia.spec.ts | PASS |
+| AC-22 Undo lot validé IA | Bouton "Annuler validation" → PATCH status suggested | Non implémenté (Bundle B — U4) | — | A CREER |
+
+### Couverture
+
+- **US-VS-21** : 18/18 critères couverts (AC-01 à AC-18)
+- **US-VS-22** : 3/4 critères couverts (AC-22 dépend de l'implémentation UI du Bundle B — U4)
+- **Total** : 21/22 critères mappés, 1 en attente du Bundle B
+
+---
+
 **Handoff --> @orchestrator**
 
 - Fichiers produits : `docs/qa/TESTING.md`
