@@ -103,8 +103,11 @@ interface Viewport {
 
 const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
-/** Marge autour du crop du lot (en % de la taille du lot) pour éviter que le plan soit coupé à ras */
-const LOT_MARGIN_PERCENT = 5;
+/**
+ * Marge autour du lot lors du fit-to-lot initial (en % de la taille du lot).
+ * Agrandit la zone visible pour montrer le contexte autour du lot.
+ */
+const FIT_LOT_MARGIN_PERCENT = 15;
 
 function clamp(val: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, val));
@@ -312,40 +315,21 @@ export default function RoomCanvas({
     return () => observer.disconnect();
   }, []);
 
-  // ─── Lot zone avec marge (versi-s22 P4) ───────────────────────
-  // Ajoute LOT_MARGIN_PERCENT de marge autour du lot pour ne pas couper les murs
-  const marginedLotZone = useMemo(() => {
-    const marginX = (lotZone.width_percent * LOT_MARGIN_PERCENT) / 100;
-    const marginY = (lotZone.height_percent * LOT_MARGIN_PERCENT) / 100;
-    return {
-      x_percent: Math.max(0, lotZone.x_percent - marginX),
-      y_percent: Math.max(0, lotZone.y_percent - marginY),
-      width_percent: Math.min(100 - Math.max(0, lotZone.x_percent - marginX), lotZone.width_percent + 2 * marginX),
-      height_percent: Math.min(100 - Math.max(0, lotZone.y_percent - marginY), lotZone.height_percent + 2 * marginY),
-    };
-  }, [lotZone]);
-
-  // ─── Layout letterbox/pillarbox — préserve le ratio du lot (versi-s22) ───
-  // Calcule la zone de rendu effective en tenant compte du ratio source (lot crop avec marge)
+  // ─── Layout letterbox/pillarbox — préserve le ratio du plan complet ───
+  // Fix régression s22 — plan rogné : on affiche le plan ENTIER (pas un crop
+  // du lot) pour que l'utilisateur puisse voir les 4 bords et panner librement.
+  // Le viewport initial zoome automatiquement sur le lot sélectionné.
+  // Calcule la zone de rendu effective en tenant compte du ratio du plan
   // vs le ratio du canvas destination. Évite l'étirement vertical/horizontal.
 
   const renderLayout = useMemo(() => {
     const { width, height } = canvasSize;
 
     if (!imageLoaded || imageNaturalSize.w <= 0 || imageNaturalSize.h <= 0) {
-      // Pas d'image : rendu plein canvas (pas de letterbox)
       return { renderW: width, renderH: height, offsetX: 0, offsetY: 0 };
     }
 
-    // Dimensions source en pixels natifs (avec marge)
-    const sw = (marginedLotZone.width_percent / 100) * imageNaturalSize.w;
-    const sh = (marginedLotZone.height_percent / 100) * imageNaturalSize.h;
-
-    if (sw <= 0 || sh <= 0) {
-      return { renderW: width, renderH: height, offsetX: 0, offsetY: 0 };
-    }
-
-    const srcRatio = sw / sh;
+    const srcRatio = imageNaturalSize.w / imageNaturalSize.h;
     const dstRatio = width / height;
 
     let renderW: number;
@@ -354,13 +338,11 @@ export default function RoomCanvas({
     let offsetY: number;
 
     if (srcRatio > dstRatio) {
-      // Source plus large que destination -> letterbox (bandes haut/bas)
       renderW = width;
       renderH = width / srcRatio;
       offsetX = 0;
       offsetY = (height - renderH) / 2;
     } else {
-      // Source plus haute que destination -> pillarbox (bandes gauche/droite)
       renderH = height;
       renderW = height * srcRatio;
       offsetX = (width - renderW) / 2;
@@ -368,17 +350,76 @@ export default function RoomCanvas({
     }
 
     return { renderW, renderH, offsetX, offsetY };
-  }, [canvasSize, marginedLotZone, imageLoaded, imageNaturalSize]);
+  }, [canvasSize, imageLoaded, imageNaturalSize]);
 
-  // ─── Conversion lot-local % → margined-zone % ─────────────────
+  // ─── Fit-to-lot : viewport initial centré sur le lot ──────────
+  // Calcule le zoom et le décalage pour que le lot (+ marge) remplisse le canvas.
+  // Appliqué automatiquement quand l'image charge ou quand le lot sélectionné change.
+
+  const computeFitLotViewport = useCallback((): Viewport => {
+    const { width, height } = canvasSize;
+    const { renderW, renderH, offsetX, offsetY } = renderLayout;
+
+    if (renderW <= 0 || renderH <= 0 || lotZone.width_percent <= 0 || lotZone.height_percent <= 0) {
+      return INITIAL_VIEWPORT;
+    }
+
+    // Lot zone en pixels canvas (dans le repère logique, avant viewport transform)
+    const marginFactor = FIT_LOT_MARGIN_PERCENT / 100;
+    const lotX = (lotZone.x_percent / 100) * renderW + offsetX;
+    const lotY = (lotZone.y_percent / 100) * renderH + offsetY;
+    const lotW = (lotZone.width_percent / 100) * renderW;
+    const lotH = (lotZone.height_percent / 100) * renderH;
+
+    // Ajouter marge
+    const marginW = lotW * marginFactor;
+    const marginH = lotH * marginFactor;
+    const targetX = lotX - marginW;
+    const targetY = lotY - marginH;
+    const targetW = lotW + 2 * marginW;
+    const targetH = lotH + 2 * marginH;
+
+    // Calculer le zoom pour que la zone cible remplisse le canvas
+    const scaleX = width / targetW;
+    const scaleY = height / targetH;
+    const fitScale = Math.min(scaleX, scaleY);
+
+    // Ne pas zoomer en dessous de 1 (on voit au minimum le plan entier)
+    const scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale));
+
+    // Centrer la zone cible dans le canvas
+    const centerX = targetX + targetW / 2;
+    const centerY = targetY + targetH / 2;
+    const fitOffsetX = width / 2 - centerX * scale;
+    const fitOffsetY = height / 2 - centerY * scale;
+
+    // Pas de clamp restrictif ici — le fit doit centrer le lot correctement
+    // même si le lot est dans un coin du plan
+    return {
+      scale,
+      offsetX: fitOffsetX,
+      offsetY: fitOffsetY,
+    };
+  }, [canvasSize, renderLayout, lotZone]);
+
+  // Fit-to-lot : setState pendant render (pattern React docs "derived state")
+  // Aucun risque de boucle car la condition lotKey/imageKey change au plus 1 fois par render.
+  const [lastFittedKey, setLastFittedKey] = useState("");
+  const currentFitKey = imageLoaded
+    ? `${lotZone.x_percent}_${lotZone.y_percent}_${lotZone.width_percent}_${lotZone.height_percent}_${planImageUrl}`
+    : "";
+  if (currentFitKey !== "" && currentFitKey !== lastFittedKey) {
+    setLastFittedKey(currentFitKey);
+    setViewport(computeFitLotViewport());
+  }
+
+  // ─── Conversion lot-local % → plan global % ───────────────────
   // Les positions des pièces sont en % relatif au LOT ORIGINAL.
-  // Le canvas affiche la ZONE AVEC MARGE. On doit re-mapper.
-  // Formule : canvasPercent = (lotPercent * lotSize + lotStart - marginedStart) / marginedSize * 100
+  // Le canvas affiche le plan ENTIER. On convertit lot-local → global.
 
-  const lotToMarginedPercent = useCallback(
-    (lotPct: number, lotStart: number, lotSize: number, marginedStart: number, marginedSize: number): number => {
-      const globalPct = lotStart + (lotPct / 100) * lotSize;
-      return ((globalPct - marginedStart) / marginedSize) * 100;
+  const lotToGlobalPercent = useCallback(
+    (lotPct: number, lotStart: number, lotSize: number): number => {
+      return lotStart + (lotPct / 100) * lotSize;
     },
     []
   );
@@ -387,59 +428,56 @@ export default function RoomCanvas({
 
   /**
    * Les positions des pieces sont en % RELATIF au lot (pas au plan global).
-   * Le canvas affiche la zone du lot AVEC MARGE et letterbox pour préserver le ratio.
-   * Les coordonnées sont re-mappées via lotToMarginedPercent.
+   * Le canvas affiche le plan entier avec letterbox.
+   * On convertit lot-local % → global % → pixels canvas.
    */
   const toCanvasCoords = useCallback(
     (pos: RoomPosition) => {
       const { renderW, renderH, offsetX, offsetY } = renderLayout;
-      const mx = lotToMarginedPercent(pos.x_percent, lotZone.x_percent, lotZone.width_percent, marginedLotZone.x_percent, marginedLotZone.width_percent);
-      const my = lotToMarginedPercent(pos.y_percent, lotZone.y_percent, lotZone.height_percent, marginedLotZone.y_percent, marginedLotZone.height_percent);
-      const mw = (pos.width_percent / 100) * (lotZone.width_percent / marginedLotZone.width_percent) * 100;
-      const mh = (pos.height_percent / 100) * (lotZone.height_percent / marginedLotZone.height_percent) * 100;
+      const gx = lotToGlobalPercent(pos.x_percent, lotZone.x_percent, lotZone.width_percent);
+      const gy = lotToGlobalPercent(pos.y_percent, lotZone.y_percent, lotZone.height_percent);
+      const gw = (pos.width_percent / 100) * lotZone.width_percent;
+      const gh = (pos.height_percent / 100) * lotZone.height_percent;
       return {
-        x: (mx / 100) * renderW + offsetX,
-        y: (my / 100) * renderH + offsetY,
-        w: (mw / 100) * renderW,
-        h: (mh / 100) * renderH,
+        x: (gx / 100) * renderW + offsetX,
+        y: (gy / 100) * renderH + offsetY,
+        w: (gw / 100) * renderW,
+        h: (gh / 100) * renderH,
       };
     },
-    [renderLayout, lotZone, marginedLotZone, lotToMarginedPercent]
+    [renderLayout, lotZone, lotToGlobalPercent]
   );
 
   const toPercentCoords = useCallback(
     (px: number, py: number): { xPct: number; yPct: number } => {
       const { renderW, renderH, offsetX, offsetY } = renderLayout;
-      // Canvas px -> margined zone %
-      const marginedXPct = ((px - offsetX) / renderW) * 100;
-      const marginedYPct = ((py - offsetY) / renderH) * 100;
-      // Margined zone % -> lot-local %
-      const globalXPct = marginedLotZone.x_percent + (marginedXPct / 100) * marginedLotZone.width_percent;
-      const globalYPct = marginedLotZone.y_percent + (marginedYPct / 100) * marginedLotZone.height_percent;
+      // Canvas px -> global plan %
+      const globalXPct = ((px - offsetX) / renderW) * 100;
+      const globalYPct = ((py - offsetY) / renderH) * 100;
+      // Global plan % -> lot-local %
       const lotXPct = ((globalXPct - lotZone.x_percent) / lotZone.width_percent) * 100;
       const lotYPct = ((globalYPct - lotZone.y_percent) / lotZone.height_percent) * 100;
       return { xPct: lotXPct, yPct: lotYPct };
     },
-    [renderLayout, lotZone, marginedLotZone]
+    [renderLayout, lotZone]
   );
 
   /**
    * Convertit un delta en pixels (mouvement souris) en delta en % lot-local.
    * Contrairement à toPercentCoords, ne soustrait PAS l'offset letterbox —
    * un delta est relatif, pas absolu. Bug critique versi-s22.
-   * Adapté pour la zone avec marge (versi-s22 P4).
    */
   const toDeltaPercent = useCallback(
     (dxPx: number, dyPx: number): { dxPct: number; dyPct: number } => {
       const { renderW, renderH } = renderLayout;
-      // Delta en pixels -> delta en % de la zone marginée -> delta en % lot-local
-      const dxMarginedPct = (dxPx / renderW) * 100;
-      const dyMarginedPct = (dyPx / renderH) * 100;
-      const dxLotPct = (dxMarginedPct / 100) * (marginedLotZone.width_percent / lotZone.width_percent) * 100;
-      const dyLotPct = (dyMarginedPct / 100) * (marginedLotZone.height_percent / lotZone.height_percent) * 100;
+      // Delta en pixels -> delta en % du plan global -> delta en % lot-local
+      const dxGlobalPct = (dxPx / renderW) * 100;
+      const dyGlobalPct = (dyPx / renderH) * 100;
+      const dxLotPct = (dxGlobalPct / lotZone.width_percent) * 100;
+      const dyLotPct = (dyGlobalPct / lotZone.height_percent) * 100;
       return { dxPct: dxLotPct, dyPct: dyLotPct };
     },
-    [renderLayout, lotZone, marginedLotZone]
+    [renderLayout, lotZone]
   );
 
   // ─── Conversion polygone lot-local % → pixels canvas ─────────
@@ -448,29 +486,50 @@ export default function RoomCanvas({
     (polygon: Array<{ x_percent: number; y_percent: number }>): Array<{ x: number; y: number }> => {
       const { renderW, renderH, offsetX, offsetY } = renderLayout;
       return polygon.map((p) => {
-        const mx = lotToMarginedPercent(p.x_percent, lotZone.x_percent, lotZone.width_percent, marginedLotZone.x_percent, marginedLotZone.width_percent);
-        const my = lotToMarginedPercent(p.y_percent, lotZone.y_percent, lotZone.height_percent, marginedLotZone.y_percent, marginedLotZone.height_percent);
+        const gx = lotToGlobalPercent(p.x_percent, lotZone.x_percent, lotZone.width_percent);
+        const gy = lotToGlobalPercent(p.y_percent, lotZone.y_percent, lotZone.height_percent);
         return {
-          x: (mx / 100) * renderW + offsetX,
-          y: (my / 100) * renderH + offsetY,
+          x: (gx / 100) * renderW + offsetX,
+          y: (gy / 100) * renderH + offsetY,
         };
       });
     },
-    [renderLayout, lotZone, marginedLotZone, lotToMarginedPercent]
+    [renderLayout, lotZone, lotToGlobalPercent]
   );
 
   // ─── Viewport helpers (versi-s22 P4) ────────────────────────────
+  // Clamp pan offsets pour que le plan reste partiellement visible.
+  // Le plan est rendu dans le repère logique à (renderLayout.offsetX, offsetY)
+  // avec dimensions (renderW, renderH). Le viewport scale + offset transforment
+  // les coordonnées logiques en coordonnées écran.
+  // Bornes : le plan ne doit pas disparaître complètement hors écran.
 
   const clampViewportOffsets = useCallback(
     (scale: number, oX: number, oY: number, rectW: number, rectH: number) => {
-      const minX = -(scale - 1) * rectW;
-      const minY = -(scale - 1) * rectH;
+      const { renderW, renderH, offsetX: rlOffsetX, offsetY: rlOffsetY } = renderLayout;
+      // Positions extrêmes du plan en coordonnées logiques
+      const contentLeft = rlOffsetX;
+      const contentTop = rlOffsetY;
+      const contentRight = rlOffsetX + renderW;
+      const contentBottom = rlOffsetY + renderH;
+
+      // En coordonnées écran : point logique P apparaît à (oX + P * scale)
+      // On veut que le contenu reste partiellement visible :
+      // - Le bord droit du contenu ne doit pas être à gauche de l'écran :
+      //   oX + contentRight * scale >= 0  →  oX >= -contentRight * scale
+      // - Le bord gauche du contenu ne doit pas être à droite de l'écran :
+      //   oX + contentLeft * scale <= rectW  →  oX <= rectW - contentLeft * scale
+      const minX = -contentRight * scale + rectW * 0.1;
+      const maxX = rectW * 0.9 - contentLeft * scale;
+      const minY = -contentBottom * scale + rectH * 0.1;
+      const maxY = rectH * 0.9 - contentTop * scale;
+
       return {
-        offsetX: clamp(oX, minX, 0),
-        offsetY: clamp(oY, minY, 0),
+        offsetX: clamp(oX, Math.min(minX, maxX), Math.max(minX, maxX)),
+        offsetY: clamp(oY, Math.min(minY, maxY), Math.max(minY, maxY)),
       };
     },
-    []
+    [renderLayout]
   );
 
   /** Conversion coords écran (clientX/Y - canvasRect) → coords logiques (avant zoom/pan) */
@@ -527,15 +586,11 @@ export default function RoomCanvas({
     ctx.fillStyle = "#F0EDE8";
     ctx.fillRect(0, 0, width, height);
 
-    // Image du plan (zoom sur la zone du lot AVEC MARGE) — letterbox pour préserver le ratio (versi-s22)
+    // Image du plan ENTIER — letterbox pour préserver le ratio (fix s23 — plan complet visible)
     if (imageRef.current && imageLoaded) {
       const img = imageRef.current;
-      const sx = (marginedLotZone.x_percent / 100) * img.naturalWidth;
-      const sy = (marginedLotZone.y_percent / 100) * img.naturalHeight;
-      const sw = (marginedLotZone.width_percent / 100) * img.naturalWidth;
-      const sh = (marginedLotZone.height_percent / 100) * img.naturalHeight;
       const { renderW, renderH, offsetX, offsetY } = renderLayout;
-      ctx.drawImage(img, sx, sy, sw, sh, offsetX, offsetY, renderW, renderH);
+      ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, offsetX, offsetY, renderW, renderH);
     } else {
       // Placeholder quadrillage si pas d'image
       ctx.strokeStyle = "#D9D4CE";
@@ -657,8 +712,11 @@ export default function RoomCanvas({
       if (hasPolygon) {
         const centroid = polygonCentroid(room.polygon!);
         const { renderW, renderH, offsetX, offsetY } = renderLayout;
-        centerX = (centroid.x_percent / 100) * renderW + offsetX;
-        centerY = (centroid.y_percent / 100) * renderH + offsetY;
+        // Centroid is in lot-local %, convert to global plan %
+        const gx = lotToGlobalPercent(centroid.x_percent, lotZone.x_percent, lotZone.width_percent);
+        const gy = lotToGlobalPercent(centroid.y_percent, lotZone.y_percent, lotZone.height_percent);
+        centerX = (gx / 100) * renderW + offsetX;
+        centerY = (gy / 100) * renderH + offsetY;
       } else {
         const { x, y, w, h } = toCanvasCoords(pos);
         centerX = x + w / 2;
@@ -751,7 +809,7 @@ export default function RoomCanvas({
         }
       }
     }
-  }, [canvasSize, imageLoaded, marginedLotZone, rooms, selectedRoomId, toCanvasCoords, toCanvasPolygonPoints, validationBlocked, renderLayout, viewport]);
+  }, [canvasSize, imageLoaded, rooms, selectedRoomId, toCanvasCoords, toCanvasPolygonPoints, validationBlocked, renderLayout, viewport]);
 
   useEffect(() => {
     draw();
@@ -1042,29 +1100,29 @@ export default function RoomCanvas({
       const newOffsetX = cx - (cx - viewport.offsetX) * ratio;
       const newOffsetY = cy - (cy - viewport.offsetY) * ratio;
       if (newScale === ZOOM_MIN) {
-        setViewport(INITIAL_VIEWPORT);
+        setViewport(computeFitLotViewport());
       } else {
         const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
         setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
       }
     },
-    [viewport, clampViewportOffsets]
+    [viewport, clampViewportOffsets, computeFitLotViewport]
   );
 
-  // ─── Double-clic — reset viewport (versi-s22 P4) ────────────
+  // ─── Double-clic — reset viewport au fit-to-lot (versi-s22 P4) ──
   const handleDoubleClick = useCallback(
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
       const room = getRoomAtPoint(e.clientX, e.clientY);
       if (!room) {
-        setViewport(INITIAL_VIEWPORT);
+        setViewport(computeFitLotViewport());
       }
     },
-    [getRoomAtPoint]
+    [getRoomAtPoint, computeFitLotViewport]
   );
 
   const resetViewport = useCallback(() => {
-    setViewport(INITIAL_VIEWPORT);
-  }, []);
+    setViewport(computeFitLotViewport());
+  }, [computeFitLotViewport]);
 
   const zoomIn = useCallback(() => {
     const canvas = canvasRef.current;
