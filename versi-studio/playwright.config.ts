@@ -43,6 +43,21 @@ export default defineConfig({
       name: "Desktop Chrome",
       use: { ...devices["Desktop Chrome"] },
     },
+    // Mobile project ajouté s23 P3 pour les tests touch/pinch (RoomCanvas).
+    // Scope strict : uniquement les specs `s23-touch-pinch-*.spec.ts`. Les
+    // autres specs (visual baselines, workflow, upload, etc.) restent sur
+    // Desktop Chrome — les baselines existantes ne sont PAS renommées.
+    // Filtrage via `testMatch` pour éviter de dupliquer tous les tests.
+    //
+    // iPhone 13 (WebKit) n'est PAS inclus : la suite s23 utilise `CDPSession`
+    // pour dispatcher des événements multi-touch (`Input.dispatchTouchEvent`),
+    // et CDP est Chromium-only. Pour couvrir Safari mobile, migration Appium
+    // ou équivalent à prévoir en s24+.
+    {
+      name: "Pixel 7",
+      use: { ...devices["Pixel 7"], hasTouch: true },
+      testMatch: /s23-touch-pinch-.*\.spec\.ts$/,
+    },
   ],
 
   webServer: {
