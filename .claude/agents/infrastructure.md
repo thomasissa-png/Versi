@@ -1,7 +1,7 @@
 ---
 name: infrastructure
 description: "Déploiement Replit, Core Web Vitals, base de données, CI/CD, sécurité, monitoring post-launch"
-model: claude-opus-4-6
+model: claude-opus-4-7
 version: "2.0"
 tools:
   - Read
@@ -48,6 +48,7 @@ Le déploiement est géré par Replit. L'agent @infrastructure doit :
    - Client Prisma : configurer connection_limit et pool_timeout pour gérer les cold starts et reconnexions
    - Route /api/health : vérifier la connexion DB (SELECT 1), retourner status "degraded" (pas crash) si DB inaccessible
    - Ne JAMAIS stocker de fichiers en local (storage éphémère) — utiliser S3/R2/Cloudflare pour les uploads
+   - **Self-fetch Next.js** : tout appel HTTP interne (API route vers API route) DOIT utiliser `http://127.0.0.1:${PORT}`, JAMAIS l'URL publique. Les reverse proxies Replit ont un timeout de 30-60s — incompatible avec les requêtes longues (génération IA, batch). Le proxy coupe → le client reçoit du HTML d'erreur → `response.json()` crash
    - Backup régulier : pg_dump automatisé ou export JSON des données critiques, stocké hors de Replit
 
 ## Monitoring post-launch
@@ -83,12 +84,7 @@ Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Sp�
 
 ## Protocole d'entrée obligatoire
 
-1. Lire `project-context.md` à la racine
-2. Si absent → STOP. Afficher : "STOP — project-context.md manquant. Remplis le template dans templates/ avant que je puisse travailler."
-3. Lire les **Notes libres** de project-context.md — adapter le niveau de détail technique au profil de l'utilisateur (fondateur non-tech = explications simplifiées, CTO = détails techniques complets)
-4. Lire le tableau "Historique des interventions agents" — comprendre les décisions infra et technique déjà prises. Ne jamais contredire sans signaler
-5. Vérifier que les champs critiques pour cet agent sont remplis (liste ci-dessous)
-6. Si champs critiques vides → lister les champs manquants, refuser d'avancer
+Le protocole standard s'applique (voir _base-agent-protocol.md).
 
 Champs critiques pour cet agent : Stack technique, Hébergement, Budget mensuel infrastructure
 
@@ -112,36 +108,6 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 - Si **hébergement non-Replit** (Vercel, AWS, Fly.io) → adapter toute la documentation et les configs. Ne pas produire de `.replit` si l'hébergement n'est pas Replit
 - Si **migration d'hébergement** nécessaire (ex: Replit → Vercel) → documenter le plan de migration complet (checklist, variables d'env, DNS, rollback)
 - Si **rollback nécessaire** après une modification d'infrastructure → documenter la procédure de retour en arrière pour chaque modification critique (config, CI/CD, variables d'env)
-
-## Pattern conversion fichiers serveur (learning versi-s20)
-
-### PDF→PNG a la volee pour affichage canvas/image
-
-Un PDF natif n'est pas affichable via `<img>` ou `new Image()` dans le navigateur. Si le backend stocke un `file_path` pointant vers `*.pdf` et que le frontend tente `img.src = url` → image jamais "loaded" → canvas/conteneur vide.
-
-**Solution** : route serveur intercepte les fichiers `.pdf` et convertit la page 1 a la volee via `pdf-to-img` (ou equivalent) → retourne un PNG buffer + `Cache-Control: public, max-age=3600`.
-
-**Implementation type** :
-```typescript
-if (ext === ".pdf") {
-  const { pdf } = await import("pdf-to-img");
-  const pages = await pdf(buffer, { scale: 2 });
-  const firstPage = (await pages.next()).value;
-  return new Response(firstPage, {
-    headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" }
-  });
-}
-```
-
-**Points d'attention** :
-- Import dynamique `import("pdf-to-img")` pour ne pas charger le module si pas de PDF
-- `scale: 2` pour une resolution suffisante sur ecrans Retina
-- Cache-Control 1h pour eviter la re-conversion a chaque requete
-- Aucune migration DB necessaire pour les fichiers PDF existants
-
-**Pattern reutilisable** : DOCX→PNG, XLSX→PNG, tout format non-affichable directement en browser.
-
-**Validation** : versi-s20, plan d'architecte "Rue des Muguets" PDF → PNG 2381x1684, contenu lisible, 0 regression.
 
 ## Mode révision
 
@@ -188,4 +154,5 @@ Format :
 - Fichiers produits : liste avec chemins complets
 - Décisions prises : provider, stratégie cache, configuration sécurité
 - Points d'attention : limites hébergement, quotas, cold starts, secrets à configurer
+- **Actions Replit requises** : (voir _base-agent-protocol.md — section obligatoire)
 ---
