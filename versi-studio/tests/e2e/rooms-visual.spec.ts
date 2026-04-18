@@ -5,7 +5,8 @@
  *   3 devices (iPhone 13 375x812, iPad 768x1024, Desktop 1280x800)
  *   × 7 états UI (default-empty, rooms-detected, room-selected, lot-validated,
  *                 validation-blocked, modal-delete, all-lots-validated)
- *   = 21 PNG dans `tests/screenshots/rooms/`
+ *   = 21 PNG à plat dans `tests/screenshots/` (convention slash → hyphen,
+ *     cf. snapshotPathTemplate dans playwright.config.ts)
  *
  * APIs mockées via route interception Playwright (pattern aligné sur upload-visual.spec.ts).
  *
@@ -28,7 +29,6 @@
  */
 
 import { test, expect, type Page, type Route } from "@playwright/test";
-import path from "node:path";
 import {
   PROJECT_ID,
   LOT_ID_1,
@@ -43,8 +43,6 @@ import {
 } from "./fixtures";
 
 // ─── Constantes ──────────────────────────────────────────────────
-
-const SCREENSHOT_DIR = path.join(__dirname, "..", "screenshots", "rooms");
 
 // Pièce sans surface → surbrillance rouge bloquant la validation
 const ROOM_INVALID = {
@@ -229,7 +227,7 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`rooms/${vp.name}-default.png`, {
+        await expect(page).toHaveScreenshot(`rooms-${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -256,7 +254,7 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`rooms/${vp.name}-rooms-detected.png`, {
+        await expect(page).toHaveScreenshot(`rooms-${vp.name}-rooms-detected.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -283,7 +281,7 @@ test.describe("Rooms — baselines visuelles", () => {
         await roomCard.first().click();
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`rooms/${vp.name}-room-selected.png`, {
+        await expect(page).toHaveScreenshot(`rooms-${vp.name}-room-selected.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -316,7 +314,7 @@ test.describe("Rooms — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`rooms/${vp.name}-lot-validated.png`, {
+        await expect(page).toHaveScreenshot(`rooms-${vp.name}-lot-validated.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -350,7 +348,7 @@ test.describe("Rooms — baselines visuelles", () => {
         }
 
         await expect(page).toHaveScreenshot(
-          `rooms/${vp.name}-validation-blocked.png`,
+          `rooms-${vp.name}-validation-blocked.png`,
           {
             fullPage: true,
             animations: "disabled",
@@ -389,7 +387,7 @@ test.describe("Rooms — baselines visuelles", () => {
         await expect(dialog).toBeAttached();
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`rooms/${vp.name}-modal-delete.png`, {
+        await expect(page).toHaveScreenshot(`rooms-${vp.name}-modal-delete.png`, {
           fullPage: false,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -421,7 +419,7 @@ test.describe("Rooms — baselines visuelles", () => {
         await page.waitForTimeout(400);
 
         await expect(page).toHaveScreenshot(
-          `rooms/${vp.name}-all-lots-validated.png`,
+          `rooms-${vp.name}-all-lots-validated.png`,
           {
             fullPage: true,
             animations: "disabled",

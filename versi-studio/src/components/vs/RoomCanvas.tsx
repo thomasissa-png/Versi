@@ -1,14 +1,15 @@
 /**
  * RoomCanvas — Canvas HTML5 natif pour visualiser les pièces d'un lot
  *
- * Rendu : Client Component — interactions drag, clic, resize.
+ * Rendu : Client Component — interactions drag, clic, resize, zoom/pan.
  *
  * Fonctionnalites :
  * - Affiche le plan en arriere-plan (image)
  * - Zoom sur la zone du lot selectionne (zone_data en %)
  * - Overlays colores par type de piece (40% opacity)
  * - Selection d'une piece (clic)
- * - Repositionnement (drag)
+ * - Repositionnement (drag sur une pièce)
+ * - Zoom molette (centré curseur) + pan drag (sur zone vide) — versi-s22
  * - Synchronise avec le panneau lateral via callbacks
  */
 
@@ -20,6 +21,7 @@ import {
   useCallback,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
 import type { VsRoom, ZoneRect } from "@/lib/vs/types";
 import { getRoomColor, ROOM_TYPE_DROPDOWN } from "@/lib/vs/styles";
@@ -31,6 +33,12 @@ interface RoomPosition {
   y_percent: number;
   width_percent: number;
   height_percent: number;
+}
+
+interface Viewport {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 interface RoomCanvasProps {
@@ -50,6 +58,14 @@ interface RoomCanvasProps {
   validationBlocked?: boolean;
 }
 
+// ─── Constantes zoom/pan (versi-s22) ──────────────────────────────
+
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 8;
+const ZOOM_FACTOR = 1.1;
+const ZOOM_RESET_THRESHOLD = 1.05;
+const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -57,6 +73,10 @@ function hexToRgba(hex: string, alpha: number): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v));
 }
 
 function getRoomPosition(room: VsRoom): RoomPosition | null {
@@ -95,7 +115,16 @@ export default function RoomCanvas({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  // Drag state
+  // Viewport (zoom + pan) — versi-s22
+  const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
+  const panRef = useRef<{
+    startX: number;
+    startY: number;
+    originOffsetX: number;
+    originOffsetY: number;
+  } | null>(null);
+
+  // Drag state (pièce)
   const [dragging, setDragging] = useState<{
     roomId: string;
     startX: number;
@@ -104,8 +133,6 @@ export default function RoomCanvas({
   } | null>(null);
 
   // ─── Charger l'image du plan ──────────────────────────────────
-  // Reset imageLoaded quand l'URL change — setState pendant render (pattern
-  // React docs compliant React Compiler). imageRef est reset dans l'effect.
   const [prevPlanImageUrl, setPrevPlanImageUrl] = useState(planImageUrl);
   if (planImageUrl !== prevPlanImageUrl) {
     setPrevPlanImageUrl(planImageUrl);
@@ -152,12 +179,22 @@ export default function RoomCanvas({
     return () => observer.disconnect();
   }, []);
 
+  // ─── Clamp pan (évite de perdre le plan hors viewport) ──────
+
+  const clampViewportOffsets = useCallback(
+    (scale: number, offsetX: number, offsetY: number, rectW: number, rectH: number) => {
+      const minX = -(scale - 1) * rectW;
+      const minY = -(scale - 1) * rectH;
+      return {
+        offsetX: clamp(offsetX, minX, 0),
+        offsetY: clamp(offsetY, minY, 0),
+      };
+    },
+    []
+  );
+
   // ─── Convertir coordonnees lot-local en pixels canvas ─────────
 
-  /**
-   * Les positions des pieces sont en % RELATIF au lot (pas au plan global).
-   * Le canvas affiche la zone du lot en plein ecran.
-   */
   const toCanvasCoords = useCallback(
     (pos: RoomPosition) => {
       return {
@@ -190,11 +227,21 @@ export default function RoomCanvas({
     if (!ctx) return;
 
     const { width, height } = canvasSize;
-    canvas.width = width * window.devicePixelRatio;
-    canvas.height = height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const dpr = window.devicePixelRatio;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 
-    // Fond
+    // Fond hors viewport
+    ctx.fillStyle = "#F0EDE8";
+    ctx.fillRect(0, 0, width, height);
+
+    // Appliquer viewport (zoom + pan) — versi-s22
+    ctx.translate(viewport.offsetX, viewport.offsetY);
+    ctx.scale(viewport.scale, viewport.scale);
+
+    // Fond du plan (dans le viewport)
     ctx.fillStyle = "#F0EDE8";
     ctx.fillRect(0, 0, width, height);
 
@@ -212,13 +259,11 @@ export default function RoomCanvas({
 
       let drawW: number, drawH: number, drawX: number, drawY: number;
       if (sourceAspect > canvasAspect) {
-        // Source plus large → fit à la largeur, marges haut/bas
         drawW = width;
         drawH = width / sourceAspect;
         drawX = 0;
         drawY = (height - drawH) / 2;
       } else {
-        // Source plus haute → fit à la hauteur, marges gauche/droite
         drawH = height;
         drawW = height * sourceAspect;
         drawX = (width - drawW) / 2;
@@ -255,63 +300,61 @@ export default function RoomCanvas({
       const isBlockedRoom =
         validationBlocked && room.room_type === "non_identifie";
 
-      // Fill avec transparence (rouge si validation bloquée — CORR-C3)
       ctx.fillStyle = isBlockedRoom
         ? "rgba(220, 38, 38, 0.5)"
         : hexToRgba(baseColor, 0.4);
       ctx.fillRect(x, y, w, h);
 
-      // Bordure (rouge plus épaisse si bloqué)
       if (isBlockedRoom) {
         ctx.strokeStyle = "#DC2626";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3 / viewport.scale;
       } else {
         ctx.strokeStyle = isSelected ? baseColor : hexToRgba(baseColor, 0.7);
-        ctx.lineWidth = isSelected ? 3 : 1.5;
+        ctx.lineWidth = (isSelected ? 3 : 1.5) / viewport.scale;
       }
       ctx.strokeRect(x, y, w, h);
 
-      // Halo de selection
       if (isSelected) {
         ctx.strokeStyle = hexToRgba(baseColor, 0.3);
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 6 / viewport.scale;
         ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
       }
 
-      // Label de la piece
+      // Label (taille compensée par le scale pour rester lisible)
       const label = room.name || getDropdownLabel(room.room_type);
       const surfaceText = room.surface_m2
         ? ` ${Number(room.surface_m2).toFixed(0)} m²`
         : "";
 
-      ctx.font = "500 13px 'PP Neue Montreal', 'DM Sans', sans-serif";
+      const fontSize = 13 / viewport.scale;
+      ctx.font = `500 ${fontSize}px 'PP Neue Montreal', 'DM Sans', sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
       const centerX = x + w / 2;
       const centerY = y + h / 2;
 
-      // Fond du label pour lisibilite
       const textWidth = ctx.measureText(label + surfaceText).width;
-      const padding = 6;
+      const padding = 6 / viewport.scale;
+      const boxH = 20 / viewport.scale;
       ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
       ctx.fillRect(
         centerX - textWidth / 2 - padding,
-        centerY - 10,
+        centerY - boxH / 2,
         textWidth + padding * 2,
-        20
+        boxH
       );
 
       ctx.fillStyle = "#0B0B0B";
       ctx.fillText(label + surfaceText, centerX, centerY);
     }
-  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked]);
+  }, [canvasSize, imageLoaded, lotZone, rooms, selectedRoomId, toCanvasCoords, validationBlocked, viewport]);
 
   useEffect(() => {
     draw();
   }, [draw]);
 
-  // ─── Identifier la piece sous le curseur ──────────────────────
+  // ─── Identifier la piece sous le curseur (tient compte du viewport) ──
 
   const getRoomAtPoint = useCallback(
     (clientX: number, clientY: number): VsRoom | null => {
@@ -319,10 +362,12 @@ export default function RoomCanvas({
       if (!canvas) return null;
 
       const rect = canvas.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
+      // Conversion : écran → coord logiques (avant zoom/pan)
+      const rawX = clientX - rect.left;
+      const rawY = clientY - rect.top;
+      const px = (rawX - viewport.offsetX) / viewport.scale;
+      const py = (rawY - viewport.offsetY) / viewport.scale;
 
-      // Parcourir les pieces en ordre inverse (la derniere dessinee est au-dessus)
       for (let i = rooms.length - 1; i >= 0; i--) {
         const room = rooms[i];
         const pos = getRoomPosition(room);
@@ -335,7 +380,7 @@ export default function RoomCanvas({
       }
       return null;
     },
-    [rooms, toCanvasCoords]
+    [rooms, toCanvasCoords, viewport]
   );
 
   // ─── Gestionnaires souris ─────────────────────────────────────
@@ -355,20 +400,53 @@ export default function RoomCanvas({
           });
         }
       } else {
+        // Pas de pièce sous le curseur → démarrer un pan (versi-s22)
         onSelectRoom(null);
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          panRef.current = {
+            startX: e.clientX - rect.left,
+            startY: e.clientY - rect.top,
+            originOffsetX: viewport.offsetX,
+            originOffsetY: viewport.offsetY,
+          };
+          canvas.style.cursor = "grabbing";
+        }
       }
     },
-    [getRoomAtPoint, onSelectRoom]
+    [getRoomAtPoint, onSelectRoom, viewport]
   );
 
   const handleMouseMove = useCallback(
     (e: ReactMouseEvent<HTMLCanvasElement>) => {
+      // Pan actif (versi-s22)
+      if (panRef.current) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const curX = e.clientX - rect.left;
+        const curY = e.clientY - rect.top;
+        const dx = curX - panRef.current.startX;
+        const dy = curY - panRef.current.startY;
+        const rawX = panRef.current.originOffsetX + dx;
+        const rawY = panRef.current.originOffsetY + dy;
+        setViewport((prev) => {
+          const clamped = clampViewportOffsets(prev.scale, rawX, rawY, rect.width, rect.height);
+          return { ...prev, offsetX: clamped.offsetX, offsetY: clamped.offsetY };
+        });
+        return;
+      }
+
       if (!dragging) {
-        // Changer le curseur si on survole une piece
         const room = getRoomAtPoint(e.clientX, e.clientY);
         const canvas = canvasRef.current;
         if (canvas) {
-          canvas.style.cursor = room ? "grab" : "default";
+          canvas.style.cursor = room
+            ? "grab"
+            : viewport.scale > ZOOM_RESET_THRESHOLD
+              ? "grab"
+              : "default";
         }
         return;
       }
@@ -378,8 +456,9 @@ export default function RoomCanvas({
         canvas.style.cursor = "grabbing";
       }
 
-      const dx = e.clientX - dragging.startX;
-      const dy = e.clientY - dragging.startY;
+      // Delta souris → delta canvas logique (on divise par scale)
+      const dx = (e.clientX - dragging.startX) / viewport.scale;
+      const dy = (e.clientY - dragging.startY) / viewport.scale;
 
       const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
 
@@ -404,10 +483,15 @@ export default function RoomCanvas({
 
       onMoveRoom(dragging.roomId, newPos);
     },
-    [dragging, getRoomAtPoint, onMoveRoom, toPercentCoords]
+    [dragging, getRoomAtPoint, onMoveRoom, toPercentCoords, viewport, clampViewportOffsets]
   );
 
   const handleMouseUp = useCallback(() => {
+    if (panRef.current) {
+      panRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "default";
+    }
     if (dragging) {
       const canvas = canvasRef.current;
       if (canvas) {
@@ -417,7 +501,41 @@ export default function RoomCanvas({
     }
   }, [dragging]);
 
+  // ─── Wheel — zoom centré curseur (versi-s22) ────────────────
+
+  const handleWheel = useCallback(
+    (e: ReactWheelEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+      const currentScale = viewport.scale;
+      const newScale = clamp(currentScale * factor, ZOOM_MIN, ZOOM_MAX);
+      if (newScale === currentScale) return;
+      const ratio = newScale / currentScale;
+      const newOffsetX = cx - (cx - viewport.offsetX) * ratio;
+      const newOffsetY = cy - (cy - viewport.offsetY) * ratio;
+      if (newScale === ZOOM_MIN) {
+        setViewport(INITIAL_VIEWPORT);
+      } else {
+        const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
+        setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
+      }
+    },
+    [viewport, clampViewportOffsets]
+  );
+
+  // Reset viewport
+  const resetViewport = useCallback(() => {
+    setViewport(INITIAL_VIEWPORT);
+  }, []);
+
   // ─── Rendu ────────────────────────────────────────────────────
+
+  const showResetButton = viewport.scale > ZOOM_RESET_THRESHOLD;
 
   return (
     <div
@@ -434,9 +552,22 @@ export default function RoomCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
         aria-label="Plan du lot avec les pièces identifiées"
         role="img"
       />
+
+      {/* Bouton reset zoom (versi-s22) */}
+      {showResetButton && (
+        <button
+          type="button"
+          onClick={resetViewport}
+          className="absolute top-2 right-2 px-3 py-1.5 text-xs font-medium bg-bg-card/90 hover:bg-bg-card border border-border rounded-md shadow-sm transition-colors"
+          aria-label="Réinitialiser le zoom"
+        >
+          Réinitialiser la vue
+        </button>
+      )}
 
       {/* Liste SR-only pour navigation clavier (CORR-C2 — WCAG 2.1.1) */}
       <ul className="sr-only" aria-label="Liste des pièces du lot">

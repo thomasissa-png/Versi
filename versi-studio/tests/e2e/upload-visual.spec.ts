@@ -4,7 +4,8 @@
  * Produit les baselines screenshots pour la gate G26 :
  *   3 devices (iPhone 13 375x812, iPad 768x1024, Desktop 1280x800)
  *   × 4-5 états UI (defaut, uploading, succès, erreur, [modal confirmation])
- *   = 12 à 15 PNG dans `tests/screenshots/upload/`
+ *   = 12 à 15 PNG à plat dans `tests/screenshots/` (convention slash → hyphen,
+ *     cf. snapshotPathTemplate dans playwright.config.ts)
  *
  * APIs mockées via route interception Playwright.
  *
@@ -28,8 +29,9 @@ import {
 
 // ─── Constantes ──────────────────────────────────────────────────
 
-// Baselines visuelles : `tests/screenshots/upload/<viewport>-<state>.png`
-// Résolution par Playwright via `snapshotPathTemplate` (playwright.config.ts).
+// Baselines visuelles : `tests/screenshots/upload-<viewport>-<state>.png`
+// (baselines à plat, convention slash → hyphen ; résolution Playwright via
+// `snapshotPathTemplate: "tests/screenshots/{arg}{ext}"` dans playwright.config.ts)
 
 // 3 plans mockés pour l'état "succès" (suffisant pour afficher la grille)
 const MOCK_PLANS_3 = [
@@ -198,7 +200,7 @@ test.describe("Upload — baselines visuelles", () => {
         // La dropzone est rendue (texte caractéristique)
         await expect(page.getByText(/glissez.*plans|formats acceptés/i).first()).toBeVisible();
 
-        await expect(page).toHaveScreenshot(`upload/${vp.name}-default.png`, {
+        await expect(page).toHaveScreenshot(`upload-${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -212,7 +214,7 @@ test.describe("Upload — baselines visuelles", () => {
         await expect(page.getByText(/3 plans déposés/i)).toBeVisible();
         await expect(page.getByRole("button", { name: /lancer l'analyse/i })).toBeVisible();
 
-        await expect(page).toHaveScreenshot(`upload/${vp.name}-success.png`, {
+        await expect(page).toHaveScreenshot(`upload-${vp.name}-success.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -231,7 +233,7 @@ test.describe("Upload — baselines visuelles", () => {
           page.getByRole("button", { name: /réessayer/i }).first()
         ).toBeVisible({ timeout: 15_000 });
 
-        await expect(page).toHaveScreenshot(`upload/${vp.name}-error.png`, {
+        await expect(page).toHaveScreenshot(`upload-${vp.name}-error.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -253,7 +255,7 @@ test.describe("Upload — baselines visuelles", () => {
         // Pause courte pour laisser le layout se stabiliser
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`upload/${vp.name}-uploading.png`, {
+        await expect(page).toHaveScreenshot(`upload-${vp.name}-uploading.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -277,7 +279,7 @@ test.describe("Upload — baselines visuelles", () => {
         // Laisser le focus-trap se stabiliser
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`upload/${vp.name}-modal-delete.png`, {
+        await expect(page).toHaveScreenshot(`upload-${vp.name}-modal-delete.png`, {
           fullPage: false, // Modal : on veut le viewport avec overlay
           animations: "disabled",
           maxDiffPixelRatio: 0.005,

@@ -4,7 +4,8 @@
  * Produit les baselines screenshots pour la gate G26 :
  *   3 devices (iPhone 13 375x812, iPad 768x1024, Desktop 1280x800)
  *   × 6 états UI (default-empty, lots-detected, lot-selected, lot-validated, modal-delete, error)
- *   = 18 PNG dans `tests/screenshots/lots/`
+ *   = 18 PNG à plat dans `tests/screenshots/` (convention slash → hyphen,
+ *     cf. snapshotPathTemplate dans playwright.config.ts)
  *
  * APIs mockées via route interception Playwright (pattern aligné sur upload-visual.spec.ts).
  *
@@ -26,7 +27,6 @@
  */
 
 import { test, expect, type Page, type Route } from "@playwright/test";
-import path from "node:path";
 import {
   PROJECT_ID,
   LOT_ID_1,
@@ -36,10 +36,6 @@ import {
   MOCK_LOTS,
   MOCK_LOTS_VALIDATED,
 } from "./fixtures";
-
-// ─── Constantes ──────────────────────────────────────────────────
-
-const SCREENSHOT_DIR = path.join(__dirname, "..", "screenshots", "lots");
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -215,7 +211,7 @@ test.describe("Lots — baselines visuelles", () => {
         // Pause pour laisser le canvas se stabiliser
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-default.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-default.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -236,7 +232,7 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-lots-detected.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-lots-detected.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -255,7 +251,7 @@ test.describe("Lots — baselines visuelles", () => {
         await page.getByText(/lot 1/i).first().click();
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-lot-selected.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-lot-selected.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -278,7 +274,7 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(400);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-lot-validated.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-lot-validated.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -303,7 +299,7 @@ test.describe("Lots — baselines visuelles", () => {
         await expect(dialog).toBeAttached();
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-modal-delete.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-modal-delete.png`, {
           fullPage: false, // Modal : on veut le viewport avec overlay
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
@@ -326,7 +322,7 @@ test.describe("Lots — baselines visuelles", () => {
 
         await page.waitForTimeout(300);
 
-        await expect(page).toHaveScreenshot(`lots/${vp.name}-error.png`, {
+        await expect(page).toHaveScreenshot(`lots-${vp.name}-error.png`, {
           fullPage: true,
           animations: "disabled",
           maxDiffPixelRatio: 0.005,
