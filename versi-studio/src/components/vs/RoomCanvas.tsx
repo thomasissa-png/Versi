@@ -10,6 +10,7 @@
  * - Selection d'une piece (clic)
  * - Repositionnement (drag sur une pièce)
  * - Zoom molette (centré curseur) + pan drag (sur zone vide) — versi-s22
+ * - Touch/pinch mobile (pointer events unifiés, pinch 2-doigts) — versi-s23
  * - Synchronise avec le panneau lateral via callbacks
  */
 
@@ -20,7 +21,7 @@ import {
   useEffect,
   useCallback,
   useState,
-  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import type { VsRoom, ZoneRect } from "@/lib/vs/types";
@@ -39,6 +40,11 @@ interface Viewport {
   scale: number;
   offsetX: number;
   offsetY: number;
+}
+
+interface PointerState {
+  x: number;
+  y: number;
 }
 
 interface RoomCanvasProps {
@@ -98,6 +104,16 @@ function getDropdownLabel(roomType: string): string {
   return found?.label ?? roomType;
 }
 
+function distance(a: PointerState, b: PointerState): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function midpoint(a: PointerState, b: PointerState): PointerState {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
 // ─── Composant ────────────────────────────────────────────────────
 
 export default function RoomCanvas({
@@ -124,9 +140,20 @@ export default function RoomCanvas({
     originOffsetY: number;
   } | null>(null);
 
+  // Pointers actifs (versi-s23) — touch/pinch
+  const pointersRef = useRef<Map<number, PointerState>>(new Map());
+  const pinchRef = useRef<{
+    initialDistance: number;
+    initialScale: number;
+    initialOffsetX: number;
+    initialOffsetY: number;
+    center: PointerState;
+  } | null>(null);
+
   // Drag state (pièce)
   const [dragging, setDragging] = useState<{
     roomId: string;
+    pointerId: number;
     startX: number;
     startY: number;
     origPos: RoomPosition;
@@ -383,27 +410,56 @@ export default function RoomCanvas({
     [rooms, toCanvasCoords, viewport]
   );
 
-  // ─── Gestionnaires souris ─────────────────────────────────────
+  // ─── Gestionnaires pointer events (versi-s23) ───────────────
+  // Unifie souris + tactile via Pointer Events API.
+  // 1 pointer = pan OU drag d'une pièce (selon position)
+  // 2 pointers = pinch zoom (annule pan/drag en cours)
 
-  const handleMouseDown = useCallback(
-    (e: ReactMouseEvent<HTMLCanvasElement>) => {
-      const room = getRoomAtPoint(e.clientX, e.clientY);
-      if (room) {
-        onSelectRoom(room.id);
-        const pos = getRoomPosition(room);
-        if (pos) {
-          setDragging({
-            roomId: room.id,
-            startX: e.clientX,
-            startY: e.clientY,
-            origPos: { ...pos },
-          });
-        }
-      } else {
-        // Pas de pièce sous le curseur → démarrer un pan (versi-s22)
-        onSelectRoom(null);
-        const canvas = canvasRef.current;
-        if (canvas) {
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Tracker tous les pointers actifs
+      canvas.setPointerCapture(e.pointerId);
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // Si 2 pointers = démarrer pinch zoom (et annuler pan/drag)
+      if (pointersRef.current.size === 2) {
+        const [p1, p2] = Array.from(pointersRef.current.values());
+        const rect = canvas.getBoundingClientRect();
+        const center = midpoint(p1, p2);
+        pinchRef.current = {
+          initialDistance: distance(p1, p2),
+          initialScale: viewport.scale,
+          initialOffsetX: viewport.offsetX,
+          initialOffsetY: viewport.offsetY,
+          center: { x: center.x - rect.left, y: center.y - rect.top },
+        };
+        // Annuler pan/drag 1-pointer en cours
+        panRef.current = null;
+        if (dragging) setDragging(null);
+        return;
+      }
+
+      // 1 pointer = drag pièce OU pan
+      if (pointersRef.current.size === 1) {
+        const room = getRoomAtPoint(e.clientX, e.clientY);
+        if (room) {
+          onSelectRoom(room.id);
+          const pos = getRoomPosition(room);
+          if (pos) {
+            setDragging({
+              roomId: room.id,
+              pointerId: e.pointerId,
+              startX: e.clientX,
+              startY: e.clientY,
+              origPos: { ...pos },
+            });
+          }
+        } else {
+          // Pas de pièce → pan
+          onSelectRoom(null);
           const rect = canvas.getBoundingClientRect();
           panRef.current = {
             startX: e.clientX - rect.left,
@@ -415,15 +471,50 @@ export default function RoomCanvas({
         }
       }
     },
-    [getRoomAtPoint, onSelectRoom, viewport]
+    [dragging, getRoomAtPoint, onSelectRoom, viewport]
   );
 
-  const handleMouseMove = useCallback(
-    (e: ReactMouseEvent<HTMLCanvasElement>) => {
-      // Pan actif (versi-s22)
+  const handlePointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Mettre à jour la position du pointer (si tracké)
+      if (pointersRef.current.has(e.pointerId)) {
+        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      // Pinch zoom (2 pointers)
+      if (pinchRef.current && pointersRef.current.size === 2) {
+        const [p1, p2] = Array.from(pointersRef.current.values());
+        const currentDistance = distance(p1, p2);
+        if (currentDistance === 0) return;
+
+        const ratio = currentDistance / pinchRef.current.initialDistance;
+        const newScale = clamp(
+          pinchRef.current.initialScale * ratio,
+          ZOOM_MIN,
+          ZOOM_MAX
+        );
+
+        const rect = canvas.getBoundingClientRect();
+        const cx = pinchRef.current.center.x;
+        const cy = pinchRef.current.center.y;
+        const scaleRatio = newScale / pinchRef.current.initialScale;
+        const rawOffsetX = cx - (cx - pinchRef.current.initialOffsetX) * scaleRatio;
+        const rawOffsetY = cy - (cy - pinchRef.current.initialOffsetY) * scaleRatio;
+
+        if (newScale <= ZOOM_MIN) {
+          setViewport(INITIAL_VIEWPORT);
+        } else {
+          const clamped = clampViewportOffsets(newScale, rawOffsetX, rawOffsetY, rect.width, rect.height);
+          setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
+        }
+        return;
+      }
+
+      // Pan actif (1 pointer, zone vide)
       if (panRef.current) {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
         const curX = e.clientX - rect.left;
         const curY = e.clientY - rect.top;
@@ -438,70 +529,83 @@ export default function RoomCanvas({
         return;
       }
 
-      if (!dragging) {
-        const room = getRoomAtPoint(e.clientX, e.clientY);
-        const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.style.cursor = room
-            ? "grab"
-            : viewport.scale > ZOOM_RESET_THRESHOLD
-              ? "grab"
-              : "default";
-        }
+      // Drag d'une pièce
+      if (dragging && e.pointerId === dragging.pointerId) {
+        canvas.style.cursor = "grabbing";
+
+        const dx = (e.clientX - dragging.startX) / viewport.scale;
+        const dy = (e.clientY - dragging.startY) / viewport.scale;
+        const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
+
+        const newPos: RoomPosition = {
+          x_percent: Math.max(
+            0,
+            Math.min(
+              100 - dragging.origPos.width_percent,
+              dragging.origPos.x_percent + dxPct
+            )
+          ),
+          y_percent: Math.max(
+            0,
+            Math.min(
+              100 - dragging.origPos.height_percent,
+              dragging.origPos.y_percent + dyPct
+            )
+          ),
+          width_percent: dragging.origPos.width_percent,
+          height_percent: dragging.origPos.height_percent,
+        };
+
+        onMoveRoom(dragging.roomId, newPos);
         return;
       }
 
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.cursor = "grabbing";
+      // Hover cursor (souris uniquement — pas de hover sur tactile)
+      if (e.pointerType === "mouse") {
+        const room = getRoomAtPoint(e.clientX, e.clientY);
+        canvas.style.cursor = room
+          ? "grab"
+          : viewport.scale > ZOOM_RESET_THRESHOLD
+            ? "grab"
+            : "default";
       }
-
-      // Delta souris → delta canvas logique (on divise par scale)
-      const dx = (e.clientX - dragging.startX) / viewport.scale;
-      const dy = (e.clientY - dragging.startY) / viewport.scale;
-
-      const { xPct: dxPct, yPct: dyPct } = toPercentCoords(dx, dy);
-
-      const newPos: RoomPosition = {
-        x_percent: Math.max(
-          0,
-          Math.min(
-            100 - dragging.origPos.width_percent,
-            dragging.origPos.x_percent + dxPct
-          )
-        ),
-        y_percent: Math.max(
-          0,
-          Math.min(
-            100 - dragging.origPos.height_percent,
-            dragging.origPos.y_percent + dyPct
-          )
-        ),
-        width_percent: dragging.origPos.width_percent,
-        height_percent: dragging.origPos.height_percent,
-      };
-
-      onMoveRoom(dragging.roomId, newPos);
     },
     [dragging, getRoomAtPoint, onMoveRoom, toPercentCoords, viewport, clampViewportOffsets]
   );
 
-  const handleMouseUp = useCallback(() => {
-    if (panRef.current) {
-      panRef.current = null;
+  const handlePointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
-      if (canvas) canvas.style.cursor = "default";
-    }
-    if (dragging) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.cursor = "default";
+      if (canvas && canvas.hasPointerCapture(e.pointerId)) {
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch {
+          // pointer déjà libéré, ignorer
+        }
       }
-      setDragging(null);
-    }
-  }, [dragging]);
+      pointersRef.current.delete(e.pointerId);
 
-  // ─── Wheel — zoom centré curseur (versi-s22) ────────────────
+      // Fin du pinch si on passe sous 2 pointers
+      if (pinchRef.current && pointersRef.current.size < 2) {
+        pinchRef.current = null;
+      }
+
+      // Fin du pan
+      if (panRef.current) {
+        panRef.current = null;
+        if (canvas) canvas.style.cursor = "default";
+      }
+
+      // Fin du drag pièce
+      if (dragging && e.pointerId === dragging.pointerId) {
+        if (canvas) canvas.style.cursor = "default";
+        setDragging(null);
+      }
+    },
+    [dragging]
+  );
+
+  // ─── Wheel — zoom centré curseur (versi-s22, desktop uniquement) ──
 
   const handleWheel = useCallback(
     (e: ReactWheelEvent<HTMLCanvasElement>) => {
@@ -546,12 +650,13 @@ export default function RoomCanvas({
         ref={canvasRef}
         width={canvasSize.width}
         height={canvasSize.height}
-        className="touch-none sm:touch-auto"
-        style={{ width: "100%", height: "100%" }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        // touch-action: none bloque scroll/zoom natif navigateur pendant gesture (versi-s23)
+        style={{ width: "100%", height: "100%", touchAction: "none" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerUp}
         onWheel={handleWheel}
         aria-label="Plan du lot avec les pièces identifiées"
         role="img"
