@@ -717,6 +717,10 @@ Cette étape est le "dernier kilomètre" — la différence entre un site qui "m
 - Phase 0 : `data-analyst` peut démarrer en parallèle de `product-manager` SI `brand-platform.md` existe ET contient une section `## Persona` de ≥10 lignes (vérifier via Read — un persona de <10 lignes est insuffisant pour construire un KPI framework)
 - Phase 2 : `ia` peut démarrer en parallèle de `infrastructure` SI `functional-specs.md` existe ET contient une section `## Spécifications IA` ou `## Intégrations IA` (vérifier via Grep — sans specs IA explicites, l'agent @ia n'a pas assez de contexte)
 
+**Règle L217 parallélisation scopes disjoints (s23)** : lancer N agents en parallèle UNIQUEMENT si leurs scopes sont strictement disjoints (zones de fichiers orthogonales vérifiées par Glob AVANT lancement). Si agent A touche `src/components/X.tsx`, aucun autre agent ne peut toucher `src/components/X.tsx` ou importer X. Si scopes possiblement se chevauchent → séquentiel forcé. Gain 2× attendu en parallèle, mais 1 conflit git = perte ≥2× (debug + rollback). Validé s23 sur 3 agents concurrents (screenshots binaires + RoomCanvas.tsx + scripts/ + docs/) = 0 conflit.
+
+**Règle L215 secrets & clés API (s23)** : si utilisateur fournit une clé API inline dans un prompt, (1) usage strict env var shell JAMAIS écrit sur disque, (2) Grep `sk-[A-Za-z0-9_-]{20,}|sk-proj-|AKIA[A-Z0-9]{16}|xoxb-|ghp_` pré-commit sur TOUS fichiers touchés (redacter tout fragment même tronqué), (3) rappeler explicitement en fin de session : "clé transitée en clair, DOIT être révoquée avant nouvelle session". Détails : `_base-agent-protocol.md` section "Secrets & clés API".
+
 **Re-ordering dynamique :**
 Si un agent de Phase N détecte une invalidation d'une hypothèse de Phase N-1 ou antérieure (ex : persona non viable, contrainte technique rendant un flow impossible), l'orchestrateur DOIT :
 1. BLOQUER la phase en cours

@@ -352,3 +352,19 @@ Format :
 - Décisions prises : scope V1, priorisation RICE, jalons roadmap
 - Points d'attention : features critiques, dépendances techniques, critères d'acceptance
 ---
+
+## Pattern POC avant feature IA/ML (L216 s23)
+
+Toute feature reposant sur un modèle IA (OCR, NLP, Vision, génération) DOIT être précédée d'un POC benchmark avec **5 métriques obligatoires** :
+
+1. **Accuracy ground truth** par champ (utilisateur fournit les valeurs attendues AVANT le benchmark — évite biais de confirmation)
+2. **Latence P50 / P95** (seuil typique 10s pour UX acceptable)
+3. **Coût tokens** par appel + extrapolation mensuelle prod (ratio ROI)
+4. **Taux hallucination** (champs inventés, valeurs plausibles mais fausses)
+5. **Taux retry Zod** (parsing failures qui nécessitent self-correction)
+
+**Scope POC minimal** : 20+ échantillons hétérogènes (pas 4 du même projet — cf. erreur versi-s23 P2 échantillon homogène). Sources variées obligatoire (scan/vecteur/architecte/amateur pour OCR plans).
+
+**Verdict binaire** : GO PRODUCTION / GO CONDITIONNEL (avec liste bloquants) / NO-GO. Pas de "à voir".
+
+**Exemple validé** : `docs/ia/s23-poc-ocr-benchmark-plans-reels.md` — accuracy 0-1.5%, $0.007/plan, verdict GO CONDITIONNEL (clustering duplex cross-floor à implémenter post-OCR).

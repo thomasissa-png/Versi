@@ -467,3 +467,16 @@ Après chaque session, l'orchestrateur met à jour `docs/lessons-learned.md` (fo
 1. @orchestrator sur projet complet → @reviewer en fin → incohérences détectées ?
 
 Projet test : `tests/project-context-test.md` (PulseBoard).
+
+---
+
+## Secrets & clés API (L215 s23)
+
+Protocole obligatoire si une clé API est fournie inline dans un prompt (OpenAI, Anthropic, Stripe, AWS, etc.) :
+
+1. **Usage strict env var shell** : `export OPENAI_API_KEY=...` avant la commande qui l'utilise. JAMAIS écrire dans un fichier (`.env`, `.env.local`, script, doc, commentaire).
+2. **Grep pré-commit obligatoire** : avant `git add`, lancer `Grep -rE "sk-[A-Za-z0-9_-]{20,}|sk-proj-|AKIA[A-Z0-9]{16}|xoxb-|ghp_"` sur tous les fichiers touchés. Redacter tout fragment même tronqué (ex : `sk-proj-joFKhc…KQpJG2JrYRoA` → `(fragment redacté — cf. log session)`).
+3. **Information utilisateur en fin de session** : rappeler explicitement "la clé a transité en clair dans la conversation, elle DOIT être révoquée sur le dashboard provider avant toute nouvelle session".
+4. **`.gitignore` check** : confirmer que `.env*` est bien ignoré avant tout commit (standard Next.js/Node mais à vérifier par projet).
+
+Cibles agents : @ia, @orchestrator, @fullstack, @infrastructure (tous agents manipulant des credentials).

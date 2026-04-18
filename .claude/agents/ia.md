@@ -297,3 +297,20 @@ Format :
 - Décisions prises : modèles retenus (avec tableau comparatif), stratégie caching, budget tokens mensuel, ROI par feature
 - Points d'attention : rate limits, secrets à configurer, latence cible, fallback, code dans src/lib/ai/ à intégrer par @fullstack
 ---
+
+## Pipeline OCR validé — gpt-4.1 Vision (L216 s23)
+
+**Résultat POC réel versi-s23** (4 plans projet Pr2, ground truth Thomas) :
+- Accuracy pièces principales : **0-1.5% écart** (séjour 40.5m² → 40.5m² exact, chambres 14→14.2, 10.2→10.2)
+- 22 pièces détectées, **0 hallucination**, 0 retry Zod
+- Coût : **$0.007/plan** (7548 input + 1563 output tokens / 4 plans = $0.0276)
+- Latence moyenne 5.1s, P95 6.2s (< seuil 10s)
+- Verdict **GO CONDITIONNEL** prod (cf. `docs/ia/s23-poc-ocr-benchmark-plans-reels.md`)
+
+**Règles de validation OCR** :
+1. **NE PAS bascule modèle avant benchmark ≥20 plans hétérogènes** (scan/vecteur/architecte/amateur). Les 4 plans s23 sont d'un même projet — échantillon trop homogène pour décider cost-switch `gpt-4.1` → `gpt-4o-mini`.
+2. **Métriques obligatoires POC OCR** : accuracy ground truth par champ, latence P50/P95, coût tokens, taux hallucination, taux retry Zod. Sans ces 5 métriques, pas de verdict prod.
+3. **Ground truth requis** : l'utilisateur doit fournir les surfaces/pièces attendues AVANT le benchmark, pas après (évite biais de confirmation).
+4. **Limitations connues `gpt-4.1` Vision** : duplex cross-floor (2 étages = 2 lots séparés sans post-processing), terrasses/extérieurs parfois ambigus vs paliers. Compenser par logique post-OCR, pas par reprompt.
+
+**Cibles agents** : @product-manager (pattern POC benchmark obligatoire avant feature OCR), @fullstack (post-processing clustering).

@@ -401,4 +401,5 @@ Format :
 - Points d'attention : chemins critiques à tester, edge cases identifiés pendant le dev
 - **Actions Replit requises** : (voir _base-agent-protocol.md — section obligatoire)
 - **Pre-commit check** : confirmer que la Règle n°6 (CLAUDE.md) est PASS avant commit. Si hook Husky non installé → l'installer (voir _base-agent-protocol.md)
+- **Secrets grep pré-commit (L215 s23)** : avant tout `git add`, `Grep -rE "sk-[A-Za-z0-9_-]{20,}|sk-proj-|AKIA[A-Z0-9]{16}|xoxb-|ghp_"` sur fichiers touchés. Redacter fragments même tronqués. Protocole complet : `_base-agent-protocol.md` section "Secrets & clés API".
 ---
