@@ -234,6 +234,9 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
+| @orchestrator (versi-s23 clôture) | 2026-04-18 | 3 commits s23 (`c75fca1` baselines, `f455ad8` touch/pinch, `4e7a828` POC OCR) + updates `project-context.md` (historique + mémo reprise s23→s24) + propagation learnings | Clôture session s23 après 3 interventions agents en parallèle (scopes disjoints : tests/screenshots / RoomCanvas.tsx / scripts+doc OCR = 0 conflit git). Pattern anti-timeout L209 respecté : P3 @fullstack relancé en scope ultra-réduit après 1 stream timeout au lancement. Clé OpenAI fournie en clair par Thomas — usage via env var uniquement, fragment tronqué redacté du doc avant commit, recommandation révocation post-session. 3 nouveaux learnings candidats (L215 redaction clé API, L216 POC OCR gpt-4.1 validé, L217 parallélisation scopes disjoints). | Parallélisation 3 agents retenue vs séquentiel : scopes strictement disjoints (screenshots binaires / composant React / scripts+doc) = zéro risque merge conflict + gain ~2× vs séquentiel. Alternative écartée : attendre P1 avant P2/P3 — pas justifié (pas de dépendance entre refresh baselines et touch-pinch ou OCR). Alternative écartée : commit unique final — préféré 3 commits atomiques par intervention pour traçabilité. |
+| @ia (versi-s23 P2) | 2026-04-18 | `versi-studio/scripts/poc-ocr-benchmark.mjs` + `docs/ia/s23-poc-ocr-benchmark-plans-reels.md` + résultats hors repo `/tmp/poc-ocr-results/*.json` | POC OCR réel sur 4 plans PDF projet Pr2 (RDC/R+1/R+2/R+3) avec `gpt-4.1` Vision pipeline prod. Résultats : 22 pièces détectées, 0 hallucination, 0 retry Zod, accuracy pièces principales **0-1.5% écart ground truth Thomas** (séjour RDC 26→25.6, chambre 10.2→10.2, séjour R+1 40.5→40.5 exact, chambre R+1 14→14.2, totaux -1.8% à -4.4%). Coût total session **$0.0276** (7548 input + 1563 output tokens). Extrapolation prod $1.40-2.80/mois/100 biens → ROI ~240×. Verdict **GO CONDITIONNEL** prod : (1) P0 clustering duplex cross-floor R+2+R+3 = 1 lot logique (à implémenter post-OCR avec triple filtre s21), (2) P1 clarif terrasses extérieur RDC 10m² + palier R+3 12.4m² non extraits clairement, (3) expand benchmark 20+ plans hétérogènes avant beta. Latence moyenne 5.1s (P95 6.2s, < seuil 10s). | Pipeline prod `gpt-4.1` confirmé vs bascule `gpt-4o` ou `gpt-4o-mini` écartée : cost déjà négligeable ($0.007/plan), pas de ROI à changer de modèle avant validation qualité sur 20+ plans. Alternative écartée : modifier `plan-extractor.ts` prod — scope POC lecture-only respecté (script `.mjs` autonome réutilisant même logique). Sécurité : clé API jamais écrite sur disque, fragment tronqué redacté du doc par @orchestrator avant commit, `.gitignore` vérifié couvre `.env*`. Recommandation bloquante : révocation clé OpenAI post-session (transit en clair prompt). |
+| @fullstack (versi-s23 P3) | 2026-04-18 | `versi-studio/src/components/vs/RoomCanvas.tsx` (+191L/-86L) + `docs/qa/s23-touch-pinch-mobile-roomcanvas.md` | Touch/pinch mobile RoomCanvas complète le zoom/pan desktop s22 (commit `755e942`). Pointer Events API unifié (`onPointerDown/Move/Up/Cancel/Leave`) remplace handlers mouse-only. `Map<pointerId, {x,y}>` tracker N pointers : 1 pointer = drag pièce ou pan, 2 pointers = pinch zoom midpoint (formule identique wheel desktop, bornes 1×-8× préservées). `touch-action: none` sur canvas bloque scroll natif pendant gesture. `setPointerCapture` pour robustesse drag out-of-bounds. Desktop préservé : wheel zoom, mouse drag, reset button intacts. Build PASS tsc + next build + lint (2 erreurs `reference-existant/` pré-existantes hors scope). Test mobile réel NON effectué — procédure DevTools + ngrok documentée dans le doc QA. | Pointer Events API unifié retenu vs handlers mouse+touch séparés : 1 seul code path couvre mouse/touch/stylus (MDN spec), moins de duplication, pas de `e.preventDefault()` spécifique iOS. Alternative écartée : lib externe `react-use-gesture` ou `hammer.js` — dépendance supplémentaire injustifiée pour 2 gestures (drag + pinch). Alternative écartée : tests E2E mobile Playwright — scope s23 serré, reporté s24 (nécessite Android/iOS projects config). Learning L209 appliqué : 1er agent P3 a stream-timeout au lancement, relance avec prompt plus compact (scope strict RoomCanvas.tsx + max 5 Read avant Write) = succès en 248s. |
 | @qa (versi-s23 P1) | 2026-04-18 | `docs/qa/s23-refresh-baselines-s22-cible.md` + 54 baselines PNG régénérées dans `versi-studio/tests/screenshots/` (15 upload + 18 lots + 21 rooms) | Refresh CIBLÉ des 54 baselines Playwright obsolètes suite aux modifs s22 (commits `56c56d7` cache upload, `74c0da3` bannière IA + aspect ratio, `b8ba008` cache extension, `755e942` zoom/pan). Exécution séquentielle `upload-visual` → `lots-visual` → `rooms-visual` avec `--update-snapshots` (26s + 40.6s + 48.8s = 1min55s cumulé), puis validation 54/54 PASS en 1.3min SANS `--update-snapshots`. Baseline `rooms-page-wide-plan.png` intacte (hors scope). Lecture visuelle [LIVE] 3 baselines (upload-desktop-default, lots-desktop-lots-detected, rooms-desktop-rooms-detected) : conforme 10 critères Thomas, bannière IA absente confirmée, aspect ratio "contain" visible par letterboxing. Git diff strictement 54 fichiers du scope + 1 doc à la racine. Gate G26 : PASS upload/lots/rooms. | Refresh ciblé retenu vs refresh global (risque de figer des bugs visuels hors scope s22) — L210 pré-commit validée. Exécution séquentielle (pas parallèle) malgré 1 seul worker Playwright pour respecter L209 (scope réduit anti-timeout : chaque spec isolée = rollback granulaire en cas de fail). Port 5000 (pas 3000 comme suggéré par le prompt) — L205 Replit convention alignée playwright.config.ts baseURL. Serveur dev déjà en cours d'exécution (réutilisé via `reuseExistingServer: !process.env.CI`). Phase 2 validation sans `--update-snapshots` obligatoire : prouve la reproductibilité CI-like des baselines régénérées (pas juste "ça passe en local pendant la génération"). |
 | @orchestrator | 2026-04-18 | `docs/orchestration-plan.md` (section s22) + updates `project-context.md` (historique + mémo reprise) + `docs/lessons-learned.md` (L209-L214) + `docs/founder-preferences.md` (session 2026-04-18) | Clôture session s22 après 7 interventions agents (orchestrator + @fullstack ×3 + @creative-strategy + @qa ×2). Reprise s21→s22 sur propagation 10 learnings (L197-L208) puis pivot live sur 3 retours Thomas en production : R1 (P1) DELETE plan persistence, R2 (P2) bannière IA Étape 2 supprimée, R3 (P0 RÉGRESSION 2e signalement) plan rogné Étape 3. Pattern "scope réduit quand timeout" validé après 2 timeouts consécutifs @fullstack sur scope combiné (aspect+zoom+pan+build). 5 learnings nouveaux capturés (L209 timeout scope large, L210 résumé agent trompeur, L211 docs au mauvais endroit, L212 "no AI > bad AI" appliqué, L213 migrations silencieuses, L214 préférences fondateur). | Pattern retenu : 3e tentative @fullstack en scope strictement réduit (aspect ratio + min-w UNIQUEMENT, zoom/pan reporté) a passé en 95s vs 2 timeouts précédents sur scope combiné. Décision de reporter touch/pinch mobile RoomCanvas à s23 (desktop zoom/pan suffisant pour Thomas marchand desktop-first). Décision de bloquer refresh 33+ baselines obsolètes sur arbitrage Thomas (pas de `--update-snapshots` automatique — risque de figer des bugs visuels). Alternative écartée : re-tenter le scope combiné une 3e fois (pattern L209 dit "ne jamais relancer le même scope sans réduction"). |
 | @fullstack | 2026-04-18 | `versi-studio/src/app/vs/projects/[id]/rooms/page.tsx` + `versi-studio/src/app/vs/projects/[id]/lots/page.tsx` + `docs/qa/s22-fix-plan-rogne-step3-and-banniere.md` | Fix Retour 3 Thomas (P0 RÉGRESSION 2e signalement) : plan rogné Étape 3 + fix Retour 2 (suppression bannière IA Étape 2). Retour 3 scope réduit après 2 timeouts : aspect ratio fixé (container respecte ratio image plan natif) + `min-width` container pour éviter compression latérale + baseline pixel-diff Playwright comme filet anti-3e régression. Retour 2 : suppression pure du bloc JSX conditionnel bannière IA Étape 2 (brief @creative-strategy "SUPPRIMER, pas reformuler"). Build PASS (tsc + next build). | Scope réduit retenu après 2 timeouts consécutifs @fullstack sur scope combiné (aspect + zoom + pan + doc + build en un seul agent = budget temps dépassé). Alternative écartée : re-tenter le scope combiné (viole L209). Alternative écartée : conserver la bannière avec `dismiss`/`localStorage` — verdict @creative-strategy "coût UX > bénéfice, principe no AI > bad AI" + persona Thomas marchand pressé = on supprime. Hors scope zoom/pan délégué à un 2e @fullstack dédié avec RoomCanvas. |
@@ -403,7 +406,81 @@
 - Branche de développement : `claude/versi-s21-launch-OsqlY` (s21 clôturée — à merger puis créer nouvelle branche s22)
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
-### Mémo de reprise versi-s22 → s23
+### Mémo de reprise versi-s23 → s24
+
+**Branche dernière clôturée** : `claude/versi-s23-ocr-mobile-baselines-0eLFE`
+**Date de clôture** : 2026-04-18
+**Numéro de session (source de vérité)** : **23**
+**Statut s23** : CLÔTURÉE — 3 priorités P1/P2/P3 traitées en parallèle (scopes disjoints, 0 conflit) + POC OCR plans réels GO CONDITIONNEL + touch/pinch mobile RoomCanvas + refresh baselines s22 ciblé 54/54 PASS
+
+**Résumé session versi-s23 (3 commits, 3 agents + 1 orchestrator)** :
+
+1. **P1 @qa — Refresh ciblé 54 baselines Playwright s22** (upload 15 + lots 18 + rooms 21) — 54/54 PASS validation stricte post-refresh. Gate G26 upload/lots/rooms : PASS. Baseline `rooms-page-wide-plan.png` intacte (hors scope). 0 dérive hors scope. Doc `docs/qa/s23-refresh-baselines-s22-cible.md` — commit `c75fca1`
+2. **P3 @fullstack — Touch/pinch mobile RoomCanvas** (Pointer Events API unifié, pinch 2-touch midpoint, `touch-action: none`, `setPointerCapture`, bornes 1×-8× préservées, desktop intact) — 1 stream timeout au 1er lancement puis relance scope ultra-réduit OK (L209 appliqué). Doc `docs/qa/s23-touch-pinch-mobile-roomcanvas.md` — commit `f455ad8`
+3. **P2 @ia — POC OCR benchmark 4 plans réels** (projet Pr2 RDC/R+1/R+2/R+3, pipeline prod `gpt-4.1` Vision, ground truth Thomas) — accuracy pièces principales **0-1.5% écart**, 22 pièces détectées, 0 hallucination, coût $0.0276, ROI prod ~240×. Verdict **GO CONDITIONNEL** : P0 clustering duplex cross-floor + P1 clarif terrasses + expand benchmark 20+ plans. Script `versi-studio/scripts/poc-ocr-benchmark.mjs` + doc `docs/ia/s23-poc-ocr-benchmark-plans-reels.md` — commit `4e7a828`
+
+**Pattern "parallélisation scopes disjoints" validé s23** : 3 agents lancés en parallèle sur scopes sans chevauchement (tests/screenshots binaires / RoomCanvas.tsx / scripts+doc OCR) = 0 conflit git, gain ~2× vs séquentiel. Condition : zones disjointes strictement vérifiées avant lancement (pas "probablement OK").
+
+**Pattern "clé API fournie inline" validé s23** : Thomas a fourni la clé OpenAI en clair dans le prompt (transit Anthropic inclus). Protocole appliqué : (1) env var shell uniquement, jamais de .env file, (2) redaction du fragment tronqué présent dans le doc agent avant commit, (3) recommandation révocation post-session communiquée. **Clé À RÉVOQUER** sur platform.openai.com avant reprise s24 (confirmation Thomas attendue).
+
+**Travaux en cours (reportés s24)** :
+- **P0 clustering duplex cross-floor** (suite POC OCR GO CONDITIONNEL) — un duplex R+2+R+3 doit être clustering en 1 seul lot logique post-OCR. Logique triple filtre confiance (avg ≥ 0.7 AND min ≥ 0.5 AND count ≥ 2) rappelée learning s21. @fullstack dédié s24.
+- **P1 clarifier terrasses extérieurs** — extérieur RDC 10m² non extrait, palier R+3 12.4m² ambigu. Nécessite décision Thomas : extraire séparément ou merger surface principale ?
+- **Expand POC OCR 20+ plans hétérogènes** avant beta prod — les 4 plans de s23 sont d'un même projet, échantillon trop homogène.
+- **Tests E2E mobile Playwright RoomCanvas** (touch/pinch) — procédure DevTools documentée s23, tests automatisés à faire s24 (projects Android/iOS Playwright).
+- **Backlog produit scope s22/s21 non traité** : Auth, Dashboard multi-projets, Export PDF, Validation KPI NS, Finitions, Stack analytics V2 (SDK + endpoint + dashboard KPI).
+
+**Priorités pour s24 (proposées, Thomas tranche au démarrage)** :
+
+| # | Priorité | Estimation Tasks |
+|---|---|---|
+| P1 | **Clustering duplex cross-floor post-OCR** (P0 bloquant prod selon verdict POC) — @fullstack triple filtre confiance + cas test duplex R+2+R+3 projet Pr2 | 2-3 |
+| P2 | **Expand POC OCR benchmark 20+ plans hétérogènes** — Thomas fournit 10-20 plans additionnels (sources variées : scan/vecteur/architecte/amateur) pour validation accuracy beta. @ia + @qa | 3-5 |
+| P3 | **Tests E2E mobile Playwright** (touch/pinch RoomCanvas) — projects Android/iOS config + 3-5 tests gestures. @qa | 2-3 |
+| P4 | **Backlog produit (report s22/s21)** : Auth, Dashboard multi-projets, Export PDF, Stack analytics V2 — au choix Thomas selon signaux utilisateur | 5-15 selon option |
+
+**Blockers** : révocation clé OpenAI (Thomas) + décision priorité s24 (Thomas).
+
+**Marqueur de contenu validé s23** :
+- `Grep "onPointerDown\|onPointerMove" versi-studio/src/components/vs/RoomCanvas.tsx` (touch/pinch appliqué s23)
+- `Grep "poc-ocr-benchmark" versi-studio/scripts/` (POC OCR committé s23)
+- `git log --oneline | grep "s23"` (3 commits s23 visibles : c75fca1, f455ad8, 4e7a828)
+
+**Propagation P0/P1 s23** : 3 learnings candidats (à propager s24 début) :
+- **L215 redaction clé API dans docs agents** — si clé fournie inline dans prompt, toujours grep `sk-proj-` ou `sk-[A-Za-z0-9_-]{20,}` dans TOUS les livrables avant commit, redacter fragments même tronqués
+- **L216 POC OCR gpt-4.1 Vision prod-ready** — pipeline existing accuracy 0-1.5% sur plans d'architecte propres, coût négligeable $0.007/plan, pas de bascule modèle avant validation 20+ plans
+- **L217 parallélisation scopes disjoints** — 3 agents parallèles OK SI scopes strictement vérifiés disjoints avant lancement, gain ~2× sur session, 0 conflit si zones orthogonales (tests binaires + composant React + scripts)
+
+**Patterns validés s23 à réutiliser** :
+- **Pattern scope réduit anti-timeout** (L209 confirmé 2× s22+s23) — stream timeout au 1er lancement @fullstack P3 résolu par relance avec prompt ultra-compact
+- **Pattern vérification git diff post-résumé agent** (L210 appliqué s23) — P3 agent a commencé à écrire pendant sa relance, git diff révèle 277 lignes modifiées conformes
+- **Pattern parallélisation scopes disjoints** (L217 nouveau) — 3 agents concurrents sans conflit si vérification disjointe préalable
+- **Pattern clé API env var stricte** (L215 nouveau) — jamais écrite sur disque, redaction fragments docs, révocation post-session
+
+**Préférences fondateur consolidées s23** :
+- Thomas fournit les clés API en clair dans le prompt quand nécessaire (OPENAI_API_KEY s23) — protocole redaction + révocation post-session requis côté orchestrator
+- Thomas relance les priorités reportées via message direct ("@orchestrator n'oublie pas P2") — relance live acceptable, pas un retour négatif
+
+**Nom de branche s24** : `claude/versi-s24-[description]-[suffix]` — Claude Code génère le suffix, description selon priorité choisie par Thomas
+
+**Commande de reprise suggérée pour s24** :
+
+```
+@orchestrator session versi-s24. Lire project-context.md mémo reprise s23→s24 (priorités P1-P4 + 3 learnings candidats L215-L217 à propager).
+
+Gate de reprise obligatoire AVANT tout nouveau travail :
+1. Confirmation Thomas : clé OpenAI utilisée s23 BIEN RÉVOQUÉE sur platform.openai.com ? Si non, STOP session et attendre.
+2. Question Thomas : priorité P1 pour s24 — clustering duplex cross-floor (bloquant prod OCR) / expand POC 20+ plans / tests E2E mobile / backlog produit ?
+3. Phase 0 propagation 3 learnings s23 (L215 redaction clé, L216 POC OCR validé, L217 parallélisation disjointe) dans agents concernés avant toute production.
+
+Plan d'exécution selon scope retenu (Pattern Express / Audit cross-agents 3 itérations / Typist selon complexité).
+
+Compteur Task producteurs initial : 0/18. Contraintes : anti-timeout règle n°3, règle n°4 délégation, règle n°5 mindset IA, L209 scope réduit quand timeout, L210 git diff avant confiance summary, L215 redaction clé API, L217 parallélisation scopes disjoints vérifiés.
+```
+
+---
+
+### Mémo de reprise versi-s22 → s23 [ARCHIVÉ — cf. clôture s23 ci-dessus]
 
 **Branche dernière clôturée** : `claude/update-gradient-agents-Ta4Pn`
 **Date de clôture** : 2026-04-18
@@ -420,53 +497,6 @@
 3. Extension défense anti-cache proactive sur 3 pages (lots/rooms/visuals) + 2 routes API — commit `b8ba008`
 4. 5 tests E2E Playwright LIVE non-régression 5/5 PASS (pas mockés — headers HTTP réels) — commit `b8ba008`
 5. Zoom/pan RoomCanvas desktop + migration 54 baselines Playwright slash→hyphen + découverte 2 migrations silencieuses antérieures (L213) — commit `755e942`
-
-**Pattern "scope réduit quand timeout" validé** : 2 timeouts consécutifs @fullstack sur scope combiné (aspect+zoom+pan+build) → 3e tentative en scope strictement réduit (aspect+min-w UNIQUEMENT) passe en 95s. Pattern promu en L209 / propagé dans orchestrator.md.
-
-**Travaux en cours (reportés s23)** :
-- **Touch/pinch mobile RoomCanvas** — desktop zoom/pan implémenté V1, mobile reporté (Thomas desktop-first, 0 usage mobile rapporté)
-- **Arbitrage 33+ baselines Playwright obsolètes** (upload/lots/rooms) — dimensions ont changé depuis s17-s20. BLOQUÉ sur décision Thomas : `--update-snapshots` global OU review visuelle case-par-case. Gate G26 couverture rendu impactée.
-
-**Priorités pour s23 (proposées, Thomas tranche au démarrage)** :
-
-| # | Priorité | Estimation Tasks |
-|---|---|---|
-| P1 | **Arbitrage dette visuelle 33+ baselines Playwright obsolètes** (gate G26) — nécessite @moi/Thomas avant tout nouveau @qa sur les étapes upload/lots/rooms. Décision : accept global `--update-snapshots` (risque = figer bugs visuels) OU review case-par-case (coût = 30-60 min Thomas) OU refresh ciblé sur pages modifiées s22 uniquement | 1-2 |
-| P2 | **Priorités scope s22 non traitées du brief s21→s22** (report Thomas) : POC OCR réel avec OPENAI_API_KEY + 5-10 plans (P1 s21) / Backlog produit D/E/F/G/H (Auth, Dashboard multi-projets, Export PDF, Validation KPI NS, Finitions) / Stack analytics V2 (SDK + endpoint + dashboard KPI) / Hypothèses complexes (onboarding, Stripe, multi-tenants) | 3-12 selon option |
-| P3 | **Touch/pinch mobile RoomCanvas** — si Thomas l'estime nécessaire. Rapide @fullstack 1 agent : `pointerdown/pointermove/pointerup` + gestion 2-touch pinch. | 1-2 |
-
-**Blockers** : décision Thomas sur arbitrage baselines (P1) + scope s23 (P2/P3).
-
-**Marqueur de contenu validé s22** : `Grep "cache: \"no-store\"" versi-studio/src/app/vs/projects/[id]/upload/page.tsx` (fix R1 appliqué s22) + `Grep "force-dynamic" versi-studio/src/app/api/vs/plans/[id]/route.ts` (ceinture+bretelles s22)
-
-**Propagation P0/P1 s22** : 5 learnings nouveaux (L209-L214) propagés en fin de session (voir étape 5c de ce mémo).
-
-**Patterns validés s22 à réutiliser** :
-- **Pattern scope réduit anti-timeout** (L209) — si agent timeout sur scope combiné, NE PAS relancer même scope ; découper en N sous-scopes indépendants
-- **Pattern vérification git diff post-résumé agent** (L210) — toujours `git diff --stat` avant confiance au summary, un agent peut écrire 170 lignes et résumer "rien à modifier"
-- **Pattern verdict tranché copy** (L212) — @creative-strategy SUPPRIMER/CONSERVER/REFORMULER net, pas "ça dépend"
-- **Pattern ceinture+bretelles anti-cache** — `no-store` client + `force-dynamic`/`revalidate=0` serveur, coût zéro
-
-**Préférences fondateur consolidées s22 (L214)** :
-- Thomas préfère retours UX directs et bruts (fautes de frappe acceptées) à briefs polis — traiter comme data UX prioritaire, pas du bruit
-- Thomas signale régressions explicitement ("2 commits de suite avec la même erreur") — quand il insiste = P0 gate bloquante automatique
-
-**Nom de branche s23** : `claude/versi-s23-[description]-[suffix]` — Claude Code génère le suffix, description selon priorité choisie par Thomas
-
-**Commande de reprise suggérée pour s23** :
-
-```
-@orchestrator session versi-s23. Lire project-context.md mémo reprise s22→s23 (priorités P1-P3 + learnings L209-L214 propagés).
-
-Gate de reprise obligatoire AVANT tout nouveau travail :
-1. Question Thomas : décision P1 arbitrage baselines Playwright (33+ obsolètes upload/lots/rooms) — accept global --update-snapshots / review case-par-case / refresh ciblé s22 ?
-2. Question Thomas : priorité P2 pour s23 — POC OCR réel / backlog D/E/F/G/H / stack analytics V2 / hypothèses complexes ?
-3. Si P3 touch/pinch mobile souhaité, lancer un @fullstack dédié (scope étroit).
-
-Plan d'exécution selon scope retenu (Pattern Express / Audit cross-agents 3 itérations / Typist selon complexité).
-
-Compteur Task producteurs initial : 0/18. Contraintes : anti-timeout règle n°3, règle n°4 délégation, règle n°5 mindset IA, L209 scope réduit quand timeout, L210 git diff avant confiance summary.
-```
 
 ---
 
