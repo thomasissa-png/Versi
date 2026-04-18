@@ -11,6 +11,12 @@ import { query, ensureDbReady } from "@/lib/vs/db";
 import type { ApiResponse } from "@/lib/vs/types";
 import { unlink } from "fs/promises";
 
+// Désactive le cache Route Handler de Next.js 15.
+// Cohérence avec /api/vs/projects/[id]/plans : DELETE et PATCH doivent toujours
+// frapper la base, jamais une réponse cachée (bug s22 — plan supprimé qui réapparaît).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     str

@@ -68,9 +68,11 @@ export default function UploadPage({
       setLoading(true);
       setError(null);
 
+      // cache: 'no-store' obligatoire — sans ça, le HTTP cache du navigateur
+      // peut servir une liste de plans périmée après une suppression (bug s22).
       const [projectRes, plansRes] = await Promise.all([
-        fetch(`/api/vs/projects/${projectId}`),
-        fetch(`/api/vs/projects/${projectId}/plans`),
+        fetch(`/api/vs/projects/${projectId}`, { cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/plans`, { cache: "no-store" }),
       ]);
 
       const projectJson = (await projectRes.json()) as ApiResponse<VsProject>;

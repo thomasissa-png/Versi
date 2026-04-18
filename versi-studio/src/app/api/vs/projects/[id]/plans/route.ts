@@ -19,6 +19,12 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { v4 as uuidv4 } from "uuid";
 
+// Désactive le cache Route Handler de Next.js 15.
+// Sans cela, GET renvoie une réponse cachée après DELETE → le plan supprimé
+// réapparaît au reload (bug remonté par Thomas, session s22).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const UPLOAD_DIR = "/tmp/vs-uploads";
 
 function isValidUUID(str: string): boolean {
