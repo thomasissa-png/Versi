@@ -803,20 +803,8 @@ export default function LotsPage({
           </div>
         )}
 
-        {/* U5 — Bannière feedback post-extraction IA (versi-s21 it2) */}
-        {aiSuggestedLots.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-md mb-md flex items-start gap-sm">
-            <span className="text-blue-600 text-xl flex-shrink-0" aria-hidden="true">&#9733;</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">
-                L&apos;IA a pré-créé {aiSuggestedLots.length} lot{aiSuggestedLots.length > 1 ? "s" : ""} depuis votre plan.
-              </p>
-              <p className="text-xs text-blue-700 mt-xs">
-                Vérifiez chaque lot et validez en 1 clic ou globalement.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Bannière feedback post-extraction IA supprimée (versi-s22 — verdict @creative-strategy)
+            Le compteur "X lots à valider" dans le header (ligne 672) suffit à informer l'utilisateur. */}
 
         {/* Canvas + Panneau latéral */}
         <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">

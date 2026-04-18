@@ -690,7 +690,7 @@ export default function RoomsPage({
         {/* Canvas + Panel */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
           {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
-          <div className="h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-0">
+          <div className="h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-[300px]">
             <RoomCanvas
               planImageUrl={planImageUrl}
               lotZone={lotZone}

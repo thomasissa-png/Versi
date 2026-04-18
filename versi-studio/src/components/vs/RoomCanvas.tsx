@@ -198,14 +198,33 @@ export default function RoomCanvas({
     ctx.fillStyle = "#F0EDE8";
     ctx.fillRect(0, 0, width, height);
 
-    // Image du plan (zoom sur la zone du lot)
+    // Image du plan (zoom sur la zone du lot, ratio préservé — versi-s22 fix plan rogné)
     if (imageRef.current && imageLoaded) {
       const img = imageRef.current;
       const sx = (lotZone.x_percent / 100) * img.naturalWidth;
       const sy = (lotZone.y_percent / 100) * img.naturalHeight;
       const sw = (lotZone.width_percent / 100) * img.naturalWidth;
       const sh = (lotZone.height_percent / 100) * img.naturalHeight;
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+
+      // Pattern "contain" — préserver l'aspect ratio de la zone cropée
+      const sourceAspect = sw / sh;
+      const canvasAspect = width / height;
+
+      let drawW: number, drawH: number, drawX: number, drawY: number;
+      if (sourceAspect > canvasAspect) {
+        // Source plus large → fit à la largeur, marges haut/bas
+        drawW = width;
+        drawH = width / sourceAspect;
+        drawX = 0;
+        drawY = (height - drawH) / 2;
+      } else {
+        // Source plus haute → fit à la hauteur, marges gauche/droite
+        drawH = height;
+        drawW = height * sourceAspect;
+        drawX = (width - drawW) / 2;
+        drawY = 0;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, drawW, drawH);
     } else {
       // Placeholder quadrillage si pas d'image
       ctx.strokeStyle = "#D9D4CE";
