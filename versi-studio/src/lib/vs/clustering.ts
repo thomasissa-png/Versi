@@ -17,6 +17,12 @@ export interface UnitGroup {
   rooms: ExtractedRoom[];
   confidenceAvg: number;
   confidenceMin: number;
+  /**
+   * versi-s23 P2 : si ce groupe est le résultat d'un merge duplex cross-floor,
+   * liste des unitIds sources mergés. Absent si groupe non mergé (cas nominal s21).
+   * Utilisé pour traçabilité + affichage UI (badge "Duplex R+2/R+3").
+   */
+  mergedFrom?: string[];
 }
 
 export interface EnvelopeBbox {
@@ -211,4 +217,167 @@ export function computeAvgX(rooms: ExtractedRoom[]): number {
       return sum + (bb ? bb.x_percent + bb.width_percent / 2 : 50);
     }, 0) / rooms.length
   );
+}
+
+// ─── versi-s23 P2 — Merge duplex cross-floor ────────────────────────
+
+/** Surface combinée maximale (m²) pour considérer 2 groupes comme un duplex plausible */
+export const DUPLEX_MAX_COMBINED_AREA_M2 = 150;
+
+/** Regex détection escalier/palier dans name_raw — indicateur fort de duplex */
+const STAIRCASE_REGEX = /\bescalier\b|\bpalier\b|\bmontée\b|\bmontee\b/i;
+
+/**
+ * Somme des surfaces d'un groupe de pièces (ignore les surface_m2 null).
+ */
+function computeTotalArea(rooms: ExtractedRoom[]): number {
+  return rooms.reduce((sum, r) => sum + (r.surface_m2 ?? 0), 0);
+}
+
+/**
+ * Détecte si un groupe contient une pièce "escalier" ou "palier".
+ * Indicateur fort de demi-niveau (duplex avec escalier interne).
+ */
+function hasStaircase(group: UnitGroup): boolean {
+  return group.rooms.some((r) => STAIRCASE_REGEX.test(r.name_raw));
+}
+
+/**
+ * Vérifie si 2 groupes ont un recouvrement X significatif (≥ 30%).
+ * Un vrai duplex a son escalier aligné verticalement : les bboxes des 2
+ * étages se recouvrent sur l'axe X. Sans recouvrement → probablement
+ * 2 lots distincts qui se trouvent être à des étages adjacents.
+ */
+function hasVerticalAlignment(a: UnitGroup, b: UnitGroup): boolean {
+  const envA = computeEnvelopeBbox(a.rooms);
+  const envB = computeEnvelopeBbox(b.rooms);
+  const aLeft = envA.x_percent;
+  const aRight = envA.x_percent + envA.width_percent;
+  const bLeft = envB.x_percent;
+  const bRight = envB.x_percent + envB.width_percent;
+
+  const overlap = Math.max(0, Math.min(aRight, bRight) - Math.max(aLeft, bLeft));
+  const minWidth = Math.min(envA.width_percent, envB.width_percent);
+  if (minWidth <= 0) return false;
+  return overlap / minWidth >= 0.3;
+}
+
+/**
+ * Fusionne 2 UnitGroup en 1 seul (cas duplex).
+ * - floor = étage le plus bas (convention : lot référencé par son étage d'entrée)
+ * - unitId = concat avec "+" pour traçabilité visuelle
+ * - rooms = union
+ * - confidenceAvg/Min = recalculés sur l'union
+ * - mergedFrom = [unitIdA, unitIdB]
+ */
+function mergeTwoGroups(a: UnitGroup, b: UnitGroup): UnitGroup {
+  const lower = a.floor <= b.floor ? a : b;
+  const upper = a.floor <= b.floor ? b : a;
+  const allRooms = [...lower.rooms, ...upper.rooms];
+  const confidenceAvg =
+    allRooms.reduce((sum, r) => sum + r.confidence, 0) / allRooms.length;
+  const confidenceMin = Math.min(...allRooms.map((r) => r.confidence));
+
+  return {
+    floor: lower.floor,
+    unitId: `${lower.unitId}+${upper.unitId}`,
+    rooms: allRooms,
+    confidenceAvg,
+    confidenceMin,
+    mergedFrom: [lower.unitId, upper.unitId],
+  };
+}
+
+/**
+ * Évalue si 2 groupes sur étages consécutifs sont candidats à un merge duplex.
+ *
+ * Conditions (stratégie conservative : "no merge > bad merge") :
+ * - Étages consécutifs (floor N et N+1) obligatoire
+ * - Alignement vertical (recouvrement X ≥ 30%) obligatoire
+ * - ET au moins UN des 3 signaux positifs :
+ *   1. Escalier/palier détecté dans name_raw d'un des 2 groupes (signal fort)
+ *   2. Les 2 groupes ont count === 1 chacun (demi-niveau plausible)
+ *   3. Surface totale combinée ≤ 150m² (taille cohérente avec un duplex)
+ *
+ * Retourne `false` en cas d'ambiguïté (2 lots distincts préférables à 1 lot erroné).
+ */
+function shouldMergeAsDuplex(a: UnitGroup, b: UnitGroup): boolean {
+  // Étages consécutifs uniquement
+  if (Math.abs(a.floor - b.floor) !== 1) return false;
+
+  // Alignement vertical obligatoire : sans ça, on a probablement 2 lots distincts
+  if (!hasVerticalAlignment(a, b)) return false;
+
+  // Signal 1 (fort) : escalier explicite dans un des groupes
+  if (hasStaircase(a) || hasStaircase(b)) return true;
+
+  // Signal 2 : demi-niveaux (1 pièce par étage)
+  if (a.rooms.length === 1 && b.rooms.length === 1) return true;
+
+  // Signal 3 : surface combinée raisonnable pour un duplex
+  const totalArea = computeTotalArea(a.rooms) + computeTotalArea(b.rooms);
+  if (totalArea > 0 && totalArea <= DUPLEX_MAX_COMBINED_AREA_M2) return true;
+
+  // Ambiguïté → pas de merge
+  return false;
+}
+
+/**
+ * Post-processing des UnitGroup pour détecter les duplex cross-floor.
+ *
+ * Gap détecté s23 : `clusterByUnit` s21 groupe UNIQUEMENT same-floor (un
+ * duplex R+2/R+3 apparaît comme 2 lots distincts). Cette fonction fusionne
+ * les groupes d'étages consécutifs qui présentent des signaux de duplex.
+ *
+ * Stratégie : conservative, append-only (n'est PAS appelée dans clusterByUnit).
+ * Le pipeline extract appelle clusterByUnit → mergeDuplexAcrossFloors.
+ *
+ * Garanties :
+ * - Chaque groupe source est mergé au plus une fois (pas de triple-niveau s23 —
+ *   si besoin, itérer manuellement ou étendre en s24)
+ * - Ordre de traitement déterministe (tri par floor asc, puis unitId) pour
+ *   résultats reproductibles
+ * - Les groupes non-mergés sont retournés inchangés (aucune mutation)
+ */
+export function mergeDuplexAcrossFloors(groups: UnitGroup[]): UnitGroup[] {
+  if (groups.length < 2) return groups;
+
+  // Copie + tri déterministe (floor asc, puis unitId lexicographique)
+  const sorted = [...groups].sort((a, b) => {
+    if (a.floor !== b.floor) return a.floor - b.floor;
+    return a.unitId.localeCompare(b.unitId);
+  });
+
+  const merged: UnitGroup[] = [];
+  const consumed = new Set<number>(); // indices déjà mergés
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (consumed.has(i)) continue;
+    const groupA = sorted[i];
+
+    // Cherche un candidat sur l'étage N+1
+    let pairIndex = -1;
+    for (let j = i + 1; j < sorted.length; j++) {
+      if (consumed.has(j)) continue;
+      const groupB = sorted[j];
+      // Optimisation : dès que floor > floorA+1, plus de candidat possible
+      if (groupB.floor > groupA.floor + 1) break;
+      if (groupB.floor !== groupA.floor + 1) continue;
+      if (shouldMergeAsDuplex(groupA, groupB)) {
+        pairIndex = j;
+        break;
+      }
+    }
+
+    if (pairIndex >= 0) {
+      merged.push(mergeTwoGroups(groupA, sorted[pairIndex]));
+      consumed.add(i);
+      consumed.add(pairIndex);
+    } else {
+      merged.push(groupA);
+      consumed.add(i);
+    }
+  }
+
+  return merged;
 }

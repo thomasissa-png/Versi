@@ -23,6 +23,7 @@ import {
   generateLotName,
   countHabitableRooms,
   computeAvgX,
+  mergeDuplexAcrossFloors,
   CLUSTERING_CONFIDENCE_THRESHOLD,
 } from "@/lib/vs/clustering";
 import { track } from "@/lib/vs/analytics";
@@ -145,10 +146,15 @@ export async function POST(
     // I5 : warning si > 50% des groupes rejetés
     // I6 : extraction_reason dans la réponse
 
-    const { accepted: unitGroups, candidateCount } = clusterByUnit(
+    const { accepted: initialGroups, candidateCount } = clusterByUnit(
       allRooms,
       CLUSTERING_CONFIDENCE_THRESHOLD
     );
+
+    // versi-s23 P2 — Merge duplex cross-floor (post-processing conservatif)
+    // Détecte les duplex R+N/R+N+1 qui apparaissent comme 2 lots séparés
+    // dans clusterByUnit (logique same-floor only).
+    const unitGroups = mergeDuplexAcrossFloors(initialGroups);
 
     // I5 — Warning si taux de rejet élevé
     const warnings: Array<{ type: string; message: string }> = [];
