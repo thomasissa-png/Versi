@@ -82,6 +82,23 @@ Analyser 3-5 concurrents sur : positionnement déclaré (tagline, hero, about), 
 
 Si plusieurs produits/services : déterminer l'architecture (Monolithique / Endorsed / House of Brands). Documenter les règles de naming et hiérarchie visuelle.
 
+### Review copy UI/UX — verdict tranché obligatoire (L212 versi-s22)
+
+Pour toute review de copy UI/UX sollicitée (bouton, bannière, message d'erreur, microcopy), le verdict DOIT être tranché :
+- **SUPPRIMER** : le texte n'apporte rien et distrait (redondant, condescendant, jargon, ou violation brand voice non récupérable)
+- **CONSERVER** : le texte est aligné avec le persona + brand voice, rien à changer
+- **REFORMULER** : le texte sert un objectif valide mais la formulation viole une règle (ton, registre, anglicisme, longueur)
+
+Pas de "ça dépend", pas de "voici plusieurs options". Si aucun verdict tranché n'est possible, demander le contexte supplémentaire (quel persona ? quel objectif métier ? quel état UI ?) plutôt que produire une liste floue.
+
+**Format du verdict (obligatoire)** :
+1. Une ligne : `Verdict : [SUPPRIMER|CONSERVER|REFORMULER]`
+2. 3-5 justifications concises (persona + brand voice + principe + contexte)
+3. Si REFORMULER : proposition de texte exact prête à copier-coller
+4. Si SUPPRIMER : brief @fullstack ligne précise à supprimer
+
+**Exemple validé versi-s22** : bannière IA Étape 2 Versi Studio signalée par Thomas "pas claire". Verdict : **SUPPRIMER**. 5 justifications : (1) Thomas marchand pressé ne lit pas les bannières, (2) redondance visuelle avec panel, (3) "vérifiez et validez" paraphrase l'interface, (4) principe "no AI > bad AI" — la bannière dit qu'il y a eu extraction mais ne valide pas la qualité, (5) contraire au ton brand "zéro blabla". Livrable court (1 page), verdict net, @fullstack a supprimé le bloc JSX en 1 edit.
+
 ### Triggers de réévaluation stratégique
 
 Réévaluer le positionnement si : nouveau concurrent significatif, changement de persona, taux de conversion landing < 2% après 3 mois, NPS < 30, pivot de modèle économique.

@@ -443,6 +443,8 @@ docs/
 Exceptions : @agent-factory → `.claude/agents/`, @orchestrator → `docs/` racine, @fullstack → `src/`.
 Tout livrable hors de cette arborescence sera rejeté par @reviewer.
 
+**RÈGLE STRICTE — docs À LA RACINE, JAMAIS EN SOUS-PROJET (L211 versi-s22)** : tous les docs de livrables sont à la RACINE du repo dans `docs/{agent}/`, JAMAIS dans un sous-projet (`versi-studio/`, `versi-invest/`, `apps/*/`, etc.). Les briefs de lancement d'agent DOIVENT inclure le chemin exact du livrable attendu (ex : `docs/qa/s22-fix-...md`). Exemple d'erreur à éviter (versi-s22) : @fullstack et @qa ont écrit dans `versi-studio/docs/qa/` → correction manuelle `mv` + `rmdir`. Pour les fichiers de code / tests / config / assets qui appartiennent au sous-projet, ces derniers restent dans leur sous-projet (`versi-studio/src/`, `versi-studio/tests/`) — seuls les **docs de livrables** (.md d'audit, de fix, de handoff) sont à la racine.
+
 ## Mémoire organisationnelle — Apprentissage inter-projets
 
 Après chaque session, l'orchestrateur met à jour `docs/lessons-learned.md` (format tableau v2, 11 colonnes). Voir `orchestrator-reference.md` pour le format détaillé.

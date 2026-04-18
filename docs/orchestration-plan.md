@@ -1,4 +1,95 @@
-# Plan d'orchestration — Versi Studio s21 Clustering IA + Polygones IA
+# Plan d'orchestration — Versi Studio s22 Propagation + Retours live Thomas
+
+<!-- SESSION: phases=6 tasks_prod=7 tasks_consult=1 -->
+
+## Session s22 — Propagation learnings s21 + 3 retours live production + tests E2E + zoom/pan + migration baselines
+
+**Branche** : `claude/update-gradient-agents-Ta4Pn`
+**Date démarrage** : 2026-04-18
+**Date clôture** : 2026-04-18
+**Statut** : CLÔTURÉE
+
+### Demande utilisateur s22
+1. Reprise s21→s22 : propagation 10 learnings L197-L208 non-propagés
+2. En cours de session : 3 retours live Thomas sur production (R1 P1 DELETE plan persistence, R2 P2 bannière IA Étape 2, R3 P0 RÉGRESSION 2e signalement plan rogné Étape 3)
+3. Cascade : tests E2E non-régression + extension défense anti-cache + zoom/pan RoomCanvas + migration baselines Playwright
+
+### Mode détecté
+Projet existant (Versi Studio V1 en production). Interventions ciblées sur régression + defense en profondeur, pas de nouvelle feature scope.
+
+### Complexité observée
+**Moyenne** — 5 agents distincts, 7 interventions Task producteurs (+1 consultation), 5 commits. Pattern "scope réduit" activé après 2 timeouts @fullstack.
+
+### Plan par phase
+
+#### Phase 0 — Propagation 10 learnings s21 (L197-L208)
+- Statut : COMPLETE
+- Exécution : édits directs orchestrator (règle n°4 exception propagation learnings)
+- Commit : `05fc0b4` Propagation 10 learnings s21 (L197-L208) dans agents
+- Cible propagation : `CLAUDE.md`, `.claude/agents/orchestrator.md`, `.claude/agents/qa.md`, `.claude/agents/ia.md`, `.claude/agents/moi.md`, `.claude/agents/fullstack.md`, `docs/founder-preferences.md`
+
+#### Phase 1 — Retour 1 Thomas (P1) DELETE plan persistence
+- Agents : @fullstack (1 Task producteur)
+- Statut : COMPLETE
+- Livrables : `versi-studio/src/app/api/vs/projects/[id]/plans/route.ts`, `versi-studio/src/app/api/vs/plans/[id]/route.ts`, `versi-studio/src/app/vs/projects/[id]/upload/page.tsx`, `docs/qa/s22-fix-plan-delete-persistence.md`
+- Décision : `cache: "no-store"` (client) + `force-dynamic` + `revalidate = 0` (serveur) — pattern ceinture+bretelles
+- Commit : `56c56d7` Fix Retour 1 : DELETE plan persistence
+
+#### Phase 2 — Retours 2+3 Thomas (P2 bannière + P0 régression aspect ratio)
+- Agents : @creative-strategy (consultation) → @fullstack (1 Task producteur, 3e tentative scope réduit)
+- Statut : COMPLETE
+- Livrables : `docs/copy/s22-review-banniere-ia-step2.md` (verdict "SUPPRIMER"), `versi-studio/src/app/vs/projects/[id]/rooms/page.tsx`, `versi-studio/src/app/vs/projects/[id]/lots/page.tsx`, `docs/qa/s22-fix-plan-rogne-step3-and-banniere.md`
+- Décisions : (R2) suppression bloc JSX conditionnel bannière IA — verdict @creative-strategy "no AI > bad AI" ; (R3 scope réduit) aspect ratio container respecte ratio image natif + min-width pour éviter compression
+- Anti-pattern évité : 2 timeouts consécutifs @fullstack sur scope combiné (aspect+zoom+pan+build) → 3e tentative en scope strictement réduit (L209)
+- Commit : `74c0da3` Fix Retour 3 aspect ratio + Retour 2 suppression bannière
+
+#### Phase 3 — Extension défense anti-cache (3 pages + 2 routes) + Tests E2E non-régression
+- Agents : @fullstack (1 Task producteur) + @qa (1 Task producteur)
+- Statut : COMPLETE
+- Livrables @fullstack : `versi-studio/src/app/vs/projects/[id]/lots/page.tsx`, `rooms/page.tsx`, `visuals/page.tsx`, `api/vs/projects/[id]/lots/route.ts`, `api/vs/projects/[id]/rooms/route.ts`, `docs/qa/s22-fix-cache-nostore-extension.md`
+- Livrables @qa : `versi-studio/tests/e2e/s22-fixes.spec.ts` (NEW) + `docs/qa/s22-tests-e2e-non-regression.md`
+- Décision : étendre le pattern du fix R1 à tout le parcours (ceinture+bretelles proactif) + 5 tests E2E LIVE 5/5 PASS (pas mockés — headers HTTP cache réels)
+- Commit : `b8ba008` Extension cache no-store + 5 tests E2E PASS LIVE
+
+#### Phase 4 — Zoom/pan RoomCanvas Étape 3 (desktop) + Migration baselines
+- Agents : @fullstack (1 Task producteur) + @qa (1 Task producteur)
+- Statut : COMPLETE
+- Livrables : `versi-studio/src/components/vs/RoomCanvas.tsx` (+170L/-39L), `docs/qa/s22-fix-plan-rogne-step3-zoom-pan.md`, migration 54 baselines Playwright slash→hyphen, `docs/qa/s22-migration-baselines-playwright.md`
+- Décisions : wheel zoom (Ctrl+scroll) + drag pan + reset (0.5x–4x) desktop uniquement ; 2 baselines déjà migrées par session antérieure non-documentée (L213 migrations silencieuses) ; 33+ baselines obsolètes (upload/lots/rooms) REPORTÉES s23 pour arbitrage Thomas
+- Commit : `755e942` Zoom/pan RoomCanvas + migration 54 baselines
+
+#### Phase 5 — Dette identifiée pour s23 (REPORTÉE)
+- Touch/pinch mobile RoomCanvas (desktop only V1 — Thomas desktop-first)
+- Arbitrage 33+ baselines obsolètes (gate G26) — décision Thomas requise avant `--update-snapshots` global
+- Migration layout `versi-studio/docs/` qu'un agent a créé par erreur (L211 — déjà corrigé manuellement mv vers `docs/qa/`)
+- Priorités scope s22 non traitées du brief initial versi-s21 → s22 : POC OCR réel / backlog produit (D/E/F/G/H) / analytics V2 / hypothèses complexes
+
+### Agents invoqués s22 (7 interventions)
+1. @orchestrator (reprise + planif + clôture)
+2. @fullstack (Retour 1 DELETE cache)
+3. @creative-strategy (Retour 2 review bannière — verdict SUPPRIMER)
+4. @fullstack (Retour 2+3 scope réduit aspect ratio + bannière JSX removal)
+5. @fullstack (Extension cache no-store 3 pages + 2 routes)
+6. @qa (5 tests E2E LIVE 5/5 PASS)
+7. @fullstack (Zoom/pan RoomCanvas)
+8. @qa (Migration 54 baselines + découverte L213)
+
+### Patterns validés s22
+- **Pattern "scope réduit quand timeout"** (L209) : 2 timeouts consécutifs @fullstack sur scope combiné (aspect+zoom+pan+build) → 3e tentative en scope strictement réduit (aspect+min-w UNIQUEMENT) passe en 95s
+- **Pattern "ceinture+bretelles anti-cache"** : `cache: "no-store"` client + `force-dynamic`/`revalidate=0` serveur — coût zéro, neutralise tout cache intermédiaire (proxy Replit, CDN futur, ISR)
+- **Pattern "verdict tranché copy"** (L212) : @creative-strategy répond SUPPRIMER/CONSERVER/REFORMULER net, pas de "ça dépend"
+- **Pattern "no AI > bad AI"** appliqué concrètement sur la bannière IA (supprimée plutôt que reformulée)
+
+### Commits s22 (5)
+- `05fc0b4` Propagation 10 learnings s21 (L197-L208) dans agents
+- `56c56d7` Fix Retour 1 : DELETE plan persistence (cache 'no-store' + force-dynamic)
+- `74c0da3` Fix Retour 3 aspect ratio (plan rogné) + Retour 2 (suppression bannière IA)
+- `b8ba008` Extension cache no-store 3 pages + 2 routes proactives + 5 tests E2E PASS LIVE
+- `755e942` Zoom/pan RoomCanvas + migration 54 baselines Playwright slash→hyphen
+
+---
+
+# Plan d'orchestration — Versi Studio s21 Clustering IA + Polygones IA (archive)
 
 <!-- SESSION: phases=4 tasks_prod=4 tasks_consult=0 -->
 

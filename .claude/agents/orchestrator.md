@@ -190,6 +190,9 @@ Au lancement d'un projet, annoncer : "Ce projet est de complexité [légère/moy
 3. **Sauvegarder l'état entre les cycles.** Après chaque phase complétée, mettre à jour `orchestration-plan.md` avec l'état d'avancement AVANT de lancer la phase suivante. Si un timeout survient, le plan sauvegardé permet de reprendre.
 4. **Écrire `orchestration-plan.md` AVANT de lancer le premier Task.** Le plan doit exister sur disque avant toute exécution — c'est le point de reprise en cas de coupure.
 5. **Après un timeout** : utiliser Glob + Read pour vérifier les livrables déjà produits par les agents. Ne JAMAIS relancer un agent dont le livrable existe déjà sur disque.
+6. **Scope réduit obligatoire après timeout (L209 versi-s22)** : si un agent timeout sur un scope combiné (ex : "aspect ratio + zoom + pan + build"), NE JAMAIS relancer le même scope. Découper en N sous-scopes indépendants et lancer N agents séquentiels (ou parallèles si scopes disjoints). Règle stricte : un timeout = signal de scope trop large, pas de bug agent. Validé versi-s22 : après 2 timeouts @fullstack sur scope combiné Retour 3, la 3e tentative en scope réduit (aspect ratio + min-w UNIQUEMENT) a passé en 95s, et le zoom/pan a été délégué à un 2e @fullstack dédié.
+7. **Vérification git diff avant confiance au summary agent (L210 versi-s22)** : avant de faire confiance au résumé d'un agent, TOUJOURS exécuter `git diff --stat` sur les fichiers touchés. Le résumé décrit l'intention, pas toujours la réalité. Exemple versi-s22 : @fullstack a résumé "RoomCanvas déjà complet, rien à modifier" alors que le diff affichait 170 insertions / 39 suppressions. Si diff significatif (>10 lignes) vs résumé "rien à modifier" → lire le diff réel.
+8. **2e signalement utilisateur = P0 gate bloquante automatique (L214 versi-s22)** : tout retour utilisateur signalé 2+ fois ("ça fait 2 commits de suite avec la même erreur") est P0 automatique — pas de pondération, pas d'évaluation de criticité, on corrige. Ajouter automatiquement un filet de non-régression (test E2E, baseline pixel-diff, assert DOM après reload) pour prévenir la 3e occurrence. Validé versi-s22 : plan rogné signalé 2 fois → traitement P0 RÉGRESSION + baseline pixel-diff ajoutée comme filet.
 
 ### Structure d'un message orchestrateur type
 
@@ -864,6 +867,16 @@ Si la branche de développement a changé depuis la dernière session (nouvelle 
 2. Remplacer par le nouveau dans : `index.html`, `INSTALL.md`, `install.sh`, `update.sh`, `project-context.md` (mémo de reprise)
 3. Vérifier avec un second `Grep` qu'aucune référence à l'ancienne branche ne subsiste
 4. Commiter ce changement avec le reste de la synthèse
+
+### Tag migrations massives dans CHANGELOG.md (L213 versi-s22)
+
+Toute migration massive (>10 fichiers impactés, renommage convention, refactor systémique) DOIT être documentée dans `CHANGELOG.md` avec :
+- (a) description de la migration (ex : "Migration baselines Playwright slash→hyphen")
+- (b) session d'origine (ex : "versi-s22")
+- (c) liste (ou pattern) des fichiers migrés
+- (d) fichiers NON migrés restants avec justification (ex : "33+ baselines obsolètes upload/lots/rooms bloquées sur arbitrage Thomas")
+
+**Avant toute nouvelle migration, Grep le nom de convention dans CHANGELOG** pour détecter d'éventuelles migrations antérieures silencieuses. Exemple versi-s22 : @qa devait migrer 54 baselines, 2 étaient DÉJÀ migrées par une session antérieure non-documentée. Cette règle prévient la désynchronisation entre sessions.
 
 ### Métriques, templates, modes spéciaux
 

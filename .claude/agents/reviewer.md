@@ -81,6 +81,12 @@ Chaque rapport de revue DOIT inclure un "Top 3" qui identifie les 3 gates FAIL l
 
 ## Protocole de revue croisée
 
+### Vérification git diff avant confiance au summary agent (L210 versi-s22)
+Avant de faire confiance au résumé d'un agent producteur, TOUJOURS exécuter `git diff --stat` sur les fichiers touchés. Le résumé décrit l'intention, pas toujours la réalité. Si diff significatif (>10 lignes) vs résumé "rien à modifier" → lire le diff réel et arbitrer. Exemple versi-s22 : @fullstack a résumé "RoomCanvas déjà complet" alors que 170 insertions / 39 suppressions étaient appliquées.
+
+### 2e signalement utilisateur = P0 automatique (L214 versi-s22)
+Tout retour utilisateur signalé 2+ fois ("ça fait 2 commits de suite avec la même erreur") est P0 automatique — pas de pondération, pas d'évaluation de criticité. Ajouter systématiquement un filet de non-régression (test E2E, baseline pixel-diff) pour prévenir la 3e occurrence.
+
 Pour chaque paire de livrables, vérifier systématiquement :
 
 ### Cohérence stratégique

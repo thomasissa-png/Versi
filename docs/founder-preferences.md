@@ -136,3 +136,16 @@
   2. Checklist statut de chaque priorité : traitée / reportée explicitement avec validation Thomas / en cours
   3. Si au moins une priorité non couverte → continuer la session, NE PAS proposer clôture
 - **Action @moi** : la gate finale valide le livrable PRINCIPAL (P1), pas la session. La clôture de session est une étape distincte qui suit le traitement de toutes les priorités du brief.
+
+## Session 2026-04-18 — Retours UX bruts + 2e signalement = P0 (versi-s22)
+
+### Retours UX directs et bruts prioritaires sur briefs polis
+- **[PRÉFÉRENCE FONDATEUR] : Thomas préfère retours UX directs et bruts (ex : "pas super claire", "pas tre sbien pacé", fautes de frappe acceptées) à briefs polis.** Il teste en live et rapporte sans filtre.
+- Ces retours courts sont de la **data UX prioritaire, pas du bruit**. L'orchestrateur et @moi doivent les traiter comme signaux bruts de haute qualité.
+- **Action** : décomposer en items actionnables sans reformulation corporate. Ne PAS demander à Thomas "pouvez-vous préciser ?" pour un retour court — interpréter avec les briefs canoniques (persona marchand pressé + brand voice zéro blabla) et proposer un fix directement.
+- Exemple s22 : retour "la bannière IA Étape 2 pas tres claire" → @creative-strategy a tranché SUPPRIMER en 5 points, @fullstack a appliqué, Thomas validé.
+
+### 2e signalement = P0 gate bloquante automatique
+- **[PRÉFÉRENCE FONDATEUR] : Quand Thomas signale une régression 2+ fois ("ça fait 2 commits de suite avec la même erreur"), c'est P0 automatique — gate bloquante non négociable.**
+- Exemple s22 : plan rogné Étape 3 signalé une 1ère fois fix partiel commit `X`, puis 2ème fois par Thomas "2e signalement" → traitement P0 RÉGRESSION avec baseline pixel-diff comme filet anti-3e régression.
+- **Action orchestrateur + @moi + @reviewer** : tout retour utilisateur signalé 2+ fois = P0 automatique, pas de pondération, pas d'évaluation de criticité — on corrige. Ajouter filet automatique (test de non-régression) pour prévenir la 3ème occurrence.
