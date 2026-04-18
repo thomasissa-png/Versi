@@ -16,8 +16,6 @@ import {
   useCallback,
   useMemo,
   useState,
-  forwardRef,
-  useImperativeHandle,
   type MouseEvent as ReactMouseEvent,
   type WheelEvent as ReactWheelEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -83,20 +81,6 @@ interface PlanCanvasProps {
   drawingPolygon?: boolean;
   onPolygonComplete?: (points: ZonePolygonPoint[]) => void;
   onCancelDrawingPolygon?: () => void;
-}
-
-// Handle exposé via ref — versi-s23 bundle 1A (ED-02 zoom buttons + toolbar)
-export interface PlanCanvasHandle {
-  /**
-   * Applique un facteur de zoom multiplicatif, centré au milieu du viewport
-   * par défaut, ou sur (centerX, centerY) en coordonnées canvas si fournis.
-   * Factor > 1 = zoom in, factor < 1 = zoom out. Bornes ZOOM_MIN..ZOOM_MAX respectées.
-   */
-  applyZoom: (factor: number, centerX?: number, centerY?: number) => void;
-  /** Réinitialise viewport à INITIAL_VIEWPORT (scale=1, offsets=0). */
-  resetViewport: () => void;
-  /** Retourne la scale courante (1..10) pour l'UI toolbar (disabled state). */
-  getScale: () => number;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -247,22 +231,19 @@ function computeResize(
 
 // ─── Composant ────────────────────────────────────────────────────
 
-const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function PlanCanvas(
-  {
-    planImageUrl,
-    lots,
-    selectedLotId,
-    onSelectLot,
-    onUpdateLotZone,
-    onDeleteLot,
-    lotIndexMap,
-    m2PerPixel,
-    drawingPolygon = false,
-    onPolygonComplete,
-    onCancelDrawingPolygon,
-  },
-  ref
-) {
+export default function PlanCanvas({
+  planImageUrl,
+  lots,
+  selectedLotId,
+  onSelectLot,
+  onUpdateLotZone,
+  onDeleteLot,
+  lotIndexMap,
+  m2PerPixel,
+  drawingPolygon = false,
+  onPolygonComplete,
+  onCancelDrawingPolygon,
+}: PlanCanvasProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lotId: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1380,45 +1361,6 @@ const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function PlanCa
     setViewport(INITIAL_VIEWPORT);
   }, []);
 
-  // ─── applyZoom — versi-s23 bundle 1A (ED-02 zoom +/- buttons) ─
-  // Factorise la logique de zoom utilisée par la wheel pour être exposable
-  // via ref (toolbar parent). centerX/centerY en coords canvas ; fallback sur
-  // le centre du viewport. Bornes identiques à handleWheel (ZOOM_MIN..ZOOM_MAX),
-  // snap retour à INITIAL_VIEWPORT si newScale === ZOOM_MIN (cohérence UX).
-  const applyZoom = useCallback(
-    (factor: number, centerX?: number, centerY?: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const cx = centerX ?? rect.width / 2;
-      const cy = centerY ?? rect.height / 2;
-      const currentScale = viewport.scale;
-      const newScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, currentScale * factor));
-      if (newScale === currentScale) return;
-      const ratio = newScale / currentScale;
-      const newOffsetX = cx - (cx - viewport.offsetX) * ratio;
-      const newOffsetY = cy - (cy - viewport.offsetY) * ratio;
-      if (newScale === ZOOM_MIN) {
-        setViewport(INITIAL_VIEWPORT);
-      } else {
-        const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
-        setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
-      }
-    },
-    [viewport, clampViewportOffsets]
-  );
-
-  // Expose l'API ref (toolbar parent).
-  useImperativeHandle(
-    ref,
-    () => ({
-      applyZoom,
-      resetViewport,
-      getScale: () => viewport.scale,
-    }),
-    [applyZoom, resetViewport, viewport.scale]
-  );
-
   // ─── Clavier (DESIGN-F11 accessibilité canvas) ────────────────
 
   const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLCanvasElement>) => {
@@ -1676,6 +1618,4 @@ const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function PlanCa
       )}
     </div>
   );
-});
-
-export default PlanCanvas;
+}

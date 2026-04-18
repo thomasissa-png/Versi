@@ -15,7 +15,7 @@
 import { useState, useEffect, useCallback, useRef, use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
-import PlanCanvas, { type PlanCanvasHandle } from "@/components/vs/PlanCanvas";
+import PlanCanvas from "@/components/vs/PlanCanvas";
 import LotPanel from "@/components/vs/LotPanel";
 import ConfirmModal from "@/components/vs/ConfirmModal";
 import PlanCalibration from "@/components/vs/PlanCalibration";
@@ -35,20 +35,6 @@ import { track } from "@/lib/vs/analytics";
 // ─── Constantes ───────────────────────────────────────────────────
 
 const DEBOUNCE_SAVE_MS = 1_000;
-
-// Undo/Redo — versi-s23 bundle 1A (ED-04 à ED-08)
-// Pattern porté depuis reference-existant/PlanEditor.tsx L207.
-const UNDO_MAX_HISTORY = 20;
-
-// Zoom — versi-s23 bundle 1A (ED-02)
-// Aligné sur PlanCanvas.ZOOM_FACTOR interne (1.1). On prend 1.25 pour un clic
-// plus perceptible utilisateur (le wheel reste 1.1, plus granulaire).
-const ZOOM_STEP_IN = 1.25;
-const ZOOM_STEP_OUT = 1 / 1.25;
-
-// ─── Snapshot undo/redo ───────────────────────────────────────────
-
-type LotsSnapshot = { lots: VsLot[] };
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -91,24 +77,6 @@ export default function LotsPage({
   const [calibrationOpen, setCalibrationOpen] = useState(false);
   // Mode dessin polygone (versi-s20 phase 2)
   const [drawingPolygon, setDrawingPolygon] = useState(false);
-
-  // Undo/Redo — versi-s23 bundle 1A (ED-04 à ED-08)
-  // Pattern porté depuis reference-existant/PlanEditor.tsx L207, L436-L479.
-  // Snapshot par action (pas par frame) — on push AVANT la mutation.
-  const [undoStack, setUndoStack] = useState<LotsSnapshot[]>([]);
-  const [redoStack, setRedoStack] = useState<LotsSnapshot[]>([]);
-
-  // Ref to access current lots value synchronously in pushUndo
-  // (évite de mettre `lots` dans les deps de chaque handler qui appelle pushUndo).
-  const lotsRef = useRef<VsLot[]>(lots);
-  useEffect(() => {
-    lotsRef.current = lots;
-  }, [lots]);
-
-  // Ref vers PlanCanvas pour toolbar (zoom +/-, reset)
-  const planCanvasRef = useRef<PlanCanvasHandle | null>(null);
-  // Scale courant synchronisé via les handlers wheel/zoom — driver des disabled state
-  const [canvasScale, setCanvasScale] = useState<number>(1);
 
   // Debounce pour la sauvegarde auto
   const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -166,94 +134,6 @@ export default function LotsPage({
     fetchData(controller.signal);
     return () => controller.abort();
   }, [fetchData]);
-
-  // ─── Undo/Redo — versi-s23 bundle 1A ──────────────────────────
-  //
-  // Pattern :
-  // 1. AVANT chaque mutation, appeler pushUndo() qui snapshot l'état courant.
-  // 2. handleUndo restore le dernier snapshot + push l'état présent sur redoStack.
-  // 3. handleRedo symétrique.
-  // 4. Les mutations appellent uniquement pushUndo() puis mutent — pas de flush.
-  //
-  // Limitations documentées :
-  // - Snapshot en mémoire uniquement : un reload de la page vide les stacks.
-  // - La persistance serveur suit le debounce de saveLotZone (1s) → undo immédiat
-  //   côté client ne retrigger pas d'appel PATCH tant que ce n'est pas un nouveau
-  //   handleUpdateLotZone. Les handlers undo/redo appellent setLots directement ;
-  //   pour synchroniser le backend, on boucle sur le diff et on fetch PATCH.
-  //
-  // Pour la v1 hotfix : undo/redo restore UNIQUEMENT le state local. Le save
-  // backend suit les prochaines interactions utilisateur (drag/rename/delete).
-  // Le lot qui a été "undo-supprimé" ré-apparaît en local — mais a déjà été
-  // DELETE côté serveur. Thomas sera averti dans la procédure de test.
-
-  const pushUndo = useCallback(() => {
-    setUndoStack((prev) => {
-      const snapshot: LotsSnapshot = { lots: [...lotsRef.current] };
-      const next = [...prev, snapshot];
-      if (next.length > UNDO_MAX_HISTORY) next.shift();
-      return next;
-    });
-    // Toute nouvelle action efface la pile redo (standard undo/redo).
-    setRedoStack([]);
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    setUndoStack((prevUndo) => {
-      if (prevUndo.length === 0) return prevUndo;
-      const last = prevUndo[prevUndo.length - 1];
-      // Push current state on redo avant restore
-      setRedoStack((prevRedo) => {
-        const next = [...prevRedo, { lots: [...lotsRef.current] }];
-        if (next.length > UNDO_MAX_HISTORY) next.shift();
-        return next;
-      });
-      setLots(last.lots);
-      return prevUndo.slice(0, -1);
-    });
-  }, []);
-
-  const handleRedo = useCallback(() => {
-    setRedoStack((prevRedo) => {
-      if (prevRedo.length === 0) return prevRedo;
-      const last = prevRedo[prevRedo.length - 1];
-      setUndoStack((prevUndo) => {
-        const next = [...prevUndo, { lots: [...lotsRef.current] }];
-        if (next.length > UNDO_MAX_HISTORY) next.shift();
-        return next;
-      });
-      setLots(last.lots);
-      return prevRedo.slice(0, -1);
-    });
-  }, []);
-
-  // Keyboard global Ctrl+Z / Ctrl+Shift+Z (ED-08) — monté sur document.
-  // Ignoré si focus dans input/textarea/contentEditable (cohérent PlanEditor L531-L545).
-  useEffect(() => {
-    const isEditableTarget = (t: EventTarget | null): boolean => {
-      if (!t || !(t instanceof HTMLElement)) return false;
-      const tag = t.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-      if (t.isContentEditable) return true;
-      return false;
-    };
-    const onKey = (e: KeyboardEvent) => {
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (!ctrl) return;
-      // Ctrl+Z ou Ctrl+Shift+Z
-      if (e.key === "z" || e.key === "Z") {
-        if (isEditableTarget(e.target)) return;
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [handleUndo, handleRedo]);
 
   // ─── Étages disponibles ───────────────────────────────────────
 
@@ -338,9 +218,6 @@ export default function LotsPage({
       const lot = lots.find((l) => l.id === lotId);
       const lotSource = lot?.source ?? "manual";
 
-      // Undo snapshot AVANT mutation (versi-s23 bundle 1A ED-04)
-      pushUndo();
-
       // Optimistic update
       setLots((prev) =>
         prev.map((l) =>
@@ -361,7 +238,7 @@ export default function LotsPage({
 
       saveTimersRef.current.set(lotId, timer);
     },
-    [saveLotZone, lots, pushUndo]
+    [saveLotZone, lots]
   );
 
   // ─── Renommer un lot ──────────────────────────────────────────
@@ -404,9 +281,6 @@ export default function LotsPage({
     // Capturer avant optimistic update pour analytics
     const targetLot = lots.find((l) => l.id === lotId);
 
-    // Undo snapshot AVANT mutation (versi-s23 bundle 1A ED-04)
-    pushUndo();
-
     // Optimistic update
     setLots((prev) => prev.filter((lot) => lot.id !== lotId));
     if (selectedLotId === lotId) setSelectedLotId(null);
@@ -433,7 +307,7 @@ export default function LotsPage({
       setError("La suppression a échoué. Le lot a été restauré automatiquement.");
       fetchData();
     }
-  }, [deleteTargetId, selectedLotId, fetchData, lots, projectId, pushUndo]);
+  }, [deleteTargetId, selectedLotId, fetchData, lots, projectId]);
 
   // ─── Ajouter un lot manuellement ─────────────────────────────
 
@@ -470,10 +344,6 @@ export default function LotsPage({
       const json = (await res.json()) as ApiResponse<VsLot>;
 
       if (json.success) {
-        // Undo snapshot AVANT l'ajout (versi-s23 bundle 1A ED-04).
-        // Snapshot APRÈS confirmation serveur pour ne pas polluer la pile
-        // si la création échoue.
-        pushUndo();
         setLots((prev) => [...prev, json.data]);
         setSelectedLotId(json.data.id);
       } else {
@@ -482,7 +352,7 @@ export default function LotsPage({
     } catch {
       setError("Le lot n'a pas pu être créé. Réessayez ou rechargez la page.");
     }
-  }, [lots, selectedFloor, projectId, pushUndo]);
+  }, [lots, selectedFloor, projectId]);
 
   // ─── Mode dessin polygone (versi-s20 phase 2) ─────────────────
 
@@ -520,8 +390,6 @@ export default function LotsPage({
         });
         const json = (await res.json()) as ApiResponse<VsLot>;
         if (json.success) {
-          // Undo snapshot APRÈS confirmation serveur (versi-s23 bundle 1A ED-04)
-          pushUndo();
           setLots((prev) => [...prev, json.data]);
           setSelectedLotId(json.data.id);
         } else {
@@ -531,7 +399,7 @@ export default function LotsPage({
         setError("Le polygone n'a pas pu être créé. Réessayez ou rechargez la page.");
       }
     },
-    [lots, selectedFloor, projectId, pushUndo]
+    [lots, selectedFloor, projectId]
   );
 
   // ─── Valider les lots ─────────────────────────────────────────
@@ -566,9 +434,6 @@ export default function LotsPage({
 
   const handleValidateSingleLot = useCallback(
     async (lotId: string) => {
-      // Undo snapshot AVANT mutation (versi-s23 bundle 1A ED-04)
-      pushUndo();
-
       // Optimistic update
       setLots((prev) =>
         prev.map((l) =>
@@ -611,16 +476,13 @@ export default function LotsPage({
         setError("Impossible de valider ce lot.");
       }
     },
-    [projectId, pushUndo]
+    [projectId]
   );
 
   // ─── U4 — Annuler la validation d'un lot IA (versi-s21 it2) ──
 
   const handleUnvalidateSingleLot = useCallback(
     async (lotId: string) => {
-      // Undo snapshot AVANT mutation (versi-s23 bundle 1A ED-04)
-      pushUndo();
-
       // Optimistic update
       setLots((prev) =>
         prev.map((l) =>
@@ -654,7 +516,7 @@ export default function LotsPage({
         setError("Impossible d'annuler la validation. Réessayez.");
       }
     },
-    [pushUndo]
+    []
   );
 
   // ─── Valider tous les lots IA d'un coup (versi-s21) ──────────
@@ -664,9 +526,6 @@ export default function LotsPage({
       (l) => l.source === "ai" && l.status === "suggested"
     );
     if (aiSuggested.length === 0) return;
-
-    // Undo snapshot AVANT mutation bulk (versi-s23 bundle 1A ED-04)
-    pushUndo();
 
     // Optimistic update
     setLots((prev) =>
@@ -718,7 +577,7 @@ export default function LotsPage({
         source: "ai",
       });
     }
-  }, [lots, projectId, pushUndo]);
+  }, [lots, projectId]);
 
   // ─── U3 — Extraction IA déjà tentée ? (versi-s21 it2) ────────
 
@@ -744,56 +603,6 @@ export default function LotsPage({
     if (!Array.isArray(data.rooms)) return [];
     return data.rooms.filter((r) => r.unit_id == null);
   }, [currentPlan]);
-
-  // ─── Toolbar zoom handlers (versi-s23 bundle 1A ED-02) ────────
-  //
-  // Factorisent les appels au ref PlanCanvas. Après chaque zoom, on lit la
-  // scale courante (source de vérité : le viewport PlanCanvas) pour mettre
-  // à jour canvasScale et driver les disabled states des boutons.
-
-  const handleZoomIn = useCallback(() => {
-    planCanvasRef.current?.applyZoom(ZOOM_STEP_IN);
-    // Lire la scale APRÈS apply — setState React est asynchrone côté PlanCanvas
-    // mais applyZoom appelle setViewport synchronement côté React. Le prochain
-    // paint reflètera la nouvelle scale. On la lit immédiatement via getScale
-    // (qui retourne la value READ dans la closure courante — peut être stale
-    // d'1 frame, mais le next render corrigera).
-    requestAnimationFrame(() => {
-      const scale = planCanvasRef.current?.getScale() ?? 1;
-      setCanvasScale(scale);
-    });
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    planCanvasRef.current?.applyZoom(ZOOM_STEP_OUT);
-    requestAnimationFrame(() => {
-      const scale = planCanvasRef.current?.getScale() ?? 1;
-      setCanvasScale(scale);
-    });
-  }, []);
-
-  const handleZoomReset = useCallback(() => {
-    planCanvasRef.current?.resetViewport();
-    requestAnimationFrame(() => {
-      const scale = planCanvasRef.current?.getScale() ?? 1;
-      setCanvasScale(scale);
-    });
-  }, []);
-
-  // Synchronise canvasScale avec la scale PlanCanvas aussi en cas de zoom wheel
-  // ou double-clic reset. Polling léger : interval 250ms ne touche que la scale
-  // (lecture, pas de re-render si identique grâce à setState bailout React).
-  // Alternative envisagée : callback `onViewportChange` dans PlanCanvas — plus
-  // propre mais out-of-scope bundle 1A (modif API PlanCanvas). À considérer B2.
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const scale = planCanvasRef.current?.getScale();
-      if (typeof scale === "number") {
-        setCanvasScale((prev) => (Math.abs(prev - scale) < 0.001 ? prev : scale));
-      }
-    }, 250);
-    return () => clearInterval(interval);
-  }, []);
 
   // ─── Cleanup timers ───────────────────────────────────────────
 
@@ -997,150 +806,11 @@ export default function LotsPage({
         {/* Bannière feedback post-extraction IA supprimée (versi-s22 — verdict @creative-strategy)
             Le compteur "X lots à valider" dans le header (ligne 672) suffit à informer l'utilisateur. */}
 
-        {/* ═══ Toolbar éditeur (versi-s23 bundle 1A ED-22) ═══════════
-            Slot gauche : Undo / Redo (ED-04 à ED-08)
-            Slot centre : Zoom + / Zoom - / Reset (ED-02 + ED-03)
-            Slot droit : extensible (future : Calibrer, Fusionner, …) */}
-        <div
-          role="toolbar"
-          aria-label="Actions éditeur de lots"
-          className="mb-sm flex items-center gap-sm px-sm py-xs rounded-md bg-[var(--color-background-default)] border border-[var(--color-border-default)]"
-        >
-          {/* Slot gauche — Undo/Redo */}
-          <div className="flex items-center gap-2xs">
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={undoStack.length === 0}
-              aria-label="Annuler (Ctrl+Z)"
-              title="Annuler (Ctrl+Z)"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-border-default)] bg-white text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-4"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleRedo}
-              disabled={redoStack.length === 0}
-              aria-label="Refaire (Ctrl+Shift+Z)"
-              title="Refaire (Ctrl+Shift+Z)"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-border-default)] bg-white text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 14l5-5-5-5M20 9H9a5 5 0 000 10h4"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Séparateur */}
-          <span
-            aria-hidden="true"
-            className="h-6 w-px bg-[var(--color-border-default)]"
-          />
-
-          {/* Slot centre — Zoom */}
-          <div className="flex items-center gap-2xs">
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              disabled={canvasScale <= 1.001}
-              aria-label="Zoom arrière"
-              title="Zoom arrière"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-border-default)] bg-white text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"
-                />
-              </svg>
-            </button>
-            <span
-              className="text-xs font-medium tabular-nums text-[var(--color-text-muted)] min-w-[3.5ch] text-center"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {canvasScale.toFixed(1)}×
-            </span>
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              disabled={canvasScale >= 9.999}
-              aria-label="Zoom avant"
-              title="Zoom avant"
-              className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-border-default)] bg-white text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomReset}
-              disabled={canvasScale <= 1.001}
-              aria-label="Réinitialiser le zoom"
-              title="Réinitialiser le zoom"
-              className="inline-flex items-center justify-center h-9 px-sm rounded-md border border-[var(--color-border-default)] bg-white text-xs font-medium text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              100%
-            </button>
-          </div>
-
-          {/* Slot droit — extensible (Calibrer/Fusionner B2+) */}
-          <div className="ml-auto flex items-center gap-2xs" aria-label="Actions avancées">
-            {/* Intentionnellement vide — réservé bundle 2 (ED-17/18 Calibrer, ED-14/15 Fusionner) */}
-          </div>
-        </div>
-
         {/* Canvas + Panneau latéral */}
         <div className="flex-1 flex flex-col md:flex-row gap-0 min-h-[500px] rounded-md overflow-hidden border border-[var(--color-border-default)]">
           {/* Canvas */}
           <div className="flex-1 min-w-0">
             <PlanCanvas
-              ref={planCanvasRef}
               planImageUrl={planImageUrl}
               lots={filteredLots}
               selectedLotId={selectedLotId}
