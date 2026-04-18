@@ -76,9 +76,9 @@ export default function RoomsPage({
       setError(null);
 
       const [projectRes, lotsRes, plansRes] = await Promise.all([
-        fetch(`/api/vs/projects/${projectId}`),
-        fetch(`/api/vs/projects/${projectId}/lots`),
-        fetch(`/api/vs/projects/${projectId}/plans`),
+        fetch(`/api/vs/projects/${projectId}`, { cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/lots`, { cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/plans`, { cache: "no-store" }),
       ]);
 
       const projectJson = (await projectRes.json()) as ApiResponse<VsProject>;
@@ -106,7 +106,7 @@ export default function RoomsPage({
       if (lotsData.length > 0) {
         const roomsResults = await Promise.all(
           lotsData.map((lot) =>
-            fetch(`/api/vs/lots/${lot.id}/rooms`)
+            fetch(`/api/vs/lots/${lot.id}/rooms`, { cache: "no-store" })
               .then((r) => r.json() as Promise<ApiResponse<VsRoom[]>>)
               .then((json) => ({
                 lotId: lot.id,

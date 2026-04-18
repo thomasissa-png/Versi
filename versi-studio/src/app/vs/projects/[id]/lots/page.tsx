@@ -91,9 +91,9 @@ export default function LotsPage({
       setError(null);
 
       const [projectRes, plansRes, lotsRes] = await Promise.all([
-        fetch(`/api/vs/projects/${projectId}`, { signal }),
-        fetch(`/api/vs/projects/${projectId}/plans`, { signal }),
-        fetch(`/api/vs/projects/${projectId}/lots`, { signal }),
+        fetch(`/api/vs/projects/${projectId}`, { signal, cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/plans`, { signal, cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/lots`, { signal, cache: "no-store" }),
       ]);
 
       const projectJson = (await projectRes.json()) as ApiResponse<VsProject>;

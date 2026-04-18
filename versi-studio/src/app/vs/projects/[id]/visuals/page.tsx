@@ -67,8 +67,8 @@ export default function VisualsPage({
       setError(null);
 
       const [projectRes, lotsRes] = await Promise.all([
-        fetch(`/api/vs/projects/${projectId}`),
-        fetch(`/api/vs/projects/${projectId}/lots`),
+        fetch(`/api/vs/projects/${projectId}`, { cache: "no-store" }),
+        fetch(`/api/vs/projects/${projectId}/lots`, { cache: "no-store" }),
       ]);
 
       const projectJson = (await projectRes.json()) as ApiResponse<VsProject>;
@@ -91,7 +91,7 @@ export default function VisualsPage({
       if (lotsData.length > 0) {
         const roomsResults = await Promise.all(
           lotsData.map((lot) =>
-            fetch(`/api/vs/lots/${lot.id}/rooms`)
+            fetch(`/api/vs/lots/${lot.id}/rooms`, { cache: "no-store" })
               .then((r) => r.json() as Promise<ApiResponse<VsRoom[]>>)
               .then((json) => ({
                 lotId: lot.id,
@@ -140,7 +140,7 @@ export default function VisualsPage({
     // Charger les visuels de chaque pièce en parallèle
     const results = await Promise.all(
       rooms.map((room) =>
-        fetch(`/api/vs/rooms/${room.id}/visuals`)
+        fetch(`/api/vs/rooms/${room.id}/visuals`, { cache: "no-store" })
           .then((r) => r.json() as Promise<ApiResponse<{ photos: VsPhoto[]; visuals: VsVisual[] }>>)
           .then((json) => ({
             roomId: room.id,

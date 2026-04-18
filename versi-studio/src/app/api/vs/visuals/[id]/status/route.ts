@@ -13,6 +13,12 @@ function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
+// Désactive le cache Route Handler de Next.js 15.
+// Route de polling toutes les 5s : un cache rendrait le polling inutile (statut figé
+// tant que le cache n'est pas invalidé). Pattern du fix s22, étendu session s22 maintenance.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // ─── GET /api/vs/visuals/[id]/status ──────────────────────────────
 
 export async function GET(

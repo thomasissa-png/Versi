@@ -2,7 +2,8 @@
  * Playwright Configuration — Versi Studio
  *
  * Tests E2E pour l'application Versi Studio (Next.js 16).
- * Le serveur Next.js est lance automatiquement sur le port 3000.
+ * Le serveur Next.js est lance automatiquement sur le port 5000 (aligné
+ * sur `package.json` script `dev` — convention Replit — learning versi-s21 L205).
  * Les APIs IA (OpenAI) sont mockees dans les tests via route interception.
  * Les APIs DB (PostgreSQL) sont mockees via route interception (pas de DB en CI).
  */
@@ -21,13 +22,16 @@ export default defineConfig({
     timeout: 10_000,
   },
 
-  // G26 strict — baselines visuelles dans tests/screenshots/{arg}
-  // Permet à `await expect(page).toHaveScreenshot("upload/desktop-default.png")`
-  // de résoudre le baseline en `tests/screenshots/upload/desktop-default.png`.
-  snapshotPathTemplate: "tests/screenshots/{arg}",
+  // G26 strict — baselines visuelles dans tests/screenshots/{arg}{ext}
+  // Playwright 1.59 exige `{ext}` explicite : sans lui, l'extension .png est
+  // strippée de `{arg}` → erreur "must have '.png' extension". Les slashes dans
+  // `{arg}` sont transformés en `-` par le moteur Playwright (baseline à plat).
+  // Les anciennes baselines dans `tests/screenshots/{rooms,upload,lots}/*.png`
+  // nécessitent une migration séparée (voir docs/qa/s22-tests-e2e-non-regression.md).
+  snapshotPathTemplate: "tests/screenshots/{arg}{ext}",
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:5000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -43,7 +47,7 @@ export default defineConfig({
 
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
+    url: "http://localhost:5000",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     cwd: ".",

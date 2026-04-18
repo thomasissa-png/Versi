@@ -25,6 +25,12 @@ const VALID_STATUSES: ProjectStatus[] = [
   "completed",
 ];
 
+// Désactive le cache Route Handler de Next.js 15.
+// Sans cela, GET renvoie une réponse cachée après PATCH (status projet, métadonnées)
+// → l'UI affiche un état obsolète au reload (pattern du fix s22, étendu session s22 maintenance).
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     str
