@@ -183,7 +183,7 @@ export async function ensureVsTables(): Promise<void> {
     CREATE TABLE IF NOT EXISTS vs_rooms (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       lot_id UUID NOT NULL REFERENCES vs_lots(id) ON DELETE CASCADE,
-      plan_id UUID REFERENCES vs_plans(id),
+      plan_id UUID REFERENCES vs_plans(id) ON DELETE CASCADE,
       name VARCHAR(50),
       room_type VARCHAR(30) NOT NULL DEFAULT 'non_identifie',
       custom_label VARCHAR(50),
@@ -196,6 +196,27 @@ export async function ensureVsTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_vs_rooms_lot ON vs_rooms(lot_id);
+
+    -- Migration s23 P0 régression DELETE plan : ajout ON DELETE CASCADE sur vs_rooms.plan_id
+    -- pour bases existantes (sinon FK bloque la suppression d'un plan extrait).
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.referential_constraints rc
+        JOIN information_schema.key_column_usage kcu
+          ON rc.constraint_name = kcu.constraint_name
+        WHERE kcu.table_name = 'vs_rooms'
+          AND kcu.column_name = 'plan_id'
+          AND rc.delete_rule != 'CASCADE'
+      ) THEN
+        EXECUTE 'ALTER TABLE vs_rooms DROP CONSTRAINT ' || (
+          SELECT constraint_name FROM information_schema.key_column_usage
+          WHERE table_name = 'vs_rooms' AND column_name = 'plan_id'
+        );
+        ALTER TABLE vs_rooms ADD CONSTRAINT vs_rooms_plan_id_fkey
+          FOREIGN KEY (plan_id) REFERENCES vs_plans(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
 
     CREATE TABLE IF NOT EXISTS vs_photos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
