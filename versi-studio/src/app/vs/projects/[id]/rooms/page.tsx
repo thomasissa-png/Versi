@@ -15,7 +15,7 @@
 import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
-import RoomCanvas from "@/components/vs/RoomCanvas";
+import RoomCanvas, { type RoomCanvasHandle } from "@/components/vs/RoomCanvas";
 import RoomPanel from "@/components/vs/RoomPanel";
 import ConfirmModal from "@/components/vs/ConfirmModal";
 import type {
@@ -36,6 +36,26 @@ interface RoomsByLot {
 // ─── Constantes ───────────────────────────────────────────────────
 
 const DEBOUNCE_MS = 1000;
+
+// Undo/Redo — versi-s23 bundle 1B (ED-04 à ED-08)
+// Pattern porté depuis lots/page.tsx (bundle 1A). Snapshot par action.
+const UNDO_MAX_HISTORY = 20;
+
+// Zoom — versi-s23 bundle 1B (ED-02)
+// Aligné sur lots/page.tsx : 1.25 pour un clic perceptible (le wheel reste 1.1
+// plus granulaire, géré en interne par RoomCanvas).
+const ZOOM_STEP_IN = 1.25;
+const ZOOM_STEP_OUT = 1 / 1.25;
+
+// ─── Snapshot undo/redo ───────────────────────────────────────────
+// On snapshot uniquement la map des pièces (roomsByLot) + sélection.
+// Les lots eux-mêmes peuvent être modifiés (invalidation UX-P1-3) mais
+// le scope V1 ne restaure pas le statut des lots — focus pièces.
+type RoomsSnapshot = {
+  roomsByLot: RoomsByLot;
+  selectedLotId: string | null;
+  selectedRoomId: string | null;
+};
 
 // ─── Composant principal ──────────────────────────────────────────
 
@@ -67,6 +87,21 @@ export default function RoomsPage({
 
   // Debounce timers pour les PATCH individuels
   const patchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // ─── Undo/Redo (versi-s23 bundle 1B ED-04 à ED-08) ────────────
+  // Pattern : push AVANT la mutation. Ctrl+Z dépile undo, pousse sur redo.
+  const [undoStack, setUndoStack] = useState<RoomsSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<RoomsSnapshot[]>([]);
+
+  // Refs pour accès synchrone dans pushUndo (évite d'ajouter des deps par handler)
+  const roomsByLotRef = useRef<RoomsByLot>({});
+  const selectedLotIdRef = useRef<string | null>(null);
+  const selectedRoomIdRef = useRef<string | null>(null);
+
+  // Ref vers RoomCanvas pour la toolbar (zoom +/-)
+  const roomCanvasRef = useRef<RoomCanvasHandle | null>(null);
+  // Scale courant notifié par RoomCanvas (pilote les disabled des boutons zoom)
+  const [canvasScale, setCanvasScale] = useState<number>(1);
 
   // ─── Chargement initial ───────────────────────────────────────
 
@@ -135,6 +170,113 @@ export default function RoomsPage({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ─── Sync refs undo/redo (versi-s23 bundle 1B) ────────────────
+  useEffect(() => {
+    roomsByLotRef.current = roomsByLot;
+  }, [roomsByLot]);
+  useEffect(() => {
+    selectedLotIdRef.current = selectedLotId;
+  }, [selectedLotId]);
+  useEffect(() => {
+    selectedRoomIdRef.current = selectedRoomId;
+  }, [selectedRoomId]);
+
+  // ─── Undo/Redo (versi-s23 bundle 1B ED-04 à ED-08) ────────────
+  // Pattern porté depuis lots/page.tsx (bundle 1A) :
+  // pushUndo() snapshot AVANT mutation + clear redo (standard).
+  // handleUndo dépile undo, empile redo, restore. handleRedo symétrique.
+  // Limitations V1 : restore local uniquement — le backend ne rattrape pas
+  // les DELETE/PATCH déjà envoyés. Une action utilisateur suivante ré-synchronise.
+  const pushUndo = useCallback(() => {
+    setUndoStack((prev) => {
+      const snapshot: RoomsSnapshot = {
+        roomsByLot: { ...roomsByLotRef.current },
+        selectedLotId: selectedLotIdRef.current,
+        selectedRoomId: selectedRoomIdRef.current,
+      };
+      const next = [...prev, snapshot];
+      if (next.length > UNDO_MAX_HISTORY) next.shift();
+      return next;
+    });
+    setRedoStack([]);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack((prevUndo) => {
+      if (prevUndo.length === 0) return prevUndo;
+      const last = prevUndo[prevUndo.length - 1];
+      setRedoStack((prevRedo) => {
+        const currentSnapshot: RoomsSnapshot = {
+          roomsByLot: { ...roomsByLotRef.current },
+          selectedLotId: selectedLotIdRef.current,
+          selectedRoomId: selectedRoomIdRef.current,
+        };
+        const next = [...prevRedo, currentSnapshot];
+        if (next.length > UNDO_MAX_HISTORY) next.shift();
+        return next;
+      });
+      setRoomsByLot(last.roomsByLot);
+      setSelectedLotId(last.selectedLotId);
+      setSelectedRoomId(last.selectedRoomId);
+      return prevUndo.slice(0, -1);
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack((prevRedo) => {
+      if (prevRedo.length === 0) return prevRedo;
+      const last = prevRedo[prevRedo.length - 1];
+      setUndoStack((prevUndo) => {
+        const currentSnapshot: RoomsSnapshot = {
+          roomsByLot: { ...roomsByLotRef.current },
+          selectedLotId: selectedLotIdRef.current,
+          selectedRoomId: selectedRoomIdRef.current,
+        };
+        const next = [...prevUndo, currentSnapshot];
+        if (next.length > UNDO_MAX_HISTORY) next.shift();
+        return next;
+      });
+      setRoomsByLot(last.roomsByLot);
+      setSelectedLotId(last.selectedLotId);
+      setSelectedRoomId(last.selectedRoomId);
+      return prevRedo.slice(0, -1);
+    });
+  }, []);
+
+  // Keyboard global Ctrl+Z / Ctrl+Shift+Z (ED-08) — ignoré si focus input.
+  useEffect(() => {
+    const isEditableTarget = (t: EventTarget | null): boolean => {
+      if (!t || !(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (t.isContentEditable) return true;
+      return false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+      if (e.key === "z" || e.key === "Z") {
+        if (isEditableTarget(e.target)) return;
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleUndo, handleRedo]);
+
+  // ─── Zoom toolbar (versi-s23 bundle 1B ED-02) ─────────────────
+  const handleZoomIn = useCallback(() => {
+    roomCanvasRef.current?.applyZoom(ZOOM_STEP_IN);
+  }, []);
+  const handleZoomOut = useCallback(() => {
+    roomCanvasRef.current?.applyZoom(ZOOM_STEP_OUT);
+  }, []);
 
   // ─── Cleanup debounce timers ──────────────────────────────────
 
@@ -287,6 +429,9 @@ export default function RoomsPage({
       const lotWasValidated =
         lots.find((l) => l.id === selectedLotId)?.status === "validated";
 
+      // Undo snapshot AVANT mutation (versi-s23 bundle 1B ED-05)
+      pushUndo();
+
       // Optimistic update
       setRoomsByLot((prev) => {
         const lotRooms = prev[selectedLotId] ?? [];
@@ -332,7 +477,7 @@ export default function RoomsPage({
         }
       }
     },
-    [selectedLotId, lots, patchRoom, patchRoomImmediate]
+    [selectedLotId, lots, patchRoom, patchRoomImmediate, pushUndo]
   );
 
   const handleMoveRoom = useCallback(
@@ -354,6 +499,9 @@ export default function RoomsPage({
 
   const handleAddRoom = useCallback(async () => {
     if (!selectedLotId) return;
+
+    // Undo snapshot AVANT mutation (versi-s23 bundle 1B ED-05)
+    pushUndo();
 
     try {
       const res = await fetch(`/api/vs/lots/${selectedLotId}/rooms`, {
@@ -384,7 +532,7 @@ export default function RoomsPage({
     } catch {
       setError("Impossible d'ajouter la pièce.");
     }
-  }, [selectedLotId]);
+  }, [selectedLotId, pushUndo]);
 
   const handleDeleteRoom = useCallback(
     (roomId: string) => {
@@ -397,6 +545,9 @@ export default function RoomsPage({
   const handleConfirmDelete = useCallback(
     async (roomId: string) => {
       if (!selectedLotId) return;
+
+      // Undo snapshot AVANT mutation (versi-s23 bundle 1B ED-05)
+      pushUndo();
 
       // Optimistic delete
       setRoomsByLot((prev) => ({
@@ -433,7 +584,7 @@ export default function RoomsPage({
         setError("Impossible de supprimer la pièce.");
       }
     },
-    [selectedLotId, selectedRoomId]
+    [selectedLotId, selectedRoomId, pushUndo]
   );
 
   const handleValidateLot = useCallback(async () => {
@@ -451,6 +602,9 @@ export default function RoomsPage({
       return;
     }
     setValidationBlocked(false);
+
+    // Undo snapshot AVANT mutation (versi-s23 bundle 1B ED-05)
+    pushUndo();
 
     setIsValidating(true);
     setError(null);
@@ -492,7 +646,7 @@ export default function RoomsPage({
     } finally {
       setIsValidating(false);
     }
-  }, [selectedLotId, lots, currentRooms]);
+  }, [selectedLotId, lots, currentRooms, pushUndo]);
 
   const handleContinue = useCallback(async () => {
     try {
@@ -689,17 +843,152 @@ export default function RoomsPage({
 
         {/* Canvas + Panel */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 gap-0">
-          {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
-          <div className="h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-[300px]">
-            <RoomCanvas
-              planImageUrl={planImageUrl}
-              lotZone={lotZone}
-              rooms={currentRooms}
-              selectedRoomId={selectedRoomId}
-              onSelectRoom={handleSelectRoom}
-              onMoveRoom={handleMoveRoom}
-              validationBlocked={validationBlocked}
-            />
+          {/* Colonne canvas : toolbar + canvas */}
+          <div className="flex flex-col h-[250px] shrink-0 sm:h-auto sm:shrink sm:flex-1 min-w-[300px]">
+            {/* Toolbar (versi-s23 bundle 1B ED-22) */}
+            <div className="flex items-center justify-between gap-sm px-sm py-xs mb-xs bg-bg-card border border-border-default rounded-md">
+              {/* Zone gauche : Undo / Redo */}
+              <div className="flex items-center gap-xs">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0}
+                  className="
+                    flex items-center justify-center w-8 h-8 rounded-md
+                    text-text-default hover:bg-bg-subtle
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-colors duration-150
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+                  "
+                  aria-label="Annuler (Ctrl+Z)"
+                  title="Annuler (Ctrl+Z)"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-4"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className="
+                    flex items-center justify-center w-8 h-8 rounded-md
+                    text-text-default hover:bg-bg-subtle
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-colors duration-150
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+                  "
+                  aria-label="Refaire (Ctrl+Shift+Z)"
+                  title="Refaire (Ctrl+Shift+Z)"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 14l5-5-5-5M20 9H9a5 5 0 000 10h4"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Zone centre : Zoom +/- */}
+              <div className="flex items-center gap-xs">
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  disabled={canvasScale <= 1}
+                  className="
+                    flex items-center justify-center w-8 h-8 rounded-md
+                    text-text-default hover:bg-bg-subtle
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-colors duration-150
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+                  "
+                  aria-label="Zoom arrière"
+                  title="Zoom arrière"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-4.35-4.35M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  disabled={canvasScale >= 8}
+                  className="
+                    flex items-center justify-center w-8 h-8 rounded-md
+                    text-text-default hover:bg-bg-subtle
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-colors duration-150
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+                  "
+                  aria-label="Zoom avant"
+                  title="Zoom avant"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-4.35-4.35M11 8v6M8 11h6M19 11a8 8 0 11-16 0 8 8 0 0116 0z"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Zone droite : slot extensible (vide V1) */}
+              <div className="w-16" aria-hidden="true" />
+            </div>
+
+            {/* Canvas — lecture seule sur mobile, interactif sur desktop */}
+            <div className="flex-1 min-h-0">
+              <RoomCanvas
+                ref={roomCanvasRef}
+                planImageUrl={planImageUrl}
+                lotZone={lotZone}
+                rooms={currentRooms}
+                selectedRoomId={selectedRoomId}
+                onSelectRoom={handleSelectRoom}
+                onMoveRoom={handleMoveRoom}
+                validationBlocked={validationBlocked}
+                onScaleChange={setCanvasScale}
+              />
+            </div>
           </div>
 
           {/* Panel latéral */}

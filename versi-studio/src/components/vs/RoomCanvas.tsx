@@ -21,11 +21,24 @@ import {
   useEffect,
   useCallback,
   useState,
+  useImperativeHandle,
+  forwardRef,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import type { VsRoom, ZoneRect } from "@/lib/vs/types";
 import { getRoomColor, ROOM_TYPE_DROPDOWN } from "@/lib/vs/styles";
+
+// ─── API impérative exposée via ref (versi-s23 bundle 1B ED-02) ────
+
+export interface RoomCanvasHandle {
+  /** Applique un zoom multiplicatif. Si centerX/Y omis → centre du canvas. */
+  applyZoom: (factor: number, centerX?: number, centerY?: number) => void;
+  /** Remet le viewport à 1× (identity). */
+  resetView: () => void;
+  /** Scale courant (lecture seule). */
+  getScale: () => number;
+}
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -62,6 +75,8 @@ interface RoomCanvasProps {
   onMoveRoom: (roomId: string, position: RoomPosition) => void;
   /** Si true et une pièce est non_identifie, overlay rouge (CORR-C3) */
   validationBlocked?: boolean;
+  /** Notifie le parent du scale courant (toolbar disabled state) — versi-s23 bundle 1B */
+  onScaleChange?: (scale: number) => void;
 }
 
 // ─── Constantes zoom/pan (versi-s22) ──────────────────────────────
@@ -116,7 +131,7 @@ function midpoint(a: PointerState, b: PointerState): PointerState {
 
 // ─── Composant ────────────────────────────────────────────────────
 
-export default function RoomCanvas({
+const RoomCanvas = forwardRef<RoomCanvasHandle, RoomCanvasProps>(function RoomCanvas({
   planImageUrl,
   lotZone,
   rooms,
@@ -124,7 +139,8 @@ export default function RoomCanvas({
   onSelectRoom,
   onMoveRoom,
   validationBlocked = false,
-}: RoomCanvasProps) {
+  onScaleChange,
+}, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -637,6 +653,47 @@ export default function RoomCanvas({
     setViewport(INITIAL_VIEWPORT);
   }, []);
 
+  // ─── API impérative (versi-s23 bundle 1B ED-02) ───────────────
+  // applyZoom(factor, cx?, cy?) — zoom multiplicatif centré sur (cx,cy).
+  // Si (cx,cy) omis → centre du canvas. Même math que handleWheel.
+  const applyZoom = useCallback(
+    (factor: number, centerX?: number, centerY?: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const cx = centerX ?? rect.width / 2;
+      const cy = centerY ?? rect.height / 2;
+      const currentScale = viewport.scale;
+      const newScale = clamp(currentScale * factor, ZOOM_MIN, ZOOM_MAX);
+      if (newScale === currentScale) return;
+      const ratio = newScale / currentScale;
+      const newOffsetX = cx - (cx - viewport.offsetX) * ratio;
+      const newOffsetY = cy - (cy - viewport.offsetY) * ratio;
+      if (newScale <= ZOOM_MIN) {
+        setViewport(INITIAL_VIEWPORT);
+      } else {
+        const clamped = clampViewportOffsets(newScale, newOffsetX, newOffsetY, rect.width, rect.height);
+        setViewport({ scale: newScale, offsetX: clamped.offsetX, offsetY: clamped.offsetY });
+      }
+    },
+    [viewport, clampViewportOffsets]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      applyZoom,
+      resetView: resetViewport,
+      getScale: () => viewport.scale,
+    }),
+    [applyZoom, resetViewport, viewport.scale]
+  );
+
+  // Notifie le parent à chaque changement de scale (pour toolbar disabled state)
+  useEffect(() => {
+    onScaleChange?.(viewport.scale);
+  }, [viewport.scale, onScaleChange]);
+
   // ─── Rendu ────────────────────────────────────────────────────
 
   const showResetButton = viewport.scale > ZOOM_RESET_THRESHOLD;
@@ -710,4 +767,6 @@ export default function RoomCanvas({
       )}
     </div>
   );
-}
+});
+
+export default RoomCanvas;
