@@ -116,15 +116,37 @@ export default function PlanCalibration({
       setError("Longueur invalide. Saisissez un nombre positif en mètres.");
       return;
     }
-    const lengthPx = Math.sqrt(
+    // S23 FIX calibration : convertir les coords clic (pixels d'affichage dans
+    // la modale) → pixels NATIFS de l'image source AVANT de calculer
+    // m2_per_pixel. Sans ça, la valeur persistée dépend de la taille de rendu
+    // de la modale, alors que les consommateurs (PlanCanvas overlay, calcul de
+    // surface des lots) travaillent en pixels natifs ou en coords %. Le facteur
+    // d'échelle entre les deux rendus (modale vs canvas principal) générait un
+    // écart d'ordre de magnitude sur la surface affichée (Thomas : 47m² réel
+    // affiché 120m²). Source de vérité unique : pixels natifs de l'image.
+    const img = imageRef.current;
+    if (!img || img.naturalWidth <= 0 || img.clientWidth <= 0) {
+      setError("Impossible de lire les dimensions du plan. Rechargez la page.");
+      return;
+    }
+    const displayToNativeRatio = img.naturalWidth / img.clientWidth;
+    const axNative = pointA.x * displayToNativeRatio;
+    const ayNative = pointA.y * displayToNativeRatio;
+    const bxNative = pointB.x * displayToNativeRatio;
+    const byNative = pointB.y * displayToNativeRatio;
+    const lengthPxNative = Math.sqrt(
+      Math.pow(bxNative - axNative, 2) + Math.pow(byNative - ayNative, 2)
+    );
+    // Seuil en px d'affichage (UX) : on vérifie la longueur écran, pas native.
+    const lengthPxDisplay = Math.sqrt(
       Math.pow(pointB.x - pointA.x, 2) + Math.pow(pointB.y - pointA.y, 2)
     );
-    if (lengthPx < 5) {
+    if (lengthPxDisplay < 5 || lengthPxNative < 1) {
       setError("La ligne est trop courte. Tracez une référence plus longue.");
       return;
     }
-    const metersPerPixel = meters / lengthPx;
-    const m2PerPixel = metersPerPixel * metersPerPixel;
+    const metersPerPixelNative = meters / lengthPxNative;
+    const m2PerPixel = metersPerPixelNative * metersPerPixelNative;
 
     setIsSaving(true);
     setError(null);

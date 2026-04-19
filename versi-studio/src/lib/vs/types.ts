@@ -181,6 +181,61 @@ export function polygonAreaPercent(points: ZonePolygonPoint[]): number {
   return Math.abs(sum / 2);
 }
 
+// Surface d'une zone en % carrés (0-10000) — rect ou polygon.
+// Utile pour dériver la surface m² réelle d'un lot à partir de sa geometry.
+export function zoneAreaPercent(zone: Zone): number {
+  if (isPolygon(zone)) {
+    return polygonAreaPercent(zone.points);
+  }
+  return zone.width_percent * zone.height_percent;
+}
+
+// Calcule la surface en m² d'une zone, à partir de :
+//   - zone : geometry (rect ou polygon) en coords % (0-100)
+//   - m2PerPixelNative : m² par pixel carré NATIF de l'image source (stable,
+//     indépendant du rendu à l'écran). Null ou ≤ 0 → pas calibré, retourne null.
+//   - naturalWidth/naturalHeight : dimensions natives de l'image plan (pixels).
+//
+// Formule : areaPct (0-10000) / 10000 × naturalWidth × naturalHeight = areaPx²
+//           areaPx² × m2PerPixelNative = surface en m².
+//
+// Garde-fous :
+//   - Dimensions natives invalides (≤ 0) → retourne null plutôt qu'une valeur fausse.
+//   - Surface calculée NaN/Infinity → retourne null.
+//
+// C'est la source de vérité pour la surface affichée d'un lot post-calibration.
+// Reste en sync avec l'overlay temps réel de PlanCanvas (calibration unifiée
+// sur les pixels natifs — voir PlanCalibration.handleConfirm).
+export function computeZoneAreaM2(
+  zone: Zone,
+  m2PerPixelNative: number | null | undefined,
+  naturalWidth: number | null | undefined,
+  naturalHeight: number | null | undefined
+): number | null {
+  if (
+    m2PerPixelNative == null ||
+    !Number.isFinite(m2PerPixelNative) ||
+    m2PerPixelNative <= 0
+  ) {
+    return null;
+  }
+  if (
+    naturalWidth == null ||
+    naturalHeight == null ||
+    !Number.isFinite(naturalWidth) ||
+    !Number.isFinite(naturalHeight) ||
+    naturalWidth <= 0 ||
+    naturalHeight <= 0
+  ) {
+    return null;
+  }
+  const areaPct = zoneAreaPercent(zone);
+  const areaPixelsSq = (areaPct / 10000) * naturalWidth * naturalHeight;
+  const surfaceM2 = areaPixelsSq * m2PerPixelNative;
+  if (!Number.isFinite(surfaceM2) || surfaceM2 < 0) return null;
+  return surfaceM2;
+}
+
 // Centroïde d'un polygone (pour positionner le label) — moyenne des points
 export function polygonCentroid(points: ZonePolygonPoint[]): ZonePolygonPoint {
   if (points.length === 0) return { x_percent: 50, y_percent: 50 };

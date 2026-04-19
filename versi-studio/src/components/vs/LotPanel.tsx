@@ -12,7 +12,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { VsLot } from "@/lib/vs/types";
 import type { ExtractedRoom } from "@/lib/vs/schemas";
-import { getLotColor } from "@/lib/vs/types";
+import { getLotColor, computeZoneAreaM2, parseZone } from "@/lib/vs/types";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -43,6 +43,12 @@ interface LotPanelProps {
   onUnvalidateSingleLot?: (lotId: string) => void;
   // I7 — Pièces non assignées (versi-s21 it2)
   unassignedRooms?: ExtractedRoom[];
+  // S23 FIX calibration : permet de recalculer la surface en direct à partir
+  // de zone_data + calibration plutôt que d'afficher lot.surface_m2 figé (issu
+  // de l'extraction IA initiale, indépendant du plan calibré par Thomas).
+  m2PerPixel?: number | null;
+  planNaturalWidth?: number | null;
+  planNaturalHeight?: number | null;
 }
 
 // ─── Composant LotCard ──────────────────────────────────────────
@@ -56,6 +62,9 @@ function LotCard({
   onDelete,
   onValidateSingle,
   onUnvalidateSingle,
+  m2PerPixel,
+  planNaturalWidth,
+  planNaturalHeight,
 }: {
   lot: VsLot;
   index: number;
@@ -65,6 +74,9 @@ function LotCard({
   onDelete: () => void;
   onValidateSingle?: () => void;
   onUnvalidateSingle?: () => void;
+  m2PerPixel?: number | null;
+  planNaturalWidth?: number | null;
+  planNaturalHeight?: number | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(lot.name);
@@ -97,8 +109,26 @@ function LotCard({
     setEditing(false);
   }, [editValue, lot.name, onRename]);
 
-  const surfaceLabel =
-    lot.surface_m2 != null ? `${Number(lot.surface_m2).toFixed(0)} m²` : "Surface non renseignée";
+  // S23 FIX calibration : la surface affichée est DÉRIVÉE en direct depuis
+  // zone_data + calibration, pour refléter les ajustements manuels de Thomas
+  // post-calibration. lot.surface_m2 (stocké) n'est utilisé qu'en fallback si
+  // le plan n'est pas calibré — dans ce cas il affiche la surface LLM initiale,
+  // sinon c'est la géométrie éditée qui fait foi.
+  const computedSurfaceM2 = computeZoneAreaM2(
+    parseZone(lot.zone_data as Record<string, unknown>),
+    m2PerPixel,
+    planNaturalWidth,
+    planNaturalHeight
+  );
+  const surfaceLabel = (() => {
+    if (computedSurfaceM2 != null) {
+      return `${computedSurfaceM2.toFixed(0)} m²`;
+    }
+    if (lot.surface_m2 != null) {
+      return `${Number(lot.surface_m2).toFixed(0)} m² (avant calibration)`;
+    }
+    return "Calibrez le plan pour afficher la surface";
+  })();
 
   return (
     <div
@@ -285,6 +315,9 @@ export default function LotPanel({
   hasAiExtracted = false,
   onUnvalidateSingleLot,
   unassignedRooms,
+  m2PerPixel = null,
+  planNaturalWidth = null,
+  planNaturalHeight = null,
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
   const aiSuggestedLots = lots.filter((l) => l.source === "ai" && l.status === "suggested");
@@ -342,6 +375,9 @@ export default function LotPanel({
                     ? () => onUnvalidateSingleLot(lot.id)
                     : undefined
                 }
+                m2PerPixel={m2PerPixel}
+                planNaturalWidth={planNaturalWidth}
+                planNaturalHeight={planNaturalHeight}
               />
             ))}
           </div>

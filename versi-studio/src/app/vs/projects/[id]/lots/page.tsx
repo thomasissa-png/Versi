@@ -30,7 +30,11 @@ import type {
   ApiResponse,
 } from "@/lib/vs/types";
 import type { ExtractedRoom } from "@/lib/vs/schemas";
-import { parseZone, zonesOverlap as zonesOverlapShared } from "@/lib/vs/types";
+import {
+  parseZone,
+  zonesOverlap as zonesOverlapShared,
+  computeZoneAreaM2,
+} from "@/lib/vs/types";
 import { track } from "@/lib/vs/analytics";
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -204,6 +208,30 @@ export default function LotsPage({
 
   const m2PerPixel = currentPlan?.m2_per_pixel ?? null;
 
+  // S23 FIX calibration : dimensions natives de l'image plan. Nécessaires pour
+  // dériver la surface réelle d'un lot à partir de sa zone_data (coords %) +
+  // m2_per_pixel (m²/pixel natif). Chargé via Image() côté client. Si pas chargé
+  // ou plan sans image → null, LotPanel tombera en fallback lot.surface_m2.
+  const [planNaturalSize, setPlanNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    setPlanNaturalSize(null);
+    if (!planImageUrl) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) {
+        setPlanNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setPlanNaturalSize(null);
+    };
+    img.src = planImageUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [planImageUrl]);
+
   // ─── Overlap detection ────────────────────────────────────────
 
   const hasOverlap = useMemo(() => hasAnyOverlap(lots), [lots]);
@@ -214,10 +242,24 @@ export default function LotsPage({
     async (lotId: string, zone: Zone, lotSource: string) => {
       try {
         setSaving(true);
+        // S23 FIX calibration : on persiste aussi la surface recalculée quand
+        // le plan est calibré, pour que les étapes aval (rooms, exports) lisent
+        // une surface cohérente avec la géométrie actuelle du lot. Si pas
+        // calibré, on laisse surface_m2 tel qu'à l'extraction IA (fallback).
+        const computed = computeZoneAreaM2(
+          zone,
+          m2PerPixel,
+          planNaturalSize?.w,
+          planNaturalSize?.h
+        );
+        const payload: Record<string, unknown> = { zone_data: zone };
+        if (computed != null) {
+          payload.surface_m2 = Number(computed.toFixed(2));
+        }
         const res = await fetch(`/api/vs/lots/${lotId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ zone_data: zone }),
+          body: JSON.stringify(payload),
         });
         const json = (await res.json()) as ApiResponse<VsLot>;
         if (!json.success) {
@@ -240,7 +282,7 @@ export default function LotsPage({
         setSaving(false);
       }
     },
-    [fetchData, projectId]
+    [fetchData, projectId, m2PerPixel, planNaturalSize]
   );
 
   const handleUpdateLotZone = useCallback(
@@ -1006,6 +1048,9 @@ export default function LotsPage({
             hasAiExtracted={hasAiExtracted}
             onUnvalidateSingleLot={handleUnvalidateSingleLot}
             unassignedRooms={unassignedRooms}
+            m2PerPixel={m2PerPixel}
+            planNaturalWidth={planNaturalSize?.w ?? null}
+            planNaturalHeight={planNaturalSize?.h ?? null}
           />
         </div>
       </div>
@@ -1026,12 +1071,56 @@ export default function LotsPage({
           imageUrl={planImageUrl}
           onCalibrated={(value) => {
             // Optimistic update du plan courant
+            const calibratedPlanId = currentPlan.id;
+            const calibratedFloor = currentPlan.floor_number;
             setPlans((prev) =>
               prev.map((p) =>
-                p.id === currentPlan.id ? { ...p, m2_per_pixel: value } : p
+                p.id === calibratedPlanId ? { ...p, m2_per_pixel: value } : p
               )
             );
             setCalibrationOpen(false);
+
+            // S23 FIX calibration : après calibration, recalculer et persister
+            // la surface m² de tous les lots de cet étage pour que les étapes
+            // aval (rooms, exports) lisent une valeur cohérente. Fire-and-forget
+            // est acceptable ici car l'UI affiche déjà la surface dérivée en
+            // direct via computeZoneAreaM2 (LotPanel). La persistance en DB
+            // sert uniquement de cache pour les consommateurs hors page.
+            if (planNaturalSize && planNaturalSize.w > 0 && planNaturalSize.h > 0) {
+              const lotsOnFloor = lots.filter((l) => l.floor_number === calibratedFloor);
+              const updates: Array<{ id: string; surface_m2: number }> = [];
+              for (const lot of lotsOnFloor) {
+                const computed = computeZoneAreaM2(
+                  parseZone(lot.zone_data as Record<string, unknown>),
+                  value,
+                  planNaturalSize.w,
+                  planNaturalSize.h
+                );
+                if (computed != null) {
+                  updates.push({ id: lot.id, surface_m2: Number(computed.toFixed(2)) });
+                }
+              }
+              if (updates.length > 0) {
+                // Optimistic update local
+                setLots((prev) => {
+                  const byId = new Map(updates.map((u) => [u.id, u.surface_m2]));
+                  return prev.map((l) =>
+                    byId.has(l.id) ? { ...l, surface_m2: byId.get(l.id)! } : l
+                  );
+                });
+                // Persistance en parallèle (best-effort, n'affiche pas d'erreur
+                // bloquante — la vérité terrain reste le calcul en direct UI)
+                Promise.allSettled(
+                  updates.map((u) =>
+                    fetch(`/api/vs/lots/${u.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ surface_m2: u.surface_m2 }),
+                    })
+                  )
+                ).catch(() => { /* silencieux */ });
+              }
+            }
           }}
           onCancel={() => setCalibrationOpen(false)}
         />

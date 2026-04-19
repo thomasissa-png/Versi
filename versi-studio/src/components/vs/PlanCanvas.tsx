@@ -1089,6 +1089,16 @@ export default function PlanCanvas({
         let label: string | null = null;
         const calibrated = m2PerPixel != null && m2PerPixel > 0;
 
+        // S23 FIX : m2PerPixel est en m²/pixel NATIF. On calcule donc les
+        // surfaces/longueurs en coords natives (naturalWidth/Height), PAS en
+        // pixels d'affichage du canvas (canvasRect). Ces deux grandeurs
+        // diffèrent par le ratio display→native, qui dépend de la taille du
+        // canvas à l'écran et provoquait des surfaces fausses.
+        const img = imageRef.current;
+        const nativeW = img?.naturalWidth ?? 0;
+        const nativeH = img?.naturalHeight ?? 0;
+        const hasNative = nativeW > 0 && nativeH > 0;
+
         if (drawingPolygonPoints.length === 1) {
           // 1er sommet posé : surface = 0
           label = calibrated ? "0.0 m²" : "Calibrez le plan pour la surface";
@@ -1096,22 +1106,23 @@ export default function PlanCanvas({
           // 2 sommets : afficher la longueur du segment (utile pour mesurer un mur)
           const a = drawingPolygonPoints[0];
           const b = drawingPolygonPoints[1];
-          const ax = (a.x_percent / 100) * canvasRect.width;
-          const ay = (a.y_percent / 100) * canvasRect.height;
-          const bx = (b.x_percent / 100) * canvasRect.width;
-          const by = (b.y_percent / 100) * canvasRect.height;
-          const distPx = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
-          if (calibrated) {
-            // m2PerPixel = m² par pixel². Donc m par pixel = sqrt(m2PerPixel).
-            const mPerPx = Math.sqrt(m2PerPixel);
-            label = `${(distPx * mPerPx).toFixed(2)} m`;
+          if (calibrated && hasNative) {
+            // Longueur en pixels natifs : coords % × dimensions natives.
+            const axN = (a.x_percent / 100) * nativeW;
+            const ayN = (a.y_percent / 100) * nativeH;
+            const bxN = (b.x_percent / 100) * nativeW;
+            const byN = (b.y_percent / 100) * nativeH;
+            const distPxNative = Math.sqrt((bxN - axN) ** 2 + (byN - ayN) ** 2);
+            // m2PerPixel = m² par pixel² natif. Donc m par pixel natif = sqrt(m2PerPixel).
+            const mPerPxNative = Math.sqrt(m2PerPixel);
+            label = `${(distPxNative * mPerPxNative).toFixed(2)} m`;
           } else {
             label = "Calibrez le plan pour la longueur";
           }
         } else if (drawingPolygonPoints.length >= 3) {
-          const areaPctSq = polygonAreaPercent(drawingPolygonPoints);
-          const areaPixelsSq = (areaPctSq / 10000) * canvasRect.width * canvasRect.height;
-          if (calibrated) {
+          if (calibrated && hasNative) {
+            const areaPctSq = polygonAreaPercent(drawingPolygonPoints);
+            const areaPixelsSq = (areaPctSq / 10000) * nativeW * nativeH;
             const surfaceM2 = areaPixelsSq * m2PerPixel;
             label = `${surfaceM2.toFixed(1)} m²`;
           } else {
@@ -1203,29 +1214,40 @@ export default function PlanCanvas({
         if (!canvasEl || !containerEl) return;
         const canvasRect = canvasEl.getBoundingClientRect();
         const containerRect = containerEl.getBoundingClientRect();
-        // Bounding box pour calculer la position et la surface approchée
+        // Bounding box pour calculer la position à l'écran (pixels d'affichage)
         const bb = zoneBoundingBox(newZone);
-        const widthPx = (bb.w / 100) * canvasRect.width;
-        const heightPx = (bb.h / 100) * canvasRect.height;
+        // S23 FIX : surface calculée en pixels NATIFS, pas pixels d'affichage.
+        // m2PerPixel est en m²/px² natif depuis la calibration normalisée.
+        const img = imageRef.current;
+        const nativeW = img?.naturalWidth ?? 0;
+        const nativeH = img?.naturalHeight ?? 0;
+        const calibrated = m2PerPixel != null && m2PerPixel > 0;
+        const hasNative = nativeW > 0 && nativeH > 0;
         let surfaceM2: number;
-        if (isPolygon(newZone)) {
-          // Surface réelle via shoelace (% carrés → pixels carrés → m²)
-          const areaPctSq = (() => {
-            const pts = newZone.points;
-            let sum = 0;
-            for (let i = 0; i < pts.length; i++) {
-              const j = (i + 1) % pts.length;
-              sum += pts[i].x_percent * pts[j].y_percent;
-              sum -= pts[j].x_percent * pts[i].y_percent;
-            }
-            return Math.abs(sum / 2);
-          })();
-          const areaPixelsSq = (areaPctSq / 10000) * canvasRect.width * canvasRect.height;
-          surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? areaPixelsSq * m2PerPixel : 0;
+        if (calibrated && hasNative) {
+          if (isPolygon(newZone)) {
+            // Surface réelle via shoelace (% carrés → pixels² natifs → m²)
+            const areaPctSq = (() => {
+              const pts = newZone.points;
+              let sum = 0;
+              for (let i = 0; i < pts.length; i++) {
+                const j = (i + 1) % pts.length;
+                sum += pts[i].x_percent * pts[j].y_percent;
+                sum -= pts[j].x_percent * pts[i].y_percent;
+              }
+              return Math.abs(sum / 2);
+            })();
+            const areaPixelsSq = (areaPctSq / 10000) * nativeW * nativeH;
+            surfaceM2 = areaPixelsSq * m2PerPixel;
+          } else {
+            const widthPxNative = (bb.w / 100) * nativeW;
+            const heightPxNative = (bb.h / 100) * nativeH;
+            surfaceM2 = widthPxNative * heightPxNative * m2PerPixel;
+          }
         } else {
-          surfaceM2 = m2PerPixel != null && m2PerPixel > 0 ? widthPx * heightPx * m2PerPixel : 0;
+          surfaceM2 = 0;
         }
-        const label = m2PerPixel != null && m2PerPixel > 0 ? `${surfaceM2.toFixed(1)} m²` : "— m²";
+        const label = calibrated && hasNative ? `${surfaceM2.toFixed(1)} m²` : "— m²";
         // Position overlay : appliquer viewport (scale + offset) pour suivre le lot à l'écran
         const lotRightLogicalPx = ((bb.x + bb.w) / 100) * canvasRect.width;
         const lotBottomLogicalPx = ((bb.y + bb.h) / 100) * canvasRect.height;
