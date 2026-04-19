@@ -25,6 +25,7 @@ import type {
   VsRoom,
   VsPlan,
   ZoneRect,
+  ZonePolygonPoint,
   ApiResponse,
 } from "@/lib/vs/types";
 
@@ -223,13 +224,17 @@ export default function RoomsPage({
     width_percent: 100,
     height_percent: 100,
   };
-  // Si le lot est un polygon, on retombe sur sa bounding box pour le RoomCanvas
-  // (le découpe-pièces V1 ne supporte que les zones rectangulaires).
-  const lotZone: ZoneRect = (() => {
-    if (!currentLot?.zone_data) return defaultZone;
+  // Dérivation lotZone (bbox pour le rendu canvas) + lotPolygon (forme réelle).
+  // Si le lot est un polygon, on dérive la bbox pour le cadrage canvas ET on
+  // conserve le polygone original pour valider le drag (s23 Bug 2 — fin déphasage).
+  const { lotZone, lotPolygon }: { lotZone: ZoneRect; lotPolygon: ZonePolygonPoint[] | null } = (() => {
+    if (!currentLot?.zone_data) return { lotZone: defaultZone, lotPolygon: null };
     const raw = currentLot.zone_data as Record<string, unknown>;
     if (raw.type === "polygon" && Array.isArray(raw.points)) {
-      const pts = raw.points as Array<{ x_percent: number; y_percent: number }>;
+      const pts = (raw.points as ZonePolygonPoint[]).map((p) => ({
+        x_percent: Number(p.x_percent),
+        y_percent: Number(p.y_percent),
+      }));
       const xs = pts.map((p) => p.x_percent);
       const ys = pts.map((p) => p.y_percent);
       const minX = Math.min(...xs);
@@ -237,13 +242,16 @@ export default function RoomsPage({
       const maxX = Math.max(...xs);
       const maxY = Math.max(...ys);
       return {
-        x_percent: minX,
-        y_percent: minY,
-        width_percent: maxX - minX,
-        height_percent: maxY - minY,
+        lotZone: {
+          x_percent: minX,
+          y_percent: minY,
+          width_percent: maxX - minX,
+          height_percent: maxY - minY,
+        },
+        lotPolygon: pts,
       };
     }
-    return raw as unknown as ZoneRect;
+    return { lotZone: raw as unknown as ZoneRect, lotPolygon: null };
   })();
 
   // Étapes complétées pour le stepper
@@ -817,6 +825,7 @@ export default function RoomsPage({
             <RoomCanvas
               planImageUrl={planImageUrl}
               lotZone={lotZone}
+              lotPolygon={lotPolygon}
               rooms={currentRooms}
               selectedRoomId={selectedRoomId}
               onSelectRoom={handleSelectRoom}

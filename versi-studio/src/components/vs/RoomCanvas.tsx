@@ -24,7 +24,7 @@ import {
   type WheelEvent as ReactWheelEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { VsRoom, ZoneRect } from "@/lib/vs/types";
+import type { VsRoom, ZoneRect, ZonePolygonPoint } from "@/lib/vs/types";
 import { pointInPolygon, polygonCentroid } from "@/lib/vs/types";
 import { getRoomColor, ROOM_TYPE_DROPDOWN } from "@/lib/vs/styles";
 
@@ -40,8 +40,15 @@ interface RoomPosition {
 interface RoomCanvasProps {
   /** URL de l'image du plan */
   planImageUrl: string | null;
-  /** Zone du lot selectionne (coordonnees % sur le plan global) */
+  /** Bounding box du lot (coordonnees % sur le plan global) — sert au cadrage canvas */
   lotZone: ZoneRect;
+  /**
+   * Polygone réel du lot en coords globales plan (% plan).
+   * Si fourni (lot de forme polygonale, ex: L), le drag valide le centroïde
+   * de la pièce contre ce polygone — sinon le drag n'est contraint qu'à la bbox.
+   * s23 Bug 2 — fin déphasage drag sur lots en L / polygonaux.
+   */
+  lotPolygon?: ZonePolygonPoint[] | null;
   /** Liste des pieces du lot courant */
   rooms: VsRoom[];
   /** ID de la piece selectionnee */
@@ -227,6 +234,7 @@ function getCursorForHandle(handle: HandlePosition | null, isOverRoom: boolean):
 export default function RoomCanvas({
   planImageUrl,
   lotZone,
+  lotPolygon = null,
   rooms,
   selectedRoomId,
   onSelectRoom,
@@ -422,6 +430,29 @@ export default function RoomCanvas({
       return lotStart + (lotPct / 100) * lotSize;
     },
     []
+  );
+
+  // ─── Validation drag dans le polygone réel du lot (s23 Bug 2) ──
+  /**
+   * Vérifie que le centroïde de la pièce (en coords globales plan) reste
+   * dans le polygone réel du lot. Pour un lot en L, cela empêche la pièce
+   * de "traverser" un mur concave que la bbox rectangulaire autoriserait.
+   *
+   * Si lotPolygon n'est pas fourni (lot rectangulaire), retourne toujours true
+   * — le clamp bbox existant suffit.
+   */
+  const isPositionValidInLot = useCallback(
+    (pos: RoomPosition): boolean => {
+      if (!lotPolygon || lotPolygon.length < 3) return true;
+      // Centroïde de la pièce en coords lot-local
+      const cxLot = pos.x_percent + pos.width_percent / 2;
+      const cyLot = pos.y_percent + pos.height_percent / 2;
+      // Conversion lot-local → global plan
+      const cxGlobal = lotToGlobalPercent(cxLot, lotZone.x_percent, lotZone.width_percent);
+      const cyGlobal = lotToGlobalPercent(cyLot, lotZone.y_percent, lotZone.height_percent);
+      return pointInPolygon(cxGlobal, cyGlobal, lotPolygon);
+    },
+    [lotPolygon, lotZone, lotToGlobalPercent]
   );
 
   // ─── Convertir coordonnees lot-local en pixels canvas ─────────
@@ -1032,7 +1063,11 @@ export default function RoomCanvas({
         const { dxPct, dyPct } = toDeltaPercent(dx, dy);
 
         const newPos = computeResize(dragging.origPos, dragging.handle, dxPct, dyPct);
-        onMoveRoom(dragging.roomId, newPos);
+        // s23 Bug 2 — si polygone du lot fourni, valider que le centroïde
+        // de la pièce reste dans le polygone réel (pas juste dans la bbox).
+        if (isPositionValidInLot(newPos)) {
+          onMoveRoom(dragging.roomId, newPos);
+        }
       } else {
         // Mode déplacement — corriger delta pour viewport scale
         if (canvas) {
@@ -1062,10 +1097,14 @@ export default function RoomCanvas({
           height_percent: dragging.origPos.height_percent,
         };
 
-        onMoveRoom(dragging.roomId, newPos);
+        // s23 Bug 2 — si polygone du lot fourni, valider que le centroïde
+        // de la pièce reste dans le polygone réel (pas juste dans la bbox).
+        if (isPositionValidInLot(newPos)) {
+          onMoveRoom(dragging.roomId, newPos);
+        }
       }
     },
-    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent, handMode, viewport, clampViewportOffsets]
+    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent, handMode, viewport, clampViewportOffsets, isPositionValidInLot]
   );
 
   const handleMouseUp = useCallback(() => {
