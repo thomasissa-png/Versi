@@ -162,26 +162,11 @@ Toutes les modifications sont dans un seul fichier : `versi-studio/src/component
 
 ### Modification 3 — Ajouter le bouton unique en tête du panel, juste après le sélecteur de lot
 
-**Après la ligne 378** (fin du bloc `{currentLotValidated && ...}`), insérer le bouton :
+**Après la ligne 378** (fin du bloc `{currentLotValidated && ...}`), insérer un `<button>` "+ Ajouter une pièce"
+avec les mêmes classes que le bouton supprimé en Modification 1 (border-dashed, `min-h-[44px]`, `w-full`,
+hover `border-interactive-primary`, `mt-sm` de marge par rapport au sélecteur de lot). Appelle `onAddRoom`.
 
-```tsx
-{/* Ajouter une pièce — action primaire en tête de panel */}
-<button
-  type="button"
-  onClick={onAddRoom}
-  className="
-    mt-sm w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
-    border border-dashed border-border-default
-    text-text-muted hover:text-text-default hover:border-interactive-primary active:opacity-80
-    transition-colors duration-200
-    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
-  "
->
-  + Ajouter une pièce
-</button>
-```
-
-Style identique au bouton existant (border-dashed) pour cohérence visuelle.
+Style identique au bouton existant (border-dashed) pour cohérence visuelle — c'est un déplacement, pas une création.
 
 ### Résultat attendu
 
