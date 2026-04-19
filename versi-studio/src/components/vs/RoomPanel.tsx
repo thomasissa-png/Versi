@@ -378,6 +378,23 @@ export default function RoomPanel({
         )}
       </div>
 
+      {/* Bouton "Ajouter une pièce" remonté en tête (s23 Option B — UX rework) */}
+      {/* Position : juste après sélecteur de lot, avant la grille de cartes.
+          Raison : toujours visible sans scroll, supprime la duplication état vide/liste. */}
+      <button
+        type="button"
+        onClick={onAddRoom}
+        className="
+          w-full mt-sm px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+          border border-dashed border-border-default
+          text-text-muted hover:text-text-default hover:border-interactive-primary active:opacity-80
+          transition-colors duration-200
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+        "
+      >
+        + Ajouter une pièce
+      </button>
+
       {/* Grille des pièces (s22 Point 4 — cards en grille au lieu de liste latérale) */}
       <div className="py-md">
         {rooms.length === 0 ? (
@@ -385,13 +402,6 @@ export default function RoomPanel({
             <p className="text-sm text-text-muted">
               L&apos;IA n&apos;a pas détecté de pièces — ajoutez-en manuellement
             </p>
-            <button
-              type="button"
-              onClick={onAddRoom}
-              className="mt-md min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover active:opacity-80 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
-            >
-              Ajouter une pièce
-            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
@@ -400,22 +410,8 @@ export default function RoomPanel({
         )}
       </div>
 
-      {/* Actions (s22 Point 4) */}
+      {/* Actions (s22 Point 4) — bouton "Ajouter une pièce" déplacé en tête de panel (s23) */}
       <div className="border-t border-border-default py-md mt-md flex flex-col gap-sm">
-        {/* Ajouter une pièce */}
-        <button
-          onClick={onAddRoom}
-          className="
-            w-full px-md py-sm rounded-md text-sm font-medium min-h-[44px]
-            border border-dashed border-border-default
-            text-text-muted hover:text-text-default hover:border-interactive-primary active:opacity-80
-            transition-colors duration-200
-            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
-          "
-        >
-          + Ajouter une pièce
-        </button>
-
         {/* Valider ce lot */}
         {!currentLotValidated && (
           <button
