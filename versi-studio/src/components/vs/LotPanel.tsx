@@ -331,6 +331,29 @@ export default function LotPanel({
         <h2 className="text-sm font-medium text-[var(--color-text-default)]">
           {lots.length} lot{lots.length !== 1 ? "s" : ""}
         </h2>
+        {/* s23 — Statut IA : titre dynamique 3 branches + sous-texte (specs @ux + @copywriter) */}
+        {aiSuggestedLots.length > 0 && (
+          <div className="mt-2xs">
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {aiSuggestedLots.length === 1
+                ? "1 lot détecté"
+                : `${aiSuggestedLots.length} lots détectés`}
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Vérifiez les contours, puis validez.
+            </p>
+          </div>
+        )}
+        {aiSuggestedLots.length === 0 && hasAiExtracted && lots.length === 0 && (
+          <div className="mt-2xs">
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Aucun lot détecté
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Tracez les lots manuellement, puis validez.
+            </p>
+          </div>
+        )}
         {lots.some((l) => l.source === "ai") && (
           <p className="text-xs text-[var(--color-text-muted)] italic mt-2xs">
             Les zones sont une approximation rectangulaire de l&apos;union des pièces détectées.
