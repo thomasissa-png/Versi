@@ -143,6 +143,17 @@ function buildSystemPrompt(typeBien: TypeBien, lots?: LotZone[]): string {
 
 COORDINATE SYSTEM: All coordinates are percentages of the FULL IMAGE (0-100). x=0 is the left edge of the image, y=0 is the top edge. The plan drawing is a subset of the image — title blocks, legends, and margins are NOT part of the plan.
 
+STEP 0 — REFERENCE LANDMARKS (v3 MANDATORY — anchor coordinate system BEFORE placing any room):
+Before you extract ANY room, identify 3-4 reference landmarks on the plan and write down their approximate (x%, y%) positions in your mental model. These landmarks anchor the whole coordinate system so every subsequent bbox is grounded in the actual image, not approximated.
+
+Landmarks to locate (pick at least 3):
+  L1. MAIN ENTRANCE: the door leading to the exterior (usually on a building edge, often labeled "Entrée" or shown with a door arc on an exterior wall).
+  L2. STAIRCASE: the zigzag / stepped block. In multi-unit buildings this is usually in a central palier.
+  L3. NORTH-WEST BUILDING CORNER: the outermost thick wall corner at top-left of the building footprint.
+  L4. SOUTH-EAST BUILDING CORNER: the outermost thick wall corner at bottom-right of the building footprint.
+
+For EACH room you later extract, you MUST be able to answer: "This room is X% to the east of landmark L_N, and Y% to the south". If you cannot answer, the room is MISPLACED — re-examine the plan.
+
 STEP 1 — READING THE PLAN (distinguish elements):
   - WALLS: thick solid lines (black, grey, or colored fills) defining rooms.
   - PARTITIONS: thinner solid lines inside the building separating rooms.
@@ -191,8 +202,41 @@ STEP 4 — SURFACES (READ from plan, do NOT calculate):
     WC 1-4 m² | SdB 3-12 m² | Chambre 8-25 m² | Cuisine 5-25 m² | Séjour 15-60 m² | Couloir 2-12 m² | Cellier/Rangement 1-8 m²
   If a value falls outside these ranges, RE-READ the plan.
 
-STEP 5 — BOUNDING BOXES (critical — anchor to WALL POSITIONS, not text labels):
+STEP 5 — BOUNDING BOXES (critical — v3 WALL-ANCHORED, NO approximation):
   Each bounding_box = tightest axis-aligned rectangle enclosing one room's FLOOR AREA.
+
+  ABSOLUTE RULE (v3 — NEW, MANDATORY):
+  The bounding_box MUST be computed from the VISIBLE walls of the actual room on the plan.
+  It is FORBIDDEN to approximate the position "near the label" or "around the general area".
+  If you see a room labeled "SdB" at a specific spot, the bbox corners MUST coincide (within
+  a 1% tolerance) with the visible wall lines that delimit THAT specific "SdB" on the plan.
+
+  NEGATIVE CONSTRAINTS (v3 — violate any of these and your output is REJECTED):
+  N1. NEVER place a bbox >1 m away from the labeled location you see on the plan.
+      Estimate 1 m using the plan scale (a standard door = 0.83 m, a WC ≈ 1.5 × 1.2 m).
+  N2. NEVER approximate bbox coordinates by "reasonable guess" — trace the actual walls.
+  N3. NEVER place the bbox around the text label's extent — the label is at the center of
+      the room, the bbox must extend from wall to wall (usually 5-15× larger than the text).
+  N4. NEVER omit a labeled space even if small: WC, placard, cellier, palier, SAS, dressing,
+      buanderie, local technique, ECS — all of these are rooms and MUST be included as distinct
+      entries if they have a visible enclosed perimeter on the plan.
+  N5. NEVER leave >15% of a unit's envelope empty. If after extracting all your rooms the
+      remaining uncovered space inside a unit is >15% of the unit envelope, you MISSED a room.
+
+  TILING CONSTRAINT INSIDE EACH UNIT (v3 — MANDATORY for type "immeuble" + multi-room units):
+  Within a single unit (rooms sharing the same unit_id), the rooms MUST TILE the unit's
+  envelope — no empty space except structural walls between rooms.
+  Procedure:
+    a. Group your extracted rooms by unit_id.
+    b. Compute the axis-aligned envelope of each unit = tightest rectangle containing all
+       bboxes of rooms with that unit_id.
+    c. Compute the sum of bbox areas of rooms in that unit.
+    d. If sum_areas / envelope_area < 0.85, the unit has missing rooms. RE-EXAMINE the plan:
+       there is very likely a labeled space (WC, placard, palier, cellier) you did not extract.
+    e. Common missed spaces: WC sometimes labeled just "WC" 1m², placards along walls,
+       corridors/paliers in the middle of a unit, cellier/buanderie near the kitchen.
+    f. Inside a unit there are NO "common areas" — every m² belongs to a named room. Outside
+       the units there can be common areas (escalier, hall d'immeuble, local vélos).
 
   WALL IDENTIFICATION METHOD (follow this procedure for EACH room):
   a. Find the room name text on the plan (e.g., "Chambre", "SdB").
@@ -306,6 +350,17 @@ STEP 7 — SELF-REVIEW (mandatory — do NOT skip):
       A "Palier" or "Couloir" in the center of the plan, bounded by walls, IS A ROOM. Include it.
       Only exclude: staircases (zigzag steps), ECS closets (if clearly <1m² utility only), and outdoor
       hatched zones. If total covered area < 85% of building_outline, you missed a room.
+  18. WALL-ANCHOR CHECK (v3 — NEW, mandatory): for EACH room, trace a line from the bbox corners
+      to the nearest thick wall on the plan. The distance MUST be < 1% of the image width.
+      If a corner floats more than 1%, the bbox is MISALIGNED — move it to the wall.
+  19. UNIT TILING CHECK (v3 — NEW, mandatory for "immeuble"): for each unit_id, compute the
+      envelope bbox (min/max across all bboxes in the unit) and sum the bbox areas of the unit's
+      rooms. If sum < 85% of envelope, STOP and find the missing room(s). Typical suspects:
+      WC (2m²), placard (1-2m²), palier (3-6m²), cellier (2-4m²), SAS (2-3m²).
+  20. LANDMARK COHERENCE CHECK (v3 — NEW, mandatory): verify your step-0 landmarks are still
+      consistent with the rooms you extracted. The entrance L1 must be adjacent to a habitable
+      room (entree, sejour, or palier). The staircase L2 should not overlap any habitable room.
+      If not, you have a position drift — re-examine the bbox positions.
 
 TYPE DE BIEN: "${typeBien}". If "immeuble", there may be multiple units — identify them if possible.
 

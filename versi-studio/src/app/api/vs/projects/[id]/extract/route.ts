@@ -18,6 +18,11 @@ import { readFile } from "fs/promises";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import { resolveRoomOverlaps, type RoomWithPolygon } from "@/lib/vs/polygon-resolver";
+import {
+  verifyAndCorrectPolygons,
+  applyCorrections,
+  type RoomForVerify,
+} from "@/lib/vs/visual-verifier";
 import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
 import OpenAI from "openai";
 import sharp from "sharp";
@@ -98,6 +103,9 @@ export async function POST(
     // Collecter toutes les pièces extraites de tous les plans
     const allRooms: ExtractedRoom[] = [];
 
+    // s23 — Conserver l'imageBuffer PNG par plan pour la passe-3 (verif visuelle)
+    const planIdToImageBuffer = new Map<string, Buffer>();
+
     // Extraire chaque plan
     for (const plan of plansResult.rows) {
       try {
@@ -137,6 +145,9 @@ export async function POST(
             const metadata = await sharp(imageBuffer).metadata();
             const imgW = metadata.width || 1;
             const imgH = metadata.height || 1;
+
+            // s23 — memoriser pour passe-3 (verif visuelle apres resolver)
+            planIdToImageBuffer.set(plan.id, imageBuffer);
 
             const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -309,6 +320,89 @@ export async function POST(
             `[non-overlap] ${lotName}: ${resolverResult.warnings.length} warnings`,
             resolverResult.warnings.map((w) => `${w.room_id}:${w.type}`).join(", ")
           );
+        }
+
+        // ─── s23 Passe-3 — Vérification visuelle par overlay ─────────
+        // Envoie plan + polygones colorés à GPT-4.1 vision pour détecter
+        // les pièces mal positionnées (drift > 1 m). Applique corrections
+        // avec confidence >= 0.8. Objectif : corriger le bug de position
+        // (pièces placées à ~3m de leur vraie localisation, bug Thomas s23).
+        const VISUAL_VERIFY_ENABLED = process.env.VS_VISUAL_VERIFY !== "false";
+        if (
+          VISUAL_VERIFY_ENABLED &&
+          group.rooms.length >= 2 &&
+          planIdToImageBuffer.has(floorToPlanId.get(group.floor) ?? "")
+        ) {
+          const planIdForVerify = floorToPlanId.get(group.floor)!;
+          const imageBufForVerify = planIdToImageBuffer.get(planIdForVerify)!;
+
+          const roomsForVerify: RoomForVerify[] = group.rooms
+            .map((r, idx) => {
+              // Fallback : si pas de polygone (rare), derive de la bbox
+              let polygon = r.bounding_polygon ?? null;
+              if ((!polygon || polygon.length < 4) && r.bounding_box) {
+                const bb = r.bounding_box;
+                polygon = [
+                  { x_percent: bb.x_percent, y_percent: bb.y_percent },
+                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent },
+                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent + bb.height_percent },
+                  { x_percent: bb.x_percent, y_percent: bb.y_percent + bb.height_percent },
+                ];
+              }
+              if (!polygon || polygon.length < 4) return null;
+              return {
+                id: r.temp_id || `room_${idx}`,
+                name: r.name_raw,
+                polygon,
+                surface_m2: r.surface_m2,
+              };
+            })
+            .filter((x): x is RoomForVerify => x !== null);
+
+          if (roomsForVerify.length >= 2) {
+            try {
+              const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+              const verifyResult = await verifyAndCorrectPolygons(
+                imageBufForVerify,
+                roomsForVerify,
+                openaiClient,
+                lotName,
+                0.8,
+              );
+              if (verifyResult.applied > 0) {
+                console.log(
+                  `[passe-3] ${lotName}: ${verifyResult.applied}/${roomsForVerify.length} pièces corrigées (drift moyen: ${(
+                    verifyResult.corrections.reduce((s, c) => s + c.drift_meters, 0) /
+                    Math.max(verifyResult.corrections.length, 1)
+                  ).toFixed(2)}m)`,
+                );
+                const corrected = applyCorrections(roomsForVerify, verifyResult.corrections);
+                // Réappliquer les polygones corrigés sur group.rooms par id stable
+                const correctedById = new Map<string, RoomForVerify>();
+                for (const c of corrected) correctedById.set(c.id, c);
+                for (let idx = 0; idx < group.rooms.length; idx++) {
+                  const r = group.rooms[idx];
+                  const rid = r.temp_id || `room_${idx}`;
+                  const c = correctedById.get(rid);
+                  if (!c) continue;
+                  // Appliquer uniquement si on a une correction effective
+                  const wasCorrected = verifyResult.corrections.some(
+                    (cc) => cc.room_id === rid,
+                  );
+                  if (wasCorrected) {
+                    r.bounding_polygon = c.polygon;
+                  }
+                }
+              } else {
+                console.log(`[passe-3] ${lotName}: aucune correction nécessaire (${verifyResult.globalAssessment.slice(0, 100)})`);
+              }
+            } catch (verifyErr) {
+              console.error(
+                `[passe-3] ${lotName}: erreur passe-3, on garde polygones passe-2`,
+                verifyErr instanceof Error ? verifyErr.message : verifyErr,
+              );
+            }
+          }
         }
 
         // Calculer la surface totale estimée
