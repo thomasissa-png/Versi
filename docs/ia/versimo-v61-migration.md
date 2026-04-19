@@ -77,3 +77,43 @@
 ## 7. Handoff
 
 [A COMPLETER]
+
+---
+
+## Décision s23 — 2026-04-19
+
+**Statut : SKIP pour cette session (Étape B non exécutée).**
+
+**Contexte décisionnel :**
+- Session 23 a ouvert avec 3 Task orchestrator déjà consommés (diagnostic + bugfix plan rogné + propagation learnings s22).
+- Alerte ROUGE fixée à 18 Task producteurs. Budget restant ~5 Task.
+- Étape A (propagation 18 learnings s22) terminée commit `c5e3ad5`.
+
+**État évalué (B.1) :**
+- `versi-studio/src/lib/vs/visual-generator.ts` : 246 lignes, pipeline 1-passe `openai.images.edit` avec `gpt-image-1`, STRICT RULE 1 conditionnelle validée 10/10 en s22.
+- `versi-studio/src/lib/vs/styles.ts` : 12 styles avec `prompt_hint` court (~15 mots/style).
+- `/tmp/versimo-ref/` : **ABSENT** — jamais cloné dans l'environnement actuel.
+
+**Motifs du SKIP :**
+
+1. **Référentiel Versimo introuvable** — `/tmp/versimo-ref/` vide. @ia devrait le cloner lui-même (consomme contexte, risque timeout) ET les `surfacePrompt`/`furniturePrompt` détaillés (~200 mots x 12 styles) ne sont PAS dans ce rapport, uniquement "migrer de Versimo". Sans le référentiel, @ia serait contraint d'inventer (interdit par learning 2) ou de bloquer.
+
+2. **Rapport d'analyse incomplet** — sections 3 (Fichiers migrés), 4 (Mapping des styles), 5 (Tests non-régression), 6 (Recommandations V2), 7 (Handoff) toutes marquées `[A COMPLETER]`. Implémentation sans clore l'analyse = risque de dérive de scope.
+
+3. **Risque de régression sur les 4 transformations 10/10 s22** — la migration touche le cœur du prompt de génération (80% de la qualité selon règle @ia). Aucun plan de non-régression chiffré n'existe (tests Playwright de référence pour les 4 transformations non listés). Modifier le prompt sans baseline de comparaison quantifiée = risque élevé de casser ce qui fonctionne.
+
+4. **Conflit de principe avec learning s22** — Versimo v61 recommande "art stays freestanding or leans against baseboard" (formulation **positive**) alors que le learning s22 (propagé dans session-22-learnings.md) pose la règle "règles négatives > positives". Arbitrage technique nécessaire AVANT d'implémenter, pas pendant.
+
+5. **Budget session serré** — 3 Task déjà consommés, 5 restants max. Séquence @ia (specs) + @fullstack (typist) + @qa (non-régression) = 3 Task minimum si tout passe du premier coup. Une relance corrective (très probable vu la complexité) pousse à 4-5 Task. Aucune marge pour imprévus.
+
+**Pré-requis pour déverrouiller (session ultérieure) :**
+
+1. Cloner `/tmp/versimo-ref/` en amont de session (`git clone --depth 1 https://github.com/thomasissa-png/versimo /tmp/versimo-ref`) et vérifier la présence des fichiers `style-resolver.ts`, `style-variants.ts`, builders Pass1/Pass2.
+2. Compléter sections 3-7 de ce rapport (mapping styles, tests non-régression, recommandations V2) AVANT de lancer @ia.
+3. Produire un jeu de baselines (photos brutes + outputs attendus) pour les 4 transformations 10/10 s22 afin que @qa puisse mesurer les régressions quantitativement.
+4. Arbitrer formellement le conflit "règles négatives vs positives" Versimo v61 vs learning s22 — trancher si on fusionne ou si on garde le principe s22 partout.
+5. Démarrer la session Versimo v61 avec budget Task frais (≤ 2 Task déjà consommés) pour avoir une marge de 5+ Task.
+
+**Recommandation next step (s23) :** passer à Étape C (non identifiée dans le brief mais mentionnée par Thomas comme suivante). La migration Versimo v61 reste au backlog comme "P1 bloqué par pré-requis" et sera reprise dans une session dédiée avec les 5 pré-requis ci-dessus remplis.
+
+**Auteur de la décision :** @orchestrator session 23, date 2026-04-19.
