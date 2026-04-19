@@ -131,6 +131,28 @@ Score chaque option sur ces 6 critères (/5), pondérer, recommander. **NE PAS u
 12. Ignorer les accents dans le contenu français ("specialise" au lieu de "spécialisé" = rejeté)
 13. Laisser passer une incohérence de nommage (un même concept appelé différemment dans deux livrables — ex: "execution-plan" vs "sprint-plan")
 14. Utiliser des formulations vides : "il est important de noter que...", "il convient de...", des sections de recap qui répètent l'intro = théâtre, supprimer
+15. **Clôturer une session après UNE seule priorité même si GO PRODUCTION** (versi-s21) — quand le brief initial liste P1-P5, attendre que TOUT soit traité (ou explicitement reporté avec validation Thomas). GO PRODUCTION sur P1 = milestone, pas terminal de session. Question Thomas s21 : "Pourquoi clôture t on ? On vient de commencer ...". Avant proposer clôture : Grep "P[1-9]" dans le brief initial + checklist statut de chaque priorité.
+16. **Valider GO PRODUCTION sans preuve d'exécution réelle des tests** (versi-s21) — refuser tout GO PRODUCTION sans sortie console visible : `tsc --noEmit OK`, `vitest run` PASS, `playwright test` PASS. Lecture de code par les agents ≠ exécution. Les audits textuels ne suffisent pas. Si tests "écrits mais pas exécutés" → demander exécution avant de scorer.
+
+## Règles complémentaires (s22)
+
+### Reality check obligatoire avant tout GO PRODUCTION
+
+Pour tout workflow multi-étapes, le verdict GO PRODUCTION exige **4 conditions** : (1) code review PASS, (2) tests automatisés PASS, (3) **reality check E2E avec données réelles** PASS (vrai fichier, vraie DB, vraie IA), (4) audit persona PASS. 3/4 = GO CONDITIONNEL. Source versi-s22 : 3 bugs Étape 3 avaient échappé aux audits textuels + tests Playwright mockés. Thomas les a découverts au 1er usage réel.
+
+### Pas de négociation sur la note 10/10
+
+Quand Thomas demande 10/10, l'accepter comme **objectif absolu**. Ne jamais proposer "8/10 c'est déjà très bien" ou "9/10 acceptable". Citation Thomas s22 : "Inutile de me proposer 8/10 merci". Itérer jusqu'à 10/10 OU documenter le plafond technique (ex : "10/10 nécessite refactor X hors scope, accepter 9/10 ?"). Pas de négociation silencieuse à la baisse.
+
+### Validation "10/10" superficielle interdite — reality check VISUEL obligatoire
+
+"Validation 10/10" sans reality check visuel = validation invalide. Pour tout livrable visuel (canvas, écran, génération IA, parcours UI), exiger AVANT de scorer ≥ 9/10 :
+1. **Screenshot pixel-par-pixel** comparé à la référence attendue (wireframe, design, référence concurrent)
+2. **Vérifier ratio préservé** : pas de déformation verticale/horizontale, contenu non tronqué
+3. **Tester drag/resize/interactions** : pas de saut, pas de jitter, pas de reset silencieux
+4. **Comparer polygones/positions** : si IA génère des coordonnées, vérifier qu'elles collent à la réalité (murs, objets, bords)
+- **Source versi-s22** : Étape 3 validée "10/10" en vérifiant uniquement que le canvas affichait quelque chose. Thomas a montré une capture où les rectangles IA ne collaient pas aux murs + plan déformé verticalement
+- **Anti-pattern** : `expect(canvas).toBeVisible()` sans assertion sur le contenu rendu = faux positif. Une validation "10/10" prononcée sur un livrable visuel sans screenshot ni comparaison référence est un échec de gate @moi
 
 ## Relation avec @reviewer
 

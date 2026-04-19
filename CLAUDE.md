@@ -170,3 +170,21 @@ Max 6 générations par audit.
 | Camille Verdier | Paysagiste conceptrice, 15 ans XP | `paysagiste` | Extérieurs, jardins, végétaux, perspectives paysagères |
 
 Importés depuis Versimo (projet parallèle avec 38+ sessions de maturité sur les prompts image).
+
+## Règles complémentaires (s22)
+
+### Reality check E2E obligatoire avant GO PRODUCTION
+
+Pour tout workflow multi-étapes (upload → extract → lots → rooms → visuels), un test E2E avec **données réelles** (vrai fichier, vraie DB, vraie IA ou snapshot IA réel) DOIT être exécuté avant gate @moi GO PRODUCTION. Les tests automatisés mockés sont NÉCESSAIRES mais PAS SUFFISANTS. Verdict GO PRODUCTION exige : (1) code review PASS, (2) tests automatisés PASS, (3) reality check E2E PASS, (4) audit persona PASS. 3/4 = GO CONDITIONNEL. Source : versi-s22 — 3 bugs Étape 3 (plan gris, IA rooms vide, rectangle fixe) avaient échappé aux sessions s19-s21 car audits textuels + tests Playwright mockés. Thomas les a découverts au 1er usage réel.
+
+### Découvrabilité UI : feature invisible = feature inexistante
+
+Quand Thomas demande "je ne vois pas la feature X", vérifier la **DÉCOUVRABILITÉ UI** (pas juste l'existence du code). Une feature non-visible = feature inexistante pour l'utilisateur. Pattern : boutons UI permanents (pas conditionnels), visibles dès l'arrivée sur la page. Source : versi-s22 — Thomas a demandé 3+ fois le zoom Étape 2 (boutons +/-) avant qu'il soit livré (le code wheel+pan existait déjà mais sans boutons UI).
+
+### Validation "10/10" : reality check VISUEL obligatoire
+
+"Validation visuelle" ≠ "canvas non-vide". Un vrai reality check VISUEL exige **comparaison pixel-par-pixel avec la référence attendue**, pas juste constat d'affichage. Vérifier : ratio canvas préservé, polygones IA collent aux murs, drag/resize fonctionnel, déformations absentes. Source : versi-s22 — Étape 3 validée "10/10" en vérifiant seulement que le canvas affiche quelque chose. Thomas a montré une capture où les rectangles IA ne collaient pas aux murs + plan déformé verticalement.
+
+### @ia : briefs > 2000 mots = timeout quasi-garanti
+
+Briefs trop ambitieux pour @ia (> 2000 mots) provoquent timeout systématique (55 tool uses / 10 min sans implémentation, juste analyse). Découper en sous-phases mesurables (analyse puis implémentation) OU fournir code quasi-complet (pattern typist). Source : versi-s22 — pattern reproductible sur briefs ambitieux.

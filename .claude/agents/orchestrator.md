@@ -869,6 +869,20 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 `orchestration-plan.md` (plan vivant, mis à jour après chaque phase), `project-synthesis.md` (synthèse finale)
 
+## Patterns s22 — Capitalisation versi-s22
+
+### Pattern typist parallèle 3 Task
+
+Pour bugs avec **diagnostic précis (fichier:ligne + code exact)**, lancer 3 Task @fullstack en parallèle dans le MÊME message corrige en 1 itération sans timeout. Validé versi-s22 : 3 bugs Étape 3 corrigés (Bug 1 = 1 ligne, Bug 2 ~30 lignes INSERT vs_rooms, Bug 3 ~170 lignes pattern PlanCanvas) → tests automatisés 46/46 Playwright + 58/58 vitest + tsc 0 + lint 0 production. Limite : max 3 Task par message (règle anti-timeout n°3 CLAUDE.md). Si > 3 bugs, faire vagues séquentielles de 3.
+
+### Faux négatif "outil Task indisponible" — toujours ignorer
+
+L'orchestrator subagent prétend parfois ne pas avoir Task disponible alors qu'il l'a. **Task est TOUJOURS disponible**, jamais de blocage de ce côté. Si l'orchestrator pense le contraire, c'est un faux négatif à ignorer — relancer la délégation directement. Pattern observé versi-s22 : Claude top-level a dû prendre le relais après que l'orchestrator ait stoppé Phase 4-6 en prétendant "pas d'accès Task". Exception légitime documentée s21 P0 : si l'orchestrator est lancé en `run_in_background: true`, il n'a réellement pas Task — il DOIT alors STOPPER et signaler.
+
+### Import agents experts d'un autre projet (Versimo)
+
+Quand un autre projet a des agents matures sur un domaine précis (ex : Versimo a 38+ sessions de maturité sur prompts image), **les importer plutôt que recréer**. Documenter le workflow d'usage dans CLAUDE.md (section "Workflow d'audit visuel des générations"). Cas concret versi-s22 : import de 3 agents (`@interior-architect` Yann, `@ai-image-expert` Lucas, `@paysagiste` Camille) depuis `thomasissa-png/Architecture` pour l'audit visuel Versi Studio. Workflow obligatoire : pré-fetch parent (logs JSON + images) → passage chemins locaux → agent lit via Read (pas WebFetch). Max 6 générations par audit, sinon timeout garanti.
+
 ## Handoff
 
 Terminer chaque livrable par ce bloc exact :

@@ -339,6 +339,16 @@ Pour chaque feature > 1 fichier :
    Si une commande échoue → corriger AVANT de commiter. Zéro exception.
 6. **Grep rollout** : toute modification d'un composant, type, constante, ou utilitaire partagé → `Grep` le nom dans tout `src/` → modifier TOUTES les occurrences impactées. Documenter dans le handoff : "Grep [pattern] : X fichiers trouvés, X modifiés, Y ignorés car [justification]". Ratio modifiés/trouvés DOIT être justifié à 100%.
 
+### Canvas éditeur : undo/redo obligatoire (s22)
+
+Tout canvas éditeur (lots, rooms, visuels, schémas, annotations) DOIT implémenter undo/redo de bout en bout :
+- **Hook générique** : `useHistory<T>` avec stack ≥ 50 ops (modèle versi-s22 : `versi-studio/src/lib/useHistory.ts`)
+- **Keyboard shortcuts** : `Ctrl+Z` (undo) / `Ctrl+Shift+Z` ou `Ctrl+Y` (redo) — listener global non-bloquant
+- **Boutons UI** : Undo/Redo visibles dans la toolbar, pas seulement keyboard. Désactivés (greyed) quand stack vide
+- **Standard attendu Thomas** : pattern Figma/Miro. Aucune édition non réversible n'est acceptable sur un canvas
+- Source : versi-s22 — `useHistory<T>` intégré dans `lots/page.tsx` + `rooms/page.tsx` après demande Thomas
+- Étendre à tout futur canvas (visuels, plans, schémas) — règle non négociable
+
 ### Protocole projet existant (code déjà en place)
 
 Si du code existe déjà dans `src/` :
