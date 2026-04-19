@@ -66,6 +66,8 @@ export default function RoomsPage({
   } | null>(null);
   const [validationBlocked, setValidationBlocked] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  // s23 fix régression — re-résolution des overlaps sur pièces IA existantes
+  const [isResolvingOverlaps, setIsResolvingOverlaps] = useState(false);
 
   // Debounce timers pour les PATCH individuels
   const patchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -627,6 +629,51 @@ export default function RoomsPage({
     }
   }, [projectId, router]);
 
+  // s23 fix régression — Recalculer la disposition IA (re-run resolver côté serveur)
+  const handleResolveOverlaps = useCallback(async () => {
+    if (isResolvingOverlaps) return;
+    setIsResolvingOverlaps(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/vs/projects/${projectId}/rooms/resolve-overlaps`,
+        { method: "POST" }
+      );
+      const json = (await res.json()) as ApiResponse<{
+        lots_resolved: number;
+        rooms_updated: number;
+        rooms_skipped: number;
+        warnings: number;
+      }>;
+      if (!json.success) {
+        setError(json.error);
+        return;
+      }
+      // Recharger les pièces pour refléter les polygones résolus
+      await fetchData();
+      if (json.data.rooms_updated === 0) {
+        setWarningMessage(
+          "Aucune pièce à recalculer (déjà sans superposition)."
+        );
+      } else {
+        setWarningMessage(
+          `${json.data.rooms_updated} pièces recalculées sur ${json.data.lots_resolved} lots.`
+        );
+      }
+      // Auto-dismiss le warning après 5s
+      setTimeout(() => setWarningMessage(null), 5000);
+    } catch {
+      setError("Impossible de recalculer la disposition des pièces.");
+    } finally {
+      setIsResolvingOverlaps(false);
+    }
+  }, [projectId, isResolvingOverlaps, fetchData]);
+
+  // s23 fix régression — détection de présence de pièces IA (pour afficher le bouton)
+  const hasAiRooms = Object.values(roomsByLot).some((list) =>
+    list.some((r) => r.source === "ai")
+  );
+
   // ─── État Loading ─────────────────────────────────────────────
 
   if (loading) {
@@ -853,6 +900,9 @@ export default function RoomsPage({
             onValidateLot={handleValidateLot}
             onContinue={handleContinue}
             onConfirmRoom={handleConfirmRoom}
+            onResolveOverlaps={handleResolveOverlaps}
+            hasAiRooms={hasAiRooms}
+            isResolvingOverlaps={isResolvingOverlaps}
             allLotsValidated={allLotsValidated}
             isValidating={isValidating}
             currentLotValidated={currentLotValidated}

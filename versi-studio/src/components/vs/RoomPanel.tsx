@@ -35,6 +35,11 @@ interface RoomPanelProps {
   onValidateLot: () => void;
   onContinue: () => void;
   onConfirmRoom: (roomId: string) => void;
+  /** s23 fix régression — re-apply resolver sur les pièces IA existantes. */
+  onResolveOverlaps?: () => void;
+  /** s23 fix régression — visible uniquement si au moins 1 pièce IA existe. */
+  hasAiRooms?: boolean;
+  isResolvingOverlaps?: boolean;
   allLotsValidated: boolean;
   isValidating: boolean;
   currentLotValidated: boolean;
@@ -67,6 +72,9 @@ export default function RoomPanel({
   onValidateLot,
   onContinue,
   onConfirmRoom,
+  onResolveOverlaps,
+  hasAiRooms = false,
+  isResolvingOverlaps = false,
   allLotsValidated,
   isValidating,
   currentLotValidated,
@@ -394,6 +402,31 @@ export default function RoomPanel({
       >
         + Ajouter une pièce
       </button>
+
+      {/* Bouton "Recalculer la disposition IA" (s23 fix régression) */}
+      {/* Visible uniquement si des pièces IA existent ET si callback fourni.
+          Raison : migre les données existantes qui n'ont pas bénéficié du resolver
+          (commits f7a2699/c57aba3 ne s'appliquaient qu'à POST /extract). */}
+      {onResolveOverlaps && hasAiRooms && (
+        <button
+          type="button"
+          onClick={onResolveOverlaps}
+          disabled={isResolvingOverlaps}
+          className="
+            w-full mt-xs px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+            border border-border-default bg-bg-card
+            text-text-default hover:bg-bg-default active:opacity-80
+            transition-colors duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+          "
+          aria-label="Recalculer la disposition des pièces pour éliminer les superpositions"
+        >
+          {isResolvingOverlaps
+            ? "Recalcul en cours…"
+            : "Recalculer la disposition IA"}
+        </button>
+      )}
 
       {/* Grille des pièces (s22 Point 4 — cards en grille au lieu de liste latérale) */}
       <div className="py-md">

@@ -432,25 +432,111 @@ export default function RoomCanvas({
     []
   );
 
-  // ─── Validation drag dans le polygone réel du lot (s23 Bug 2) ──
+  // ─── Validation drag dans le polygone réel du lot (s23 Bug 2 — fix s23 régression) ──
   /**
-   * Vérifie que le centroïde de la pièce (en coords globales plan) reste
-   * dans le polygone réel du lot. Pour un lot en L, cela empêche la pièce
-   * de "traverser" un mur concave que la bbox rectangulaire autoriserait.
+   * Fix s23 régression : au lieu d'IGNORER silencieusement les positions hors
+   * polygone (Thomas perçoit un "mur invisible"), on PROJETTE le centroïde sur
+   * le point le plus proche du polygone (projection sur segments). L'utilisateur
+   * voit la pièce bouger et s'arrêter au mur — pas de blocage silencieux.
    *
-   * Si lotPolygon n'est pas fourni (lot rectangulaire), retourne toujours true
-   * — le clamp bbox existant suffit.
+   * Si lotPolygon n'est pas fourni (lot rect), le clamp bbox existant (lot-local
+   * [0, 100]) suffit — on renvoie la position telle quelle.
    */
-  const isPositionValidInLot = useCallback(
-    (pos: RoomPosition): boolean => {
-      if (!lotPolygon || lotPolygon.length < 3) return true;
+  const clampPositionInLot = useCallback(
+    (pos: RoomPosition): RoomPosition => {
+      if (!lotPolygon || lotPolygon.length < 3) return pos;
       // Centroïde de la pièce en coords lot-local
       const cxLot = pos.x_percent + pos.width_percent / 2;
       const cyLot = pos.y_percent + pos.height_percent / 2;
       // Conversion lot-local → global plan
       const cxGlobal = lotToGlobalPercent(cxLot, lotZone.x_percent, lotZone.width_percent);
       const cyGlobal = lotToGlobalPercent(cyLot, lotZone.y_percent, lotZone.height_percent);
-      return pointInPolygon(cxGlobal, cyGlobal, lotPolygon);
+      if (pointInPolygon(cxGlobal, cyGlobal, lotPolygon)) {
+        return pos;
+      }
+      // Hors polygone → projeter le centroïde sur le point le plus proche du polygone
+      // Algorithme : pour chaque segment du polygone, calculer la projection perpendiculaire.
+      // Retenir le point projeté le plus proche du centroïde ET la normale du segment
+      // (pour pousser légèrement vers l'intérieur et éviter "pile sur le mur").
+      let bestDistSq = Infinity;
+      let bestPx = cxGlobal;
+      let bestPy = cyGlobal;
+      let bestSegDx = 0;
+      let bestSegDy = 0;
+      for (let i = 0; i < lotPolygon.length; i++) {
+        const a = lotPolygon[i];
+        const b = lotPolygon[(i + 1) % lotPolygon.length];
+        const dx = b.x_percent - a.x_percent;
+        const dy = b.y_percent - a.y_percent;
+        const lenSq = dx * dx + dy * dy;
+        let t = 0;
+        if (lenSq > 0) {
+          t = ((cxGlobal - a.x_percent) * dx + (cyGlobal - a.y_percent) * dy) / lenSq;
+          t = Math.max(0, Math.min(1, t));
+        }
+        const px = a.x_percent + t * dx;
+        const py = a.y_percent + t * dy;
+        const ddx = cxGlobal - px;
+        const ddy = cyGlobal - py;
+        const distSq = ddx * ddx + ddy * ddy;
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          bestPx = px;
+          bestPy = py;
+          bestSegDx = dx;
+          bestSegDy = dy;
+        }
+      }
+      // Pousser vers l'intérieur via la normale du segment projeté.
+      // Les 2 normales sont (-dy, dx) et (dy, -dx) — on prend celle qui pointe
+      // vers l'intérieur (vers le centroïde géométrique du polygone).
+      const polyCx = lotPolygon.reduce((s, p) => s + p.x_percent, 0) / lotPolygon.length;
+      const polyCy = lotPolygon.reduce((s, p) => s + p.y_percent, 0) / lotPolygon.length;
+      const segLen = Math.sqrt(bestSegDx * bestSegDx + bestSegDy * bestSegDy);
+      let nx = 0;
+      let ny = 0;
+      if (segLen > 0) {
+        const n1x = -bestSegDy / segLen;
+        const n1y = bestSegDx / segLen;
+        // Choisir la normale qui pointe vers l'intérieur (dot product > 0 avec vecteur vers centroïde)
+        const toCenterX = polyCx - bestPx;
+        const toCenterY = polyCy - bestPy;
+        const dot = n1x * toCenterX + n1y * toCenterY;
+        if (dot >= 0) {
+          nx = n1x;
+          ny = n1y;
+        } else {
+          nx = -n1x;
+          ny = -n1y;
+        }
+      } else {
+        // Fallback : offset vers centroïde
+        const dx0 = polyCx - bestPx;
+        const dy0 = polyCy - bestPy;
+        const dLen = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+        if (dLen > 0) {
+          nx = dx0 / dLen;
+          ny = dy0 / dLen;
+        }
+      }
+      const EPS = 0.5;
+      const clampedCxGlobal = bestPx + nx * EPS;
+      const clampedCyGlobal = bestPy + ny * EPS;
+      // Global → lot-local
+      const clampedCxLot =
+        lotZone.width_percent > 0
+          ? ((clampedCxGlobal - lotZone.x_percent) / lotZone.width_percent) * 100
+          : cxLot;
+      const clampedCyLot =
+        lotZone.height_percent > 0
+          ? ((clampedCyGlobal - lotZone.y_percent) / lotZone.height_percent) * 100
+          : cyLot;
+      return {
+        x_percent: Math.max(0, Math.min(100 - pos.width_percent, clampedCxLot - pos.width_percent / 2)),
+        y_percent: Math.max(0, Math.min(100 - pos.height_percent, clampedCyLot - pos.height_percent / 2)),
+        width_percent: pos.width_percent,
+        height_percent: pos.height_percent,
+      };
     },
     [lotPolygon, lotZone, lotToGlobalPercent]
   );
@@ -1063,11 +1149,8 @@ export default function RoomCanvas({
         const { dxPct, dyPct } = toDeltaPercent(dx, dy);
 
         const newPos = computeResize(dragging.origPos, dragging.handle, dxPct, dyPct);
-        // s23 Bug 2 — si polygone du lot fourni, valider que le centroïde
-        // de la pièce reste dans le polygone réel (pas juste dans la bbox).
-        if (isPositionValidInLot(newPos)) {
-          onMoveRoom(dragging.roomId, newPos);
-        }
+        // s23 Bug 2 (fix régression) — clamper au polygone si nécessaire (ne pas ignorer)
+        onMoveRoom(dragging.roomId, clampPositionInLot(newPos));
       } else {
         // Mode déplacement — corriger delta pour viewport scale
         if (canvas) {
@@ -1097,14 +1180,11 @@ export default function RoomCanvas({
           height_percent: dragging.origPos.height_percent,
         };
 
-        // s23 Bug 2 — si polygone du lot fourni, valider que le centroïde
-        // de la pièce reste dans le polygone réel (pas juste dans la bbox).
-        if (isPositionValidInLot(newPos)) {
-          onMoveRoom(dragging.roomId, newPos);
-        }
+        // s23 Bug 2 (fix régression) — clamper au polygone si nécessaire (ne pas ignorer)
+        onMoveRoom(dragging.roomId, clampPositionInLot(newPos));
       }
     },
-    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent, handMode, viewport, clampViewportOffsets, isPositionValidInLot]
+    [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent, handMode, viewport, clampViewportOffsets, clampPositionInLot]
   );
 
   const handleMouseUp = useCallback(() => {
