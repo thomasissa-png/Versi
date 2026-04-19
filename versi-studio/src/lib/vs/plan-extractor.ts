@@ -164,8 +164,20 @@ STEP 1 — READING THE PLAN (distinguish elements):
   - STAIRCASES: zigzag/curved lines with steps. Note position but do NOT create a room for them.
   - OUTDOOR (terraces, balconies, gardens): outside exterior walls. Exclude unless fully enclosed.
 
-STEP 2 — BUILDING OUTLINE:
-Find the outermost thick lines forming the building perimeter. Return the tightest axis-aligned rectangle containing ALL exterior walls as building_outline. EXCLUDE title blocks, legends, scale bars, margin text from this rectangle. Every room must fit INSIDE it.
+STEP 2 — BUILDING OUTLINE (CRITICAL — used for exterior-exclusion clipping):
+Return the tightest axis-aligned rectangle that contains ONLY THE INDOOR HEATED AREA (rooms with a roof above and all four walls of the building envelope). This is the rectangle used downstream to clip rooms and prevent them from spilling outside.
+
+STRICT RULES:
+- INCLUDE : interior rooms (living, bedrooms, kitchens, bathrooms, WC, hallways, entries, storage, cellars inside the building, stairwells inside the building).
+- EXCLUDE : terraces (terrasses), balconies (balcons), patios, verandas with only 3 walls, gardens (jardins), courtyards, loggias, external staircases, open passageways, parking areas, any hatched outdoor zone, any zone without a roof/ceiling.
+- EXCLUDE title blocks, legends, scale bars, margin text.
+
+HOW TO DECIDE :
+1. Find rooms that have a printed surface in m² and a name indicating indoor use (Chambre, Séjour, Cuisine, SdB, WC, Entrée, Couloir, Cellier, Bureau...). These define the INSIDE.
+2. A terrace is often labeled "Terrasse" / "Balcon" / "Loggia" / "Jardin" and/or drawn with stipples, hatches, dots, wood-decking pattern, or is outside the thickest continuous wall loop.
+3. The building_outline rectangle must NOT overlap any terrace or balcony. If you must choose, make the rectangle TIGHTER rather than larger — a terrace wrongly included is much worse than 5% of a real room clipped.
+
+Every INDOOR room must fit INSIDE this rectangle (tolerance 1%). Every OUTDOOR zone must fall OUTSIDE.
 
 STEP 3 — IDENTIFY ROOMS:
 For each enclosed space bounded by walls/partitions:

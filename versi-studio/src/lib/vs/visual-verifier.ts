@@ -206,14 +206,20 @@ export interface VerifyResult {
  * @param rooms Pièces du lot (polygones en % plan-global)
  * @param openai Client OpenAI
  * @param lotName Nom du lot (pour logs)
- * @param confidenceThreshold Seuil d'acceptation correction (def 0.8)
+ * @param confidenceThreshold Seuil d'acceptation correction (def 0.6 — s23 final)
+ *
+ * Rationale seuil 0.6 (versi-s23 reality-check 2026-04-19) :
+ * Sur P00, le couloir était vu à "drift 3m, confidence 0.75" — sous 0.8 donc
+ * non corrigé, alors que la correction était juste. Mieux vaut accepter une
+ * correction à 0.6 (qui peut être fausse mais rarement pire qu'un drift de 3m)
+ * que de conserver un drift mesurable. "Correction imparfaite > drift ignoré".
  */
 export async function verifyAndCorrectPolygons(
   planImageBuffer: Buffer,
   rooms: RoomForVerify[],
   openai: OpenAI,
   lotName: string = "lot",
-  confidenceThreshold: number = 0.8,
+  confidenceThreshold: number = 0.6,
 ): Promise<VerifyResult> {
   if (rooms.length === 0) {
     return { corrections: [], applied: 0, skippedLowConfidence: 0, globalAssessment: "No rooms to verify." };

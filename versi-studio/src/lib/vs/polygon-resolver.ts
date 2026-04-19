@@ -197,6 +197,43 @@ function intersectionArea(a: Point[], b: Point[]): number {
   return polygonArea(inter);
 }
 
+/**
+ * Clippe un polygone contre un polygone de frontière (ex: building_outline).
+ *
+ * Garanties (s23 EXTERIOR-EXCLUSION) :
+ * - Si l'intersection a au moins 4 points ET >= minResidualRatio de l'aire
+ *   originale → retourne le polygone clippé.
+ * - Sinon retourne null → l'appelant conserve l'original et log un warning.
+ *
+ * Usage : après les passes 1/2/3 + resolver, avant la persist DB, clipper
+ * chaque room.bounding_polygon contre le rectangle du bâtiment pour empêcher
+ * tout débord sur la terrasse / l'extérieur.
+ */
+export function clipPolygonToBoundary(
+  polygon: Point[],
+  boundary: Point[],
+  minResidualRatio: number = 0.5,
+): { polygon: Point[] | null; residualRatio: number } {
+  if (!polygon || polygon.length < 3) return { polygon: null, residualRatio: 0 };
+  if (!boundary || boundary.length < 3) return { polygon: null, residualRatio: 0 };
+
+  const originalArea = polygonArea(polygon);
+  if (originalArea <= 0) return { polygon: null, residualRatio: 0 };
+
+  const clipped = safeIntersection(polygon, boundary);
+  if (!clipped || clipped.length < 4) {
+    return { polygon: null, residualRatio: 0 };
+  }
+
+  const residualArea = polygonArea(clipped);
+  const ratio = residualArea / originalArea;
+  if (ratio < minResidualRatio) {
+    return { polygon: null, residualRatio: ratio };
+  }
+
+  return { polygon: clipped, residualRatio: ratio };
+}
+
 // ─── Passe principale (1 itération) ───────────────────────────────
 
 interface ResolveOnePassInput<T extends RoomWithPolygon> {

@@ -17,7 +17,12 @@ import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
-import { resolveRoomOverlaps, type RoomWithPolygon } from "@/lib/vs/polygon-resolver";
+import {
+  resolveRoomOverlaps,
+  clipPolygonToBoundary,
+  type RoomWithPolygon,
+  type Point as ResolverPoint,
+} from "@/lib/vs/polygon-resolver";
 import {
   verifyAndCorrectPolygons,
   applyCorrections,
@@ -106,6 +111,10 @@ export async function POST(
     // s23 — Conserver l'imageBuffer PNG par plan pour la passe-3 (verif visuelle)
     const planIdToImageBuffer = new Map<string, Buffer>();
 
+    // s23 final — Conserver le building_outline par plan pour le hard clipping
+    // EXTERIOR-EXCLUSION (empêche les pièces de déborder sur la terrasse).
+    const planIdToBuildingPolygon = new Map<string, ResolverPoint[]>();
+
     // Extraire chaque plan
     for (const plan of plansResult.rows) {
       try {
@@ -119,6 +128,20 @@ export async function POST(
           plan.mime_type,
           project.type_bien
         );
+
+        // s23 final — Mémoriser le building_outline en polygone CCW (4 points
+        // en % plan-global) pour le hard clipping après le resolver.
+        if (extraction.building_outline) {
+          const bo = extraction.building_outline;
+          // Rectangle axis-aligned converti en 4 sommets CCW (order : TL, TR, BR, BL)
+          const boundary: ResolverPoint[] = [
+            { x_percent: bo.x_percent, y_percent: bo.y_percent },
+            { x_percent: bo.x_percent + bo.width_percent, y_percent: bo.y_percent },
+            { x_percent: bo.x_percent + bo.width_percent, y_percent: bo.y_percent + bo.height_percent },
+            { x_percent: bo.x_percent, y_percent: bo.y_percent + bo.height_percent },
+          ];
+          planIdToBuildingPolygon.set(plan.id, boundary);
+        }
 
         // ─── Passe 2 — Raffinement polygones par crop (s22 v4) ─────
         // Pour chaque piece avec bbox, crop l'image et appel GPT-4.1
@@ -362,12 +385,14 @@ export async function POST(
           if (roomsForVerify.length >= 2) {
             try {
               const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+              // s23 final : seuil 0.8 → 0.6. Mieux vaut une correction à
+              // confidence modérée qu'un drift 3m non corrigé.
               const verifyResult = await verifyAndCorrectPolygons(
                 imageBufForVerify,
                 roomsForVerify,
                 openaiClient,
                 lotName,
-                0.8,
+                0.6,
               );
               if (verifyResult.applied > 0) {
                 console.log(
@@ -402,6 +427,50 @@ export async function POST(
                 verifyErr instanceof Error ? verifyErr.message : verifyErr,
               );
             }
+          }
+        }
+
+        // ─── s23 FINAL — Hard clipping au building_outline (EXTERIOR-EXCLUSION)
+        // Garde-fou absolu : aucune pièce ne peut déborder sur l'extérieur
+        // (terrasse, balcon, jardin). Même si le prompt, le resolver et la
+        // passe-3 ont échoué à contenir la pièce, le clipping force.
+        //
+        // Règles :
+        // - polygone résiduel >= 4 points ET aire >= 50% de l'originale → remplacer
+        // - sinon → warn + conserver l'original (clip trop destructif, signal
+        //   que le building_outline détecté est peut-être trop étroit)
+        {
+          const planIdForClipping = floorToPlanId.get(group.floor);
+          const buildingPolygon = planIdForClipping
+            ? planIdToBuildingPolygon.get(planIdForClipping)
+            : null;
+          if (buildingPolygon && buildingPolygon.length >= 4) {
+            let clippedCount = 0;
+            let preservedCount = 0;
+            for (const r of group.rooms) {
+              if (!r.bounding_polygon || r.bounding_polygon.length < 4) continue;
+              const { polygon: clipped, residualRatio } = clipPolygonToBoundary(
+                r.bounding_polygon,
+                buildingPolygon,
+                0.5,
+              );
+              if (clipped && clipped.length >= 4) {
+                r.bounding_polygon = clipped;
+                clippedCount++;
+              } else {
+                console.warn(
+                  `[hard-clip] ${lotName}/${r.name_raw}: clip destructif (résidu ${(residualRatio * 100).toFixed(0)}%), conservation de l'original`,
+                );
+                preservedCount++;
+              }
+            }
+            console.log(
+              `[hard-clip] ${lotName}: ${clippedCount} pièces clippées au building_outline, ${preservedCount} préservées (clip destructif).`,
+            );
+          } else {
+            console.log(
+              `[hard-clip] ${lotName}: pas de building_outline disponible, clipping skipped.`,
+            );
           }
         }
 
