@@ -166,6 +166,18 @@ async function runPlan(planFile: string): Promise<PlanResult> {
           _source: r,
         }));
 
+      // Dump raw polygons for offline diagnosis
+      const dumpPath = path.resolve(__dirname, `../debug-polygons-${planFile.replace(/[^a-z0-9]/gi, "_")}.json`);
+      await fs.writeFile(dumpPath, JSON.stringify({
+        lotPolygon,
+        rooms: resolverInput.map((r) => ({
+          id: r.id,
+          name: r._source.name_raw,
+          surface_m2: r.surface_m2,
+          bounding_polygon: r.bounding_polygon,
+        })),
+      }, null, 2));
+
       const { resolved, dropped } = resolveRoomOverlaps(resolverInput, lotPolygon);
 
       const resolvedRooms = resolved

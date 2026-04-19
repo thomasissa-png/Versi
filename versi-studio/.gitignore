@@ -44,3 +44,6 @@ audit-screenshots/
 # scripts console logs (runtime artifacts)
 scripts/*.console.log
 scripts/*-debug*.log
+
+# reality-check debug dumps (s23)
+debug-polygons-*.json

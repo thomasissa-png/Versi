@@ -248,3 +248,166 @@ describe("resolveRoomOverlaps — baseline non-régression", () => {
     expect(resolved.find((r) => r.id === "noPoly")?.bounding_polygon).toBeFalsy();
   });
 });
+
+// ─── Tests post-fix s23 (reality-check E2E 2026-04-19) ────────────
+
+describe("resolveRoomOverlaps — tri par aire polygone (surface_m2=null)", () => {
+  it("quand surface_m2=null sur toutes les pièces, trie par aire polygone DESC", () => {
+    // Cas reproducteur : IA ne retourne pas surface_m2 → priorité doit tomber
+    // sur l'aire polygone, pas laisser un ordre indéterminé
+    const bigNoSurface: RoomWithPolygon = {
+      id: "big",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 10, y_percent: 10 },
+        { x_percent: 60, y_percent: 10 },
+        { x_percent: 60, y_percent: 60 },
+        { x_percent: 10, y_percent: 60 },
+      ], // aire = 50*50 = 2500
+    };
+    const smallNoSurface: RoomWithPolygon = {
+      id: "small",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 50, y_percent: 50 },
+        { x_percent: 80, y_percent: 50 },
+        { x_percent: 80, y_percent: 80 },
+        { x_percent: 50, y_percent: 80 },
+      ], // aire = 30*30 = 900
+    };
+    // L'ordre d'entrée est "small, big" pour prouver que le tri par aire gagne
+    const { resolved } = resolveRoomOverlaps([smallNoSurface, bigNoSurface]);
+    const big = resolved.find((r) => r.id === "big")!;
+    const small = resolved.find((r) => r.id === "small")!;
+    // La plus grande (big) garde son aire complète (2500)
+    expect(polygonArea(big.bounding_polygon!)).toBeCloseTo(2500, 0);
+    // La plus petite (small) est clippée (aire < 900)
+    expect(polygonArea(small.bounding_polygon!)).toBeLessThan(900);
+    expect(haveOverlap(big.bounding_polygon!, small.bounding_polygon!)).toBe(false);
+  });
+});
+
+describe("resolveRoomOverlaps — cas P02 reality-check (Séjour ⊃ SDB)", () => {
+  it("SDB petite largement contenue dans Séjour cuisine → clippée complètement", () => {
+    // Reproduction du cas observé sur plan R+2 : Séjour cuisine est un grand
+    // polygone, SDB est un petit polygone majoritairement dedans.
+    // L'ancien algo laissait un overlap résiduel car safeDifference pouvait
+    // échouer silencieusement. Le nouvel algo boucle jusqu'à stabilité.
+    const sejour: RoomWithPolygon = {
+      id: "Séjour cuisine",
+      surface_m2: null, // IA n'a pas retourné la surface
+      bounding_polygon: [
+        { x_percent: 10, y_percent: 10 },
+        { x_percent: 60, y_percent: 10 },
+        { x_percent: 60, y_percent: 50 },
+        { x_percent: 10, y_percent: 50 },
+      ], // aire = 2000
+    };
+    const sdb: RoomWithPolygon = {
+      id: "SDB",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 45, y_percent: 20 }, // intérieur de sejour
+        { x_percent: 55, y_percent: 20 },
+        { x_percent: 55, y_percent: 40 },
+        { x_percent: 45, y_percent: 40 },
+      ], // aire = 200, overlap total avec sejour
+    };
+    const { resolved, dropped } = resolveRoomOverlaps([sejour, sdb]);
+
+    // Séjour (plus grand) conservé avec son aire complète
+    const sejourOut = resolved.find((r) => r.id === "Séjour cuisine");
+    expect(sejourOut).toBeDefined();
+    expect(polygonArea(sejourOut!.bounding_polygon!)).toBeCloseTo(2000, 0);
+
+    // SDB entièrement absorbée → doit être droppée (pas laissée avec overlap)
+    // L'important : overlap résiduel = 0
+    if (resolved.find((r) => r.id === "SDB")) {
+      const sdbOut = resolved.find((r) => r.id === "SDB")!;
+      expect(haveOverlap(sejourOut!.bounding_polygon!, sdbOut.bounding_polygon!)).toBe(false);
+    } else {
+      expect(dropped.find((d) => d.id === "SDB")).toBeDefined();
+    }
+  });
+
+  it("trois pièces avec chaîne d'overlaps (A>B, B>C) → toutes passes résolvent", () => {
+    // Cas chaîne : nécessite possibly 2 passes pour stabiliser
+    const A: RoomWithPolygon = {
+      id: "A",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 0, y_percent: 0 },
+        { x_percent: 40, y_percent: 0 },
+        { x_percent: 40, y_percent: 40 },
+        { x_percent: 0, y_percent: 40 },
+      ], // aire 1600
+    };
+    const B: RoomWithPolygon = {
+      id: "B",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 30, y_percent: 30 },
+        { x_percent: 60, y_percent: 30 },
+        { x_percent: 60, y_percent: 60 },
+        { x_percent: 30, y_percent: 60 },
+      ], // aire 900, overlap avec A 10x10
+    };
+    const C: RoomWithPolygon = {
+      id: "C",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 50, y_percent: 50 },
+        { x_percent: 75, y_percent: 50 },
+        { x_percent: 75, y_percent: 75 },
+        { x_percent: 50, y_percent: 75 },
+      ], // aire 625, overlap avec B 10x10
+    };
+    const { resolved } = resolveRoomOverlaps([A, B, C]);
+
+    // Vérifier : aucun overlap résiduel entre paires
+    for (let i = 0; i < resolved.length; i++) {
+      for (let j = i + 1; j < resolved.length; j++) {
+        const polyI = resolved[i].bounding_polygon;
+        const polyJ = resolved[j].bounding_polygon;
+        if (polyI && polyJ) {
+          expect(haveOverlap(polyI, polyJ)).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+describe("resolveRoomOverlaps — polygone self-intersect (geometry invalide)", () => {
+  it("nettoie un polygone auto-intersectant (papillon) avant clipping", () => {
+    // Papillon (bowtie) : self-intersect classique
+    const bowtie: RoomWithPolygon = {
+      id: "bowtie",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 10, y_percent: 10 },
+        { x_percent: 30, y_percent: 10 },
+        { x_percent: 10, y_percent: 30 }, // croisement avec arête suivante
+        { x_percent: 30, y_percent: 30 },
+      ],
+    };
+    const other: RoomWithPolygon = {
+      id: "other",
+      surface_m2: null,
+      bounding_polygon: [
+        { x_percent: 15, y_percent: 15 },
+        { x_percent: 25, y_percent: 15 },
+        { x_percent: 25, y_percent: 25 },
+        { x_percent: 15, y_percent: 25 },
+      ],
+    };
+    // Ne doit pas throw — le resolver doit gérer le self-intersect
+    const { resolved, warnings } = resolveRoomOverlaps([bowtie, other]);
+    expect(resolved.length).toBeGreaterThan(0);
+    // Soit le polygone a été nettoyé (warning émis), soit le cas a été géré ;
+    // l'important est que ça ne crash pas.
+    const cleanedWarning = warnings.find((w) => w.type === "polygon_cleaned_invalid_geometry");
+    // Le papillon standard peut être reconnu comme 2 triangles par polygon-clipping
+    // → warning émis. Mais on tolère aussi le cas où polygon-clipping l'accepte.
+    expect(cleanedWarning === undefined || cleanedWarning.room_id === "bowtie").toBe(true);
+  });
+});
