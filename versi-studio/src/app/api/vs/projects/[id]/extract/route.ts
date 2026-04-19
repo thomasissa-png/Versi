@@ -17,6 +17,7 @@ import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile } from "fs/promises";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
+import { resolveRoomOverlaps, type RoomWithPolygon } from "@/lib/vs/polygon-resolver";
 import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
 import OpenAI from "openai";
 import sharp from "sharp";
@@ -267,6 +268,48 @@ export async function POST(
 
         // Calculer la zone englobante
         const zoneData = computeEnvelopeBbox(group.rooms);
+
+        // ─── s23 Bug 1 — Post-process non-overlap pièces du lot ─────
+        // Greedy pairwise clipping : résout les superpositions générées par
+        // l'IA (prompt NO-OVERLAP pas toujours respecté sur plans denses).
+        // Contrainte de contenance : chaque pièce reste dans la bbox du lot.
+        // Toutes les coords sont en % plan-global ici (avant conversion lot-local).
+        const lotContainmentPolygon = [
+          { x_percent: zoneData.x_percent, y_percent: zoneData.y_percent },
+          { x_percent: zoneData.x_percent + zoneData.width_percent, y_percent: zoneData.y_percent },
+          { x_percent: zoneData.x_percent + zoneData.width_percent, y_percent: zoneData.y_percent + zoneData.height_percent },
+          { x_percent: zoneData.x_percent, y_percent: zoneData.y_percent + zoneData.height_percent },
+        ];
+        const roomsForResolver: RoomWithPolygon[] = group.rooms.map((r, idx) => ({
+          id: r.name_raw || `room_${idx}`,
+          bounding_polygon: r.bounding_polygon ?? null,
+          surface_m2: r.surface_m2,
+        }));
+        const resolverResult = resolveRoomOverlaps(roomsForResolver, lotContainmentPolygon);
+        // Réappliquer les polygones résolus sur group.rooms par matching d'index/nom
+        const resolvedById = new Map<string, RoomWithPolygon>();
+        for (const resolved of resolverResult.resolved) {
+          resolvedById.set(resolved.id, resolved);
+        }
+        for (let idx = 0; idx < group.rooms.length; idx++) {
+          const r = group.rooms[idx];
+          const rid = r.name_raw || `room_${idx}`;
+          const resolved = resolvedById.get(rid);
+          if (resolved && resolved.bounding_polygon) {
+            r.bounding_polygon = resolved.bounding_polygon;
+          } else if (resolverResult.dropped.some((d) => d.id === rid)) {
+            // Pièce droppée : conserver polygone original + log warning (pas de suppression destructive)
+            console.warn(
+              `[non-overlap] ${rid}: polygone résiduel trop faible, conservation du polygone original`
+            );
+          }
+        }
+        if (resolverResult.warnings.length > 0) {
+          console.log(
+            `[non-overlap] ${lotName}: ${resolverResult.warnings.length} warnings`,
+            resolverResult.warnings.map((w) => `${w.room_id}:${w.type}`).join(", ")
+          );
+        }
 
         // Calculer la surface totale estimée
         const surfaceM2 = group.rooms.reduce(
