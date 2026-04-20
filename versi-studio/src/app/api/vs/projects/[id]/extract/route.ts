@@ -47,6 +47,12 @@ import {
 } from "@/lib/vs/clustering";
 import { track } from "@/lib/vs/analytics";
 
+// s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
+// passe-2 + OCR + passe-3 × N plans). Sans cela : coupure réseau ~60-100s
+// côté Replit/Vercel → client catch "Impossible de lancer l'analyse".
+// Empirique : 1 plan = 51s passe-1+passe-2 seules, 4 plans = 200s+.
+export const maxDuration = 300;
+
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     str
@@ -124,8 +130,12 @@ export async function POST(
     // s23 snap-to-label — Labels OCR Tesseract par plan (OCR 1 fois/plan)
     const planIdToOcrLabels = new Map<string, OcrLabel[]>();
 
-    // Extraire chaque plan
-    for (const plan of plansResult.rows) {
+    // s24 — Paralléliser l'extraction des plans (Promise.all).
+    // Gain empirique : 4 plans × 51s séquentiel = 204s → max 51s en parallèle.
+    // Évite le timeout reverse-proxy Replit/Vercel (~60-100s).
+    // Les Map (planIdToImageBuffer, planIdToOcrLabels, etc.) sont accédées
+    // par clé unique (plan.id) → thread-safe côté JS.
+    await Promise.all(plansResult.rows.map(async (plan) => {
       try {
         // Lire le fichier
         const fileBuffer = await readFile(plan.file_path);
@@ -260,7 +270,7 @@ export async function POST(
           [plan.id]
         );
       }
-    }
+    }));
 
     // ─── Map floor → plan_id (pour associer rooms → plan) ─────────
     const floorToPlanId = new Map<number, string>();
