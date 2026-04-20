@@ -28,6 +28,12 @@ import {
   applyCorrections,
   type RoomForVerify,
 } from "@/lib/vs/visual-verifier";
+import {
+  detectLabels,
+  snapRoomsToLabels,
+  type OcrLabel,
+  type RoomForSnap,
+} from "@/lib/vs/label-snap";
 import type { PlanExtractionResult, ExtractedRoom } from "@/lib/vs/schemas";
 import OpenAI from "openai";
 import sharp from "sharp";
@@ -115,6 +121,9 @@ export async function POST(
     // EXTERIOR-EXCLUSION (empêche les pièces de déborder sur la terrasse).
     const planIdToBuildingPolygon = new Map<string, ResolverPoint[]>();
 
+    // s23 snap-to-label — Labels OCR Tesseract par plan (OCR 1 fois/plan)
+    const planIdToOcrLabels = new Map<string, OcrLabel[]>();
+
     // Extraire chaque plan
     for (const plan of plansResult.rows) {
       try {
@@ -171,6 +180,28 @@ export async function POST(
 
             // s23 — memoriser pour passe-3 (verif visuelle apres resolver)
             planIdToImageBuffer.set(plan.id, imageBuffer);
+
+            // s23 snap-to-label — OCR Tesseract pour détecter les labels imprimés
+            // sur le plan ("SdB", "Chambre", "Séjour / cuisine", etc.). Utilisés
+            // après passe-3 + hard-clip pour snapper les polygones sur la vraie
+            // position des labels (drift ~10% GPT-4.1 vision non-fixable par prompt).
+            const SNAP_LABELS_ENABLED = process.env.VS_SNAP_LABELS !== "false";
+            if (SNAP_LABELS_ENABLED) {
+              try {
+                const tOcr = Date.now();
+                const labels = await detectLabels(imageBuffer, imgW, imgH);
+                planIdToOcrLabels.set(plan.id, labels);
+                console.log(
+                  `[snap-ocr] plan ${plan.id}: ${labels.length} labels détectés en ${((Date.now() - tOcr) / 1000).toFixed(1)}s`,
+                );
+              } catch (ocrErr) {
+                console.error(
+                  `[snap-ocr] plan ${plan.id} échec OCR:`,
+                  ocrErr instanceof Error ? ocrErr.message : ocrErr,
+                );
+                // Continuer sans snap pour ce plan
+              }
+            }
 
             const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -345,6 +376,49 @@ export async function POST(
           );
         }
 
+        // ─── s23 snap-to-label EARLY (avant passe-3) ───
+        // Pré-corrige la position des polygones via les labels OCR imprimés
+        // sur le plan. Les rooms snappées sont LOCKÉES : la passe-3 ne les
+        // corrigera plus (source label OCR plus fiable que GPT vision pour
+        // la position — drift ~10% systémique GPT-4.1 non fixable par prompt).
+        const lockedByEarlySnap = new Set<string>();
+        {
+          const planIdForEarlySnap = floorToPlanId.get(group.floor);
+          const ocrLabelsEarly = planIdForEarlySnap
+            ? planIdToOcrLabels.get(planIdForEarlySnap)
+            : null;
+          if (ocrLabelsEarly && ocrLabelsEarly.length > 0) {
+            const roomsForSnap: RoomForSnap[] = group.rooms.map((r, idx) => ({
+              id: r.temp_id || r.name_raw || `room_${idx}`,
+              name_raw: r.name_raw,
+              bounding_polygon: r.bounding_polygon ?? null,
+            }));
+            const snapEarlyResult = snapRoomsToLabels(roomsForSnap, ocrLabelsEarly, {
+              maxSnapDistancePct: 20,
+            });
+            if (snapEarlyResult.matches.length > 0) {
+              const snapMap = new Map(
+                snapEarlyResult.snapped.map((s) => [s.id, s]),
+              );
+              for (let idx = 0; idx < group.rooms.length; idx++) {
+                const r = group.rooms[idx];
+                const id = r.temp_id || r.name_raw || `room_${idx}`;
+                const s = snapMap.get(id);
+                if (s && s.bounding_polygon) r.bounding_polygon = s.bounding_polygon;
+              }
+              for (const m of snapEarlyResult.matches) {
+                lockedByEarlySnap.add(m.room_id);
+              }
+              const avgDrift =
+                snapEarlyResult.matches.reduce((acc, m) => acc + m.drift_before, 0) /
+                snapEarlyResult.matches.length;
+              console.log(
+                `[snap-early] ${lotName}: ${snapEarlyResult.matches.length}/${group.rooms.length} pièces snappées+lockées (drift moyen avant snap ${avgDrift.toFixed(1)}%)`,
+              );
+            }
+          }
+        }
+
         // ─── s23 Passe-3 — Vérification visuelle par overlay ─────────
         // Envoie plan + polygones colorés à GPT-4.1 vision pour détecter
         // les pièces mal positionnées (drift > 1 m). Applique corrections
@@ -405,18 +479,30 @@ export async function POST(
                 // Réappliquer les polygones corrigés sur group.rooms par id stable
                 const correctedById = new Map<string, RoomForVerify>();
                 for (const c of corrected) correctedById.set(c.id, c);
+                let blockedByEarlyLock = 0;
                 for (let idx = 0; idx < group.rooms.length; idx++) {
                   const r = group.rooms[idx];
                   const rid = r.temp_id || `room_${idx}`;
+                  const lockId = r.temp_id || r.name_raw || `room_${idx}`;
                   const c = correctedById.get(rid);
                   if (!c) continue;
                   // Appliquer uniquement si on a une correction effective
                   const wasCorrected = verifyResult.corrections.some(
                     (cc) => cc.room_id === rid,
                   );
-                  if (wasCorrected) {
-                    r.bounding_polygon = c.polygon;
+                  if (!wasCorrected) continue;
+                  // s23 snap-to-label : skip passe-3 si la room a été lockée
+                  // par snap-early (label OCR plus fiable que GPT vision).
+                  if (lockedByEarlySnap.has(lockId)) {
+                    blockedByEarlyLock++;
+                    continue;
                   }
+                  r.bounding_polygon = c.polygon;
+                }
+                if (blockedByEarlyLock > 0) {
+                  console.log(
+                    `[passe-3] ${lotName}: ${blockedByEarlyLock} correction(s) bloquée(s) car rooms lockées par snap-early (OCR plus fiable)`,
+                  );
                 }
               } else {
                 console.log(`[passe-3] ${lotName}: aucune correction nécessaire (${verifyResult.globalAssessment.slice(0, 100)})`);
@@ -471,6 +557,71 @@ export async function POST(
             console.log(
               `[hard-clip] ${lotName}: pas de building_outline disponible, clipping skipped.`,
             );
+          }
+        }
+
+        // ─── s23 snap-to-label ────────────────────────────────────
+        // Translate chaque polygone room pour que son centroid = position du
+        // label OCR correspondant sur le plan. Fix le drift positionnel ~10%
+        // systémique de GPT-4.1 vision (non-corrigeable par prompt seul, validé
+        // empiriquement 5 itérations).
+        //
+        // Conditions :
+        // - labels OCR dispo pour le plan du lot (planIdToOcrLabels)
+        // - au moins 1 room avec polygone
+        //
+        // Post-snap : re-clip building_outline (le snap peut faire sortir la
+        // room du bâti). MaxSnap = 20% : au-delà, label probablement faux positif.
+        {
+          const planIdForSnap = floorToPlanId.get(group.floor);
+          const ocrLabels = planIdForSnap
+            ? planIdToOcrLabels.get(planIdForSnap)
+            : null;
+          if (ocrLabels && ocrLabels.length > 0) {
+            const roomsForSnap: RoomForSnap[] = group.rooms.map((r, idx) => ({
+              id: r.temp_id || r.name_raw || `room_${idx}`,
+              name_raw: r.name_raw,
+              bounding_polygon: r.bounding_polygon ?? null,
+            }));
+            const snapResult = snapRoomsToLabels(roomsForSnap, ocrLabels, {
+              maxSnapDistancePct: 20,
+            });
+            if (snapResult.matches.length > 0) {
+              const snapById = new Map(
+                snapResult.snapped.map((s) => [s.id, s]),
+              );
+              for (let idx = 0; idx < group.rooms.length; idx++) {
+                const r = group.rooms[idx];
+                const id = r.temp_id || r.name_raw || `room_${idx}`;
+                const s = snapById.get(id);
+                if (s && s.bounding_polygon) r.bounding_polygon = s.bounding_polygon;
+              }
+              const avgDrift =
+                snapResult.matches.reduce((acc, m) => acc + m.drift_before, 0) /
+                snapResult.matches.length;
+              console.log(
+                `[snap-label] ${lotName}: ${snapResult.matches.length}/${group.rooms.length} pièces snappées (drift moyen avant snap ${avgDrift.toFixed(1)}%)`,
+              );
+              // Re-clip building_outline post-snap (peut déborder)
+              const buildingPolyForSnap = planIdForSnap
+                ? planIdToBuildingPolygon.get(planIdForSnap)
+                : null;
+              if (buildingPolyForSnap && buildingPolyForSnap.length >= 4) {
+                for (const r of group.rooms) {
+                  if (!r.bounding_polygon || r.bounding_polygon.length < 4) continue;
+                  const { polygon: clipped } = clipPolygonToBoundary(
+                    r.bounding_polygon,
+                    buildingPolyForSnap,
+                    0.5,
+                  );
+                  if (clipped && clipped.length >= 4) r.bounding_polygon = clipped;
+                }
+              }
+            } else {
+              console.log(
+                `[snap-label] ${lotName}: 0 pièce snappée (aucun match OCR↔room_name, ou drift > maxSnapDistance)`,
+              );
+            }
           }
         }
 

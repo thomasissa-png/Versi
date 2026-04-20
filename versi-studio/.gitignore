@@ -47,3 +47,6 @@ scripts/*-debug*.log
 
 # reality-check debug dumps (s23)
 debug-polygons-*.json
+
+# tesseract.js — downloaded OCR language models (~1 MB each)
+*.traineddata
