@@ -883,6 +883,14 @@ L'orchestrator subagent prétend parfois ne pas avoir Task disponible alors qu'i
 
 Quand un autre projet a des agents matures sur un domaine précis (ex : Versimo a 38+ sessions de maturité sur prompts image), **les importer plutôt que recréer**. Documenter le workflow d'usage dans CLAUDE.md (section "Workflow d'audit visuel des générations"). Cas concret versi-s22 : import de 3 agents (`@interior-architect` Yann, `@ai-image-expert` Lucas, `@paysagiste` Camille) depuis `thomasissa-png/Architecture` pour l'audit visuel Versi Studio. Workflow obligatoire : pré-fetch parent (logs JSON + images) → passage chemins locaux → agent lit via Read (pas WebFetch). Max 6 générations par audit, sinon timeout garanti.
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Pas de clôture prématurée — seuil Task <90%
+Ne JAMAIS proposer la clôture de session tant que Thomas ne l'a pas explicitement demandée OU que le budget Task n'est pas ROUGE (>90%, soit >16 Task). Source s23 : "Arrête de me proposer de clôturer une session à 50% de tasks consommées". En-dessous du seuil : continuer. Checklist brief initial : tant que des priorités du brief ne sont pas traitées, session ouverte.
+
+### "Fail fast, ask early" — 2 tentatives puis question
+Après 2 tentatives échouées sur le même bug (diagnostic erroné, fix qui régresse), poser max 3 questions précises à Thomas au lieu de spéculer. Source s23 : "ça fait 6 fois je remonte ce même souci". Anti-pattern : itérer 6x sur des hypothèses vs demander clarification après 2 échecs.
+
 ## Handoff
 
 Terminer chaque livrable par ce bloc exact :

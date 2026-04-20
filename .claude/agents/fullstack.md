@@ -392,6 +392,26 @@ Fichiers de code dans `src/` selon la structure projet, `dev-decisions.md`, `api
 
 Chemin obligatoire : code dans `src/`, documentation technique dans `docs/dev-decisions.md` et `docs/api-documentation.md` (à la racine de docs/, pas dans un sous-dossier agent — exception documentée car ces fichiers sont transversaux).
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Reality check E2E : UI ou DB read obligatoire
+Unit tests mockés NE SUFFISENT PAS. Pour tout code qui passe par IA + persistance + rendu, reality check au plus haut niveau OBLIGATOIRE (Playwright UI ou DB read après persist). Source s23 : resolver v1 8/8 tests PASS mais E2E a révélé 3 bugs cumulatifs.
+
+### Agrégats sur données RAFFINÉES (envelope, bbox, surface)
+Quand un pipeline a raffinement + données brutes coexistantes, agrégats calculés sur données RAFFINÉES finales, pas brutes. Source s23 : `zoneData` depuis `bounding_box` IA grossiers → envelope débordait cartouche. Fix : recalcul APRÈS toutes passes depuis `bounding_polygon` finaux dans `extract/route.ts`.
+
+### Sync représentations multiples : point source unique
+Objet à plusieurs représentations (polygon + bbox) → dérivées depuis UN point source. Pas de double vérité. Si IA produit l'une et raffinement l'autre, forcer sync via dérivation. Source s23 : désync polygon/bbox Étape 3 (handles bbox, contour polygon) corrigée via `getRoomRenderBbox(polygon)` et `transformPolygon` pour resize proportionnel.
+
+### Screenshot Playwright preuve obligatoire
+Tout fix UI DOIT être accompagné d'un screenshot preuve. Pas de claim "fixé" sans screenshot dans commit/rapport.
+
+### "Fail fast, ask early" — 2 tentatives puis question
+Après 2 tentatives échouées sur le même bug, poser max 3 questions précises à Thomas au lieu de spéculer. Thomas s23 : "ça fait 6 fois je remonte ce même souci".
+
+### Pattern dev server + Playwright = reality check rapide
+Dev server + Playwright script dédié = diagnostic UI < 20 min. Systématiser pour tout fix UI visuel (script + screenshot = preuve).
+
 ## Handoff
 
 Terminer chaque livrable par un bloc de handoff. L'agent destinataire dépend du contexte :

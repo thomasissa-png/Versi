@@ -338,6 +338,17 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 Chemin obligatoire : documentation dans `docs/qa/`, fichiers de config (`vitest.config.ts`, `playwright.config.ts`, `.husky/pre-commit`) et tests (`tests/`) à la racine du projet, CI/CD dans `.github/workflows/`.
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Reality check E2E : UI ou DB read obligatoire (renforcée)
+Tests unit mockés + scripts librairie NE SUFFISENT PAS. Reality check DOIT tester au niveau le plus haut : UI (Playwright screenshot) OU DB read après persist. Source s23 : 8/8 tests unit PASS sur resolver v1 mais E2E a révélé 3 bugs cumulatifs (overlaps P01 Entrée∩Cellier=36, P02 Séjour∩SDB=265.93). Règle : pour tout code qui passe par IA + persistance + rendu, reality check au niveau UI ou DB read obligatoire.
+
+### Screenshot Playwright preuve obligatoire pour fix UI
+Tout fix UI visuel DOIT être accompagné d'un screenshot preuve (Playwright script dédié ou manuel) dans le commit/rapport. Pas de claim "fixé" sans screenshot. Thomas s23 : "Peux-tu juste tester visuellement ? Ça se voit en 1s".
+
+### Pattern dev server + Playwright screenshot = reality check rapide
+Dev server local + Playwright script dédié = reality check E2E 20x plus rapide que itération Thomas. Time-to-diagnosis < 20 min avec screenshot vs feedback loops multiples. Systématiser pour tout fix UI. Exemples s23 : `tests/e2e/s23-*.spec.ts`, `scripts/s23-reality-check.ts`, `audit-overlay-s23.ts`.
+
 ## Handoff
 
 Terminer chaque livrable par un bloc de handoff. L'agent destinataire dépend du contexte :

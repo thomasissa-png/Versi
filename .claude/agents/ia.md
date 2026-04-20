@@ -307,6 +307,26 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 Chemin obligatoire : documentation dans `docs/ia/`, code d'intégration dans `src/lib/ai/`. Tout doc hors de `docs/ia/` sera rejeté par @reviewer.
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Agrégats sur données RAFFINÉES
+Quand pipeline IA a raffinement + données brutes coexistantes, agrégats (envelope, surface, bbox englobant) calculés sur données RAFFINÉES finales. Source s23 : `zoneData` depuis `bounding_box` grossiers → débord cartouche ; fix = recalcul depuis `bounding_polygon` finaux.
+
+### Sync représentations multiples — point source unique
+Objet à plusieurs représentations (polygon + bbox IA) → dérivées depuis UN point source. Si raffinement après IA, forcer sync. Source s23 : désync polygon/bbox Étape 3 résolue via `bbox = tight(polygon)`.
+
+### Drift IA vision systémique — envisager post-processing code-level
+Quand modèle vision produit biais systémique insensible aux prompts (5 itérations testées), explorer post-processing AVANT de changer de modèle. Source s23 : GPT-4.1 drift ~10% y plafond prompt-only 7/10. Solution code-level (Tesseract OCR + fuzzy match Levenshtein + snap centroid polygon) = 9.35/10 pic.
+
+### Pattern snap-to-label OCR (réutilisable plans annotés)
+Post-process OCR local (Tesseract gratuit) + fuzzy match (Levenshtein+accent-strip) + snap géométrique. Robuste pour corriger drift IA vision sur plans/cartes/schémas annotés. Feature flag obligatoire (`VS_SNAP_LABELS`). Source s23 : `label-snap.ts` 363L + 18 tests, P00 6.03→9.35/10.
+
+### 10/10 objectif strict — technique adjacente si plafond
+Si itération sur une technique plafonne (prompt-only), explorer technique adjacente : prompt → post-process → modèle alternatif → dataset. Jamais "c'est déjà bien".
+
+### Passe vérification IA : preserve-complexity (N in → N out)
+Sortie vérifieur IA DOIT être au moins aussi riche que l'entrée (N vertices, N polygones, N confidence). Si dégradation détectée → rejeter correction. Source s23 : passe-3 visual-verifier dégradait parfois polygones raffinés (6-8 pts → 4 pts). Règles R9/R10/R11 preserve-complexity ajoutées + seuil confidence 0.8→0.6.
+
 ## Handoff
 
 Terminer chaque livrable par un bloc de handoff. L'agent destinataire dépend du contexte :

@@ -188,3 +188,29 @@ Quand Thomas demande "je ne vois pas la feature X", vérifier la **DÉCOUVRABILI
 ### @ia : briefs > 2000 mots = timeout quasi-garanti
 
 Briefs trop ambitieux pour @ia (> 2000 mots) provoquent timeout systématique (55 tool uses / 10 min sans implémentation, juste analyse). Découper en sous-phases mesurables (analyse puis implémentation) OU fournir code quasi-complet (pattern typist). Source : versi-s22 — pattern reproductible sur briefs ambitieux.
+
+## Règles complémentaires (s23)
+
+### Reality check E2E : UI ou DB read obligatoire (renforcée)
+Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT tester au niveau le plus haut : UI (Playwright screenshot) OU DB read après persist. Source s23 : 8/8 tests unit PASS sur resolver v1 mais E2E a révélé 3 bugs cumulatifs (overlaps P01 Entrée∩Cellier=36, P02 Séjour∩SDB=265.93). Tout fix UI visuel DOIT être accompagné d'un screenshot preuve dans commit/rapport.
+
+### Agrégats calculés sur données RAFFINÉES (jamais brutes)
+Quand un pipeline a raffinement + données brutes coexistantes, les agrégats (envelope, surface, bbox englobant) DOIVENT être calculés sur les données RAFFINÉES finales, pas brutes. Source s23 : `zoneData` calculé depuis `bounding_box` IA grossiers → envelope débordait cartouche. Fix : recalcul APRÈS toutes passes depuis `bounding_polygon` finaux.
+
+### Sync représentations multiples : point source unique
+Quand un objet a plusieurs représentations (polygon + bbox), elles DOIVENT être dérivées l'une de l'autre depuis UN seul point source. Pas de double vérité. Si IA produit l'une et raffinement l'autre, forcer la sync via dérivation. Source s23 : désync Étape 3 (handles sur bbox IA, contour sur polygon raffiné → 18% drift).
+
+### Pas de clôture prématurée — seuil Task <90%
+N'évoquer la clôture QUE quand Thomas le demande OU budget Task ROUGE (>90%). En dessous, continuer. Source s23 : "Arrête de me proposer de clôturer une session à 50% de tasks consommées, c'est pas ok".
+
+### Mot pivot métier UI — jargon substitué interdit
+Pour chaque texte UI, test "persona en 2s". Brief copywriter INTERDIT substitution jargon par autre jargon du même domaine ("polygone" → "contour libre" rejeté). Mot pivot métier obligatoire dans glossaire. Source s23 : "Dessiner un lot" retenu (mot pivot = **lot**).
+
+### "Fail fast, ask early" — 2 tentatives puis question
+Après 2 tentatives échouées sur le même bug, l'agent DOIT poser max 3 questions précises à Thomas plutôt que spéculer. Source s23 : "ça fait 6 fois je remonte ce même souci".
+
+### 10/10 objectif strict — technique adjacente si plafond
+10/10 = objectif absolu. Si itération sur une technique plafonne (ex : prompt-only 7/10), explorer technique adjacente (prompt → post-process → modèle alternatif → dataset). Source s23 : snap-to-label OCR post-process 6.03→9.35/10.
+
+### Ressources réelles fournies = reality check immédiat
+Quand Thomas donne accès à une ressource (clé API, fichier PDF, env), l'UTILISER IMMÉDIATEMENT pour reality check — pas spéculer ni continuer sur hypothèses. Source s23 : "Je t'ai donné un plan et une clé pour tester. TU aurais dû voir le résultat dans le test".

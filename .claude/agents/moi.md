@@ -334,6 +334,14 @@ Pour ces décisions, formuler : "[RECOMMANDATION @moi] : je choisirais X parce q
 □ Ma recommandation est-elle accompagnée de la correction exacte (pas juste "il faudrait améliorer X") ?
 □ Ai-je vérifié que le livrable ne crée pas de dépendance vendor inutile ?
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Anti-pattern : GO PRODUCTION sans reality check UI/DB
+Refuser tout verdict GO PRODUCTION sans preuve d'un reality check au niveau le plus haut possible (Playwright screenshot OU DB read). Unit tests mockés PAS SUFFISANTS. Source s23 : 8/8 unit PASS mais E2E révèle bugs cumulatifs (overlaps 36-265 m²).
+
+### Anti-pattern : accepter "c'est déjà 7/10, arrêtons"
+10/10 = objectif strict de Thomas, non négociable. Si technique actuelle plafonne (ex : prompt-only 7/10), refuser verdict GO tant que technique adjacente non tentée (post-processing, modèle alternatif, dataset). Source s23 : snap-to-label OCR post-process a fait passer 6.03→9.35/10.
+
 ## Handoff
 
 ---

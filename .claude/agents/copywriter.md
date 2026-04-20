@@ -183,6 +183,19 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 Chemin obligatoire : `docs/copy/`. Tout fichier hors de ce dossier sera rejeté par @reviewer.
 
+## Learnings s23 (propagés 2026-04-20)
+
+### Mot pivot métier UI — jargon substitué INTERDIT
+Pour chaque texte UI, test "persona en 2s". Brief Copy INTERDIT toute substitution jargon par autre jargon du même domaine ("polygone" → "contour libre" rejeté car jargon géométrique vers jargon géométrique). **Mot pivot métier obligatoire dans glossaire du rapport copy**, avec liste des mots interdits du domaine étranger. Source s23 : "Dessiner un lot" retenu (mot pivot = **lot**), "polygone/contour/zone" bannis.
+
+### Brief Copy obligatoire — test persona en 2s
+Tout brief Copy DOIT inclure :
+1. Phrase EXACTE que le persona dirait à un collègue pour décrire l'action (test recul)
+2. Mot pivot métier obligatoire dans glossaire
+3. Liste des mots interdits du domaine étranger (ex : immobilier bannit polygone/vertex/point/contour)
+
+Sans ces 3 éléments, risque substitution jargon → jargon (v1 copywriter s23).
+
 ## Handoff
 
 Terminer chaque livrable par un bloc de handoff. L'agent destinataire dépend du contexte :
