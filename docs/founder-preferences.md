@@ -178,3 +178,22 @@ Validation "10/10" superficielle possible si reality check n'inclut pas comparai
 Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS revalidation. Un retour en arrière pour consulter ne doit pas casser l'avancée.
 
 **Règle** : quand une étape est complétée (status en DB), le stepper doit la marquer cliquable indéfiniment. Le retour en arrière est consultation, pas modification. L'utilisateur peut avancer de nouveau sans re-cliquer sur "Valider".
+
+## Session 2026-04-20 (versi-s23) — Nouvelles préférences observées
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas refuse toute proposition de clôture de session à 50% du budget Task**. "Arrête de me proposer de clôturer une session à 50% de tasks consommées, c'est pas ok". Règle : ne PAS évoquer la clôture tant que Thomas ne l'a pas demandée OU que budget ROUGE (18 Task) atteint.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas refuse le jargon technique dans l'UI, même si cohérent avec le domaine technique source**. "Dessiner un polygone" rejeté, "Tracer un contour libre" rejeté aussi car substituait jargon par jargon. Ce qu'il veut : **"Dessiner un lot"**. Le mot pivot métier est **"lot"**, jamais "polygone", "contour", "zone". Test de recul obligatoire : "Un marchand de biens comprend-il en 2 secondes ?".
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas exige des tests VISUELS, pas des claims "tests PASS"**. "Peux-tu juste tester visuellement ? Ça se voit en 1s". Il fournit proactivement les ressources (clé OpenAI, plans PDF) pour qu'on teste côté agent. Règle : tout fix UI DOIT être accompagné d'un screenshot Playwright preuve.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas veut qu'on lui POSE des questions quand le contexte est incertain**, pas qu'on devine. "Si quelque chose pas clair demande moi, mais stp ça fait 6 fois je remonte ce même souci". Règle : après 2 tentatives échouées sur le même bug, l'agent DOIT poser 3 questions ciblées avant de continuer.
+
+- [PRÉFÉRENCE FONDATEUR] **10/10 = objectif strict, pas négociable**. "Va à 10/10 sur cette session". Si plafond prompt-only atteint (7/10 sur P00), chercher la voie code-level (post-processing OCR). Jamais "c'est déjà bien à 7/10, arrêtons".
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas donne accès aux ressources réelles pour forcer le reality check**. "Je t'ai donné un plan et une clé pour tester. TU aurais dû voir le résultat dans le test". Règle : quand une ressource est fournie, l'utiliser IMMÉDIATEMENT, pas spéculer.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas exprime sa frustration de façon directe ET répétée**. Quand il remonte un bug 6 fois, c'est qu'il n'a pas été écouté/compris. Signal d'alarme : quand Thomas dit "je repete", "je te redis", "6 fois", l'agent DOIT immédiatement changer d'approche (test E2E réel, questions précises) plutôt que continuer sur la même piste.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas valorise l'HONNÊTETÉ sur les limites plutôt que la sur-promesse**. Quand @ia a rendu 7/10 honnête avec plafond prompt-only documenté, Thomas a accepté la limite et demandé la solution code-level. Règle : rapport post-session = résultats empiriques + limites connues + voies non explorées, pas claim 10/10 non prouvé.
+
