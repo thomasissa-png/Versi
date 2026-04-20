@@ -474,6 +474,46 @@ export async function POST(
           }
         }
 
+        // ─── s23 Bug fondamental Étape 3 — Recalculer l'envelope du lot ─────
+        // `zoneData` était calculé ligne 304 depuis les bounding_box IA approximatifs
+        // (souvent plus larges que la vraie pièce). Les polygones ont ensuite été
+        // raffinés (passe-2), clippés (resolver non-overlap), vérifiés visuellement
+        // (passe-3) et hard-clippés au building_outline. Le zoneData initial ne
+        // reflète plus la réalité → lot trop grand vers le bas, Séjour drag bloqué
+        // au mauvais endroit à l'Étape 3. Fix : recalculer depuis les polygones finaux.
+        let finalMinX = 100, finalMinY = 100, finalMaxX = 0, finalMaxY = 0;
+        let hasAnyPolygon = false;
+        for (const r of group.rooms) {
+          const poly = r.bounding_polygon;
+          if (poly && poly.length >= 3) {
+            hasAnyPolygon = true;
+            for (const p of poly) {
+              if (p.x_percent < finalMinX) finalMinX = p.x_percent;
+              if (p.y_percent < finalMinY) finalMinY = p.y_percent;
+              if (p.x_percent > finalMaxX) finalMaxX = p.x_percent;
+              if (p.y_percent > finalMaxY) finalMaxY = p.y_percent;
+            }
+          } else if (r.bounding_box) {
+            const bb = r.bounding_box;
+            if (bb.x_percent < finalMinX) finalMinX = bb.x_percent;
+            if (bb.y_percent < finalMinY) finalMinY = bb.y_percent;
+            if (bb.x_percent + bb.width_percent > finalMaxX) finalMaxX = bb.x_percent + bb.width_percent;
+            if (bb.y_percent + bb.height_percent > finalMaxY) finalMaxY = bb.y_percent + bb.height_percent;
+          }
+        }
+        if (hasAnyPolygon && finalMaxX > finalMinX && finalMaxY > finalMinY) {
+          const oldZone = { ...zoneData };
+          zoneData.x_percent = Math.max(0, finalMinX);
+          zoneData.y_percent = Math.max(0, finalMinY);
+          zoneData.width_percent = Math.min(100, finalMaxX) - zoneData.x_percent;
+          zoneData.height_percent = Math.min(100, finalMaxY) - zoneData.y_percent;
+          console.log(
+            `[envelope-recompute] ${lotName}: zone recalculée depuis polygones finaux. ` +
+            `Avant: y=${oldZone.y_percent.toFixed(1)} h=${oldZone.height_percent.toFixed(1)} ` +
+            `Après: y=${zoneData.y_percent.toFixed(1)} h=${zoneData.height_percent.toFixed(1)}`
+          );
+        }
+
         // Calculer la surface totale estimée
         const surfaceM2 = group.rooms.reduce(
           (sum, r) => sum + (r.surface_m2 || 0),

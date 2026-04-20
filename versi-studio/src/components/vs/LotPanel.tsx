@@ -127,7 +127,7 @@ function LotCard({
     if (lot.surface_m2 != null) {
       return `${Number(lot.surface_m2).toFixed(0)} m² (estimation IA)`;
     }
-    return "Calibrez le plan pour afficher la surface";
+    return "Donnez l'échelle du plan pour afficher la surface";
   })();
 
   return (
