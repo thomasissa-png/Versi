@@ -350,7 +350,7 @@ export default function LotPanel({
               Aucun lot détecté
             </p>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Tracez les lots manuellement, puis validez.
+              Dessinez les lots manuellement, puis validez.
             </p>
           </div>
         )}
@@ -368,7 +368,7 @@ export default function LotPanel({
             {hasAiExtracted ? (
               <>
                 <p>Aucun lot détecté sur ce plan.</p>
-                <p className="mt-sm">Tracez-les manuellement avec le bouton ci-dessous.</p>
+                <p className="mt-sm">Dessinez-les manuellement avec le bouton ci-dessous.</p>
               </>
             ) : (
               <>
@@ -419,16 +419,16 @@ export default function LotPanel({
             aria-live="polite"
             className="rounded-md bg-[var(--color-interactive-primary)]/10 border border-[var(--color-interactive-primary)] px-md py-sm text-xs text-[var(--color-text-default)] flex flex-col gap-xs"
           >
-            <p className="font-medium">Tracé libre en cours</p>
+            <p className="font-medium">Dessin du lot en cours</p>
             <p className="text-[var(--color-text-muted)]">
-              Cliquez pour poser un point. Double-cliquez pour fermer le contour. Échap pour annuler.
+              Cliquez pour poser un point. Double-cliquez pour terminer le lot. Échap pour annuler.
             </p>
             <button
               type="button"
               onClick={onCancelDrawingPolygon}
               className="self-start mt-xs px-sm py-2xs rounded text-xs font-medium underline text-[var(--color-text-default)] hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[44px]"
             >
-              Annuler le tracé
+              Annuler
             </button>
           </div>
         )}
@@ -497,7 +497,7 @@ export default function LotPanel({
                 d="M5 4l7 5 7-5-3 9-4 7-4-7-3-9z"
               />
             </svg>
-            Tracer un contour libre
+            Dessiner un lot
           </button>
         )}
 

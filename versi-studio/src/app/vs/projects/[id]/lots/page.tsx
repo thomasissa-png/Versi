@@ -864,7 +864,7 @@ export default function LotsPage({
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-sm">
             Ajustez chaque lot par glisser-déposer. Zoomez à la molette pour naviguer.
-            Pour un lot en L ou avec des retraits, utilisez « Tracer un contour libre ».
+            Pour un lot en L ou avec des retraits, utilisez « Dessiner un lot ».
           </p>
         </div>
 
