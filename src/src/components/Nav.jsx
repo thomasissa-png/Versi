@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useScrollSpy } from '../hooks/useScrollSpy.js';
 import './Nav.css';
 
 const NAV_ITEMS = [
   { label: 'VISION', href: '#mission' },
   { label: 'ACTIVITÉS', href: '#activites' },
+  { label: 'APPROCHE', href: '#approche' },
   { label: 'ÉQUIPE', href: '#equipe' },
-  { label: 'IMPLANTATION', href: '#implantation' },
   { label: 'CONTACT', href: '#contact' },
 ];
 
 const SECTION_MAP = {
   '#mission': 'mission',
   '#activites': 'activites',
+  '#approche': 'approche',
   '#equipe': 'equipe',
-  '#implantation': 'implantation',
   '#contact': 'contact',
 };
 
@@ -24,12 +25,13 @@ export default function Nav() {
   const activeSection = useScrollSpy();
   const menuRef = useRef(null);
   const hamburgerRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHome = location.pathname === '/';
 
   useEffect(() => {
     const onScroll = () => {
-      const heroEl = document.getElementById('hero');
-      const threshold = heroEl ? heroEl.offsetHeight - 80 : 400;
-      setScrolled(window.scrollY >= threshold);
+      setScrolled(window.scrollY > 40);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -76,13 +78,18 @@ export default function Nav() {
   const handleNavClick = useCallback((e, href) => {
     e.preventDefault();
     setMenuOpen(false);
+
+    if (!isHome) {
+      navigate('/' + href);
+      return;
+    }
+
     const target = document.querySelector(href);
     if (target) {
       const offset = 80;
       const top = target.getBoundingClientRect().top + window.scrollY - offset;
       window.scrollTo({ top, behavior: 'smooth' });
 
-      // If clicking "NOUS CONTACTER" and target is #contact, focus first input
       if (href === '#contact') {
         setTimeout(() => {
           const firstInput = target.querySelector('input[name="nom"]');
@@ -90,7 +97,7 @@ export default function Nav() {
         }, 600);
       }
     }
-  }, []);
+  }, [isHome, navigate]);
 
   return (
     <nav className={`nav ${scrolled ? 'nav--scrolled' : ''}`} aria-label="Navigation principale">

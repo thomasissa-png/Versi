@@ -31,6 +31,7 @@
   --color-accent: #C8B9A6;
   --color-border: #D9D4CE;
   --color-border-input: rgba(255, 255, 255, 0.2);
+  --color-border-dark: rgba(255, 255, 255, 0.12);
   --color-border-focus: #C8B9A6;
   --color-error: #DC3545;
   --color-error-on-dark: #FF6B6B;
@@ -68,6 +69,22 @@
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.10);
   --shadow-nav: 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* --- Tailles typographiques sémantiques --- */
+  --font-size-small: 0.75rem;
+  --font-size-label: 0.8125rem;
+  --font-size-body-sm: 0.875rem;
+  --font-size-body-md: 1rem;
+  --font-size-body-lg: 1.125rem;
+  --font-size-display-num: 4rem;
+  --font-size-display-num-mobile: 3rem;
+  --font-size-caption: 0.75rem;
+
+  /* --- Opacités sémantiques --- */
+  --opacity-muted: 0.5;
+  --opacity-subtle: 0.15;
+  --opacity-soft: 0.7;
+  --opacity-readable: 0.8;
 
   /* --- Durées --- */
   --duration-fast: 150ms;
@@ -208,7 +225,7 @@ ul, ol {
 }
 
 .text-label {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -216,7 +233,7 @@ ul, ol {
 }
 
 .text-cta {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -248,13 +265,23 @@ ul, ol {
 /* === Section layout utility === */
 
 .section-padding {
-  padding: var(--spacing-5xl) var(--spacing-2xl);
+  padding: var(--spacing-3xl) var(--spacing-2xl);
+  scroll-margin-top: var(--nav-height);
 }
 
 .container {
   max-width: var(--content-max-width);
   margin: 0 auto;
   width: 100%;
+}
+
+/* === Non-retina readability fallback === */
+
+@media (max-resolution: 1.5dppx) {
+  .text-display,
+  .text-heading-lg {
+    font-weight: var(--font-weight-regular);
+  }
 }
 
 /* === Responsive === */
@@ -279,7 +306,7 @@ ul, ol {
   }
 
   .text-label {
-    font-size: 0.75rem;
+    font-size: var(--font-size-small);
   }
 
   .text-stat {
@@ -295,6 +322,6 @@ ul, ol {
   }
 
   .section-padding {
-    padding: var(--spacing-4xl) var(--spacing-lg);
+    padding: var(--spacing-2xl) var(--spacing-lg);
   }
 }

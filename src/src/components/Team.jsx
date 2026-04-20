@@ -15,15 +15,17 @@ function FounderPhoto({ member }) {
   }
 
   return (
-    <img
-      src={member.photo}
-      alt={`${member.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}, Co-fondateur Versi`}
-      className="team__photo"
-      width="160"
-      height="160"
-      loading="lazy"
-      onError={() => setError(true)}
-    />
+    <div className="team__photo-wrapper">
+      <img
+        src={member.photo}
+        alt={`${member.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}, Co-fondateur Versi`}
+        className="team__photo"
+        width="400"
+        height="533"
+        loading="lazy"
+        onError={() => setError(true)}
+      />
+    </div>
   );
 }
 
@@ -43,32 +45,34 @@ export default function Team() {
       <div className="container">
         <span className="text-label team__label">ÉQUIPE</span>
         <h2 className="text-heading-lg team__title">
-          Trois associés.<br />
-          Des parcours vérifiables.
+          Trois fondateurs.<br />
+          Quarante ans de terrain.
         </h2>
         <p className="text-body-lg team__subtitle">
-          Chaque fondateur a construit et géré des actifs avant de construire Versi. Le discours suit la pratique — pas l'inverse.
+          Trois parcours de fond. Pas de théorie — des opérations closes, des portfolios constitués, des structures dirigées.
         </p>
 
         <div className={`team__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {TEAM.map((member) => (
             <article key={member.id} className="team__card">
               <FounderPhoto member={member} />
-              <h3 className="text-heading-md team__name">{member.name}</h3>
-              <span className="text-label team__role">{member.role}</span>
-              <p className="text-body-sm team__specialty">{member.specialty}</p>
-              <p className="team__track">{member.track}</p>
-              {member.linkedin && (
-                <a
-                  href={member.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="team__linkedin"
-                  aria-label={`Profil LinkedIn de ${member.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}`}
-                >
-                  <LinkedInIcon />
-                </a>
-              )}
+              <div className="team__card-content">
+                <h3 className="text-heading-md team__name">{member.name}</h3>
+                <span className="text-label team__role">{member.role}</span>
+                <p className="text-body-sm team__specialty">{member.specialty}</p>
+                <p className="team__track">{member.track}</p>
+                {member.linkedin && (
+                  <a
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="team__linkedin"
+                    aria-label={`Profil LinkedIn de ${member.name.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')}`}
+                  >
+                    <LinkedInIcon />
+                  </a>
+                )}
+              </div>
             </article>
           ))}
         </div>

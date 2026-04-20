@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-label);
   color: var(--color-text-muted);
 }
 
@@ -80,6 +80,10 @@
   .location__map svg {
     max-width: 300px;
   }
+
+  .location__map-label {
+    font-size: 18px;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1279px) {
@@ -88,7 +92,13 @@
     gap: var(--spacing-xl);
   }
 
+  .location__map {
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
   .location__map svg {
-    max-width: 400px;
+    max-width: 100%;
   }
 }

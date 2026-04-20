@@ -1,0 +1,26 @@
+# Autopilote Versi Studio — Etape 0 Dashboard v3
+
+> Session : versi-s14
+> Branche : claude/dashboard-autopilot-resume-ZYi9s
+> Date : 2026-04-16
+
+<!-- SESSION: phases=0 tasks_prod=0 tasks_consult=0 -->
+
+## Objectif session
+
+1. Finaliser Etape 0 Dashboard en faisant passer @creative-strategy de 7/10 → 10/10 (4 corrections ciblées)
+2. Une fois validé, reprendre l'autopilote sur Etape 1 Upload avec le protocole s13
+
+## Phase courante : Correction ciblée Etape 0 (v3)
+
+### Task 1 — @creative-strategy correction ciblée
+- Statut : EN COURS
+- Input : docs/reviews/autopilot/vs-step0-creative-v2.md
+- Cible : spécifications textuelles exactes pour les 4 points (P1-P4)
+- Livrable : docs/reviews/autopilot/vs-step0-creative-v3-specs.md
+- Attente : décisions de ton, copy, mapping statut/couleur, sous-titre
+
+### Prochaine étape (après réception Task 1)
+- @fullstack applique les 4 fixes sur versi-studio/src/app/vs/page.tsx
+- Re-audit @creative-strategy + agents v1 < 10/10 (@qa 7.6, @copy 8, @pm 7.2)
+- Validation 100% des 7 agents à 10/10 → passage Etape 1 Upload

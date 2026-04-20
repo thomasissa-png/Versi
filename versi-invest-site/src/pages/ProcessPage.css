@@ -1,0 +1,135 @@
+/* === Honoraires bandeau === */
+
+.honoraires {
+  background: var(--color-bg-dark);
+  padding: var(--spacing-2xl);
+}
+
+.honoraires__title {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-inverse);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--spacing-md);
+}
+
+.honoraires__text {
+  font-size: var(--font-size-body-md);
+  color: var(--color-text-inverse);
+  opacity: var(--opacity-readable);
+  line-height: 1.65;
+  max-width: var(--text-max-width-md);
+}
+
+/* === Steps === */
+
+.steps {
+  background: var(--color-bg-primary);
+}
+
+.step {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-2xl) 0;
+}
+
+.step:last-child {
+  border-bottom: none;
+}
+
+.step--featured {
+  background: var(--color-bg-secondary);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-accent);
+  margin: var(--spacing-lg) 0;
+}
+
+.step__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.step__num {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+.step__title {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.step__desc {
+  font-size: var(--font-size-body-md);
+  color: var(--color-text-primary);
+  line-height: 1.65;
+  max-width: var(--text-max-width-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.step__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.step__detail {
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.step__detail--included .step__detail-label {
+  color: var(--color-accent);
+}
+
+.step__detail--excluded .step__detail-label {
+  color: var(--color-text-muted);
+}
+
+.step__detail-label {
+  display: block;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+  margin-bottom: var(--spacing-sm);
+}
+
+.step__detail-text {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+/* === Responsive === */
+
+@media (max-width: 767px) {
+  .step__header {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .step__title {
+    font-size: var(--font-size-body-lg);
+  }
+
+  .step__details {
+    grid-template-columns: 1fr;
+  }
+
+  .step--featured {
+    padding: var(--spacing-lg);
+  }
+}

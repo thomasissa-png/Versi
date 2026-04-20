@@ -1,14 +1,32 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
+import PageHead from '../components/PageHead.jsx';
 import './LegalPage.css';
 
 export default function PolitiqueConfidentialite() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => document.head.removeChild(meta);
+  }, []);
+
   return (
     <>
+      <PageHead
+        title="Politique de confidentialité — Versi"
+        description="Politique de confidentialité et RGPD du site versi.fr."
+        noindex
+      />
+      <Nav />
       <div className="legal-page">
-        <nav className="legal-page__nav">
-          <Link to="/" className="legal-page__back">← VERSI</Link>
-        </nav>
         <main className="legal-page__content container">
           <h1 className="text-heading-lg legal-page__title">Politique de confidentialité</h1>
 
@@ -21,8 +39,8 @@ export default function PolitiqueConfidentialite() {
 
           <section className="legal-page__section">
             <h2>1. Responsable du traitement</h2>
-            <p><strong>Responsable du traitement :</strong> Versi</p>
-            <p><strong>Adresse :</strong> [À compléter]</p>
+            <p><strong>Responsable du traitement :</strong> Gradient One (exploitant la marque Versi)</p>
+            <p><strong>Adresse :</strong> 54 rue Henri Barbusse, 92000 Nanterre</p>
             <p><strong>Email de contact :</strong> contact@versi.fr</p>
             <p>
               Versi ne dispose pas de Délégué à la Protection des Données (DPO) au sens de l'article 37 du RGPD, la taille de la structure et la nature des traitements ne rendant pas sa désignation obligatoire.
@@ -46,7 +64,7 @@ export default function PolitiqueConfidentialite() {
 
             <h3>2.2 Analytics</h3>
             <p>
-              Versi utilise Plausible Analytics, une solution respectueuse de la vie privée. Aucun cookie n'est déposé, aucune donnée personnelle identifiable n'est collectée, aucun suivi inter-sites n'est effectué. L'utilisation de Plausible Analytics ne nécessite pas votre consentement.
+              Versi utilise Umami Analytics, une solution respectueuse de la vie privée. Aucun cookie n'est déposé, aucune donnée personnelle identifiable n'est collectée, aucun suivi inter-sites n'est effectué. L'utilisation d'Umami Analytics ne nécessite pas votre consentement.
             </p>
           </section>
 
@@ -56,7 +74,7 @@ export default function PolitiqueConfidentialite() {
               <strong>Données du formulaire de contact :</strong> 3 ans à compter du dernier contact avec Versi.
             </p>
             <p>
-              <strong>Données analytics Plausible :</strong> données agrégées anonymes — conservation indéfinie (non personnelles).
+              <strong>Données analytics Umami :</strong> données agrégées anonymes — conservation indéfinie (non personnelles).
             </p>
           </section>
 
@@ -101,7 +119,7 @@ export default function PolitiqueConfidentialite() {
           <section className="legal-page__section">
             <h2>8. Cookies</h2>
             <p>Le site versi.fr ne dépose aucun cookie publicitaire, cookie de réseaux sociaux ou cookie de profilage comportemental.</p>
-            <p>Si Plausible Analytics est utilisé : aucun cookie n'est déposé. Aucun bandeau de consentement n'est requis.</p>
+            <p>Umami Analytics est utilisé : aucun cookie n'est déposé. Aucun bandeau de consentement n'est requis.</p>
           </section>
 
           <section className="legal-page__section">

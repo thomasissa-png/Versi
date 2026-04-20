@@ -12,7 +12,7 @@
 .contact__label {
   display: block;
   color: var(--color-text-inverse);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   margin-bottom: var(--spacing-lg);
 }
 
@@ -22,15 +22,15 @@
 }
 
 .contact__subtitle {
-  font-size: 1.125rem;
+  font-size: var(--font-size-body-lg);
   line-height: 1.65;
   color: var(--color-text-inverse);
-  opacity: 0.8;
+  opacity: var(--opacity-readable);
   margin-bottom: var(--spacing-xl);
 }
 
 .contact__email {
-  font-size: 1rem;
+  font-size: var(--font-size-body-md);
   color: var(--color-accent);
   text-decoration: none;
   transition: opacity var(--duration-normal) ease;
@@ -62,17 +62,17 @@
 
 .contact__field-label {
   color: var(--color-text-inverse);
-  opacity: 0.7;
+  opacity: var(--opacity-soft);
 }
 
 .contact__input,
 .contact__textarea {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border-input);
   border-radius: var(--radius-sm);
   padding: 14px;
   font-family: var(--font-family);
-  font-size: 1rem;
+  font-size: var(--font-size-body-md);
   color: var(--color-text-inverse);
   transition: border-color var(--duration-normal) ease;
   width: 100%;
@@ -101,7 +101,7 @@
 
 .contact__input:disabled,
 .contact__textarea:disabled {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   cursor: not-allowed;
 }
 
@@ -111,7 +111,7 @@
 }
 
 .contact__error {
-  font-size: 0.75rem;
+  font-size: var(--font-size-caption);
   color: var(--color-error-on-dark);
   margin-top: 2px;
 }
@@ -133,19 +133,19 @@
 }
 
 .contact__submit:disabled {
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   cursor: not-allowed;
 }
 
 .contact__form-error {
-  font-size: 0.875rem;
+  font-size: var(--font-size-body-sm);
   color: var(--color-accent);
 }
 
 .contact__rgpd {
-  font-size: 0.75rem;
+  font-size: var(--font-size-caption);
   color: var(--color-text-inverse);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   line-height: 1.5;
 }
 
@@ -156,7 +156,7 @@
   justify-content: center;
   min-height: 200px;
   color: var(--color-text-inverse);
-  font-size: 1rem;
+  font-size: var(--font-size-body-md);
   text-align: center;
 }
 
@@ -169,6 +169,11 @@
 
   .contact__form-wrapper {
     padding: var(--spacing-lg);
+  }
+
+  .contact__input,
+  .contact__textarea {
+    font-size: 16px; /* anti-zoom iOS Safari */
   }
 
   .contact__submit {

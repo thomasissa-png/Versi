@@ -1,0 +1,38 @@
+[
+  {
+    "plan": "P 00 - Pr2_plan RDC_ projet2.pdf",
+    "scale_text": "ECH. 1 : 50",
+    "scale_ratio": 50,
+    "ref_dim": null,
+    "confidence": 0.98,
+    "reasoning": "L'échelle textuelle 'ECH. 1 : 50' est clairement indiquée en bas à droite du plan, ce qui rend la détection très fiable.",
+    "error": null
+  },
+  {
+    "plan": "P 01 - Pr2_plan R+1_ projet2.pdf",
+    "scale_text": "ECH. 1 : 50",
+    "scale_ratio": 50,
+    "ref_dim": null,
+    "confidence": 0.98,
+    "reasoning": "L'échelle textuelle 'ECH. 1 : 50' est clairement indiquée en bas à droite du plan, ce qui est très fiable.",
+    "error": null
+  },
+  {
+    "plan": "P 02 - Pr2_plan R+2_ projet2.pdf",
+    "scale_text": "ECH. 1 : 50",
+    "scale_ratio": 50,
+    "ref_dim": null,
+    "confidence": 0.98,
+    "reasoning": "L'échelle textuelle 'ECH. 1 : 50' est clairement indiquée en bas à droite du plan, ce qui rend la détection très fiable.",
+    "error": null
+  },
+  {
+    "plan": "P 03 - Pr02_plan R+3_ projet02.pdf",
+    "scale_text": "ECH. 1 : 50",
+    "scale_ratio": 50,
+    "ref_dim": null,
+    "confidence": 0.98,
+    "reasoning": "L'échelle textuelle 'ECH. 1 : 50' est clairement indiquée en bas à droite du plan, ce qui rend la détection très fiable.",
+    "error": null
+  }
+]

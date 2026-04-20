@@ -10,7 +10,7 @@ export default function Activities() {
       <div className="container">
         <span className="text-label activities__label">ACTIVITÉS</span>
         <h2 className="text-heading-lg activities__title">
-          Quatre métiers. Un cycle maîtrisé.
+          Une holding. Quatre entités.
         </h2>
         <div className={`activities__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {ENTITIES.map((entity, i) => {
@@ -36,12 +36,10 @@ export default function Activities() {
                 ) : (
                   <span
                     className="text-cta activities__card-cta activities__card-cta--disabled"
-                    role="link"
                     aria-disabled="true"
                     aria-label={`${entity.name} — site bientôt disponible`}
-                    title="Site en cours de construction"
                   >
-                    {entity.ctaText} →
+                    {entity.ctaTextDisabled}
                   </span>
                 )}
               </article>

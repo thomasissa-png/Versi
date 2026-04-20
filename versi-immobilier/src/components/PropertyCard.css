@@ -1,0 +1,207 @@
+/* ============================================
+   PropertyCard — composant card bien immobilier
+   ============================================ */
+
+.property-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition:
+    box-shadow var(--duration-normal) ease,
+    border-color var(--duration-normal) ease,
+    transform var(--duration-normal) ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.property-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+/* Focus pour navigation clavier — porte sur le lien titre */
+.property-card:focus-within .property-card__title-link:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* === Image container === */
+
+/* Wrap = relatif pour positionner le badge */
+.property-card__image-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.property-card__image-link {
+  display: block;
+  text-decoration: none;
+}
+
+.property-card__image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  position: relative;
+  display: block;
+}
+
+.property-card__image--photo {
+  object-fit: cover;
+  transition: transform var(--duration-slow) ease;
+}
+
+.property-card:hover .property-card__image--photo {
+  transform: scale(1.03);
+}
+
+/* === Placeholder pré-commercialisation === */
+
+.property-card__placeholder {
+  background: linear-gradient(145deg, var(--color-calcaire-100), var(--color-stone-200));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.property-card__placeholder-label {
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  /* positionnement absolu pour ne pas interférer avec le badge */
+  position: absolute;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  left: auto;
+}
+
+/* === Badge statut — positionné sur .image-wrap === */
+
+.property-card__badge {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  z-index: 2;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.property-card__badge--disponible {
+  background: var(--badge-en-vente-bg);
+  color: var(--badge-en-vente-text);
+}
+
+.property-card__badge--sous-compromis {
+  background: var(--badge-sous-offre-bg);
+  color: var(--badge-sous-offre-text);
+}
+
+.property-card__badge--vendu {
+  background: var(--badge-vendu-bg);
+  color: var(--badge-vendu-text);
+}
+
+/* === Corps de la card === */
+
+.property-card__body {
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.property-card__location {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+}
+
+/* Titre — lien sans décoration, couleur héritée */
+.property-card__title {
+  font-size: 1rem;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.property-card__title-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.property-card__title-link:hover {
+  opacity: 0.75;
+}
+
+/* === Specs inline === */
+
+.property-card__details {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+
+.property-card__dot {
+  color: var(--color-border);
+  line-height: 1;
+}
+
+/* === Prix === */
+
+.property-card__price {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-xs);
+  letter-spacing: -0.01em;
+}
+
+.property-card__price-note {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* === CTA "Découvrir ce lot" === */
+
+.property-card__link {
+  margin-top: var(--spacing-md);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  align-self: flex-start;
+  transition: color var(--duration-fast) ease;
+  /* touch target */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.property-card__link:hover {
+  color: var(--color-text-primary);
+}
+
+/* === Responsive === */
+
+@media (max-width: 767px) {
+  .property-card__body {
+    padding: var(--spacing-md);
+  }
+}

@@ -12,11 +12,23 @@
     <meta property="og:description" content="Versi acquiert, transforme et structure des actifs immobiliers en France. Quatre métiers intégrés, un cycle maîtrisé en interne." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://versi.fr" />
+    <meta property="og:image" content="https://versi.fr/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:site_name" content="Versi" />
 
-    <!-- Favicon - V typographique -->
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48 64x64" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="msapplication-TileColor" content="#0B0B0B" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="theme-color" content="#0B0B0B" />
 
     <!-- PP Neue Montreal via CDNFonts -->
     <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
@@ -27,8 +39,105 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400;500&display=swap" rel="stylesheet" />
 
-    <!-- Plausible Analytics placeholder — uncomment when Plausible account is configured -->
-    <!-- <script defer data-domain="versi.fr" src="https://plausible.io/js/script.js"></script> -->
+    <!-- Canonical -->
+    <!-- Canonical géré par react-helmet-async (par page) -->
+
+    <!-- Schema.org JSON-LD — Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["Organization", "Corporation"],
+      "@id": "https://versi.fr/#organization",
+      "name": "Versi",
+      "legalName": "Versi",
+      "url": "https://versi.fr",
+      "logo": "https://versi.fr/favicon.svg",
+      "description": "Holding immobilière intégrée opérant en France à travers quatre entités complémentaires : développement (marchand de biens), structuration d'investissement, foncière et ingénierie financière.",
+      "foundingDate": "2022",
+      "founders": [
+        { "@type": "Person", "name": "Thomas Issa" },
+        { "@type": "Person", "name": "Maxime Lemoine" },
+        { "@type": "Person", "name": "Carl Standertskjold-Nordenstam" }
+      ],
+      "areaServed": {
+        "@type": "Country",
+        "name": "France"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Paris",
+        "addressCountry": "FR"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "contact@versi.fr",
+        "contactType": "customer service",
+        "availableLanguage": "French"
+      },
+      "knowsAbout": [
+        "Marchand de biens",
+        "Holding immobilière",
+        "Foncière",
+        "Structuration financière immobilière",
+        "Co-investissement immobilier"
+      ],
+      "sameAs": [
+        "https://www.linkedin.com/in/thomasissa/",
+        "https://www.linkedin.com/in/maxime-lemoine-34550354/",
+        "https://www.linkedin.com/in/carlstandertskjold/"
+      ]
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD — WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://versi.fr/#website",
+      "url": "https://versi.fr",
+      "name": "Versi — Holding immobilière intégrée",
+      "publisher": { "@id": "https://versi.fr/#organization" },
+      "inLanguage": "fr-FR"
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD — FAQPage (GEO: extraction LLM) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Qu'est-ce que Versi ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Versi est une holding immobilière intégrée opérant en France. Elle regroupe quatre entités complémentaires couvrant l'ensemble du cycle d'une opération immobilière : Versi Développement (marchand de biens), Versi Invest (structuration d'investissement), Versi Capital (foncière) et Versi Finance (ingénierie financière). Fondée par Thomas Issa, Maxime Lemoine et Carl Standertskjold-Nordenstam."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "En quoi Versi se distingue d'un marchand de biens classique ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Contrairement à un marchand de biens mono-activité, Versi intègre en interne l'ensemble du cycle : acquisition, transformation, détention longue durée via sa foncière (Versi Capital) et structuration financière via Versi Finance. Cette intégration évite la déperdition entre étapes et permet de traiter des opérations complexes sans externalisation des fonctions critiques."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Où Versi opère-t-elle en France ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Versi opère principalement sur Paris, Lille et les principales métropoles françaises. La holding cible des actifs immobiliers en France avec une préférence pour les marchés à forte liquidité et potentiel de transformation."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Umami Analytics (cookieless, RGPD-exempt) -->
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="6e0f3a96-c528-4113-bc2a-c1548ab0c76a"></script>
   </head>
   <body>
     <div id="root"></div>

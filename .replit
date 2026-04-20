@@ -1,0 +1,17 @@
+run = "npm start"
+entrypoint = "versi-immobilier/server.js"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+PORT = "3001"
+
+[[ports]]
+localPort = 3001
+externalPort = 80
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "cd src && npm install && npm run build && cd ../versi-immobilier && npm install && npm run build && cd ../versi-invest-site && npm install && npm run build"]

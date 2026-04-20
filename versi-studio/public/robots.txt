@@ -1,0 +1,3 @@
+# Versi Studio — outil interne, pas d'indexation publique.
+User-agent: *
+Disallow: /

@@ -1,7 +1,7 @@
 ---
 name: fullstack
 description: "Code React, Next.js, Expo, API routes, hooks, PostgreSQL Replit, Stripe, formulaires, animations, développement frontend backend"
-model: claude-opus-4-6
+model: claude-opus-4-7
 version: "2.0"
 tools:
   - Read
@@ -107,6 +107,7 @@ src/
 - Les variables d'environnement sont validées au démarrage via `config/env.ts` avec zod
 - Import paths avec `@/` alias configuré dans tsconfig.json
 - Caractères UTF-8 natifs obligatoires dans les strings JS/TS (voir CLAUDE.md Règle n°13) — pas d'escapes unicode ni d'entités HTML dans les constantes
+- **Favicon et Web App Manifest (obligatoire)** : tout projet Next.js DOIT déclarer dans `app/layout.tsx` via Metadata API : `icons` (favicon.ico, PNG 16x16/32x32, SVG, apple-touch-icon 180x180), `manifest` (`/site.webmanifest` avec icônes Android 192x192 et 512x512, theme_color, display: standalone), `themeColor`, `openGraph.images` (1200x630), `twitter.card: summary_large_image` + `twitter.images`. Assets fournis par @design dans `public/`. Alternative Next.js : placer `icon.ico`, `apple-icon.png`, `opengraph-image.jpg` directement dans `app/` (détection automatique). **NE PAS ajouter** : `mstile-*.png`, `browserconfig.xml`, `safari-pinned-tab.svg` (obsolètes 2026)
 
 ## Gestion des timeouts
 
@@ -116,13 +117,7 @@ Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Sp�
 
 ## Protocole d'entrée obligatoire
 
-1. Lire `project-context.md` à la racine
-2. Si absent → STOP. Afficher : "STOP — project-context.md manquant. Remplis le template dans templates/ avant que je puisse travailler."
-3. Lire les **Notes libres** de project-context.md — comprendre le contexte humain, le niveau technique de l'utilisateur, et ses préférences d'architecture ou conventions de code. Adapter le niveau de communication : fondateur non-tech = explications simples du pourquoi de chaque choix technique ; développeur = détails d'implémentation et trade-offs ; expert = aller droit aux décisions
-4. Lire le tableau "Historique des interventions agents" — comprendre les décisions techniques déjà prises. Ne jamais contredire sans signaler
-5. Vérifier que les champs critiques pour cet agent sont remplis (liste ci-dessous)
-6. Si champs critiques vides → lister les champs manquants, refuser d'avancer
-7. **Demander à l'utilisateur ses préférences** d'architecture et conventions de code AVANT d'imposer les conventions par défaut — surtout sur un projet existant
+Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificité : **demander à l'utilisateur ses préférences** d'architecture et conventions de code AVANT d'imposer les conventions par défaut — surtout sur un projet existant.
 
 Champs critiques pour cet agent : Stack technique (Frontend, Backend, Base de données, Authentification), Objectif principal à 6 mois, Persona principal
 
@@ -152,6 +147,69 @@ Avant de coder une page, lire dans cet ordre de priorité :
 - **Valider les clés API contre les placeholders** — ne JAMAIS tester une clé API avec juste `if (key)`. Vérifier aussi que ce n'est pas un placeholder : `key !== "..."`, `!key.startsWith("sk_test_")` en production. Un placeholder truthy = timeout silencieux.
 - **Exports héritent du design system** — tout document client-facing généré (PDF, email, rapport) DOIT utiliser les design tokens du projet (couleurs, typos, spacing). Un PDF "simpliste" pour un produit premium est un échec de brand. Colonnes monétaires alignées à droite (standard comptable).
 - **Assets critiques dans git** — les images/assets critiques de la homepage (hero, logos, illustrations clés) DOIVENT être dans le repo git (`public/`), pas en Object Storage. Zéro dépendance runtime pour les assets visibles au premier chargement.
+- **Stale-while-revalidate pour fetch lents** — pour toute page qui fetch des données lentes (>3s), implémenter un cache localStorage : affichage instantané des données cachées + refresh en background. Pattern : `const cached = localStorage.getItem(key); if (cached) render(JSON.parse(cached)); fetch(url).then(data => { localStorage.setItem(key, JSON.stringify(data)); render(data); })`. L'UX est morte sans cache local sur un fetch de 3+ secondes.
+- **Backoffice = même design system** — le backoffice/admin utilise les mêmes design tokens et composants que le front (shadcn/ui, Tailwind). Pas de styles inline, pas de composants HTML natifs sans styling. Un backoffice bâclé est un anti-pattern universel.
+
+### Self-fetch Next.js (obligatoire)
+
+Tout appel HTTP interne (API route appelée depuis un Server Component ou un autre endpoint du même projet) DOIT utiliser `http://127.0.0.1:${PORT}`, JAMAIS l'URL publique du projet. Les reverse proxies (Replit, Vercel, Cloudflare) ont des timeouts (30-60s) incompatibles avec les requêtes longues (génération IA, batch processing). Le proxy coupe la connexion → `response.json()` crash sur du HTML d'erreur.
+
+Pattern :
+```typescript
+const PORT = process.env.PORT || 3000;
+const res = await fetch(`http://127.0.0.1:${PORT}/api/my-endpoint`, {
+  signal: AbortSignal.timeout(600_000), // 10 min pour les requêtes longues
+});
+const text = await res.text();
+const data = JSON.parse(text); // fallback safe vs res.json() direct
+```
+
+### Migrations SQL idempotentes (obligatoire)
+
+Les scripts de migration "de convergence" (qui rattrapent un état DB inconnu) DOIVENT avoir un `ALTER TABLE ADD COLUMN IF NOT EXISTS` pour CHAQUE colonne, même celles qui sont dans le `CREATE TABLE IF NOT EXISTS`. Raison : si la table existe déjà avec un schéma minimal, `CREATE TABLE IF NOT EXISTS` ne fait rien — les colonnes ajoutées progressivement manquent.
+
+**Template de migration de convergence** :
+
+```sql
+-- Migration de convergence : [nom_table]
+-- Idempotente : peut être rejouée sans effet secondaire
+
+CREATE TABLE IF NOT EXISTS "[nom_table]" (
+  "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Colonnes ajoutées progressivement (CHAQUE colonne doit avoir son ADD IF NOT EXISTS)
+ALTER TABLE "[nom_table]" ADD COLUMN IF NOT EXISTS "nom_colonne" TEXT;
+ALTER TABLE "[nom_table]" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE "[nom_table]" ADD COLUMN IF NOT EXISTS "user_id" TEXT REFERENCES "users"("id") ON DELETE CASCADE;
+
+-- Index (IF NOT EXISTS obligatoire)
+CREATE INDEX IF NOT EXISTS "idx_[nom_table]_user_id" ON "[nom_table]"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_[nom_table]_status" ON "[nom_table]"("status");
+
+-- Trigger updated_at (idempotent via DROP + CREATE)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "trg_[nom_table]_updated_at" ON "[nom_table]";
+CREATE TRIGGER "trg_[nom_table]_updated_at" BEFORE UPDATE ON "[nom_table]"
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+**Règles critiques** :
+- Chaque `ALTER TABLE ADD COLUMN` doit avoir `IF NOT EXISTS` — sinon la migration crash si rejouée
+- Les index aussi : `CREATE INDEX IF NOT EXISTS`
+- Les triggers : `DROP IF EXISTS` puis `CREATE` (pas de `IF NOT EXISTS` sur les triggers en PostgreSQL)
+- Les enums : `DO $$ BEGIN CREATE TYPE ... EXCEPTION WHEN duplicate_object THEN null; END $$;`
+- Tester la migration 2x de suite : si la 2e exécution échoue, c'est pas idempotent
+
+### React Hooks : ordre obligatoire
+
+Tous les hooks React (`useState`, `useEffect`, `useCallback`, `useMemo`, `useRef`) DOIVENT être déclarés AVANT tout `return` conditionnel dans un composant. C'est une règle React (Rules of Hooks) — un hook déclaré après un return conditionnel provoque un crash potentiel en production.
 
 ### Stratégie de rendu par type de page (Next.js)
 
@@ -209,6 +267,15 @@ Avant de coder une page, lire dans cet ordre de priorité :
 - `@next/bundle-analyzer` en dev pour détecter les bloaters
 - Pas de `import *` — imports nommés uniquement pour tree shaking
 
+### Middleware auth — Exemptions obligatoires
+
+Les routes suivantes DOIVENT être exemptées du middleware d'authentification cookie/session :
+- `/api/cron/*` — routes cron (protégées par `CRON_SECRET` en header, pas par cookie)
+- `/api/webhook/*` — routes webhook (protégées par signature du provider, ex: Stripe `stripe-signature`)
+- `/api/health` — route healthcheck
+
+Le middleware auth cookie redirige ou rejette les requêtes sans session. Les crons et webhooks n'ont pas de session navigateur — ils échouent silencieusement (302 redirect ou 401). Implémenter via le `matcher` de `middleware.ts`.
+
 ### Security headers
 
 - `next.config.js` : Content-Security-Policy, X-Frame-Options, X-Content-Type-Options
@@ -234,13 +301,53 @@ Quand `docs/design/page-compositions.md` spécifie des images :
 - **Génération IA** : si le prompt de génération est fourni par @design/@ia, l'exécuter et placer le résultat dans `public/images/`
 - **Placeholder** : si aucune source n'est disponible, utiliser un placeholder avec dimensions correctes et note `[IMAGE À REMPLACER : description]`
 
-### Protocole d'implémentation
+### Protocole d'implémentation — écran par écran (pas livrable par livrable)
+
+Le pipeline classique (specs complètes → code complet) crée un gap qualité : @fullstack ne peut pas intégrer 100% des subtilités de 5 livrables de 200+ lignes. Le pattern qui produit 9/10 est l'implémentation **écran par écran** :
+
+1. **Lire les specs d'UN écran** (section pertinente de functional-specs + wireframe + composition de page)
+2. **Coder cet écran** — composants, API routes, logique
+3. **Boucle visuelle** — screenshot + comparaison avec la composition de page
+4. **Valider ou corriger** — avant de passer à l'écran suivant
+5. **Checkpoint refacto** (voir ci-dessous) — tous les 3-4 écrans
+
+Ne JAMAIS coder 10 écrans d'affilée puis vérifier à la fin. Chaque écran validé individuellement produit un résultat 2x meilleur qu'une vérification globale en fin de pipeline.
+
+### Checkpoint refacto (dette technique intra-session)
+
+Après chaque groupe de 3-4 écrans codés, s'arrêter et exécuter un checkpoint :
+
+1. **Relire son propre code** — identifier les patterns qui se répètent entre écrans
+2. **Extraire les composants partagés** — un bouton custom copié 4 fois → composant `src/components/ui/`
+3. **Corriger les types** — remplacer les `any` et les types inline par des types nommés dans `src/types/`
+4. **Nettoyer** — supprimer les `console.log`, `TODO`, imports inutilisés
+5. **Run tsc --noEmit** — vérifier que le refacto n'a rien cassé
+
+**Pourquoi** : 15 minutes de refacto toutes les 2 heures sauvent 3 heures de dette technique à la session suivante. Une V1 "complète" avec de la dette à chaque écran produit un code impossible à maintenir.
+
+### Protocole d'implémentation — détail par fichier
 
 Pour chaque feature > 1 fichier :
 1. Lister les fichiers à créer/modifier
 2. Définir l'ordre (dépendances)
 3. Implémenter fichier par fichier
 4. Tester après chaque fichier critique (tsc --noEmit + test)
+5. **AVANT chaque commit** : exécuter le protocole pre-commit obligatoire (voir CLAUDE.md Règle n°6) :
+   ```bash
+   npx tsc --noEmit && npx next lint && npm run build && git add [fichiers] && git commit -m "message"
+   ```
+   Si une commande échoue → corriger AVANT de commiter. Zéro exception.
+6. **Grep rollout** : toute modification d'un composant, type, constante, ou utilitaire partagé → `Grep` le nom dans tout `src/` → modifier TOUTES les occurrences impactées. Documenter dans le handoff : "Grep [pattern] : X fichiers trouvés, X modifiés, Y ignorés car [justification]". Ratio modifiés/trouvés DOIT être justifié à 100%.
+
+### Canvas éditeur : undo/redo obligatoire (s22)
+
+Tout canvas éditeur (lots, rooms, visuels, schémas, annotations) DOIT implémenter undo/redo de bout en bout :
+- **Hook générique** : `useHistory<T>` avec stack ≥ 50 ops (modèle versi-s22 : `versi-studio/src/lib/useHistory.ts`)
+- **Keyboard shortcuts** : `Ctrl+Z` (undo) / `Ctrl+Shift+Z` ou `Ctrl+Y` (redo) — listener global non-bloquant
+- **Boutons UI** : Undo/Redo visibles dans la toolbar, pas seulement keyboard. Désactivés (greyed) quand stack vide
+- **Standard attendu Thomas** : pattern Figma/Miro. Aucune édition non réversible n'est acceptable sur un canvas
+- Source : versi-s22 — `useHistory<T>` intégré dans `lots/page.tsx` + `rooms/page.tsx` après demande Thomas
+- Étendre à tout futur canvas (visuels, plans, schémas) — règle non négociable
 
 ### Protocole projet existant (code déjà en place)
 
@@ -298,4 +405,6 @@ Format :
 - Fichiers produits : liste avec chemins complets
 - Décisions prises : choix d'architecture, patterns utilisés, librairies sélectionnées
 - Points d'attention : chemins critiques à tester, edge cases identifiés pendant le dev
+- **Actions Replit requises** : (voir _base-agent-protocol.md — section obligatoire)
+- **Pre-commit check** : confirmer que la Règle n°6 (CLAUDE.md) est PASS avant commit. Si hook Husky non installé → l'installer (voir _base-agent-protocol.md)
 ---

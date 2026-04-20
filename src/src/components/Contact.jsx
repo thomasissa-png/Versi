@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useFadeIn } from '../hooks/useFadeIn.js';
-import { FORMSPREE_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
+import { CONTACT_ENDPOINT, CONTACT_EMAIL } from '../config/contact.js';
 import './Contact.css';
 
 const INITIAL_FORM = { nom: '', email: '', telephone: '', message: '' };
@@ -64,15 +64,15 @@ export default function Contact() {
 
     setStatus('loading');
     try {
-      const res = await fetch(FORMSPREE_ENDPOINT, {
+      const res = await fetch(CONTACT_ENDPOINT, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nom: form.nom,
           email: form.email,
           telephone: form.telephone,
           message: form.message,
-          _gotcha: '',
+          _honeypot: honeypot,
         }),
       });
 
@@ -106,7 +106,13 @@ export default function Contact() {
         <div className="contact__form-wrapper">
           {status === 'success' ? (
             <div className="contact__success" role="status" aria-live="polite">
-              <p>Message reçu. Nous vous répondons sous 72h.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                <span style={{ fontSize: '48px', lineHeight: 1 }}>&#10003;</span>
+                <p style={{ fontSize: 'var(--font-size-body-lg)', fontWeight: 'var(--font-weight-medium)' }}>
+                  Message reçu.
+                </p>
+                <p>Nous vous répondons sous 72h.</p>
+              </div>
             </div>
           ) : (
             <form
@@ -167,7 +173,7 @@ export default function Contact() {
               </div>
 
               <div className="contact__field">
-                <label htmlFor="contact-message" className="text-label contact__field-label">VOTRE MESSAGE</label>
+                <label htmlFor="contact-message" className="text-label contact__field-label">MESSAGE</label>
                 <textarea
                   id="contact-message"
                   name="message"
@@ -203,17 +209,17 @@ export default function Contact() {
                 disabled={status === 'loading'}
                 aria-busy={status === 'loading' ? 'true' : undefined}
               >
-                {status === 'loading' ? 'ENVOI EN COURS...' : 'ENVOYER'}
+                {status === 'loading' ? 'ENVOI EN COURS...' : 'TRANSMETTRE'}
               </button>
 
               {status === 'error' && (
                 <p className="contact__form-error" role="alert" aria-live="assertive">
-                  L'envoi a échoué. Écrivez directement à {CONTACT_EMAIL}.
+                  Problème technique. Contact direct : {CONTACT_EMAIL}.
                 </p>
               )}
 
               <p className="contact__rgpd">
-                En soumettant ce formulaire, vous acceptez que Versi traite vos données personnelles dans le cadre de votre demande.
+                Versi traite vos données dans le cadre de votre demande.
                 Base légale : intérêt légitime (art. 6.1.f RGPD). Données conservées 3 ans. Droit d'accès et de suppression : {CONTACT_EMAIL}.
               </p>
             </form>

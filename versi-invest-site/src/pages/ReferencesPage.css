@@ -1,0 +1,167 @@
+/* === References grid === */
+
+.references {
+  background: var(--color-bg-primary);
+}
+
+.references__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+/* --- Card --- */
+
+.ref-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  transition: box-shadow var(--duration-normal) ease, transform var(--duration-normal) ease;
+}
+
+.ref-card--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ref-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.ref-card__more {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  margin-top: auto;
+}
+
+.ref-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ref-card__badge {
+  display: inline-block;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.ref-card__year {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+.ref-card__ville {
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-card__dept {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+  margin-left: var(--spacing-xs);
+}
+
+/* --- Metrics --- */
+
+.ref-card__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.ref-card__metric {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.ref-card__metric-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.ref-card__metric-value {
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.ref-card__metric-value--highlight {
+  color: #1e7e34;
+}
+
+/* --- Description --- */
+
+.ref-card__desc {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-md);
+}
+
+/* --- Note transparence --- */
+
+.references__note {
+  background: var(--color-bg-subtle);
+  border-radius: var(--card-radius);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-2xl);
+}
+
+.references__note-text {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  max-width: var(--text-max-width-lg);
+}
+
+/* --- State vide --- */
+
+.references__empty {
+  text-align: center;
+  padding: var(--spacing-3xl) 0;
+}
+
+.references__empty-text {
+  font-size: var(--font-size-body-lg);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  max-width: var(--text-max-width-md);
+  margin: 0 auto var(--spacing-lg);
+}
+
+/* === Responsive === */
+
+@media (max-width: 767px) {
+  .references__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-card__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}

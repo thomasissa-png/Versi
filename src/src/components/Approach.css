@@ -5,7 +5,7 @@
 .approach__label {
   display: block;
   color: var(--color-text-inverse);
-  opacity: 0.5;
+  opacity: var(--opacity-muted);
   margin-bottom: var(--spacing-lg);
 }
 
@@ -15,9 +15,9 @@
 }
 
 .approach__subtitle {
-  font-size: 1.125rem;
+  font-size: var(--font-size-body-lg);
   color: var(--color-text-inverse);
-  opacity: 0.7;
+  opacity: var(--opacity-soft);
   margin-bottom: var(--spacing-3xl);
 }
 
@@ -30,7 +30,7 @@
 .approach__step {
   position: relative;
   padding-right: var(--spacing-xl);
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid var(--color-border-dark);
 }
 
 .approach__step:last-child {
@@ -40,12 +40,12 @@
 
 .approach__num {
   display: block;
-  font-size: 4rem;
+  font-size: var(--font-size-display-num);
   font-weight: var(--font-weight-thin);
   letter-spacing: -0.01em;
   line-height: 1;
   color: var(--color-text-inverse);
-  opacity: 0.15;
+  opacity: var(--opacity-subtle);
   margin-bottom: var(--spacing-lg);
 }
 
@@ -56,7 +56,7 @@
 
 .approach__step-body {
   color: var(--color-text-inverse);
-  opacity: 0.8;
+  opacity: var(--opacity-readable);
 }
 
 /* Responsive */
@@ -71,7 +71,7 @@
     padding-bottom: var(--spacing-xl);
     margin-bottom: var(--spacing-xl);
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--color-border-dark);
   }
 
   .approach__step:last-child {
@@ -81,7 +81,7 @@
   }
 
   .approach__num {
-    font-size: 3rem;
+    font-size: var(--font-size-display-num-mobile);
   }
 }
 
@@ -98,7 +98,7 @@
   }
 
   .approach__step:nth-child(odd) {
-    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid var(--color-border-dark);
     padding-right: var(--spacing-xl);
   }
 }

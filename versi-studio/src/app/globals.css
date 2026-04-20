@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+/*
+ * Versi Studio — Design Tokens
+ * Source de vérité : docs/design/vs-design-system.md
+ * Tailwind v4 : les tokens sont définis via @theme
+ */
+
+@theme {
+  /* ─── Couleurs primitives ─── */
+  --color-calcaire: #F7F5F2;
+  --color-blanc: #FFFFFF;
+  --color-gris-chaud: #D9D4CE;
+  --color-gris-pierre: #6B6560;
+  --color-beige-pierre: #C8B9A6;
+  --color-vert-mineral: #1E2A23;
+  --color-anthracite: #1A1A1A;
+  --color-noir-profond: #0B0B0B;
+
+  /* ─── Couleurs sémantiques ─── */
+  --color-bg-default: #F7F5F2;
+  --color-bg-card: #FFFFFF;
+  --color-bg-canvas: #F0EDE8;
+  --color-bg-dark: #0B0B0B;
+  --color-bg-overlay: rgba(11, 11, 11, 0.6);
+  --color-text-default: #0B0B0B;
+  --color-text-muted: #6B6560;
+  --color-text-inverse: #F7F5F2;
+  --color-border-default: #D9D4CE;
+  --color-border-hover: rgba(58, 58, 58, 0.5);
+  --color-border-dark: rgba(247, 245, 242, 0.08); /* Séparateurs sur fond sombre (header scrollé, footer) — versi-s20 */
+  --color-interactive-primary: #0B0B0B;
+  --color-interactive-hover: #1A1A1A;
+
+  /* ─── Couleurs lots (overlays canvas) ─── */
+  --color-lot-argile: #C4725A;
+  --color-lot-sable: #D4B896;
+  --color-lot-ardoise: #6B7D8A;
+  --color-lot-lin: #C8B89A;
+  --color-lot-lichen: #7A9A7E;
+  --color-lot-calcite: #E8DDD0;
+  --color-lot-silex: #8C8478;
+  --color-lot-ocre: #C49B40;
+
+  /* ─── Couleurs utilitaires ─── */
+  --color-error: #B91C1C;
+  --color-success: #15803D;
+  --color-warning: #D97706;
+
+  /* Variantes erreur (ajout versi-s17 — DESIGN-F01) */
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+  --color-error-strong: #B91C1C;
+
+  /* ─── Typographie ─── */
+  --font-sans: "PP Neue Montreal", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --font-size-xs: 0.8125rem;   /* 13px — labels */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px — body */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px — h3 */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+
+  /* ─── Spacing (base 4px) ─── */
+  /* Renommé de --spacing-* vers --space-* (learning versi-s15, règle n°20 CLAUDE.md) :
+   * --spacing-md dans @theme écrasait le scale Tailwind builtin max-w-md (16px au lieu de 448px).
+   * Les tokens --space-* ne collident avec aucun namespace Tailwind et préservent max-w-*.
+   * Les utilitaires p-md/gap-sm/etc. sont définis plus bas via @utility (compat rétrograde). */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+
+  /* ─── Border radius ─── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ─── Prefers-reduced-motion (DESIGN-F18 versi-s17) ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Utilitaires spacing custom (compat rétrograde après renommage --spacing-* → --space-*) ─── */
+/* Conservent p-md/gap-sm/mb-lg/etc. sans générer de collision avec max-w-* Tailwind. */
+@utility p-2xs { padding: var(--space-2xs); }
+@utility p-xs { padding: var(--space-xs); }
+@utility p-sm { padding: var(--space-sm); }
+@utility p-md { padding: var(--space-md); }
+@utility p-lg { padding: var(--space-lg); }
+@utility p-xl { padding: var(--space-xl); }
+@utility p-2xl { padding: var(--space-2xl); }
+@utility p-3xl { padding: var(--space-3xl); }
+@utility p-4xl { padding: var(--space-4xl); }
+
+@utility px-2xs { padding-inline: var(--space-2xs); }
+@utility px-xs { padding-inline: var(--space-xs); }
+@utility px-sm { padding-inline: var(--space-sm); }
+@utility px-md { padding-inline: var(--space-md); }
+@utility px-lg { padding-inline: var(--space-lg); }
+@utility px-xl { padding-inline: var(--space-xl); }
+@utility px-2xl { padding-inline: var(--space-2xl); }
+@utility px-3xl { padding-inline: var(--space-3xl); }
+@utility px-4xl { padding-inline: var(--space-4xl); }
+
+@utility py-2xs { padding-block: var(--space-2xs); }
+@utility py-xs { padding-block: var(--space-xs); }
+@utility py-sm { padding-block: var(--space-sm); }
+@utility py-md { padding-block: var(--space-md); }
+@utility py-lg { padding-block: var(--space-lg); }
+@utility py-xl { padding-block: var(--space-xl); }
+@utility py-2xl { padding-block: var(--space-2xl); }
+@utility py-3xl { padding-block: var(--space-3xl); }
+@utility py-4xl { padding-block: var(--space-4xl); }
+
+@utility pt-2xs { padding-top: var(--space-2xs); }
+@utility pt-xs { padding-top: var(--space-xs); }
+@utility pt-sm { padding-top: var(--space-sm); }
+@utility pt-md { padding-top: var(--space-md); }
+@utility pt-lg { padding-top: var(--space-lg); }
+@utility pt-xl { padding-top: var(--space-xl); }
+@utility pt-2xl { padding-top: var(--space-2xl); }
+@utility pt-3xl { padding-top: var(--space-3xl); }
+@utility pt-4xl { padding-top: var(--space-4xl); }
+
+@utility pb-2xs { padding-bottom: var(--space-2xs); }
+@utility pb-xs { padding-bottom: var(--space-xs); }
+@utility pb-sm { padding-bottom: var(--space-sm); }
+@utility pb-md { padding-bottom: var(--space-md); }
+@utility pb-lg { padding-bottom: var(--space-lg); }
+@utility pb-xl { padding-bottom: var(--space-xl); }
+@utility pb-2xl { padding-bottom: var(--space-2xl); }
+@utility pb-3xl { padding-bottom: var(--space-3xl); }
+@utility pb-4xl { padding-bottom: var(--space-4xl); }
+
+@utility pl-2xs { padding-left: var(--space-2xs); }
+@utility pl-xs { padding-left: var(--space-xs); }
+@utility pl-sm { padding-left: var(--space-sm); }
+@utility pl-md { padding-left: var(--space-md); }
+@utility pl-lg { padding-left: var(--space-lg); }
+@utility pl-xl { padding-left: var(--space-xl); }
+@utility pl-2xl { padding-left: var(--space-2xl); }
+@utility pl-3xl { padding-left: var(--space-3xl); }
+@utility pl-4xl { padding-left: var(--space-4xl); }
+
+@utility pr-2xs { padding-right: var(--space-2xs); }
+@utility pr-xs { padding-right: var(--space-xs); }
+@utility pr-sm { padding-right: var(--space-sm); }
+@utility pr-md { padding-right: var(--space-md); }
+@utility pr-lg { padding-right: var(--space-lg); }
+@utility pr-xl { padding-right: var(--space-xl); }
+@utility pr-2xl { padding-right: var(--space-2xl); }
+@utility pr-3xl { padding-right: var(--space-3xl); }
+@utility pr-4xl { padding-right: var(--space-4xl); }
+
+@utility m-2xs { margin: var(--space-2xs); }
+@utility m-xs { margin: var(--space-xs); }
+@utility m-sm { margin: var(--space-sm); }
+@utility m-md { margin: var(--space-md); }
+@utility m-lg { margin: var(--space-lg); }
+@utility m-xl { margin: var(--space-xl); }
+@utility m-2xl { margin: var(--space-2xl); }
+@utility m-3xl { margin: var(--space-3xl); }
+@utility m-4xl { margin: var(--space-4xl); }
+
+@utility mx-2xs { margin-inline: var(--space-2xs); }
+@utility mx-xs { margin-inline: var(--space-xs); }
+@utility mx-sm { margin-inline: var(--space-sm); }
+@utility mx-md { margin-inline: var(--space-md); }
+@utility mx-lg { margin-inline: var(--space-lg); }
+@utility mx-xl { margin-inline: var(--space-xl); }
+@utility mx-2xl { margin-inline: var(--space-2xl); }
+@utility mx-3xl { margin-inline: var(--space-3xl); }
+@utility mx-4xl { margin-inline: var(--space-4xl); }
+
+@utility my-2xs { margin-block: var(--space-2xs); }
+@utility my-xs { margin-block: var(--space-xs); }
+@utility my-sm { margin-block: var(--space-sm); }
+@utility my-md { margin-block: var(--space-md); }
+@utility my-lg { margin-block: var(--space-lg); }
+@utility my-xl { margin-block: var(--space-xl); }
+@utility my-2xl { margin-block: var(--space-2xl); }
+@utility my-3xl { margin-block: var(--space-3xl); }
+@utility my-4xl { margin-block: var(--space-4xl); }
+
+@utility mt-2xs { margin-top: var(--space-2xs); }
+@utility mt-xs { margin-top: var(--space-xs); }
+@utility mt-sm { margin-top: var(--space-sm); }
+@utility mt-md { margin-top: var(--space-md); }
+@utility mt-lg { margin-top: var(--space-lg); }
+@utility mt-xl { margin-top: var(--space-xl); }
+@utility mt-2xl { margin-top: var(--space-2xl); }
+@utility mt-3xl { margin-top: var(--space-3xl); }
+@utility mt-4xl { margin-top: var(--space-4xl); }
+
+@utility mb-2xs { margin-bottom: var(--space-2xs); }
+@utility mb-xs { margin-bottom: var(--space-xs); }
+@utility mb-sm { margin-bottom: var(--space-sm); }
+@utility mb-md { margin-bottom: var(--space-md); }
+@utility mb-lg { margin-bottom: var(--space-lg); }
+@utility mb-xl { margin-bottom: var(--space-xl); }
+@utility mb-2xl { margin-bottom: var(--space-2xl); }
+@utility mb-3xl { margin-bottom: var(--space-3xl); }
+@utility mb-4xl { margin-bottom: var(--space-4xl); }
+
+@utility ml-2xs { margin-left: var(--space-2xs); }
+@utility ml-xs { margin-left: var(--space-xs); }
+@utility ml-sm { margin-left: var(--space-sm); }
+@utility ml-md { margin-left: var(--space-md); }
+@utility ml-lg { margin-left: var(--space-lg); }
+@utility ml-xl { margin-left: var(--space-xl); }
+@utility ml-2xl { margin-left: var(--space-2xl); }
+@utility ml-3xl { margin-left: var(--space-3xl); }
+@utility ml-4xl { margin-left: var(--space-4xl); }
+
+@utility mr-2xs { margin-right: var(--space-2xs); }
+@utility mr-xs { margin-right: var(--space-xs); }
+@utility mr-sm { margin-right: var(--space-sm); }
+@utility mr-md { margin-right: var(--space-md); }
+@utility mr-lg { margin-right: var(--space-lg); }
+@utility mr-xl { margin-right: var(--space-xl); }
+@utility mr-2xl { margin-right: var(--space-2xl); }
+@utility mr-3xl { margin-right: var(--space-3xl); }
+@utility mr-4xl { margin-right: var(--space-4xl); }
+
+@utility gap-2xs { gap: var(--space-2xs); }
+@utility gap-xs { gap: var(--space-xs); }
+@utility gap-sm { gap: var(--space-sm); }
+@utility gap-md { gap: var(--space-md); }
+@utility gap-lg { gap: var(--space-lg); }
+@utility gap-xl { gap: var(--space-xl); }
+@utility gap-2xl { gap: var(--space-2xl); }
+@utility gap-3xl { gap: var(--space-3xl); }
+@utility gap-4xl { gap: var(--space-4xl); }
+
+/* ─── Fonts (Fontshare) ─── */
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@700&display=swap") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Base styles ─── */
+body {
+  background-color: var(--color-bg-default);
+  color: var(--color-text-default);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Utility classes for Versi labels ─── */
+.vs-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.vs-h1 {
+  font-size: var(--font-size-3xl);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.vs-h2 {
+  font-size: var(--font-size-2xl);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.vs-h3 {
+  font-size: var(--font-size-xl);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.vs-body {
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  color: var(--color-text-default);
+}
+
+.vs-body-sm {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text-default);
+}
+
+.vs-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  background-color: var(--color-interactive-primary);
+  color: var(--color-text-inverse);
+  transition: background-color 200ms;
+}
+
+.vs-btn-primary:hover {
+  background-color: var(--color-interactive-hover);
+}
+
+.vs-btn-primary:focus-visible {
+  outline: 2px solid var(--color-interactive-primary);
+  outline-offset: 2px;
+}

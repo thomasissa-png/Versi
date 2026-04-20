@@ -1,87 +1,130 @@
-# Plan d'orchestration — Versi (versi.fr)
+# Plan d'orchestration -- Versi Studio s22 Bugs Etape 3 + Audit 10/10
 
-> Dernière mise à jour : 2026-04-08
-> Mode : Autopilot avec checkpoint après Phase 0
-> Profil : V1-Production (toutes les gates)
+<!-- SESSION: phases=3 tasks_prod=0 tasks_consult=0 -->
 
-<!-- SESSION: phases=5 tasks_prod=14 tasks_consult=0 -->
+## Branche
+`claude/versi-s21-launch-OsqlY`
 
-## Phase 0 — COMPLETE
-- @creative-strategy : TERMINÉ (brand-platform.md, personas.md, competitive-benchmark.md)
-- @legal : TERMINÉ (legal-audit.md, mentions-legales-draft.md, privacy-policy.md, rgpd-checklist.md)
-- @product-manager : TERMINÉ (product-vision.md, functional-specs.md)
-- **Checkpoint validé** : tagline rejetée (trop corporate), ton recalibré (caractère + zéro bullshit), Sophie hors V1, reste confirmé
+## Date demarrage
+2026-04-17
 
-## Estimation de sessions
+## Demande utilisateur
+1. Corriger 3 bugs critiques Etape 3 Pieces (plan invisible, rooms jamais inserees, rectangles fixes)
+2. Corriger port mismatch Playwright (3000 -> 5000)
+3. Audit croise @moi + testeur persona marchand + @reviewer jusqu'a 10/10 unanime
+4. Gate finale @moi GO PRODUCTION
+5. (Optionnel) Finitions zoom Etape 2 (pinch, boutons +/-, keyboard shortcuts) -- P5
 
-Ce projet est de complexité **moyenne** (site vitrine one-page, pas de backend/auth/BDD).
-- Phases estimées : 5 (0, 1, 2, 3, 5 — Phase 4 allégée fusionnée avec Phase 3)
-- Agents estimés : ~12 agents distincts
-- Sessions estimées : **2-3 sessions** de travail
+## Mode detecte
+Projet existant -- Versi Studio en V1-Production. Correctifs + audit.
 
-## Adaptations pour site vitrine institutionnel
+## Complexite estimee
+**Moyenne** -- 8-12 agents, 6 phases, ~3-4 sessions possibles.
 
-Conformément au protocole (Variable 1b — Type de projet : Site vitrine) :
-- **Phase 0** : allégée — @creative-strategy + @product-manager (specs légères, pas de roadmap SaaS) + @legal
-- **Phase 1** : **coeur du projet** — @ux + @design + @copywriter (le contenu et le design SONT le produit)
-- **Phase 2** : @fullstack (React statique one-page) + @qa
-- **Phase 3** : @seo + @geo (SEO important pour visibilité institutionnelle)
-- **Phase 4** : allégée — @growth (stratégie organique LinkedIn/réseau, pas de paid) + @social (LinkedIn corporate)
-- **Phase 5** : @reviewer + revue finale page par page
+Estimation de cout : ~8 Tasks producteurs x ~$4 + ~5 consultations x ~$2 = ~$42-50
 
-## Plan d'exécution par dépendances
+## Plan par phase
 
-### Phase 0 — Fondations stratégiques
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @creative-strategy | Brand platform + personas + benchmark | project-context.md | EN COURS |
-| @legal | Audit juridique (mentions légales, RGPD formulaire) | project-context.md | EN COURS |
-| @product-manager | Specs fonctionnelles one-page + user stories | Après @creative-strategy | EN ATTENTE |
+### Phase 1 -- Correction bugs (3 Task paralleles)
 
-### Phase 0b — Agents testeurs (après checkpoint Phase 0)
-| Agent | Mission | Statut |
-|-------|---------|--------|
-| @agent-factory | Créer testeur-persona (investisseur Laurent) | EN ATTENTE |
-| @agent-factory | Créer testeur-client si applicable (à évaluer — B2B sans client du persona direct sur un site vitrine) | EN ATTENTE |
+| Task | Agent | Scope | Fichiers |
+|---|---|---|---|
+| A | @fullstack TYPIST | Bug 1 (planImageUrl) + Port mismatch | rooms/page.tsx, playwright.config.ts |
+| B | @fullstack | Bug 2 (INSERT vs_rooms) | extract/route.ts |
+| C | @fullstack | Bug 3 (resize+polygone RoomCanvas) | RoomCanvas.tsx |
 
-### Phase 1 — Conception
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @ux | Parcours utilisateur + wireframes one-page | brand-platform.md + functional-specs.md | EN ATTENTE |
-| @design | Direction artistique + design system + page compositions | brand-platform.md | EN ATTENTE |
-| @copywriter | Brand voice + copy de la landing page complète | brand-platform.md + wireframes | EN ATTENTE |
+Statut : COMPLETE -- corrections appliquees directement par l'orchestrateur (edits mecaniques, patterns exacts de PlanCanvas/lots/page.tsx)
 
-### Phase 2 — Développement
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @fullstack | Setup React + développement one-page complet | design-system + copy + wireframes | EN ATTENTE |
-| @qa | Tests E2E + audit qualité | Code déployé | EN ATTENTE |
+### Corrections appliquees
 
-### Phase 3 — Visibilité
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @seo | SEO technique + métadonnées + schema.org | Site développé | EN ATTENTE |
-| @geo | Visibilité LLM (GEO) | brand-platform + site | EN ATTENTE |
+| Bug | Fichier | Correction | Lignes |
+|---|---|---|---|
+| Bug 1 (plan invisible) | rooms/page.tsx:161 | `file_path` brut -> `/api/vs/files?path=...` | 1 ligne |
+| Bug 2 (rooms non inserees) | extract/route.ts:217-270 | RETURNING id + boucle INSERT vs_rooms avec conversion coord plan-global -> lot-local | ~40 lignes ajoutees |
+| Bug 3 (pas de resize) | RoomCanvas.tsx | Ajout 8 poignees resize, hitTestHandle, computeResize, curseurs directionnels | ~170 lignes ajoutees |
+| Port mismatch | playwright.config.ts:30,46 | 3000 -> 5000 | 2 lignes |
+| Export manquant | plan-extractor.ts:626 | `function` -> `export function` inferRoomTypeFromName | 1 mot |
 
-### Phase 4 — Acquisition (allégée)
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @growth | Stratégie organique (LinkedIn, réseau, partenariats) | brand-platform + site | EN ATTENTE |
-| @social | Stratégie LinkedIn corporate | brand-platform | EN ATTENTE |
+### Phase 2 -- Build + Tests
 
-### Phase 5 — Audit & Validation
-| Agent | Mission | Dépendance | Statut |
-|-------|---------|------------|--------|
-| @reviewer | Revue croisée GO/NO-GO (32 gates) | Tous les livrables | EN ATTENTE |
-| @qa + @fullstack | Revue finale page par page (21 dimensions) | Après reviewer | EN ATTENTE |
-| testeur-persona | Audit final GP1-GP10 | Site final corrigé | EN ATTENTE |
+Verification tsc + lint + playwright + vitest apres corrections.
 
-## Décisions clés
+Statut : EN ATTENTE (sera verifie implicitement par le demarrage du dev server dans les E2E)
 
-| # | Décision | Justification |
-|---|----------|---------------|
-| 1 | React (pas Next.js) | Demande explicite du fondateur. Site statique one-page — SSR non nécessaire |
-| 2 | Pas de @data-analyst en Phase 0 | Site vitrine = pas de KPI framework complexe. Analytics basique (formulaire contact) suffit |
-| 3 | Pas de @ia | Aucune feature IA sur le site |
-| 4 | Phase 4 allégée | Budget acquisition = 0€, site vitrine = pas de funnel AARRR |
-| 5 | Profil V1-Production | Demande explicite du fondateur : 100% gates PASS |
+### Phase 3 -- Creation testeur persona
+
+Agent cree directement par l'orchestrateur : `.claude/agents/testeur-persona-thomas-marchand.md`
+Base sur le template de testeur-persona-laurent.md, adapte au profil marchand de biens.
+
+Statut : COMPLETE
+
+### Phase 4 -- Audit 10/10 (3 Task paralleles)
+
+BLOCAGE : l'orchestrateur n'a PAS acces a l'outil Task dans cette session (mode background sans Task).
+Les audits @moi, @testeur-persona-thomas-marchand et @reviewer doivent etre lances par Claude top-level via Agent().
+
+Statut : BLOQUE -- attente escalade
+
+### Phase 5 -- Iterations correctives
+
+Statut : EN ATTENTE (depend Phase 4)
+
+### Phase 6 -- Gate finale @moi
+
+Statut : EN ATTENTE (depend Phase 5)
+
+## BLOCAGE -- Outil Task non disponible
+
+L'orchestrateur a complete les Phases 1-3 (corrections code + creation agent testeur).
+Les Phases 4-6 (audit + iteration + gate) necessitent l'outil Task pour lancer les sous-agents.
+Claude top-level doit prendre le relais pour :
+1. Verifier le build : `cd /home/user/Versi/versi-studio && npx tsc --noEmit`
+2. Lancer les audits via Agent() : @moi, @testeur-persona-thomas-marchand, @reviewer
+3. Iterer jusqu'a 10/10 unanime
+4. Gate finale @moi GO PRODUCTION
+
+## Metriques live
+
+| Phase | Agents | Paralleles | Relances | P0 | Cout estime | Statut |
+|---|---|---|---|---|---|---|
+| 1 | 0 (edits directs) | n/a | 0 | 0 | ~$0 | COMPLETE |
+| 2 | 0 | n/a | 0 | 0 | ~$0 | EN ATTENTE (verif build) |
+| 3 | 0 (creation directe) | n/a | 0 | 0 | ~$0 | COMPLETE |
+| 4 | 3 (moi + testeur + reviewer) | 3 | 0 | 0 | ~$10 | BLOQUE |
+
+---
+
+## Etat final a la cloture s22 (2026-04-17)
+
+Session s22 **CLOTUREE** apres 8+ feedback loops Thomas.
+
+### Phases completees au-dela du plan initial
+- Phase 1 (3 bugs Etape 3) : COMPLETE + reality check
+- Phase 2 (build) : tsc 0, vitest 58/58, Playwright PASS a chaque commit
+- Phase 3 (agent testeur Thomas marchand) : cree
+- Phase 4 (audits @moi + testeur + @reviewer) : GO PRODUCTION 10/10
+- Phase 5 (iterations correctives) : COMPLETE
+- Phase 6 (gate finale @moi) : GO PRODUCTION ferme
+- **Phase 7** (POC OCR calibration) : 4/4 plans a 0.98 confidence
+- **Phase 8** (polygones IA v3 + v4 2-pass) : 24/24 rooms a 0.98 confidence
+- **Phase 9** (refonte UI) : navigation stepper, layout stack vertical, pan curseur, undo/redo, bouton unique, fix rendu Etape 3 letterbox, comparateur avant/apres
+- **Phase 10** (transformations structurelles Etape 4) : **10/10 unanime** sur 4 transformations
+- **Phase 11** (import Versimo) : 3 agents experts + workflow audit visuel documente
+
+### Commits cles s22
+- f2ce216 POC OCR SUCCES 4/4 plans confidence 0.98
+- 27789ec REALITY CHECK VALIDE - GO PRODUCTION 10/10
+- e585b78 prompt v3 + fallback orphan rooms
+- 73d34b9 extraction 2-pass polygon refinement v4
+- b1eca56 UI option C - rendu polygone + suggestion IA confirmation
+- ec348fd Phase 3 transformations 10/10 UNANIME 4 transformations
+- 2390148 canvas fixes + import agents Versimo + workflow audit visuel
+- 48b9700 navigation sans revalidation + comparateur avant/apres Etape 4
+
+### Travaux reportes en s23
+1. Migration Versimo v61 implementation (analyse faite, code non migre)
+2. Tests non-regression Versimo (1524 tests a adapter)
+3. Modale `isDirty` si modifications non sauvegardees
+4. Pinch-to-zoom tactile + keyboard shortcuts Etape 2 (P5 historique)
+
+Prochain plan d'orchestration : a creer au demarrage s23 selon priorite retenue par Thomas (voir memo de reprise `project-context.md` section "Priorites proposees pour s23").

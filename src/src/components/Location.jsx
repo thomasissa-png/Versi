@@ -22,7 +22,7 @@ export default function Location() {
             Et les métropoles françaises.
           </h2>
           <p className="text-body-lg location__subtitle">
-            Versi opère sur des marchés où la densité et la demande locative justifient une transformation.
+            Paris et Lille en opérations actives. Lyon, Bordeaux, Marseille en veille — chaque extension est une décision, pas une ambition affichée.
           </p>
           <div className="location__legend">
             <span className="location__legend-item">
@@ -81,9 +81,10 @@ export default function Location() {
                     x={city.x + 12}
                     y={city.y + 4}
                     fill="var(--color-text-muted)"
-                    fontSize="12"
+                    fontSize="14"
                     fontFamily="var(--font-family)"
                     letterSpacing="0.06em"
+                    className="location__map-label"
                   >
                     {city.name.toUpperCase()}
                   </text>

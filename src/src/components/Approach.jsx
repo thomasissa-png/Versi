@@ -10,7 +10,7 @@ const STEPS = [
   {
     num: '02',
     title: 'ANALYSER',
-    body: 'Due diligence interne : rentabilité, potentiel de transformation, risque de sortie. Décision en semaines, pas en trimestres.',
+    body: 'Due diligence interne : rentabilité, potentiel de transformation, risque de sortie. Décision en jours, pas en trimestres.',
   },
   {
     num: '03',
@@ -20,7 +20,7 @@ const STEPS = [
   {
     num: '04',
     title: 'OPÉRER',
-    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l\'acquisition. Pas d\'improvisation en fin de cycle.',
+    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l\'acquisition. Chaque sortie est anticipée dès l\'entrée.',
   },
 ];
 
@@ -31,8 +31,8 @@ export default function Approach() {
     <section id="approche" className="approach section-padding" ref={ref}>
       <div className="container">
         <span className="text-label approach__label">APPROCHE</span>
-        <h2 className="text-heading-lg approach__title">Notre méthode.</h2>
-        <p className="approach__subtitle">Quatre étapes. Un cycle reproductible.</p>
+        <h2 className="text-heading-lg approach__title">Quatre étapes. Aucune délégation.</h2>
+        <p className="approach__subtitle">Un cycle reproductible. Les mêmes critères, les mêmes exigences, opération après opération.</p>
 
         <div className={`approach__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
           {STEPS.map((step, i) => (
