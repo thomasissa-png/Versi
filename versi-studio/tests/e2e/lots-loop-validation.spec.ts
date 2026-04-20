@@ -90,9 +90,9 @@ test("s20 audit — zoom + polygones", async ({ page }) => {
   await page.screenshot({ path: "/tmp/audit-s20-0-initial.png", fullPage: false });
 
   // ─── Test 1 : Bouton "Dessiner un polygone" présent ──────────────
-  const polygonBtn = page.getByRole("button", { name: /dessiner un polygone|polygone/i });
+  const polygonBtn = page.getByRole("button", { name: /tracer un contour libre|contour libre/i });
   const polygonBtnVisible = await polygonBtn.isVisible().catch(() => false);
-  console.log("Bouton 'Dessiner un polygone' visible :", polygonBtnVisible);
+  console.log("Bouton 'Tracer un contour libre' visible :", polygonBtnVisible);
 
   // ─── Test 2 : Activer mode dessin polygone ───────────────────────
   if (polygonBtnVisible) {

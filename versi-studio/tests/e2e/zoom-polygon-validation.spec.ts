@@ -156,12 +156,12 @@ test("Phase 2 — création d'un lot polygonal via dessin manuel", async ({ page
   await page.waitForTimeout(1000);
 
   // Cliquer sur "Dessiner un polygone"
-  const drawBtn = page.getByRole("button", { name: /Dessiner un polygone/i });
+  const drawBtn = page.getByRole("button", { name: /Tracer un contour libre/i });
   await expect(drawBtn).toBeVisible();
   await drawBtn.click();
 
   // Bandeau "Mode dessin polygone actif" doit apparaître
-  await expect(page.getByText(/Mode dessin polygone actif/i)).toBeVisible();
+  await expect(page.getByText(/Tracé libre en cours/i)).toBeVisible();
 
   const canvas = page.locator("canvas").first();
   const box = await canvas.boundingBox();
@@ -196,7 +196,7 @@ test("Phase 2 — création d'un lot polygonal via dessin manuel", async ({ page
   expect(body.zone_data.points.length).toBeGreaterThanOrEqual(3);
 
   // Bandeau dessin doit disparaître
-  await expect(page.getByText(/Mode dessin polygone actif/i)).toHaveCount(0);
+  await expect(page.getByText(/Tracé libre en cours/i)).toHaveCount(0);
 
   // Screenshot
   await page.screenshot({

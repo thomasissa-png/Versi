@@ -305,8 +305,8 @@ test("Escape annule dessin polygone", async ({ page }) => {
   });
 
   // Activer dessin polygone
-  await page.getByRole("button", { name: /Dessiner un polygone/i }).click();
-  await expect(page.getByText(/Mode dessin polygone actif/i)).toBeVisible();
+  await page.getByRole("button", { name: /Tracer un contour libre/i }).click();
+  await expect(page.getByText(/Tracé libre en cours/i)).toBeVisible();
 
   const canvas = page.locator("canvas").first();
   const box = await canvas.boundingBox();
@@ -326,7 +326,7 @@ test("Escape annule dessin polygone", async ({ page }) => {
   await page.waitForTimeout(300);
 
   // Bandeau dessin doit avoir disparu, aucun POST envoyé
-  await expect(page.getByText(/Mode dessin polygone actif/i)).toHaveCount(0);
+  await expect(page.getByText(/Tracé libre en cours/i)).toHaveCount(0);
   expect(postCount).toBe(0);
 });
 

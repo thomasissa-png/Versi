@@ -190,7 +190,7 @@ export default function PlanCalibration({
           Calibrer le plan
         </h2>
         <p className="text-sm text-[var(--color-text-muted)] mb-md">
-          Tracez une ligne sur un mur dont vous connaissez la longueur (cliquez sur deux points), puis indiquez la longueur en mètres.
+          Cliquez sur deux extrémités d&apos;un mur dont vous connaissez la longueur, puis saisissez cette longueur en mètres.
         </p>
 
         {isAutoDetecting && (
@@ -258,9 +258,9 @@ export default function PlanCalibration({
         </div>
 
         <div role="status" aria-live="polite" className="mt-sm text-xs text-[var(--color-text-muted)] min-h-[16px]">
-          {!pointA && "Étape 1 sur 2 — cliquez sur le premier point de la ligne."}
-          {pointA && !pointB && "Étape 2 sur 2 — cliquez sur le second point de la ligne."}
-          {pointA && pointB && "Indiquez la longueur réelle puis validez."}
+          {!pointA && "Cliquez sur le premier point de votre ligne de référence."}
+          {pointA && !pointB && "Cliquez sur le second point."}
+          {pointA && pointB && "Indiquez la longueur réelle en mètres."}
         </div>
 
         {pointA && pointB && (

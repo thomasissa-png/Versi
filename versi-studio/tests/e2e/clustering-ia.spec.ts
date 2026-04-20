@@ -351,10 +351,10 @@ test.describe("Clustering IA — lots pre-crees", () => {
     await setupMockRoutes(page, []);
     await page.goto(`/vs/projects/${PROJECT_ID}/lots`);
 
-    // Verifier l'etat vide guide — U3 etat vide differencie (versi-s21 it2)
+    // Verifier l'etat vide guide — U3 etat vide differencie (versi-s21 it2, copy s23)
     // hasAiExtracted = true car MOCK_PLANS_EXTRACTED a extraction_status: "done"
-    // → message = "L'IA n'a pas detecte de lots fiables sur ce plan."
-    await expect(page.locator("main").getByText(/n'a pas détecté de lots fiables/)).toBeVisible();
+    // → message = "Aucun lot détecté sur ce plan." (s23 @copywriter)
+    await expect(page.locator("main").getByText(/Aucun lot détecté sur ce plan/)).toBeVisible();
 
     // Le bouton "Tout valider" ne doit pas etre visible
     await expect(page.getByRole("button", { name: /Tout valider/ })).not.toBeVisible();

@@ -125,7 +125,7 @@ function LotCard({
       return `${computedSurfaceM2.toFixed(0)} m²`;
     }
     if (lot.surface_m2 != null) {
-      return `${Number(lot.surface_m2).toFixed(0)} m² (avant calibration)`;
+      return `${Number(lot.surface_m2).toFixed(0)} m² (estimation IA)`;
     }
     return "Calibrez le plan pour afficher la surface";
   })();
@@ -356,7 +356,7 @@ export default function LotPanel({
         )}
         {lots.some((l) => l.source === "ai") && (
           <p className="text-xs text-[var(--color-text-muted)] italic mt-2xs">
-            Les zones sont une approximation rectangulaire de l&apos;union des pièces détectées.
+            Les contours proposés par l&apos;IA sont des estimations. Ajustez-les si nécessaire.
           </p>
         )}
       </div>
@@ -367,13 +367,13 @@ export default function LotPanel({
           <div className="text-center text-sm text-[var(--color-text-muted)] py-2xl px-md">
             {hasAiExtracted ? (
               <>
-                <p>L&apos;IA n&apos;a pas détecté de lots fiables sur ce plan.</p>
-                <p className="mt-sm">Dessinez vos lots manuellement avec le bouton ci-dessous.</p>
+                <p>Aucun lot détecté sur ce plan.</p>
+                <p className="mt-sm">Tracez-les manuellement avec le bouton ci-dessous.</p>
               </>
             ) : (
               <>
                 <p>Aucun lot pour le moment.</p>
-                <p className="mt-sm">Lancez l&apos;extraction IA ou dessinez un lot manuellement.</p>
+                <p className="mt-sm">Lancez la détection IA ou tracez un lot manuellement.</p>
               </>
             )}
           </div>
@@ -407,24 +407,8 @@ export default function LotPanel({
         )}
       </div>
 
-      {/* I7 — Pièces non assignées (versi-s21 it2) */}
-      {unassignedRooms && unassignedRooms.length > 0 && (
-        <div className="mt-md p-sm bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-sm font-medium text-[var(--color-text-default)] mb-xs">
-            Pièces non assignées ({unassignedRooms.length})
-          </h3>
-          <ul className="text-xs text-[var(--color-text-muted)] space-y-xs">
-            {unassignedRooms.map((room, idx) => (
-              <li key={idx}>
-                {room.name_raw} · {room.surface_m2 ? `${room.surface_m2.toFixed(1)} m²` : "surface inconnue"} · étage {room.floor ?? "?"}
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-[var(--color-text-muted)] mt-xs italic">
-            Ces pièces n&apos;ont pas été rattachées à un lot (parties communes, couloirs, locaux techniques).
-          </p>
-        </div>
-      )}
+      {/* I7 — Pièces non assignées : bloc supprimé s23 (spec @ux)
+          Données préservées en DB et dans la prop `unassignedRooms` (réutilisable Étape 3). */}
 
       {/* Actions (s22 Point 4) */}
       <div className="border-t border-[var(--color-border-default)] py-md mt-lg flex flex-col gap-sm">
@@ -435,10 +419,9 @@ export default function LotPanel({
             aria-live="polite"
             className="rounded-md bg-[var(--color-interactive-primary)]/10 border border-[var(--color-interactive-primary)] px-md py-sm text-xs text-[var(--color-text-default)] flex flex-col gap-xs"
           >
-            <p className="font-medium">Mode dessin polygone actif</p>
+            <p className="font-medium">Tracé libre en cours</p>
             <p className="text-[var(--color-text-muted)]">
-              Cliquez pour ajouter un sommet, double-cliquez pour fermer la forme,
-              Échap pour annuler, Retour arrière pour supprimer le dernier point.
+              Cliquez pour poser un point. Double-cliquez pour fermer le contour. Échap pour annuler.
             </p>
             <button
               type="button"
@@ -514,7 +497,7 @@ export default function LotPanel({
                 d="M5 4l7 5 7-5-3 9-4 7-4-7-3-9z"
               />
             </svg>
-            Dessiner un polygone
+            Tracer un contour libre
           </button>
         )}
 

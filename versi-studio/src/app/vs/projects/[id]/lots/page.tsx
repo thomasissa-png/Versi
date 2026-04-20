@@ -521,7 +521,9 @@ export default function LotsPage({
               failedIds.has(l.id) ? { ...l, status: "suggested" as const } : l
             )
           );
-          setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
+          setError(
+            `${failedIds.size} lot${failedIds.size > 1 ? "s" : ""} n'${failedIds.size > 1 ? "ont" : "a"} pas pu être validé${failedIds.size > 1 ? "s" : ""}.`
+          );
           setValidating(false);
           return;
         }
@@ -689,7 +691,9 @@ export default function LotsPage({
           failedIds.has(l.id) ? { ...l, status: "suggested" as const } : l
         )
       );
-      setError(`${failedIds.size} lot(s) n'ont pas pu être validé(s).`);
+      setError(
+        `${failedIds.size} lot${failedIds.size > 1 ? "s" : ""} n'${failedIds.size > 1 ? "ont" : "a"} pas pu être validé${failedIds.size > 1 ? "s" : ""}.`
+      );
     }
 
     // Analytics — lots IA validés globalement (versi-s21)
@@ -859,8 +863,8 @@ export default function LotsPage({
               : "Découpez vos lots"}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-sm">
-            Ajustez chaque lot par glisser-déposer. Zoomez à la molette, puis glissez le fond pour naviguer.
-            Utilisez « Dessiner un polygone » pour les formes complexes (appartements en L, retraits, pièces obliques).
+            Ajustez chaque lot par glisser-déposer. Zoomez à la molette pour naviguer.
+            Pour un lot en L ou avec des retraits, utilisez « Tracer un contour libre ».
           </p>
         </div>
 
