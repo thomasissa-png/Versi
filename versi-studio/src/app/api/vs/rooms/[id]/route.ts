@@ -27,6 +27,8 @@ interface PatchRoomPayload {
   custom_label?: string | null;
   surface_m2?: number | null;
   position?: Record<string, unknown> | null;
+  /** s23 fix désync — polygon transformé (cohérent avec position) */
+  polygon?: Array<Record<string, unknown>> | null;
   /** Marque explicitement la pièce comme confirmée par l'utilisateur */
   touched?: boolean;
 }
@@ -102,6 +104,12 @@ export async function PATCH(
     if (body.position !== undefined) {
       setClauses.push(`position = $${paramIndex++}`);
       values.push(body.position ? JSON.stringify(body.position) : null);
+    }
+
+    // s23 fix désync — polygon transformé lors des drag/resize
+    if (body.polygon !== undefined) {
+      setClauses.push(`polygon = $${paramIndex++}`);
+      values.push(body.polygon ? JSON.stringify(body.polygon) : null);
     }
 
     // Option C : toute modification utilisateur marque la pièce comme confirmée.

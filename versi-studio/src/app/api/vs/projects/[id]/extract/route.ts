@@ -543,10 +543,43 @@ export async function POST(
 
         for (const room of group.rooms) {
           const bb = room.bounding_box;
-          // Position lot-local : re-normaliser la bbox de la room
-          // relativement à la bbox englobante du lot (zoneData)
+          const roomType = inferRoomTypeFromName(room.name_raw);
+
+          // Convertir bounding_polygon plan-global → lot-local (même re-normalisation que position)
+          let polygonLocal: Array<{ x_percent: number; y_percent: number }> | null = null;
+          if (room.bounding_polygon && room.bounding_polygon.length >= 4 && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
+            polygonLocal = room.bounding_polygon.map((pt) => ({
+              x_percent: Math.max(0, Math.min(100, ((pt.x_percent - zoneData.x_percent) / zoneData.width_percent) * 100)),
+              y_percent: Math.max(0, Math.min(100, ((pt.y_percent - zoneData.y_percent) / zoneData.height_percent) * 100)),
+            }));
+          }
+
+          // s23 fix désync — position = tight bbox(polygonLocal) si dispo, sinon
+          // re-normalisation du bounding_box IA grossier. Objectif : position et
+          // polygon restent synchronisés de bout en bout (handles de resize
+          // collent au contour vert rendu à l'Étape 3).
           let position: Record<string, number> | null = null;
-          if (bb && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
+          if (polygonLocal && polygonLocal.length >= 4) {
+            let minX = 100, minY = 100, maxX = 0, maxY = 0;
+            for (const p of polygonLocal) {
+              if (p.x_percent < minX) minX = p.x_percent;
+              if (p.y_percent < minY) minY = p.y_percent;
+              if (p.x_percent > maxX) maxX = p.x_percent;
+              if (p.y_percent > maxY) maxY = p.y_percent;
+            }
+            const w = maxX - minX;
+            const h = maxY - minY;
+            if (w > 0 && h > 0) {
+              position = {
+                x_percent: Math.max(0, Math.min(100, minX)),
+                y_percent: Math.max(0, Math.min(100, minY)),
+                width_percent: Math.max(1, Math.min(100, w)),
+                height_percent: Math.max(1, Math.min(100, h)),
+              };
+            }
+          }
+          // Fallback : pas de polygon → bbox IA re-normalisée (ancien comportement)
+          if (!position && bb && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
             position = {
               x_percent: ((bb.x_percent - zoneData.x_percent) / zoneData.width_percent) * 100,
               y_percent: ((bb.y_percent - zoneData.y_percent) / zoneData.height_percent) * 100,
@@ -558,17 +591,6 @@ export async function POST(
             position.y_percent = Math.max(0, Math.min(100, position.y_percent));
             position.width_percent = Math.max(1, Math.min(100 - position.x_percent, position.width_percent));
             position.height_percent = Math.max(1, Math.min(100 - position.y_percent, position.height_percent));
-          }
-
-          const roomType = inferRoomTypeFromName(room.name_raw);
-
-          // Convertir bounding_polygon plan-global → lot-local (même re-normalisation que position)
-          let polygonLocal: Array<{ x_percent: number; y_percent: number }> | null = null;
-          if (room.bounding_polygon && room.bounding_polygon.length >= 4 && zoneData.width_percent > 0 && zoneData.height_percent > 0) {
-            polygonLocal = room.bounding_polygon.map((pt) => ({
-              x_percent: Math.max(0, Math.min(100, ((pt.x_percent - zoneData.x_percent) / zoneData.width_percent) * 100)),
-              y_percent: Math.max(0, Math.min(100, ((pt.y_percent - zoneData.y_percent) / zoneData.height_percent) * 100)),
-            }));
           }
 
           await query(

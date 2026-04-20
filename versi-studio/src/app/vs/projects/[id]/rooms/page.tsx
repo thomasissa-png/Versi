@@ -391,6 +391,9 @@ export default function RoomsPage({
         apiUpdates.surface_m2 = updates.surface_m2;
       if (updates.position !== undefined)
         apiUpdates.position = updates.position;
+      // s23 fix désync — propager le polygon transformé au PATCH (sync avec position)
+      if (updates.polygon !== undefined)
+        apiUpdates.polygon = updates.polygon;
 
       if (Object.keys(apiUpdates).length > 0) {
         // UX-P1-1 : PATCH room_type immédiat (pas de debounce)
@@ -412,11 +415,17 @@ export default function RoomsPage({
         y_percent: number;
         width_percent: number;
         height_percent: number;
-      }
+      },
+      // s23 fix désync — polygon transformé en cohérence avec la nouvelle bbox
+      polygon?: Array<{ x_percent: number; y_percent: number }> | null
     ) => {
-      handleUpdateRoom(roomId, {
+      const updates: Partial<VsRoom> = {
         position: position as unknown as Record<string, unknown>,
-      });
+      };
+      if (polygon !== undefined && polygon !== null) {
+        updates.polygon = polygon;
+      }
+      handleUpdateRoom(roomId, updates);
     },
     [handleUpdateRoom]
   );

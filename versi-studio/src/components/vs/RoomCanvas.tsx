@@ -55,8 +55,18 @@ interface RoomCanvasProps {
   selectedRoomId: string | null;
   /** Callback quand une piece est selectionnee */
   onSelectRoom: (roomId: string | null) => void;
-  /** Callback quand une piece est deplacee (debounce gere par le parent) */
-  onMoveRoom: (roomId: string, position: RoomPosition) => void;
+  /**
+   * Callback quand une piece est deplacee (debounce gere par le parent).
+   *
+   * s23 fix désync — le canvas peut fournir un polygon transformé pour maintenir
+   * la cohérence contour/bbox pendant resize/move. Si absent, le parent garde
+   * l'ancien polygon (fallback safe).
+   */
+  onMoveRoom: (
+    roomId: string,
+    position: RoomPosition,
+    polygon?: Array<{ x_percent: number; y_percent: number }> | null
+  ) => void;
   /** Si true et une pièce est non_identifie, overlay rouge (CORR-C3) */
   validationBlocked?: boolean;
   /** Callback suppression pièce via clic droit (versi-s22 P4) */
@@ -89,6 +99,65 @@ function getRoomPosition(room: VsRoom): RoomPosition | null {
     return null;
   }
   return pos;
+}
+
+/**
+ * Transforme un polygon (en coords lot-local %) pour qu'il suive une nouvelle
+ * bbox. Scale + translate proportionnel depuis `origBbox` vers `newBbox`.
+ *
+ * Préserve la forme (ex: pièce en L reste en L) mais la redimensionne et la
+ * repositionne. Utilisé pendant resize/move pour que le polygon rendu reste
+ * synchro avec la bbox éditable.
+ */
+function transformPolygon(
+  origBbox: RoomPosition,
+  newBbox: RoomPosition,
+  polygon: Array<{ x_percent: number; y_percent: number }>
+): Array<{ x_percent: number; y_percent: number }> {
+  if (origBbox.width_percent <= 0 || origBbox.height_percent <= 0) return polygon;
+  const sx = newBbox.width_percent / origBbox.width_percent;
+  const sy = newBbox.height_percent / origBbox.height_percent;
+  return polygon.map((p) => ({
+    x_percent: newBbox.x_percent + (p.x_percent - origBbox.x_percent) * sx,
+    y_percent: newBbox.y_percent + (p.y_percent - origBbox.y_percent) * sy,
+  }));
+}
+
+/**
+ * s23 fix désync polygon/bbox — retourne la bbox utilisée pour le rendu
+ * des handles de resize et le hit-test.
+ *
+ * Si la room a un polygon valide (≥ 4 pts), on calcule la tight bbox depuis
+ * le polygon pour garantir que les handles collent au contour visible.
+ * Sinon, on retombe sur `position` (bbox stockée en DB).
+ *
+ * C'est une mesure défensive : même si `position` est désynchronisée en DB
+ * (legacy de l'extraction avant fix extract route), le rendu reste cohérent
+ * avec le polygon que l'utilisateur voit.
+ */
+function getRoomRenderBbox(room: VsRoom, fallback: RoomPosition): RoomPosition {
+  const polygon = room.polygon;
+  if (!Array.isArray(polygon) || polygon.length < 4) return fallback;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of polygon) {
+    if (typeof p?.x_percent !== "number" || typeof p?.y_percent !== "number") {
+      return fallback; // polygon invalide → fallback
+    }
+    if (p.x_percent < minX) minX = p.x_percent;
+    if (p.y_percent < minY) minY = p.y_percent;
+    if (p.x_percent > maxX) maxX = p.x_percent;
+    if (p.y_percent > maxY) maxY = p.y_percent;
+  }
+  const w = maxX - minX;
+  const h = maxY - minY;
+  if (w <= 0 || h <= 0) return fallback;
+  return {
+    x_percent: minX,
+    y_percent: minY,
+    width_percent: w,
+    height_percent: h,
+  };
 }
 
 function getDropdownLabel(roomType: string): string {
@@ -255,7 +324,8 @@ export default function RoomCanvas({
   const [imageNaturalSize, setImageNaturalSize] = useState({ w: 0, h: 0 });
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
-  // Drag state (move ou resize)
+  // Drag state (move ou resize) — s23 fix désync : origPolygon conservé pour
+  // transformer le polygon en cohérence avec la nouvelle bbox.
   const [dragging, setDragging] = useState<{
     type: "move" | "resize";
     roomId: string;
@@ -263,6 +333,7 @@ export default function RoomCanvas({
     startX: number;
     startY: number;
     origPos: RoomPosition;
+    origPolygon: Array<{ x_percent: number; y_percent: number }> | null;
   } | null>(null);
 
   // ─── Viewport (zoom + pan) — versi-s22 P4 (calqué sur PlanCanvas) ──
@@ -779,9 +850,10 @@ export default function RoomCanvas({
         ctx.stroke();
         ctx.setLineDash([]); // reset
 
-        // Halo de sélection (bounding box du polygone)
+        // Halo de sélection (tight bbox du polygone — s23 fix désync)
         if (isSelected) {
-          const { x, y, w, h } = toCanvasCoords(pos);
+          const bboxForHalo = getRoomRenderBbox(room, pos);
+          const { x, y, w, h } = toCanvasCoords(bboxForHalo);
           ctx.strokeStyle = hexToRgba(baseColor, 0.3);
           ctx.lineWidth = 6;
           ctx.setLineDash([]);
@@ -902,9 +974,10 @@ export default function RoomCanvas({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      // ─── Poignées de resize (toujours basées sur la bbox rectangle) ──
+      // ─── Poignées de resize (tight bbox du polygon si dispo — s23 fix désync) ──
       if (isSelected) {
-        const { x, y, w, h } = toCanvasCoords(pos);
+        const bboxForHandles = getRoomRenderBbox(room, pos);
+        const { x, y, w, h } = toCanvasCoords(bboxForHandles);
         const handles = getHandlePositions(x, y, w, h);
         for (const handle of handles) {
           ctx.fillStyle = "#FFFFFF";
@@ -926,7 +999,7 @@ export default function RoomCanvas({
         }
       }
     }
-  }, [canvasSize, imageLoaded, rooms, selectedRoomId, toCanvasCoords, toCanvasPolygonPoints, validationBlocked, renderLayout, viewport]);
+  }, [canvasSize, imageLoaded, rooms, selectedRoomId, toCanvasCoords, toCanvasPolygonPoints, validationBlocked, renderLayout, viewport, lotToGlobalPercent, lotZone.height_percent, lotZone.width_percent, lotZone.x_percent, lotZone.y_percent]);
 
   useEffect(() => {
     draw();
@@ -986,7 +1059,9 @@ export default function RoomCanvas({
       const rawY = clientY - rect.top;
       // Convertir en coords logiques — versi-s22 P4
       const { px, py } = screenToLogical(rawX, rawY);
-      const { x, y, w, h } = toCanvasCoords(pos);
+      // s23 fix désync — hit-test sur tight bbox du polygon (alignée au rendu)
+      const bboxForHitTest = getRoomRenderBbox(room, pos);
+      const { x, y, w, h } = toCanvasCoords(bboxForHitTest);
 
       const handles = getHandlePositions(x, y, w, h);
       for (const handle of handles) {
@@ -1037,13 +1112,21 @@ export default function RoomCanvas({
           if (handle) {
             const pos = getRoomPosition(selectedRoom);
             if (pos) {
+              // s23 fix désync — origPos = tight bbox polygon si dispo. Sinon les
+              // handles partent de la bbox désynchronisée et le resize "saute".
+              const origPos = getRoomRenderBbox(selectedRoom, pos);
+              const origPolygon =
+                Array.isArray(selectedRoom.polygon) && selectedRoom.polygon.length >= 4
+                  ? selectedRoom.polygon.map((p) => ({ x_percent: p.x_percent, y_percent: p.y_percent }))
+                  : null;
               setDragging({
                 type: "resize",
                 roomId: selectedRoom.id,
                 handle,
                 startX: e.clientX,
                 startY: e.clientY,
-                origPos: { ...pos },
+                origPos: { ...origPos },
+                origPolygon,
               });
               return;
             }
@@ -1057,12 +1140,19 @@ export default function RoomCanvas({
         onSelectRoom(room.id);
         const pos = getRoomPosition(room);
         if (pos) {
+          // s23 fix désync — origPos = tight bbox polygon si dispo
+          const origPos = getRoomRenderBbox(room, pos);
+          const origPolygon =
+            Array.isArray(room.polygon) && room.polygon.length >= 4
+              ? room.polygon.map((p) => ({ x_percent: p.x_percent, y_percent: p.y_percent }))
+              : null;
           setDragging({
             type: "move",
             roomId: room.id,
             startX: e.clientX,
             startY: e.clientY,
-            origPos: { ...pos },
+            origPos: { ...origPos },
+            origPolygon,
           });
         }
       } else {
@@ -1150,7 +1240,12 @@ export default function RoomCanvas({
 
         const newPos = computeResize(dragging.origPos, dragging.handle, dxPct, dyPct);
         // s23 Bug 2 (fix régression) — clamper au polygone si nécessaire (ne pas ignorer)
-        onMoveRoom(dragging.roomId, clampPositionInLot(newPos));
+        const clamped = clampPositionInLot(newPos);
+        // s23 fix désync — transformer le polygon proportionnellement à la nouvelle bbox
+        const newPolygon = dragging.origPolygon
+          ? transformPolygon(dragging.origPos, clamped, dragging.origPolygon)
+          : null;
+        onMoveRoom(dragging.roomId, clamped, newPolygon);
       } else {
         // Mode déplacement — corriger delta pour viewport scale
         if (canvas) {
@@ -1181,7 +1276,12 @@ export default function RoomCanvas({
         };
 
         // s23 Bug 2 (fix régression) — clamper au polygone si nécessaire (ne pas ignorer)
-        onMoveRoom(dragging.roomId, clampPositionInLot(newPos));
+        const clamped = clampPositionInLot(newPos);
+        // s23 fix désync — déplacer le polygon avec la même translation
+        const newPolygon = dragging.origPolygon
+          ? transformPolygon(dragging.origPos, clamped, dragging.origPolygon)
+          : null;
+        onMoveRoom(dragging.roomId, clamped, newPolygon);
       }
     },
     [dragging, getRoomAtPoint, hitTestHandle, onMoveRoom, rooms, selectedRoomId, toDeltaPercent, handMode, viewport, clampViewportOffsets, clampPositionInLot]
