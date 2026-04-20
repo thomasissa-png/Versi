@@ -143,8 +143,18 @@ function buildSystemPrompt(typeBien: TypeBien, lots?: LotZone[]): string {
 
 COORDINATE SYSTEM: All coordinates are percentages of the FULL IMAGE (0-100). x=0 is the left edge of the image, y=0 is the top edge. The plan drawing is a subset of the image — title blocks, legends, and margins are NOT part of the plan.
 
-STEP 0 — REFERENCE LANDMARKS (v3 MANDATORY — anchor coordinate system BEFORE placing any room):
+STEP 0 — REFERENCE LANDMARKS (v4 MANDATORY — anchor coordinate system BEFORE placing any room):
 Before you extract ANY room, identify 3-4 reference landmarks on the plan and write down their approximate (x%, y%) positions in your mental model. These landmarks anchor the whole coordinate system so every subsequent bbox is grounded in the actual image, not approximated.
+
+STEP 0A — CARTOUCHE/TITLE BLOCK EXCLUSION (v4 NEW — CRITICAL):
+Architect floor plans almost ALWAYS have non-plan zones on the image:
+  - A TITLE BLOCK / CARTOUCHE at the BOTTOM of the page (usually y > 75%) containing: company logo, project name, sheet index, date, scale, "DOSSIER / EMETTIER / PHASE / LOT / INDICE / DATE / N°", "A885", "MUGUETS", "plan RDC", etc.
+  - A LEGEND or NORTH ARROW in a corner
+  - EXTERIOR ZONES (cour, terrasse, jardin) marked with hatching, dots, or parquet pattern OUTSIDE the thick perimeter wall
+  - MARGINS (white space around the drawing).
+The BUILDING (where rooms live) typically occupies 40-70% of the image, usually in the CENTER or UPPER-MIDDLE. The BOTTOM 15-25% of the image is almost ALWAYS the cartouche — NO ROOMS LIVE THERE.
+BEFORE placing any bbox, explicitly identify the y-coordinate BELOW which there is only cartouche (typically y > 75-80%). Your rooms CANNOT have centroids in that zone.
+If you see text like "MUGUETS", "DOSSIER", "EMETTIER", "A885", "plan", "PHASE", "INDICE", "ESQ", "ARC", "AVP" at position (x, y) → that (x,y) is the CARTOUCHE, not a room.
 
 Landmarks to locate (pick at least 3):
   L1. MAIN ENTRANCE: the door leading to the exterior (usually on a building edge, often labeled "Entrée" or shown with a door arc on an exterior wall).
@@ -153,6 +163,23 @@ Landmarks to locate (pick at least 3):
   L4. SOUTH-EAST BUILDING CORNER: the outermost thick wall corner at bottom-right of the building footprint.
 
 For EACH room you later extract, you MUST be able to answer: "This room is X% to the east of landmark L_N, and Y% to the south". If you cannot answer, the room is MISPLACED — re-examine the plan.
+
+STEP 0B — LABEL ENUMERATION (v5 MANDATORY — label position = room CENTROID ANCHOR):
+Before placing bboxes, FIRST enumerate EVERY ROOM LABEL you can see on the plan (text with m² unit nearby or single-word names like "WC", "SdB", "Couloir", "Palier", "Entrée", "ECS", "Cellier", "Placard", "SAS", "TGBT"). For each label, record:
+  - the LITERAL text (e.g. "SdB", "Chambre", "Couloir")
+  - its approximate (x%, y%) position — this is the CENTER of the room, where the label sits
+  - any surface value printed nearby (e.g. "5.9 m²")
+
+This list is your room ROSTER. Every label MUST become exactly ONE room in your output (no more, no less). Do NOT invent rooms without a label, and do NOT skip labeled rooms. If you see "ECS" written on the plan, you MUST emit a room called "ECS" with its bbox around that label's position.
+
+LABEL-POSITION → BBOX ANCHORING RULE (v5 NEW — CRITICAL, STRICT):
+For each room, the label (x%, y%) you identified above IS THE CENTROID of the room. Compute (x_c, y_c) = label position.
+After tracing the walls, your bounding_box MUST satisfy:
+  - bounding_box center = ((bbox.x + bbox.width/2), (bbox.y + bbox.height/2))
+  - |bbox_center_x - x_c| ≤ 3% AND |bbox_center_y - y_c| ≤ 3% (i.e. max 3% drift from label centroid).
+If your final bbox's center is more than 3% away from the label's (x,y), you have MISPLACED the room. RE-TRACE.
+This rule kills the common failure mode where bboxes drift into the cartouche or into neighboring rooms: the label tells you where the room IS; walls only tell you where it ENDS.
+Apply the same rule to the bounding_polygon: centroid(polygon) must be within 3% of label(x,y).
 
 STEP 1 — READING THE PLAN (distinguish elements):
   - WALLS: thick solid lines (black, grey, or colored fills) defining rooms.
@@ -171,6 +198,12 @@ STRICT RULES:
 - INCLUDE : interior rooms (living, bedrooms, kitchens, bathrooms, WC, hallways, entries, storage, cellars inside the building, stairwells inside the building).
 - EXCLUDE : terraces (terrasses), balconies (balcons), patios, verandas with only 3 walls, gardens (jardins), courtyards, loggias, external staircases, open passageways, parking areas, any hatched outdoor zone, any zone without a roof/ceiling.
 - EXCLUDE title blocks, legends, scale bars, margin text.
+
+v4 EXTRA RULES (CRITICAL):
+- The building_outline y_max MUST NOT include the CARTOUCHE (title block at bottom). If you see labels like "MUGUETS", "DOSSIER", "A885", "plan", "ESQ", "INDICE", "DATE" between y% and 100%, then building_outline.y_percent + building_outline.height_percent MUST be < that y%. Typical cartouche occupies y=85-100% on architect plans.
+- The building_outline TIGHTNESS is MORE IMPORTANT than completeness. Start TIGHT, expand only if a ROOM WITH M² LABEL falls outside. Never expand into the cartouche.
+- After you locate the 4 building corners visually, keep x_margin and y_margin ≤ 1% on each side. Do NOT add artificial padding.
+- If after step-1 you have rooms whose centroid falls OUTSIDE the building_outline you returned, STOP: the outline is wrong, redraw it to include those rooms (without including cartouche).
 
 HOW TO DECIDE :
 1. Find rooms that have a printed surface in m² and a name indicating indoor use (Chambre, Séjour, Cuisine, SdB, WC, Entrée, Couloir, Cellier, Bureau...). These define the INSIDE.
@@ -568,7 +601,16 @@ async function callVisionExtraction(
             type: "input_text",
             text:
               retryContext ||
-              "Extract all rooms from this floor plan. For each room, place the bounding_box edges at the INNER FACE of the surrounding walls — not around the room name text. Also provide bounding_polygon with vertices at wall corners for every room.",
+              `Extract all rooms from this floor plan.
+
+STEP-BY-STEP (v4):
+1. FIRST locate the CARTOUCHE (title block) in the image, typically at the bottom. Note its y-range. NO ROOMS LIVE THERE.
+2. SECOND enumerate ALL labeled rooms visible on the plan (names + approximate x%, y% centers). Write this roster before any bbox.
+3. THIRD identify the BUILDING OUTLINE — the tightest rectangle containing all indoor rooms, EXCLUDING cartouche, terrace hatching, stairs well outside, margins.
+4. FOURTH for each labeled room, place bounding_box edges at the INNER FACE of the surrounding walls — NOT around the room name text.
+5. FIFTH provide bounding_polygon (4-12 vertices) at wall corners for every room.
+
+Every label in step 2 MUST become ONE room in your output. Do not miss ECS, WC, placard, cellier, palier, SAS if labeled.`,
           },
         ],
       },

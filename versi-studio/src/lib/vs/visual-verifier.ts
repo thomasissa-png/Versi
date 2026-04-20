@@ -178,6 +178,9 @@ R5. Only return corrections with confidence >= 0.8 (the caller will filter). Be 
 R6. drift_meters = your best estimate of how far the OLD polygon was displaced from its true position, in meters. Use the plan's implied scale (a door ≈ 0.83 m, a window ≈ 1.2 m, a WC ≈ 1.5 × 1.2 m).
 R7. If ALL polygons are correctly placed → return an EMPTY corrections array and say so in global_assessment.
 R8. NEVER fabricate a new room that has no colored polygon on the overlay. The passe-3 job is to CORRECT existing polygons, not add new ones.
+R9. PRESERVE COMPLEXITY (v4 NEW — CRITICAL): if the EXISTING polygon has 6, 7, or 8 vertices (it was already refined by passe-2 to capture a door notch or wall offset), your corrected_polygon MUST ALSO have 6-8+ vertices. DO NOT reduce to 4 rectangular vertices. The passe-2 vertex count is a signal of the room's true shape — keep it.
+R10. MINIMAL MOVE (v4 NEW — CRITICAL): if the drift is real but small (<2m), shift the existing polygon by just the needed amount. DO NOT redraw the polygon from scratch. DO NOT rotate, re-order, or re-shape.
+R11. CONSERVATIVE DEFAULT (v4 NEW): if in doubt whether a correction improves or worsens the polygon, return NO correction for that room. A displaced polygon at drift=2m is often less bad than a redrawn polygon at drift=2m with wrong shape.
 
 OUTPUT
 ======
