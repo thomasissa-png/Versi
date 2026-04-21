@@ -181,6 +181,19 @@ If your final bbox's center is more than 3% away from the label's (x,y), you hav
 This rule kills the common failure mode where bboxes drift into the cartouche or into neighboring rooms: the label tells you where the room IS; walls only tell you where it ENDS.
 Apply the same rule to the bounding_polygon: centroid(polygon) must be within 3% of label(x,y).
 
+STEP 0C — COMMON AREAS IDENTIFICATION (v6 NEW — MANDATORY for "immeuble" type):
+Before you define the building_outline or any room bbox, explicitly locate and record the COMMON AREAS on this floor plan:
+  C1. **Escalier commun** (shared staircase): the zigzag/stepped block. Record approximate bbox (x%, y%, w%, h%). This is the strongest anchor — it appears in the SAME location on every floor of the building.
+  C2. **Palier d'étage** (shared landing): the small zone adjacent to the escalier from which the apartment entry door opens. Often unlabeled or labeled "Palier", "Hall", "Dégagement palier".
+  C3. Any other common zone: local vélos, local poubelles, local technique, cave commune, TGBT, ECS palier, placard palier.
+
+These zones:
+  - Get unit_id = null (they are NOT part of the apartment/lot)
+  - MUST NOT be inside building_outline (building_outline = private unit footprint ONLY, see STEP 2)
+  - Should still be emitted as rooms in the output if they have a clear enclosed perimeter (so downstream code can visualize them as "parties communes"), but with unit_id = null.
+
+If you cannot distinguish escalier from apartment → assume the ZIGZAG block is common (99% of French residential buildings have shared staircases).
+
 STEP 1 — READING THE PLAN (distinguish elements):
   - WALLS: thick solid lines (black, grey, or colored fills) defining rooms.
   - PARTITIONS: thinner solid lines inside the building separating rooms.
@@ -192,25 +205,93 @@ STEP 1 — READING THE PLAN (distinguish elements):
   - OUTDOOR (terraces, balconies, gardens): outside exterior walls. Exclude unless fully enclosed.
 
 STEP 2 — BUILDING OUTLINE (CRITICAL — used for exterior-exclusion clipping):
-Return the tightest axis-aligned rectangle that contains ONLY THE INDOOR HEATED AREA (rooms with a roof above and all four walls of the building envelope). This is the rectangle used downstream to clip rooms and prevent them from spilling outside.
+Return the tightest axis-aligned rectangle that contains ONLY THE **PRIVATE UNIT FOOTPRINT** (i.e., the habitable apartment of the floor, excluding any shared common areas). This is the rectangle used downstream to clip rooms and prevent them from spilling into common areas or outside.
+
+**DEFINITION — PRIVATE UNIT vs COMMON AREAS (v6 NEW — CRITICAL for Versi Studio):**
+In Versi Studio, ONE floor plan = ONE floor of a building containing:
+  (a) ONE private apartment (the "lot" = the habitable unit sold/rented as a whole)
+  (b) SHARED COMMON AREAS: staircase (escalier commun), landing (palier d'étage / hall d'immeuble), corridors leading to multiple apartments, bike room (local vélos), garbage room (local poubelles), cellars (caves), electrical rooms (TGBT, local EDF, local technique).
+  (c) OUTDOOR zones: terrasses, balcons, loggias, jardins.
+
+The building_outline = ONLY (a). EXCLUDE (b) AND (c). This is NOT the whole building envelope — it is the tight contour of the private apartment.
 
 STRICT RULES:
-- INCLUDE : interior rooms (living, bedrooms, kitchens, bathrooms, WC, hallways, entries, storage, cellars inside the building, stairwells inside the building).
-- EXCLUDE : terraces (terrasses), balconies (balcons), patios, verandas with only 3 walls, gardens (jardins), courtyards, loggias, external staircases, open passageways, parking areas, any hatched outdoor zone, any zone without a roof/ceiling.
-- EXCLUDE title blocks, legends, scale bars, margin text.
+- INCLUDE (private unit ONLY): rooms inside the apartment — living rooms (Séjour, Salon), bedrooms (Chambres), kitchens (Cuisine), bathrooms (SdB, SDE), WCs, the apartment's own entry hall (Entrée, SAS), internal hallways (Couloir *of the apartment*), internal storage (Cellier, Placard, Dressing, Buanderie *inside the apartment*).
+- EXCLUDE (common areas — NEVER inside building_outline):
+    * **Escalier commun** (the shared staircase serving multiple floors — identifiable by zigzag step pattern, usually in the same visual position on every floor plan of the same building). ZERO overlap with the staircase rectangle.
+    * **Palier d'étage / hall d'immeuble** (the landing where the common staircase arrives, giving access to the apartment door from the outside). This is NOT the apartment's internal Entrée.
+    * **Couloir commun** (shared corridor serving several apartments).
+    * **Local vélos, local poubelles, local technique, cave, TGBT, ECS commun, placard palier**.
+- EXCLUDE (outdoor): terrasses, balcons, patios, vérandas 3 murs, gardens, cours, loggias, external staircases, passageways, parking. No hatched/stippled outdoor zone. No zone without roof/ceiling.
+- EXCLUDE: title blocks, legends, scale bars, margin text.
 
-v4 EXTRA RULES (CRITICAL):
-- The building_outline y_max MUST NOT include the CARTOUCHE (title block at bottom). If you see labels like "MUGUETS", "DOSSIER", "A885", "plan", "ESQ", "INDICE", "DATE" between y% and 100%, then building_outline.y_percent + building_outline.height_percent MUST be < that y%. Typical cartouche occupies y=85-100% on architect plans.
-- The building_outline TIGHTNESS is MORE IMPORTANT than completeness. Start TIGHT, expand only if a ROOM WITH M² LABEL falls outside. Never expand into the cartouche.
-- After you locate the 4 building corners visually, keep x_margin and y_margin ≤ 1% on each side. Do NOT add artificial padding.
-- If after step-1 you have rooms whose centroid falls OUTSIDE the building_outline you returned, STOP: the outline is wrong, redraw it to include those rooms (without including cartouche).
+**HOW TO IDENTIFY THE COMMON STAIRCASE (v6 NEW):**
+1. The escalier commun has **visible zigzag steps** (parallel diagonal or rectangular step lines, often with a direction arrow or UP/DN label).
+2. It is usually located in a **central or edge block** of the building that is IDENTICAL on every floor (same x%, y%, width%, height% across RDC, R+1, R+2, R+3). If you see a zigzag block, it is common.
+3. Adjacent to the escalier there is typically a **palier** (small landing room, often unlabeled or labeled "Palier", "Hall", "Entrée d'immeuble"). The apartment's entry door (Entrée / SAS of the lot) opens FROM this palier INTO the apartment. The palier is OUTSIDE the apartment.
+4. The wall between palier/escalier and apartment is the **HARD LEFT/RIGHT edge** of building_outline on that side. Do NOT cross it.
 
-HOW TO DECIDE :
-1. Find rooms that have a printed surface in m² and a name indicating indoor use (Chambre, Séjour, Cuisine, SdB, WC, Entrée, Couloir, Cellier, Bureau...). These define the INSIDE.
-2. A terrace is often labeled "Terrasse" / "Balcon" / "Loggia" / "Jardin" and/or drawn with stipples, hatches, dots, wood-decking pattern, or is outside the thickest continuous wall loop.
-3. The building_outline rectangle must NOT overlap any terrace or balcony. If you must choose, make the rectangle TIGHTER rather than larger — a terrace wrongly included is much worse than 5% of a real room clipped.
+**PROCEDURE (v6 MANDATORY — execute in order):**
+1. Locate the **escalier commun** (zigzag block). Record its bbox (x_esc, y_esc, w_esc, h_esc). This zone is FORBIDDEN inside building_outline.
+2. Locate the **palier d'étage** adjacent to the escalier (landing with the apartment entry door opening into it). Record its bbox. Also FORBIDDEN.
+3. Identify the **apartment entry door** (Entrée / SAS of the lot) — this is the door between palier and apartment. The apartment starts on the OTHER side of this door.
+4. Trace the **apartment envelope** by following the walls that surround ONLY the private rooms (Séjour, Chambres, SdB, Cuisine, Entrée of the apt, etc.). The side of the apartment adjacent to the escalier/palier is delimited by the party wall — NOT the far exterior wall of the building.
+5. The building_outline = tightest rectangle around that apartment envelope ONLY. If the escalier is on the left of the apartment, building_outline.x_percent STARTS at the apartment's left party wall, NOT at the building's leftmost exterior wall.
 
-Every INDOOR room must fit INSIDE this rectangle (tolerance 1%). Every OUTDOOR zone must fall OUTSIDE.
+v4 EXTRA RULES (still apply):
+- building_outline y_max MUST NOT include the CARTOUCHE (bottom title block). Typical cartouche: y=85-100%. If you see "MUGUETS", "DOSSIER", "A885", "plan", "ESQ", "INDICE", "DATE" → that's cartouche, not building.
+- building_outline TIGHTNESS > completeness. Start TIGHT around the apartment, expand only if a ROOM LABELED WITH M² inside the apartment falls outside.
+- Keep x_margin/y_margin ≤ 1% on each side. No padding.
+- If an apartment room's centroid falls outside your outline → the outline is wrong on the SIDE of that room (extend on that side only, NOT on the escalier/palier side).
+
+**NO-COMMON-AREAS RULE (v6 CRITICAL):**
+- building_outline MUST NOT overlap the escalier bbox by more than 1% of building_outline area.
+- building_outline MUST NOT overlap the palier d'étage bbox by more than 1%.
+- If your outline includes the zigzag staircase block → you are WRONG. Move the corresponding edge to the apartment's party wall.
+
+**v7 HARD SIZE PRIOR (NEW — CRITICAL, empirical P00-P03 observation):**
+On French residential floor plans (type "immeuble"), a SINGLE apartment typically occupies **40-60% of the plan image width**, NOT 75-80%. If your building_outline has:
+  - width_percent > 65%, you are almost certainly INCLUDING the escalier + palier on one side → SHRINK it
+  - height_percent > 70% (excluding cartouche zone), you are likely including a terrace on top/bottom → SHRINK it
+  - x_percent < 20% AND width_percent > 60%, you have NOT excluded the escalier on the left → MOVE x_percent RIGHT to the party wall
+  - (x_percent + width_percent) > 85% AND width_percent > 60%, you have NOT excluded the escalier on the right → SHRINK width
+Target shape: a RECTANGLE of roughly 45-60% width × 45-65% height, positioned so that the escalier zigzag block is CLEARLY OUTSIDE one of its edges.
+
+**v7 FORCED VERIFICATION BEFORE EMITTING building_outline (NEW — MANDATORY):**
+Before returning your building_outline value, you MUST perform these 4 checks in sequence. If ANY check fails, RE-DRAW the outline:
+
+CHECK 1 — ESCALIER EXCLUSION CHECK:
+  Locate the zigzag staircase block you recorded in STEP 0C (C1).
+  Does the escalier bbox have >1% overlap with your building_outline?
+  If YES → your outline is WRONG. Find the wall BETWEEN escalier and apartment. Move the corresponding building_outline edge to THAT wall (it is typically a THICK wall, often the thickest vertical or horizontal line near the escalier).
+
+CHECK 2 — PALIER EXCLUSION CHECK:
+  Locate the palier d'étage (the small unlabeled or "Palier"-labeled zone adjacent to the escalier, where the apartment's entry door opens).
+  Does the palier bbox have >1% overlap with your building_outline?
+  If YES → MOVE the outline edge to the apartment entry door wall.
+
+CHECK 3 — SIZE PRIOR CHECK:
+  Compute your building_outline width_percent and height_percent.
+  If width > 65% OR height > 70%: re-examine. Are you SURE the apartment covers >65% of the plan width? On a typical immeuble plan, 50% is normal.
+  If unsure → SHRINK toward the side where you see the escalier/palier/terrasse.
+
+CHECK 4 — MULTI-FLOOR CONSISTENCY (HEURISTIC):
+  In a multi-floor immeuble, the escalier is at the SAME visual position on every floor (RDC, R+1, R+2, R+3). If you see a block in the plan that looks like it could be an escalier (zigzag steps, narrow rectangular zone with diagonal lines, "UP"/"DN"/arrow), TREAT IT AS ESCALIER by default. False positives are cheap (a missed room can be added), false negatives are catastrophic (a whole escalier inside building_outline makes every downstream room misplaced).
+
+Only emit building_outline AFTER all 4 checks PASS.
+
+**v7 EXAMPLES (apartment-shape priors):**
+- If escalier is on the LEFT side of the plan → building_outline.x_percent ≥ x_escalier + w_escalier (the outline starts AFTER the escalier, not from the plan's left edge).
+- If palier is on the TOP-LEFT → building_outline starts BELOW AND RIGHT of palier.
+- If the plan has a large terrasse on the right (dots/hatching) → building_outline.x_end = the apartment's EAST exterior wall, NOT the plan's right edge.
+- A building_outline that spans x=17% to x=95% (width=78%) on a plan where a visible escalier is at x=18-28% → the outline INCLUDES the escalier. WRONG. Correct: x_start ≈ 30%, width ≈ 55-60%.
+
+HOW TO DECIDE WHAT IS OUTDOOR vs INDOOR (still apply):
+1. Rooms with printed m² inside the apartment and indoor names (Chambre, Séjour, Cuisine, SdB, WC, Entrée, Couloir, Cellier, Bureau, Dressing, SDE) = INSIDE.
+2. Terrasse / Balcon / Loggia / Jardin / stipples / hatches / wood-decking = OUTSIDE.
+3. If in doubt: make outline TIGHTER rather than larger. A wrongly-included common area (escalier, palier) or terrace is much worse than a 5% over-clip of a real room.
+
+Every room WITH unit_id = "u1" (the apartment) MUST fit INSIDE this rectangle (tolerance 1%). Rooms with unit_id = null (common areas) MUST be entirely OUTSIDE this rectangle. Outdoor zones MUST be OUTSIDE.
 
 STEP 3 — IDENTIFY ROOMS:
 For each enclosed space bounded by walls/partitions:
