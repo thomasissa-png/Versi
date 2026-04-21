@@ -195,9 +195,9 @@ export async function POST(
             // sur le plan ("SdB", "Chambre", "Séjour / cuisine", etc.). Utilisés
             // après passe-3 + hard-clip pour snapper les polygones sur la vraie
             // position des labels (drift ~10% GPT-4.1 vision non-fixable par prompt).
-            // s24 — opt-in par défaut : tesseract.js crashe en Next.js runtime
-            // (uncaughtException bypass try/catch). Activable via VS_SNAP_LABELS=true.
-            const SNAP_LABELS_ENABLED = process.env.VS_SNAP_LABELS === "true";
+            // s24 — ACTIF par défaut (import dynamique fixé le crash Turbopack).
+            // Désactivable via VS_SNAP_LABELS=false (debug ou perf critique).
+            const SNAP_LABELS_ENABLED = process.env.VS_SNAP_LABELS !== "false";
             if (SNAP_LABELS_ENABLED) {
               try {
                 const tOcr = Date.now();
@@ -257,11 +257,13 @@ export async function POST(
         );
 
         // Collecter les pièces pour le clustering
-        // Assigner le floor_number du plan si la pièce n'en a pas
+        // s24 — FIX CRITIQUE : toujours overrider room.floor par plan.floor_number.
+        // L'IA retourne parfois floor=0 pour tous les plans (bug systémique
+        // passe-1, observé sur R+3 du plan-test). Conséquence : rooms du R+3
+        // attribuées au lot RDC → envelope englobe 10 rooms au lieu de 5 →
+        // débord visuel. Le plan.floor_number est la seule source de vérité.
         for (const room of extraction.rooms) {
-          if (room.floor == null) {
-            room.floor = plan.floor_number;
-          }
+          room.floor = plan.floor_number;
           allRooms.push(room);
         }
       } catch (planErr) {
@@ -444,10 +446,10 @@ export async function POST(
         // les pièces mal positionnées (drift > 1 m). Applique corrections
         // avec confidence >= 0.8. Objectif : corriger le bug de position
         // (pièces placées à ~3m de leur vraie localisation, bug Thomas s23).
-        // s24 — opt-in par défaut : passe-3 ajoute ~10s/lot et les learnings
-        // s23 montrent qu'elle dégrade parfois (preserve-complexity). Opt-in
-        // via VS_VISUAL_VERIFY=true. Réduit le temps et le risque DNS saturation.
-        const VISUAL_VERIFY_ENABLED = process.env.VS_VISUAL_VERIFY === "true";
+        // s24 — ACTIF par défaut. Les learnings s23 disent qu'elle "parfois
+        // dégrade" mais rétablit le drift IA >1m sur les cas cassés.
+        // Désactivable via VS_VISUAL_VERIFY=false.
+        const VISUAL_VERIFY_ENABLED = process.env.VS_VISUAL_VERIFY !== "false";
         if (
           VISUAL_VERIFY_ENABLED &&
           group.rooms.length >= 2 &&

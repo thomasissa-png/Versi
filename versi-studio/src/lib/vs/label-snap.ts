@@ -23,7 +23,10 @@
  * qui fait déjà 3 passes GPT-4.1 vision (~30-60s).
  */
 
-import { createWorker, type Worker } from "tesseract.js";
+// s24 — Type import statique uniquement (pas d'exécution au load).
+// createWorker est importé dynamiquement dans getWorker pour éviter le crash
+// Turbopack "Cannot find module tesseract.js/src/worker-script/node/index.js".
+import type { Worker } from "tesseract.js";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -73,6 +76,8 @@ let workerPromise: Promise<Worker> | null = null;
 async function getWorker(): Promise<Worker> {
   if (!workerPromise) {
     workerPromise = (async () => {
+      // s24 — import dynamique (voir header du fichier).
+      const { createWorker } = await import("tesseract.js");
       const w = await createWorker("fra", 1, {
         // Silent logs (Tesseract.js est bruyant par défaut)
         logger: () => {},
