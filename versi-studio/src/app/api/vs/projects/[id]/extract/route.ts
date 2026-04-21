@@ -661,7 +661,8 @@ export async function POST(
         // envelope. Les rooms non-snappées gardent leur drift IA ~10% → leur
         // polygone déborde souvent du vrai bâti (terrasse, escalier, trottoir).
         // Le bbox des rooms snappées définit la zone réelle de l'appartement.
-        // Fallback sur all-rooms si aucune snapped.
+        // Fallback sur all-rooms si < 50% snap rate (bbox snapped non
+        // représentatif : R+1 avait 2/8 snappées à gauche → env ampute séjour droite).
         let finalMinX = 100, finalMinY = 100, finalMaxX = 0, finalMaxY = 0;
         let hasAnyPolygon = false;
         let usedSnappedOnly = false;
@@ -669,8 +670,9 @@ export async function POST(
           const id = r.temp_id || r.name_raw;
           return id && lockedByEarlySnap.has(id);
         });
-        const roomsForEnvelope = snappedRooms.length >= 2 ? snappedRooms : group.rooms;
-        usedSnappedOnly = snappedRooms.length >= 2;
+        const snapRateOk = snappedRooms.length >= Math.max(2, Math.ceil(group.rooms.length * 0.5));
+        const roomsForEnvelope = snapRateOk ? snappedRooms : group.rooms;
+        usedSnappedOnly = snapRateOk;
         for (const r of roomsForEnvelope) {
           const poly = r.bounding_polygon;
           if (poly && poly.length >= 3) {

@@ -286,6 +286,32 @@ Only emit building_outline AFTER all 4 checks PASS.
 - If the plan has a large terrasse on the right (dots/hatching) → building_outline.x_end = the apartment's EAST exterior wall, NOT the plan's right edge.
 - A building_outline that spans x=17% to x=95% (width=78%) on a plan where a visible escalier is at x=18-28% → the outline INCLUDES the escalier. WRONG. Correct: x_start ≈ 30%, width ≈ 55-60%.
 
+**v7 FORCED SHRINK ALGORITHM (MANDATORY — execute AFTER drawing the outline):**
+After you have drawn your initial building_outline, execute this algorithm literally:
+  (1) Record x_esc, y_esc, w_esc, h_esc from STEP 0C.C1 (escalier zigzag). If no zigzag found, skip.
+  (2) Does the escalier rectangle intersect the building_outline rectangle?
+      → If YES and the escalier is on the LEFT half of the plan:
+          SET building_outline.x_percent = x_esc + w_esc + 1
+          SET building_outline.width_percent = (old_x + old_width) - new_x_percent
+      → If YES and the escalier is on the RIGHT half:
+          SET building_outline.width_percent = x_esc - building_outline.x_percent - 1
+      → If YES and the escalier is on the TOP:
+          SET building_outline.y_percent = y_esc + h_esc + 1 (and adjust height)
+      → If YES and the escalier is on the BOTTOM:
+          SET building_outline.height_percent = y_esc - building_outline.y_percent - 1
+  (3) Repeat (1)-(2) for the palier bbox (C2).
+  (4) Repeat for any common area (C3).
+  (5) Now repeat for outdoor terrasse/balcon on the same side (if visible).
+This is not a suggestion — it is a MANDATORY transformation. The final emitted building_outline MUST have executed this algorithm.
+
+**v7 REFERENCE CASE (empirical P00-P03 observation):**
+On the test plans used by Versi Studio (4-floor building "Muguets"):
+- RDC (P00): apartment occupies ~55% width, x≈25-80%, escalier on the LEFT.
+- R+1 (P01): apartment ~50% width, x≈28-80%, escalier on the LEFT.
+- R+2 (P02): apartment ~50% width, escalier on the LEFT. **If you return x < 25% or width > 65% on P02, YOU ARE INCLUDING THE ESCALIER. RE-DRAW.**
+- R+3 (P03): apartment ~38% width (smaller duplex floor), x≈33-70%.
+In all 4 floors, the escalier is at roughly the SAME x position (left zone, ~x=10-25%). Your building_outline on any floor MUST start at x ≥ 26% to reliably exclude it.
+
 HOW TO DECIDE WHAT IS OUTDOOR vs INDOOR (still apply):
 1. Rooms with printed m² inside the apartment and indoor names (Chambre, Séjour, Cuisine, SdB, WC, Entrée, Couloir, Cellier, Bureau, Dressing, SDE) = INSIDE.
 2. Terrasse / Balcon / Loggia / Jardin / stipples / hatches / wood-decking = OUTSIDE.
