@@ -45,6 +45,11 @@ import {
   computeAvgX,
   CLUSTERING_CONFIDENCE_THRESHOLD,
 } from "@/lib/vs/clustering";
+import {
+  computeLotPolygonEnvelope,
+  polygonBoundingBox,
+  type RoomForEnvelope,
+} from "@/lib/vs/envelope-polygon";
 import { track } from "@/lib/vs/analytics";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
@@ -766,11 +771,62 @@ export async function POST(
           );
         }
 
+        // ─── s24 Passe-4 — Envelope POLYGONALE du lot ─────────────
+        // Remplace le rectangle axis-aligned par le vrai contour de
+        // l'appartement (convex hull des rooms snappées OCR + 2% padding).
+        // Résout : rectangle englobant incluait 10-15% zones hors appart
+        // (décrochés, escaliers, terrasses exclues).
+        //
+        // Fallback rect si <50% snap rate (qualité snap insuffisante pour
+        // un contour représentatif).
+        //
+        // IMPORTANT : zoneData.{x,y,w,h} reste la BBOX AXIS-ALIGNED du
+        // polygone. Les coords lot-local des rooms (lignes ~802) sont
+        // calculées depuis cette bbox → rooms restent alignées visuellement.
+        let envelopePolygon: Array<{ x_percent: number; y_percent: number }> | null = null;
+        {
+          const ENVELOPE_POLYGON_ENABLED = process.env.VS_ENVELOPE_POLYGON !== "false";
+          if (ENVELOPE_POLYGON_ENABLED) {
+            const roomsForEnv: RoomForEnvelope[] = group.rooms.map((r, idx) => ({
+              id: r.temp_id || r.name_raw || `room_${idx}`,
+              bounding_polygon: r.bounding_polygon ?? null,
+              isSnapped: lockedByEarlySnap.has(r.temp_id || r.name_raw || `room_${idx}`),
+            }));
+            // s24 — seuils configurables via env (0.5 / 2 par défaut en prod).
+            // Permet un reality check avec seuil permissif sur des plans
+            // faible-snap-rate sans modifier le code.
+            const minSnapRateEnv = parseFloat(process.env.VS_ENVELOPE_MIN_SNAP_RATE || "0.3");
+            const paddingPctEnv = parseFloat(process.env.VS_ENVELOPE_PADDING_PCT || "2");
+            const envResult = computeLotPolygonEnvelope(roomsForEnv, minSnapRateEnv, paddingPctEnv);
+            if (envResult.polygon) {
+              envelopePolygon = envResult.polygon;
+              // Synchroniser zoneData rect = bbox du polygon final (point source unique)
+              const bbox = polygonBoundingBox(envelopePolygon);
+              zoneData.x_percent = bbox.x_percent;
+              zoneData.y_percent = bbox.y_percent;
+              zoneData.width_percent = bbox.width_percent;
+              zoneData.height_percent = bbox.height_percent;
+              console.log(
+                `[envelope-polygon] ${lotName}: polygon ${envResult.hullVertexCount} pts (snap ${envResult.snappedCount}/${envResult.totalCount}=${(envResult.snapRate * 100).toFixed(0)}%), bbox (${bbox.x_percent.toFixed(1)},${bbox.y_percent.toFixed(1)}) ${bbox.width_percent.toFixed(1)}×${bbox.height_percent.toFixed(1)}`
+              );
+            } else {
+              console.log(
+                `[envelope-polygon] ${lotName}: fallback rect (${envResult.rejectReason})`
+              );
+            }
+          }
+        }
+
         // Calculer la surface totale estimée
         const surfaceM2 = group.rooms.reduce(
           (sum, r) => sum + (r.surface_m2 || 0),
           0
         );
+
+        // s24 Passe-4 — zone_data final : polygon si disponible, sinon rect legacy
+        const finalZoneData = envelopePolygon
+          ? { type: "polygon", points: envelopePolygon }
+          : zoneData;
 
         // U1 — Persister confidence_avg dans vs_lots
         const lotInsertResult = await query<{ id: string }>(
@@ -782,7 +838,7 @@ export async function POST(
             lotName,
             group.floor,
             surfaceM2 > 0 ? surfaceM2 : null,
-            JSON.stringify(zoneData),
+            JSON.stringify(finalZoneData),
             group.confidenceAvg,
           ]
         );
