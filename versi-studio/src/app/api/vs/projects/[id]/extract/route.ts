@@ -50,6 +50,11 @@ import {
   polygonBoundingBox,
   type RoomForEnvelope,
 } from "@/lib/vs/envelope-polygon";
+import {
+  tileRoomsInLot,
+  computeTilingMetrics,
+  type RoomInput as TilingRoomInput,
+} from "@/lib/vs/room-tiling";
 import { track } from "@/lib/vs/analytics";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
@@ -812,6 +817,94 @@ export async function POST(
             } else {
               console.log(
                 `[envelope-polygon] ${lotName}: fallback rect (${envResult.rejectReason})`
+              );
+            }
+          }
+        }
+
+        // ─── s24 Room tiling — Pavage polygonal strict ─────────────
+        // Remplace les bounding_polygon IA (overlap + gaps) par un tiling
+        // power-diagram (Voronoï pondéré) de l'enveloppe du lot. Garanties :
+        // aucun overlap, aucun gap, cellules convexes. Poids ∝ √surface_m2.
+        //
+        // Coords : plan-global (0-100%) pour entrée ET sortie. Le code aval
+        // lignes ~862-867 convertit ensuite en lot-local via zoneData.
+        //
+        // Fallback : si flag OFF ou moins de 2 rooms avec polygon/centroïde
+        //            exploitable, on conserve les polygones existants.
+        {
+          const ROOM_TILING_ENABLED = process.env.VS_ROOM_TILING !== "false";
+          if (ROOM_TILING_ENABLED && group.rooms.length >= 1) {
+            // Enveloppe de référence : polygon passe-4 si dispo, sinon
+            // rectangle axis-aligned (zoneData) dégénéré en 4 pts.
+            const tilingEnvelope: Array<{ x_percent: number; y_percent: number }> = envelopePolygon
+              ? envelopePolygon
+              : [
+                  { x_percent: zoneData.x_percent, y_percent: zoneData.y_percent },
+                  { x_percent: zoneData.x_percent + zoneData.width_percent, y_percent: zoneData.y_percent },
+                  { x_percent: zoneData.x_percent + zoneData.width_percent, y_percent: zoneData.y_percent + zoneData.height_percent },
+                  { x_percent: zoneData.x_percent, y_percent: zoneData.y_percent + zoneData.height_percent },
+                ];
+
+            // Construire inputs tiling : centroïde = centroïde polygon si dispo,
+            // sinon bbox center. Surface target = room.surface_m2 (peut être null).
+            const tilingInputs: TilingRoomInput[] = group.rooms.map((r, idx) => {
+              const id = r.temp_id || r.name_raw || `room_${idx}`;
+              let cx: number | null = null;
+              let cy: number | null = null;
+              if (r.bounding_polygon && r.bounding_polygon.length >= 3) {
+                // Centroïde arithmétique (suffisant pour site Voronoï)
+                let sx = 0, sy = 0;
+                for (const p of r.bounding_polygon) {
+                  sx += p.x_percent;
+                  sy += p.y_percent;
+                }
+                cx = sx / r.bounding_polygon.length;
+                cy = sy / r.bounding_polygon.length;
+              } else if (r.bounding_box) {
+                cx = r.bounding_box.x_percent + r.bounding_box.width_percent / 2;
+                cy = r.bounding_box.y_percent + r.bounding_box.height_percent / 2;
+              }
+              return {
+                id,
+                centroid: {
+                  x_percent: cx ?? zoneData.x_percent + zoneData.width_percent / 2,
+                  y_percent: cy ?? zoneData.y_percent + zoneData.height_percent / 2,
+                },
+                surface_m2_target: r.surface_m2 ?? null,
+                name_raw: r.name_raw || id,
+              };
+            });
+
+            try {
+              const tiles = tileRoomsInLot(tilingEnvelope, tilingInputs);
+              const tileById = new Map(tiles.map((t) => [t.id, t]));
+
+              // Métriques de validation (log uniquement, non-bloquant)
+              const metrics = computeTilingMetrics(tilingEnvelope, tiles);
+              console.log(
+                `[room-tiling] ${lotName}: ${metrics.validTiles}/${metrics.totalRooms} tiles valid, ` +
+                `degenerate=${metrics.degenerateTiles}, coverage_err=${(metrics.coverageError * 100).toFixed(2)}%, ` +
+                `max_overlap=${metrics.maxOverlapPct2.toFixed(3)} (env_area=${metrics.envelopeArea.toFixed(1)})`
+              );
+
+              // Écraser bounding_polygon de chaque room par son tile.
+              // Aval (lignes ~862-867) convertit en lot-local via zoneData.
+              for (let idx = 0; idx < group.rooms.length; idx++) {
+                const r = group.rooms[idx];
+                const id = r.temp_id || r.name_raw || `room_${idx}`;
+                const tile = tileById.get(id);
+                if (tile && tile.tile_polygon.length >= 3 && !tile.degenerate) {
+                  r.bounding_polygon = tile.tile_polygon.map((p) => ({
+                    x_percent: p.x_percent,
+                    y_percent: p.y_percent,
+                  }));
+                }
+              }
+            } catch (tilingErr) {
+              console.error(
+                `[room-tiling] ${lotName}: échec tiling, conservation polygones existants`,
+                tilingErr
               );
             }
           }
