@@ -657,9 +657,21 @@ export async function POST(
         // (passe-3) et hard-clippés au building_outline. Le zoneData initial ne
         // reflète plus la réalité → lot trop grand vers le bas, Séjour drag bloqué
         // au mauvais endroit à l'Étape 3. Fix : recalculer depuis les polygones finaux.
+        // s24 — Priorité aux rooms SNAPPÉES (labels OCR fiables) pour le bbox
+        // envelope. Les rooms non-snappées gardent leur drift IA ~10% → leur
+        // polygone déborde souvent du vrai bâti (terrasse, escalier, trottoir).
+        // Le bbox des rooms snappées définit la zone réelle de l'appartement.
+        // Fallback sur all-rooms si aucune snapped.
         let finalMinX = 100, finalMinY = 100, finalMaxX = 0, finalMaxY = 0;
         let hasAnyPolygon = false;
-        for (const r of group.rooms) {
+        let usedSnappedOnly = false;
+        const snappedRooms = group.rooms.filter((r) => {
+          const id = r.temp_id || r.name_raw;
+          return id && lockedByEarlySnap.has(id);
+        });
+        const roomsForEnvelope = snappedRooms.length >= 2 ? snappedRooms : group.rooms;
+        usedSnappedOnly = snappedRooms.length >= 2;
+        for (const r of roomsForEnvelope) {
           const poly = r.bounding_polygon;
           if (poly && poly.length >= 3) {
             hasAnyPolygon = true;
@@ -677,12 +689,74 @@ export async function POST(
             if (bb.y_percent + bb.height_percent > finalMaxY) finalMaxY = bb.y_percent + bb.height_percent;
           }
         }
+        // Pad de 2% pour laisser la place aux murs extérieurs
+        if (hasAnyPolygon && usedSnappedOnly) {
+          finalMinX = Math.max(0, finalMinX - 2);
+          finalMinY = Math.max(0, finalMinY - 2);
+          finalMaxX = Math.min(100, finalMaxX + 2);
+          finalMaxY = Math.min(100, finalMaxY + 2);
+        }
+        if (usedSnappedOnly) {
+          console.log(
+            `[envelope-snapped] ${lotName}: bbox basé sur ${snappedRooms.length}/${group.rooms.length} rooms snappées (${finalMinX.toFixed(1)},${finalMinY.toFixed(1)})-(${finalMaxX.toFixed(1)},${finalMaxY.toFixed(1)})`
+          );
+        }
         if (hasAnyPolygon && finalMaxX > finalMinX && finalMaxY > finalMinY) {
           const oldZone = { ...zoneData };
-          zoneData.x_percent = Math.max(0, finalMinX);
-          zoneData.y_percent = Math.max(0, finalMinY);
-          zoneData.width_percent = Math.min(100, finalMaxX) - zoneData.x_percent;
-          zoneData.height_percent = Math.min(100, finalMaxY) - zoneData.y_percent;
+          let envX = Math.max(0, finalMinX);
+          let envY = Math.max(0, finalMinY);
+          let envMaxX = Math.min(100, finalMaxX);
+          let envMaxY = Math.min(100, finalMaxY);
+
+          // s24 — CRITIQUE : intersecter l'envelope avec le building_outline
+          // pour éviter le débord du lot hors de l'immeuble visible (terrasse,
+          // escalier, trottoir). Cause du bug Thomas "lot déborde largement du
+          // plan" : les polygones IA débordent parfois malgré hard-clip
+          // (résidu <33% → clip skipped pour préserver la pièce). Résultat :
+          // zone_data englobait les polygones débordants.
+          const planIdForEnv = floorToPlanId.get(group.floor);
+          const buildingForEnv = planIdForEnv
+            ? planIdToBuildingPolygon.get(planIdForEnv)
+            : null;
+          if (buildingForEnv && buildingForEnv.length >= 4) {
+            const bxs = buildingForEnv.map((p) => p.x_percent);
+            const bys = buildingForEnv.map((p) => p.y_percent);
+            const bMinX = Math.min(...bxs);
+            const bMinY = Math.min(...bys);
+            const bMaxX = Math.max(...bxs);
+            const bMaxY = Math.max(...bys);
+            const before = { envX, envY, envMaxX, envMaxY };
+            envX = Math.max(envX, bMinX);
+            envY = Math.max(envY, bMinY);
+            envMaxX = Math.min(envMaxX, bMaxX);
+            envMaxY = Math.min(envMaxY, bMaxY);
+            if (envMaxX - envX < 5 || envMaxY - envY < 5) {
+              // Intersection trop petite → fallback sur envelope originale sans clip
+              envX = before.envX;
+              envY = before.envY;
+              envMaxX = before.envMaxX;
+              envMaxY = before.envMaxY;
+              console.log(
+                `[envelope-building-clip] ${lotName}: intersection dégénérée, fallback envelope raw`
+              );
+            } else if (
+              envX !== before.envX ||
+              envY !== before.envY ||
+              envMaxX !== before.envMaxX ||
+              envMaxY !== before.envMaxY
+            ) {
+              console.log(
+                `[envelope-building-clip] ${lotName}: envelope clippée au building_outline ` +
+                `(${before.envX.toFixed(1)},${before.envY.toFixed(1)})-(${before.envMaxX.toFixed(1)},${before.envMaxY.toFixed(1)}) ` +
+                `→ (${envX.toFixed(1)},${envY.toFixed(1)})-(${envMaxX.toFixed(1)},${envMaxY.toFixed(1)})`
+              );
+            }
+          }
+
+          zoneData.x_percent = envX;
+          zoneData.y_percent = envY;
+          zoneData.width_percent = envMaxX - envX;
+          zoneData.height_percent = envMaxY - envY;
           console.log(
             `[envelope-recompute] ${lotName}: zone recalculée depuis polygones finaux. ` +
             `Avant: y=${oldZone.y_percent.toFixed(1)} h=${oldZone.height_percent.toFixed(1)} ` +
