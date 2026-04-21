@@ -217,8 +217,11 @@ export async function POST(
 
             console.log(`[passe-2] Raffinement de ${extraction.rooms.length} pieces pour plan ${plan.id}...`);
 
-            for (const room of extraction.rooms) {
-              if (!room.bounding_box) continue;
+            // s24 — Paralléliser passe-2 intra-plan (Promise.all).
+            // Empirique : 7 rooms × ~4s séquentiel = ~28s → ~5s en parallèle.
+            // Rate-limit OpenAI tier 1 (10k RPM GPT-4o) largement compatible.
+            await Promise.all(extraction.rooms.map(async (room) => {
+              if (!room.bounding_box) return;
               try {
                 const refined = await refineRoomPolygon(
                   imageBuffer,
@@ -238,7 +241,7 @@ export async function POST(
                 console.error(`[passe-2] Echec pour ${room.name_raw}:`, refineErr instanceof Error ? refineErr.message : refineErr);
                 // Conserver le polygone grossier de la passe 1
               }
-            }
+            }));
           } catch (pass2Err) {
             console.error(`[passe-2] Erreur globale passe 2 pour plan ${plan.id}:`, pass2Err instanceof Error ? pass2Err.message : pass2Err);
             // Continuer avec les polygones passe 1
@@ -325,7 +328,12 @@ export async function POST(
         floorList.sort((a, b) => computeAvgX(a.rooms) - computeAvgX(b.rooms));
       }
 
-      for (const group of unitGroups) {
+      // s24 — Paralléliser la 2e boucle (resolver + passe-3 verifier + snap +
+      // hard-clip + envelope + INSERTS DB). Empirique : 4 lots × ~10s passe-3
+      // séquentiel = 40s → max ~10s en parallèle. lotName reste déterministe
+      // (tri avgX préalable dans groupsByFloor). lotsCreated ordre d'arrivée
+      // OK (juste une liste d'analytics).
+      await Promise.all(unitGroups.map(async (group) => {
         const habitableCount = countHabitableRooms(group.rooms);
         const avgX = computeAvgX(group.rooms);
 
@@ -783,7 +791,7 @@ export async function POST(
           habitable_room_count: habitableCount,
           source: "ai",
         });
-      }
+      }));
     }
 
     // I6 — Réponse enrichie : extraction_reason + warnings
