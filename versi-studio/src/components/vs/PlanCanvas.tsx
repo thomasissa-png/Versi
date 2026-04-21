@@ -272,6 +272,12 @@ export default function PlanCanvas({
   // ─── Viewport (zoom + pan) — versi-s20 ──────────────────────────
   const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const panRef = useRef<PanState | null>(null);
+  // s24 — drawRect de l'image dans le canvas (letterbox preserve aspect).
+  // Utilisé par le hit testing pour mapper correctement les coords DOM → % image.
+  // Valeurs : {x, y, w, h} en CSS pixels du canvas (avant viewport zoom/pan).
+  const drawRectRef = useRef<{ x: number; y: number; w: number; h: number }>({
+    x: 0, y: 0, w: 0, h: 0,
+  });
   // Mode main (pan explicite) — toggle via bouton toolbar (versi-s22 P1)
   const [handMode, setHandMode] = useState(false);
 
@@ -434,12 +440,16 @@ export default function PlanCanvas({
     ctx.fillRect(0, 0, w, h);
 
     // Image du plan
+    // s24 — drawX/drawY/drawW/drawH : rectangle effectif de l'IMAGE dans le canvas
+    // (letterbox preserve aspect ratio). Les lots/rooms sont en % du plan donc
+    // doivent être projetés dans ce rectangle, PAS en % du canvas entier.
+    let drawX = 0, drawY = 0, drawW = w, drawH = h;
+    drawRectRef.current = { x: drawX, y: drawY, w: drawW, h: drawH };
     if (imageRef.current && imageLoaded) {
       const img = imageRef.current;
       const imgAspect = img.naturalWidth / img.naturalHeight;
       const canvasAspect = w / h;
 
-      let drawW: number, drawH: number, drawX: number, drawY: number;
       if (imgAspect > canvasAspect) {
         drawW = w;
         drawH = w / imgAspect;
@@ -452,6 +462,7 @@ export default function PlanCanvas({
         drawY = 0;
       }
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      drawRectRef.current = { x: drawX, y: drawY, w: drawW, h: drawH };
     } else if (!planImageUrl) {
       // Pas de plan
       ctx.fillStyle = tokenBorderDefault;
@@ -494,8 +505,8 @@ export default function PlanCanvas({
         // ─── Tracé polygone ──────────────────────────────────────
         ctx.beginPath();
         zone.points.forEach((p, i) => {
-          const px = (p.x_percent / 100) * w;
-          const py = (p.y_percent / 100) * h;
+          const px = drawX + (p.x_percent / 100) * drawW;
+          const py = drawY + (p.y_percent / 100) * drawH;
           if (i === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         });
@@ -508,22 +519,23 @@ export default function PlanCanvas({
 
         // Label : centroïde du polygone
         const centroid = polygonCentroid(zone.points);
-        labelX = (centroid.x_percent / 100) * w;
-        labelY = (centroid.y_percent / 100) * h;
+        labelX = drawX + (centroid.x_percent / 100) * drawW;
+        labelY = drawY + (centroid.y_percent / 100) * drawH;
 
         // Poignées : un cercle sur chaque sommet si sélectionné
         if (isSelected) {
           polygonHandlePoints = zone.points.map((p) => ({
-            x: (p.x_percent / 100) * w,
-            y: (p.y_percent / 100) * h,
+            x: drawX + (p.x_percent / 100) * drawW,
+            y: drawY + (p.y_percent / 100) * drawH,
           }));
         }
       } else {
         // ─── Tracé rectangle (legacy) ────────────────────────────
-        const x = (zone.x_percent / 100) * w;
-        const y = (zone.y_percent / 100) * h;
-        const lw = (zone.width_percent / 100) * w;
-        const lh = (zone.height_percent / 100) * h;
+        // s24 — Utiliser drawX/Y/W/H (image letterbox) pas w/h (canvas entier).
+        const x = drawX + (zone.x_percent / 100) * drawW;
+        const y = drawY + (zone.y_percent / 100) * drawH;
+        const lw = (zone.width_percent / 100) * drawW;
+        const lh = (zone.height_percent / 100) * drawH;
 
         ctx.fillStyle = hexToRgba(color, LOT_OPACITY);
         ctx.fillRect(x, y, lw, lh);
@@ -605,8 +617,8 @@ export default function PlanCanvas({
       let snapToFirst = false;
       if (drawingPolygonPoints.length >= 3 && drawingCursorPos) {
         const firstP = drawingPolygonPoints[0];
-        const firstX = (firstP.x_percent / 100) * w;
-        const firstY = (firstP.y_percent / 100) * h;
+        const firstX = drawX + (firstP.x_percent / 100) * drawW;
+        const firstY = drawY + (firstP.y_percent / 100) * drawH;
         const dx = drawingCursorPos.x - firstX;
         const dy = drawingCursorPos.y - firstY;
         if (Math.sqrt(dx * dx + dy * dy) <= POLYGON_CLOSE_SNAP_DISTANCE) {
@@ -621,8 +633,8 @@ export default function PlanCanvas({
       // Ligne brisée entre les points existants
       ctx.beginPath();
       drawingPolygonPoints.forEach((p, i) => {
-        const px = (p.x_percent / 100) * w;
-        const py = (p.y_percent / 100) * h;
+        const px = drawX + (p.x_percent / 100) * drawW;
+        const py = drawY + (p.y_percent / 100) * drawH;
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       });
@@ -631,8 +643,8 @@ export default function PlanCanvas({
       // Ligne pointillée du dernier point au curseur
       if (drawingCursorPos) {
         const lastP = drawingPolygonPoints[drawingPolygonPoints.length - 1];
-        const lastX = (lastP.x_percent / 100) * w;
-        const lastY = (lastP.y_percent / 100) * h;
+        const lastX = drawX + (lastP.x_percent / 100) * drawW;
+        const lastY = drawY + (lastP.y_percent / 100) * drawH;
         ctx.save();
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
@@ -640,8 +652,8 @@ export default function PlanCanvas({
         // Si snap actif : la ligne pointillée se termine sur le 1er point (preview de fermeture)
         if (snapToFirst) {
           const firstP = drawingPolygonPoints[0];
-          const firstX = (firstP.x_percent / 100) * w;
-          const firstY = (firstP.y_percent / 100) * h;
+          const firstX = drawX + (firstP.x_percent / 100) * drawW;
+          const firstY = drawY + (firstP.y_percent / 100) * drawH;
           ctx.lineTo(firstX, firstY);
         } else {
           ctx.lineTo(drawingCursorPos.x, drawingCursorPos.y);
@@ -653,8 +665,8 @@ export default function PlanCanvas({
       // Cercles sur les points existants — premier mis en évidence (cercle plus gros)
       // Si snap actif : 1er point passe à 14px (8px rayon) + couleur succès → indique clic ferme.
       drawingPolygonPoints.forEach((p, i) => {
-        const px = (p.x_percent / 100) * w;
-        const py = (p.y_percent / 100) * h;
+        const px = drawX + (p.x_percent / 100) * drawW;
+        const py = drawY + (p.y_percent / 100) * drawH;
         const isFirstSnapping = i === 0 && snapToFirst;
         const radius = isFirstSnapping ? 8 : i === 0 ? 7 : 4;
         // Halo doux autour du 1er point en mode snap
@@ -783,11 +795,11 @@ export default function PlanCanvas({
     if (!canvas) return null;
     const zone = parseZoneData(lot);
     if (isPolygon(zone)) return null; // les polygones ont leurs propres sommets
-    const rect = canvas.getBoundingClientRect();
-    const x = (zone.x_percent / 100) * rect.width;
-    const y = (zone.y_percent / 100) * rect.height;
-    const w = (zone.width_percent / 100) * rect.width;
-    const h = (zone.height_percent / 100) * rect.height;
+    const dr = drawRectRef.current;
+    const x = dr.x + (zone.x_percent / 100) * dr.w;
+    const y = dr.y + (zone.y_percent / 100) * dr.h;
+    const w = (zone.width_percent / 100) * dr.w;
+    const h = (zone.height_percent / 100) * dr.h;
 
     const handles = getHandlePositions(x, y, w, h);
     for (const handle of handles) {
@@ -811,10 +823,10 @@ export default function PlanCanvas({
     if (!canvas) return null;
     const zone = parseZoneData(lot);
     if (!isPolygon(zone)) return null;
-    const rect = canvas.getBoundingClientRect();
+    const dr = drawRectRef.current;
     for (let i = 0; i < zone.points.length; i++) {
-      const vx = (zone.points[i].x_percent / 100) * rect.width;
-      const vy = (zone.points[i].y_percent / 100) * rect.height;
+      const vx = dr.x + (zone.points[i].x_percent / 100) * dr.w;
+      const vy = dr.y + (zone.points[i].y_percent / 100) * dr.h;
       if (
         Math.abs(px - vx) <= HANDLE_HIT_SIZE / 2 &&
         Math.abs(py - vy) <= HANDLE_HIT_SIZE / 2
@@ -828,22 +840,23 @@ export default function PlanCanvas({
   function hitTestLot(px: number, py: number): string | null {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
+    const dr = drawRectRef.current;
+    if (dr.w <= 0 || dr.h <= 0) return null;
 
     // Itérer en sens inverse pour que le lot le plus au-dessus soit sélectionné d'abord
     for (let i = lots.length - 1; i >= 0; i--) {
       const lot = lots[i];
       const zone = parseZoneData(lot);
       if (isPolygon(zone)) {
-        // Convertir px/py en % puis tester pointInPolygon
-        const xp = (px / rect.width) * 100;
-        const yp = (py / rect.height) * 100;
+        // Convertir px/py en % du plan image puis tester pointInPolygon
+        const xp = ((px - dr.x) / dr.w) * 100;
+        const yp = ((py - dr.y) / dr.h) * 100;
         if (pointInPolygon(xp, yp, zone.points)) return lot.id;
       } else {
-        const x = (zone.x_percent / 100) * rect.width;
-        const y = (zone.y_percent / 100) * rect.height;
-        const w = (zone.width_percent / 100) * rect.width;
-        const h = (zone.height_percent / 100) * rect.height;
+        const x = dr.x + (zone.x_percent / 100) * dr.w;
+        const y = dr.y + (zone.y_percent / 100) * dr.h;
+        const w = (zone.width_percent / 100) * dr.w;
+        const h = (zone.height_percent / 100) * dr.h;
         if (px >= x && px <= x + w && py >= y && py <= y + h) {
           return lot.id;
         }
@@ -930,8 +943,9 @@ export default function PlanCanvas({
       // Snap fermeture : si >= 3 points + curseur proche du 1er sommet → fermer
       if (drawingPolygonPoints.length >= 3) {
         const firstP = drawingPolygonPoints[0];
-        const firstPx = (firstP.x_percent / 100) * rect.width;
-        const firstPy = (firstP.y_percent / 100) * rect.height;
+        const dr0 = drawRectRef.current;
+        const firstPx = dr0.x + (firstP.x_percent / 100) * dr0.w;
+        const firstPy = dr0.y + (firstP.y_percent / 100) * dr0.h;
         const dxSnap = px - firstPx;
         const dySnap = py - firstPy;
         if (Math.sqrt(dxSnap * dxSnap + dySnap * dySnap) <= POLYGON_CLOSE_SNAP_DISTANCE) {
@@ -954,8 +968,9 @@ export default function PlanCanvas({
         }
       }
 
-      const xp = (px / rect.width) * 100;
-      const yp = (py / rect.height) * 100;
+      const dr1 = drawRectRef.current;
+      const xp = dr1.w > 0 ? ((px - dr1.x) / dr1.w) * 100 : 0;
+      const yp = dr1.h > 0 ? ((py - dr1.y) / dr1.h) * 100 : 0;
       // Clamp dans 0-100
       const clampedX = clamp(xp, 0, 100);
       const clampedY = clamp(yp, 0, 100);
@@ -1067,10 +1082,10 @@ export default function PlanCanvas({
       let cursorSnap = false;
       if (drawingPolygonPoints.length >= 3) {
         const firstP = drawingPolygonPoints[0];
-        const canvasRect2 = canvas?.getBoundingClientRect();
-        if (canvasRect2) {
-          const firstPx = (firstP.x_percent / 100) * canvasRect2.width;
-          const firstPy = (firstP.y_percent / 100) * canvasRect2.height;
+        const dr2 = drawRectRef.current;
+        if (dr2.w > 0) {
+          const firstPx = dr2.x + (firstP.x_percent / 100) * dr2.w;
+          const firstPy = dr2.y + (firstP.y_percent / 100) * dr2.h;
           const dxS = px - firstPx;
           const dyS = py - firstPy;
           if (Math.sqrt(dxS * dxS + dyS * dyS) <= POLYGON_CLOSE_SNAP_DISTANCE) {
@@ -1155,9 +1170,10 @@ export default function PlanCanvas({
     if (dragRef.current && canvas) {
       const { type, lotId, handle, vertexIndex, startMouseX, startMouseY, startZone } =
         dragRef.current;
-      const rect = canvas.getBoundingClientRect();
-      const dxPercent = ((px - startMouseX) / rect.width) * 100;
-      const dyPercent = ((py - startMouseY) / rect.height) * 100;
+      // s24 — déplacement en % du PLAN (image), pas du canvas.
+      const dr3 = drawRectRef.current;
+      const dxPercent = dr3.w > 0 ? ((px - startMouseX) / dr3.w) * 100 : 0;
+      const dyPercent = dr3.h > 0 ? ((py - startMouseY) / dr3.h) * 100 : 0;
 
       let newZone: Zone;
 
