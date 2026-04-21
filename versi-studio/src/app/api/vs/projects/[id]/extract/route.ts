@@ -195,7 +195,9 @@ export async function POST(
             // sur le plan ("SdB", "Chambre", "Séjour / cuisine", etc.). Utilisés
             // après passe-3 + hard-clip pour snapper les polygones sur la vraie
             // position des labels (drift ~10% GPT-4.1 vision non-fixable par prompt).
-            const SNAP_LABELS_ENABLED = process.env.VS_SNAP_LABELS !== "false";
+            // s24 — opt-in par défaut : tesseract.js crashe en Next.js runtime
+            // (uncaughtException bypass try/catch). Activable via VS_SNAP_LABELS=true.
+            const SNAP_LABELS_ENABLED = process.env.VS_SNAP_LABELS === "true";
             if (SNAP_LABELS_ENABLED) {
               try {
                 const tOcr = Date.now();
@@ -442,7 +444,10 @@ export async function POST(
         // les pièces mal positionnées (drift > 1 m). Applique corrections
         // avec confidence >= 0.8. Objectif : corriger le bug de position
         // (pièces placées à ~3m de leur vraie localisation, bug Thomas s23).
-        const VISUAL_VERIFY_ENABLED = process.env.VS_VISUAL_VERIFY !== "false";
+        // s24 — opt-in par défaut : passe-3 ajoute ~10s/lot et les learnings
+        // s23 montrent qu'elle dégrade parfois (preserve-complexity). Opt-in
+        // via VS_VISUAL_VERIFY=true. Réduit le temps et le risque DNS saturation.
+        const VISUAL_VERIFY_ENABLED = process.env.VS_VISUAL_VERIFY === "true";
         if (
           VISUAL_VERIFY_ENABLED &&
           group.rooms.length >= 2 &&

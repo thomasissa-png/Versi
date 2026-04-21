@@ -8,7 +8,9 @@ const nextConfig: NextConfig = {
   // pdf-to-img casse le bundling Next.js côté serveur s'il est importé
   // statiquement — on le traite comme package externe au runtime (Node.js).
   // Complémentaire du pattern `await import("pdf-to-img")` déjà appliqué.
-  serverExternalPackages: ["pdf-to-img"],
+  // s24 — tesseract.js même problème : Turbopack ne résout pas le worker
+  // script, crash uncaughtException "Cannot find module .../worker-script/node/index.js".
+  serverExternalPackages: ["pdf-to-img", "tesseract.js"],
 };
 
 export default nextConfig;
