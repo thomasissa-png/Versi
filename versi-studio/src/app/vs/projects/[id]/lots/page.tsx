@@ -992,6 +992,25 @@ export default function LotsPage({
           </div>
         )}
 
+        {/* s25 BUG 2 — Bouton "Recalibrer" toujours accessible après calibration.
+            Pattern découvrabilité s22 : Thomas doit pouvoir corriger une calibration
+            erronée à tout moment. Modale pré-remplie avec la valeur actuelle. */}
+        {currentPlan && m2PerPixel != null && (
+          <div className="mb-md flex items-center justify-between gap-md px-md py-xs border border-[var(--color-border-default)] rounded-md">
+            <span className="text-xs text-[var(--color-text-muted)]">
+              Plan calibré — les surfaces m² s&apos;affichent pendant le tracé.
+            </span>
+            <button
+              type="button"
+              onClick={() => setCalibrationOpen(true)}
+              className="px-md py-xs rounded-md text-xs font-medium border border-[var(--color-border-default)] text-[var(--color-text-default)] hover:bg-[var(--color-bg-default)] active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[36px]"
+              aria-label="Recalibrer l'échelle du plan"
+            >
+              Recalibrer
+            </button>
+          </div>
+        )}
+
         {/* s22 Point 4 — Stack vertical : canvas pleine largeur + panneau en grille dessous */}
         <div className="flex-1 flex flex-col gap-lg min-h-0">
           {/* Canvas pleine largeur */}
@@ -1012,6 +1031,7 @@ export default function LotsPage({
               onRedo={handleRedo}
               canUndo={history.canUndo}
               canRedo={history.canRedo}
+              projectId={projectId}
             />
           </div>
 
