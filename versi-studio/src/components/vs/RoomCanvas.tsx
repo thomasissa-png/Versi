@@ -27,6 +27,7 @@ import {
 import type { VsRoom, ZoneRect, ZonePolygonPoint } from "@/lib/vs/types";
 import { pointInPolygon, polygonCentroid } from "@/lib/vs/types";
 import { getRoomColor, ROOM_TYPE_DROPDOWN } from "@/lib/vs/styles";
+import { saveViewport, loadViewport } from "@/lib/vs/viewport-storage";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -76,6 +77,8 @@ interface RoomCanvasProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  /** s25 BUG 3 — persistance zoom/pan entre Étape 2 et Étape 3 via sessionStorage. */
+  projectId?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -314,6 +317,7 @@ export default function RoomCanvas({
   onRedo,
   canUndo = false,
   canRedo = false,
+  projectId,
 }: RoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -337,7 +341,30 @@ export default function RoomCanvas({
   } | null>(null);
 
   // ─── Viewport (zoom + pan) — versi-s22 P4 (calqué sur PlanCanvas) ──
-  const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
+  // s25 BUG 3 — initial viewport restauré depuis sessionStorage (même clé que
+  // PlanCanvas Étape 2). Si aucun projectId fourni ou pas de valeur stockée,
+  // INITIAL_VIEWPORT + fit-to-lot standard (fallback historique).
+  // On utilise useState (pas useRef) car React Compiler interdit l'accès aux
+  // refs pendant le render (utilisé plus bas pour skip le premier fit-to-lot).
+  const [viewportHydratedFromStorage, setViewportHydratedFromStorage] =
+    useState<boolean>(() => {
+      if (!projectId) return false;
+      return loadViewport(projectId) !== null;
+    });
+  const [viewport, setViewport] = useState<Viewport>(() => {
+    if (!projectId) return INITIAL_VIEWPORT;
+    const stored = loadViewport(projectId);
+    return stored ?? INITIAL_VIEWPORT;
+  });
+
+  // s25 BUG 3 — persist viewport au changement pour permettre retour Étape 2→3→2
+  useEffect(() => {
+    if (!projectId) return;
+    const t = setTimeout(() => {
+      saveViewport(projectId, viewport);
+    }, 120);
+    return () => clearTimeout(t);
+  }, [projectId, viewport]);
   const panRef = useRef<{ startMouseX: number; startMouseY: number; originOffsetX: number; originOffsetY: number } | null>(null);
   const [handMode, setHandMode] = useState(false);
   // Menu contextuel (clic droit)
@@ -489,7 +516,15 @@ export default function RoomCanvas({
     : "";
   if (currentFitKey !== "" && currentFitKey !== lastFittedKey) {
     setLastFittedKey(currentFitKey);
-    setViewport(computeFitLotViewport());
+    // s25 BUG 3 — si le viewport a été restauré depuis sessionStorage (Étape 2),
+    // on skip le fit-to-lot AU PREMIER fit uniquement, pour respecter le cadrage
+    // choisi par Thomas. Les changements ultérieurs de lot déclenchent bien un
+    // re-fit (pattern existant).
+    if (viewportHydratedFromStorage) {
+      setViewportHydratedFromStorage(false);
+    } else {
+      setViewport(computeFitLotViewport());
+    }
   }
 
   // ─── Conversion lot-local % → plan global % ───────────────────

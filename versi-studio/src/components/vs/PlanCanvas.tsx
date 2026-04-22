@@ -32,6 +32,7 @@ import {
   polygonAreaPercent,
   polygonHasSelfIntersection,
 } from "@/lib/vs/types";
+import { saveViewport, loadViewport } from "@/lib/vs/viewport-storage";
 
 // ─── Types internes ───────────────────────────────────────────────
 
@@ -86,6 +87,8 @@ interface PlanCanvasProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  // s25 BUG 3 — persiste viewport zoom/pan entre étapes via sessionStorage.
+  projectId?: string;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -252,6 +255,7 @@ export default function PlanCanvas({
   onRedo,
   canUndo = false,
   canRedo = false,
+  projectId,
 }: PlanCanvasProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lotId: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -270,7 +274,22 @@ export default function PlanCanvas({
   const rafOverlayRef = useRef<number>(0);
 
   // ─── Viewport (zoom + pan) — versi-s20 ──────────────────────────
-  const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
+  // s25 BUG 3 — initial viewport depuis sessionStorage si un projectId est fourni
+  // et qu'une valeur existe. Lecture dans l'initializer pour éviter flicker.
+  const [viewport, setViewport] = useState<Viewport>(() => {
+    if (!projectId) return INITIAL_VIEWPORT;
+    const stored = loadViewport(projectId);
+    return stored ?? INITIAL_VIEWPORT;
+  });
+
+  // s25 BUG 3 — persist viewport (debounced) à chaque changement pour Étape 3.
+  useEffect(() => {
+    if (!projectId) return;
+    const t = setTimeout(() => {
+      saveViewport(projectId, viewport);
+    }, 120);
+    return () => clearTimeout(t);
+  }, [projectId, viewport]);
   const panRef = useRef<PanState | null>(null);
   // s24 — drawRect de l'image dans le canvas (letterbox preserve aspect).
   // Utilisé par le hit testing pour mapper correctement les coords DOM → % image.
