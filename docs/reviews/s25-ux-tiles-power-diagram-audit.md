@@ -1,7 +1,7 @@
 # Audit UX tiles power diagram — s25
 
 **Date** : 2026-04-22
-**Agent** : @ux
+**Agent** : @ux (révision complète — session s25)
 **Contexte** : audit post-livraison s24 — power diagram room tiling, demandé explicitement par le mémo s24 (section "Limitations connues").
 
 ---
