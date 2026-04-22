@@ -197,3 +197,15 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas valorise l'HONNÊTETÉ sur les limites plutôt que la sur-promesse**. Quand @ia a rendu 7/10 honnête avec plafond prompt-only documenté, Thomas a accepté la limite et demandé la solution code-level. Règle : rapport post-session = résultats empiriques + limites connues + voies non explorées, pas claim 10/10 non prouvé.
 
+
+## Session s24 (2026-04-21) — nouvelles préférences capturées
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas exige pixel-parfait sur TOUS les critères listés, pas "ça marche globalement"**. "Je veux du parfait". Refuse 3/4 critères OK en prétendant succès. Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur TOUS. Itérer jusqu'à conformité stricte ou atteindre la limite technique empirique documentée (plafond prompt GPT-4.1, algo connu).
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas refuse que l'orchestrator renvoie vers lui pour tester tant que le travail n'est pas fini**. "Arrête de me demander de tester tant que ce n'est pas fini". L'orchestrator teste lui-même (Postgres local + curl + Playwright) entre itérations, pas Thomas. Seule exception : quand Thomas a explicitement demandé une validation chez lui (ex : "redéploie et vérifie en prod").
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas ne veut PAS de détails sur ce que l'orchestrator a fait**. "Ne me détaille pas ce que tu as fait, teste plutôt ce que je demande et confirme le à 100%". Réponses orientées résultat + preuve empirique (screenshots, metrics DB, tests E2E). PAS de récit étape-par-étape du process. Thomas valide sur visuel/metrics, pas sur discours.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas recommande délégation @ia face aux blocages techniques**. "Si tu es bloqué fais analyser les prompts aux agents les plus ingénieux, peut-être @ia. Décide l'approche la plus smart et continue". Face à un plafond (prompt qui plafonne, algo qui rate), déléguer @ia plutôt qu'itérer seul. @ia a les meilleures chances sur : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API.
+
+- [PRÉFÉRENCE FONDATEUR] **Thomas utilise "@orchestrator" comme interlocuteur principal**. Il s'adresse à l'orchestrator pour toutes les demandes même techniques. L'orchestrator décide ensuite qui déléguer (fullstack, @ia, qa, etc.). Ne pas casser ce flow : ne pas l'inviter à s'adresser directement à un sous-agent.

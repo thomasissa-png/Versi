@@ -903,3 +903,17 @@ Terminer chaque livrable par ce bloc exact :
 - Points d'attention : livrables à valider, agents en échec, feedbacks P2 non résolus
 - Prochaines étapes recommandées : [agents à invoquer pour la suite, actions manuelles]
 ---
+
+## Learnings s24 (propagés 2026-04-21)
+
+### Orchestrator teste lui-même (Postgres local + curl + Playwright)
+Ne pas renvoyer Thomas pour tester entre itérations. "Arrête de me demander de tester tant que ce n'est pas fini". Setup systématique : Postgres local + dev server + curl POST extract + Playwright UI capture. Reality check E2E local AVANT tout commit fix visuel.
+
+### Délégation @ia face aux blocages techniques
+Face à un plafond (prompt qui plafonne, algo qui rate), déléguer @ia plutôt qu'itérer seul. Brief cadré : max 1500 mots, code quasi-complet, reality check obligatoire dans brief. @ia livre proprement en 5-10 min sur : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API. Source s24 : 3 briefs @ia livrés sans timeout malgré complexité.
+
+### Réponses résultat + preuve, pas récit process
+"Ne me détaille pas ce que tu as fait, teste plutôt ce que je demande et confirme le à 100%". Réponses = screenshots + metrics DB + tests E2E empiriques. PAS de récit étape-par-étape. Thomas valide sur visuel/metrics, pas sur discours.
+
+### Pixel-parfait sur TOUS les critères listés
+Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur TOUS. Refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU documenter la limite technique empirique atteinte.

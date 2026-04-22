@@ -428,3 +428,17 @@ Format :
 - **Actions Replit requises** : (voir _base-agent-protocol.md — section obligatoire)
 - **Pre-commit check** : confirmer que la Règle n°6 (CLAUDE.md) est PASS avant commit. Si hook Husky non installé → l'installer (voir _base-agent-protocol.md)
 ---
+
+## Learnings s24 (propagés 2026-04-21)
+
+### Build prod = tsc SANS filtre sur tout le projet
+`scripts/` est inclus dans tsconfig Next.js → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Source s24 : commit 03c627f bloquait build prod sur 2 erreurs `r.name` dans script test.
+
+### Canvas letterbox : drawRectRef pour tous les overlays
+Canvas rendering bug : lots rendus en % du canvas entier alors que image letterboxée (drawX > 0 quand aspect ratio image ≠ canvas). Fix : drawRectRef stocke {x, y, w, h} effectif. Tous les rendus + hit tests projettent via drawRect. Pattern : tout canvas qui dessine une image letterboxée DOIT stocker drawRect. Source s24 : PlanCanvas.tsx fix.
+
+### Parallélisation pipeline multi-étapes = Promise.all à tous niveaux
+Pipeline IA timeout sur reverse-proxy Replit 60s strict. Fix : Promise.all sur plans + passe intra + boucle post-process + DB inserts. Gain empirique 190s → 30-55s sur 4 plans. Rate limit OpenAI tier 1 pas saturé. Ajouter aussi `export const maxDuration = 300` sur route Next.js.
+
+### tesseract.js import dynamique OBLIGATOIRE
+`import { createWorker } from "tesseract.js"` top-level crashe au module loading runtime Next.js (`Cannot find module worker-script/node/index.js`). Fix : `const { createWorker } = await import("tesseract.js")` dans la fonction. ET ajouter `serverExternalPackages: ["tesseract.js"]` dans next.config. Pattern applicable à toutes libs Node-only avec workers/binaries.

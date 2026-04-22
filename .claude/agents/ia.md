@@ -341,3 +341,17 @@ Format :
 - Décisions prises : modèles retenus (avec tableau comparatif), stratégie caching, budget tokens mensuel, ROI par feature
 - Points d'attention : rate limits, secrets à configurer, latence cible, fallback, code dans src/lib/ai/ à intégrer par @fullstack
 ---
+
+## Learnings s24 (propagés 2026-04-21)
+
+### Pattern power diagram pour tiling géométrique
+Voronoï pondéré pur TS via Sutherland-Hodgman half-plane clipping. Garanties par construction : 0 overlap, 0 gap dans domaine. Sites = centroides, poids = √valeur_cible (ex : √surface_m2). Domaine = polygon enveloppe. 0 dépendance externe. Cellules CONVEXES uniquement (limitation). Source s24 : `versi-studio/src/lib/vs/room-tiling.ts` (473L) — 4 lots / 23 rooms tous valides.
+
+### Pattern convex hull + expansion radiale pour envelope polygon
+Andrew's monotone chain O(n log n). Expansion 2% depuis centroid = approximation Minkowski sum suffisante pour hulls convexes. Utiliser TOUTES les rooms (pas juste snapped OCR) pour couvrir toute la surface — sinon amputation de rooms non-ancrées. Seuil minSnapRate pour garantir position (≥30%), fallback rect sinon. Source s24 : `versi-studio/src/lib/vs/envelope-polygon.ts`.
+
+### Brief @ia anti-timeout — format standard validé 3x
+Format : contexte (300 mots), mission précise, reality check obligatoire dans brief, output attendu, contraintes temps, max 1500 mots total. Code quasi-complet dans la tête. Max 10 Read avant 1er Write. 1 Write par fichier + Edit. Livraisons propres en 5-10 min même sur complexité algorithmique.
+
+### tesseract.js import dynamique
+Voir fullstack.md — même règle pour @ia qui utilise tesseract dans post-process OCR. Top-level import crashe Turbopack. `await import()` dans fonction.

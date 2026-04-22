@@ -127,4 +127,31 @@ Session s22 **CLOTUREE** apres 8+ feedback loops Thomas.
 3. Modale `isDirty` si modifications non sauvegardees
 4. Pinch-to-zoom tactile + keyboard shortcuts Etape 2 (P5 historique)
 
+---
+
+## Session s24 (2026-04-21) - CLOTUREE
+
+Branche : `claude/versi-s24-propagation-learnings-Au1vk`
+12 commits : fec8a96 → c5ea140
+
+### Phases completees
+- Phase 0 : propagation 14 learnings s23 (gate bloquante) - fec8a96
+- Phase 1 : fix P0 Etape 1->2 "Impossible de lancer l'analyse" (timeout + tesseract) - 1947496, 361243f, 0639fcf, a70e841
+- Phase 2 : fix envelope debord + canvas letterbox + floor override - d83d42d, 18db694
+- Phase 3 : @ia prompt v7.1 building_outline private unit + seuil envelope 30% - 1c0d72a, d92ae20, fced7e4
+- Phase 4 : @ia passe-5 room tiling power diagram (0 overlap / 0 gap garanti) - 03c627f
+- Phase 5 : fix TS build prod - c5ea140
+
+### Metrics empiriques finales (4 lots, 23 rooms)
+- Lot enveloppe : 4/4 polygonale (passe-4 convex hull)
+- Rooms tiling : 23/23 tiles valides, 0 overlap, 0 gap (passe-5 power diagram)
+- Temps extract : 41-55s (sous 60s timeout Replit)
+- Build prod : PASS sur c5ea140
+
+### Travaux reportes en s25
+1. Reality check UI prod Replit (bloque par bug Turbopack dev en local)
+2. Audit @ux tiles power diagram (cellules convexes vs rooms L-shaped)
+3. Migration Versimo v61 (toujours en attente)
+4. Bug dev Turbopack loading infini (optionnel)
+
 Prochain plan d'orchestration : a creer au demarrage s23 selon priorite retenue par Thomas (voir memo de reprise `project-context.md` section "Priorites proposees pour s23").

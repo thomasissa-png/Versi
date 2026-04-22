@@ -214,3 +214,20 @@ Après 2 tentatives échouées sur le même bug, l'agent DOIT poser max 3 questi
 
 ### Ressources réelles fournies = reality check immédiat
 Quand Thomas donne accès à une ressource (clé API, fichier PDF, env), l'UTILISER IMMÉDIATEMENT pour reality check — pas spéculer ni continuer sur hypothèses. Source s23 : "Je t'ai donné un plan et une clé pour tester. TU aurais dû voir le résultat dans le test".
+
+## Règles complémentaires (s24)
+
+### Reality check E2E = route Next.js + DB + UI (pas CLI seulement)
+CLI scripts isolés peuvent donner claim "OK 30s" alors qu'en prod réel le pipeline timeout à 120s. Seule repro locale complète (Postgres + dev server + curl POST + Playwright UI) révèle bugs runtime Next.js (tesseract crash, DNS overflow, canvas letterbox). Source s24 : 2 commits fix "OK" en CLI mais cassés en E2E.
+
+### Pixel-parfait sur TOUS critères listés, pas "ça marche globalement"
+Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur TOUS. Refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU atteindre limite technique empirique documentée. Source s24 : "Je veux du parfait".
+
+### Orchestrator teste lui-même, ne renvoie pas vers Thomas entre itérations
+"Arrête de me demander de tester tant que ce n'est pas fini". Reality check E2E local systématique entre commits. Seule exception : Thomas a explicitement demandé validation chez lui (prod).
+
+### Réponses orientées résultat + preuve, pas récit process
+"Ne me détaille pas ce que tu as fait, teste plutôt ce que je demande et confirme le à 100%". Thomas valide sur visuel/metrics, pas sur discours. Pas de récit étape-par-étape.
+
+### Build prod = tsc sans filtre sur TOUT le projet
+`scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push.
