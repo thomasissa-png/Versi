@@ -203,7 +203,7 @@ export default function LotsPage({
 
   const planImageUrl = useMemo(() => {
     if (!currentPlan) return null;
-    // s25 Round B — D2 : affiche le plan reformaté (canonical) si disponible,
+    // s25 — affiche le plan canonicalisé (backend) si disponible,
     // sinon fallback sur l'original. Les polygones IA ont été calculés sur
     // le plan affiché dans le canvas.
     const src = currentPlan.canonicalized_image_path ?? currentPlan.file_path;
@@ -801,7 +801,7 @@ export default function LotsPage({
     return (
       <div className="flex gap-2xl">
         <aside className="w-64 flex-shrink-0">
-          <Stepper currentStep={3} projectId={projectId} completedSteps={[1, 2]} />
+          <Stepper currentStep={2} projectId={projectId} completedSteps={[1]} />
         </aside>
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="text-center">
@@ -834,17 +834,17 @@ export default function LotsPage({
   }
 
   // ─── Étapes complétées pour le stepper ───────────────────────
-  // s25 : 5 étapes (1=Plans, 2=Reformatage, 3=Lots, 4=Pièces, 5=Visuels)
-  const completedSteps: (1 | 2 | 3 | 4 | 5)[] = [1, 2]; // Plans + Reformatage complets ici
+  // s25 Round 2 : 4 étapes (1=Plans, 2=Lots, 3=Pièces, 4=Visuels)
+  const completedSteps: (1 | 2 | 3 | 4)[] = [1]; // Plans déjà complété ici
   if (
     project.status === "step_2_complete" ||
     project.status === "step_3_complete" ||
     project.status === "completed"
   ) {
-    completedSteps.push(3);
+    completedSteps.push(2);
   }
   if (project.status === "step_3_complete" || project.status === "completed") {
-    completedSteps.push(4);
+    completedSteps.push(3);
   }
 
   // ─── Rendu principal ──────────────────────────────────────────
@@ -853,7 +853,7 @@ export default function LotsPage({
     <div className="flex gap-2xl">
       {/* Stepper latéral */}
       <aside className="w-64 flex-shrink-0">
-        <Stepper currentStep={3} projectId={projectId} completedSteps={completedSteps} />
+        <Stepper currentStep={2} projectId={projectId} completedSteps={completedSteps} />
       </aside>
 
       {/* Contenu principal */}
@@ -885,7 +885,7 @@ export default function LotsPage({
           </p>
         </div>
 
-        {/* s25 Round B — D3 : bannière "Calibration à vérifier" */}
+        {/* s25 Round 2 — bannière "Vérifiez l'échelle du plan" (reformulation persona-friendly) */}
         {showCalibrationWarning && (
           <div
             role="status"
@@ -906,9 +906,9 @@ export default function LotsPage({
               />
             </svg>
             <div className="flex-1">
-              <p className="font-medium">Calibration à vérifier</p>
+              <p className="font-medium">Vérifiez l&apos;échelle du plan</p>
               <p className="mt-2xs">
-                Ce plan a été reformaté depuis votre calibration initiale.
+                Ce plan a été mis à jour depuis votre dernière mesure.
                 Vérifiez que l&apos;échelle métrique reste correcte avant de valider vos lots.
               </p>
               <button

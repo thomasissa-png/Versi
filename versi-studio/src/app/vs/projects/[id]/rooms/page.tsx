@@ -215,7 +215,7 @@ export default function RoomsPage({
     lots.length > 0 && lots.every((l) => l.status === "validated");
 
   // Trouver le premier plan (pour le canvas background)
-  // s25 Round B — D2 : affiche le plan reformaté (canonical) si disponible,
+  // s25 — affiche le plan canonicalisé (backend) si disponible,
   // sinon fallback sur l'original. Les polygones IA ont été calculés sur le
   // plan affiché dans le canvas.
   const firstPlan = plans.length > 0 ? plans[0] : null;
@@ -260,25 +260,25 @@ export default function RoomsPage({
   })();
 
   // Étapes complétées pour le stepper
-  // s25 : 5 étapes (1=Plans, 2=Reformatage, 3=Lots, 4=Pièces, 5=Visuels)
-  const completedSteps: (1 | 2 | 3 | 4 | 5)[] = [];
+  // s25 Round 2 : 4 étapes (1=Plans, 2=Lots, 3=Pièces, 4=Visuels)
+  const completedSteps: (1 | 2 | 3 | 4)[] = [];
   if (
     project?.status === "step_1_complete" ||
     project?.status === "step_2_complete" ||
     project?.status === "step_3_complete" ||
     project?.status === "completed"
   ) {
-    completedSteps.push(1, 2); // Plans + Reformatage
+    completedSteps.push(1); // Plans
   }
   if (
     project?.status === "step_2_complete" ||
     project?.status === "step_3_complete" ||
     project?.status === "completed"
   ) {
-    completedSteps.push(3);
+    completedSteps.push(2); // Lots
   }
   if (project?.status === "step_3_complete" || project?.status === "completed") {
-    completedSteps.push(4);
+    completedSteps.push(3); // Pièces
   }
 
   // ─── PATCH individuel avec debounce ───────────────────────────
@@ -727,7 +727,7 @@ export default function RoomsPage({
     return (
       <div className="flex gap-2xl h-[calc(100vh-120px)]">
         <aside className="w-64 flex-shrink-0">
-          <Stepper currentStep={4} projectId={projectId} />
+          <Stepper currentStep={3} projectId={projectId} />
         </aside>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -775,7 +775,7 @@ export default function RoomsPage({
       <div className="flex gap-2xl">
         <aside className="w-64 flex-shrink-0">
           <Stepper
-            currentStep={4}
+            currentStep={3}
             projectId={projectId}
             completedSteps={completedSteps}
           />
@@ -811,7 +811,7 @@ export default function RoomsPage({
       {/* Stepper latéral — caché sur mobile */}
       <aside className="hidden sm:block w-64 flex-shrink-0">
         <Stepper
-          currentStep={4}
+          currentStep={3}
           projectId={projectId}
           completedSteps={completedSteps}
         />
