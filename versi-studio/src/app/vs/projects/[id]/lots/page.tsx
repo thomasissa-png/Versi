@@ -203,7 +203,23 @@ export default function LotsPage({
 
   const planImageUrl = useMemo(() => {
     if (!currentPlan) return null;
-    return `/api/vs/files?path=${encodeURIComponent(currentPlan.file_path)}`;
+    // s25 Round B — D2 : affiche le plan reformaté (canonical) si disponible,
+    // sinon fallback sur l'original. Les polygones IA ont été calculés sur
+    // le plan affiché dans le canvas.
+    const src = currentPlan.canonicalized_image_path ?? currentPlan.file_path;
+    return `/api/vs/files?path=${encodeURIComponent(src)}`;
+  }, [currentPlan]);
+
+  // s25 Round B — D3 : bannière "Calibration à vérifier" si le plan a été reformaté
+  // ET que la calibration existante a été faite avant s25 (avant 2026-04-22).
+  // Pattern simple : comparer la date de création du plan à la mise en prod s25.
+  const S25_RELEASE_DATE = "2026-04-22T00:00:00Z";
+  const showCalibrationWarning = useMemo(() => {
+    if (!currentPlan) return false;
+    if (!currentPlan.canonicalized_image_path) return false;
+    if (currentPlan.m2_per_pixel == null) return false;
+    // Plan créé avant la mise en prod s25 → calibration potentiellement sur original
+    return new Date(currentPlan.created_at) < new Date(S25_RELEASE_DATE);
   }, [currentPlan]);
 
   const m2PerPixel = currentPlan?.m2_per_pixel ?? null;
@@ -785,7 +801,7 @@ export default function LotsPage({
     return (
       <div className="flex gap-2xl">
         <aside className="w-64 flex-shrink-0">
-          <Stepper currentStep={2} projectId={projectId} completedSteps={[1]} />
+          <Stepper currentStep={3} projectId={projectId} completedSteps={[1, 2]} />
         </aside>
         <div className="flex-1 flex items-center justify-center py-4xl">
           <div className="text-center">
@@ -818,16 +834,17 @@ export default function LotsPage({
   }
 
   // ─── Étapes complétées pour le stepper ───────────────────────
-  const completedSteps: (1 | 2 | 3 | 4)[] = [1]; // étape 1 toujours complète ici
+  // s25 : 5 étapes (1=Plans, 2=Reformatage, 3=Lots, 4=Pièces, 5=Visuels)
+  const completedSteps: (1 | 2 | 3 | 4 | 5)[] = [1, 2]; // Plans + Reformatage complets ici
   if (
     project.status === "step_2_complete" ||
     project.status === "step_3_complete" ||
     project.status === "completed"
   ) {
-    completedSteps.push(2);
+    completedSteps.push(3);
   }
   if (project.status === "step_3_complete" || project.status === "completed") {
-    completedSteps.push(3);
+    completedSteps.push(4);
   }
 
   // ─── Rendu principal ──────────────────────────────────────────
@@ -836,7 +853,7 @@ export default function LotsPage({
     <div className="flex gap-2xl">
       {/* Stepper latéral */}
       <aside className="w-64 flex-shrink-0">
-        <Stepper currentStep={2} projectId={projectId} completedSteps={completedSteps} />
+        <Stepper currentStep={3} projectId={projectId} completedSteps={completedSteps} />
       </aside>
 
       {/* Contenu principal */}
@@ -867,6 +884,43 @@ export default function LotsPage({
             Pour un lot en L ou avec des retraits, utilisez « Dessiner un lot ».
           </p>
         </div>
+
+        {/* s25 Round B — D3 : bannière "Calibration à vérifier" */}
+        {showCalibrationWarning && (
+          <div
+            role="status"
+            className="mb-lg rounded-md border border-amber-300 bg-amber-50 px-md py-sm text-sm text-amber-900 flex items-start gap-sm"
+          >
+            <svg
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="font-medium">Calibration à vérifier</p>
+              <p className="mt-2xs">
+                Ce plan a été reformaté depuis votre calibration initiale.
+                Vérifiez que l&apos;échelle métrique reste correcte avant de valider vos lots.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCalibrationOpen(true)}
+                className="mt-sm inline-flex items-center gap-xs text-sm font-medium underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 min-h-[44px]"
+              >
+                Recalibrer le plan
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Erreur globale */}
         {error && (

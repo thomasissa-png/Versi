@@ -483,7 +483,7 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 // ─── Stepper ───────────────────────────────────────────────────────
 
-export type StepId = 1 | 2 | 3 | 4;
+export type StepId = 1 | 2 | 3 | 4 | 5;
 
 export interface StepDefinition {
   id: StepId;
@@ -501,18 +501,24 @@ export const STEPS: StepDefinition[] = [
   },
   {
     id: 2,
+    label: "Reformatage",
+    description: "Vérifiez le plan reformaté",
+    path: (id) => `/vs/projects/${id}/reformatage`,
+  },
+  {
+    id: 3,
     label: "Lots",
     description: "Découpez vos lots",
     path: (id) => `/vs/projects/${id}/lots`,
   },
   {
-    id: 3,
+    id: 4,
     label: "Pièces",
     description: "Identifiez les pièces",
     path: (id) => `/vs/projects/${id}/rooms`,
   },
   {
-    id: 4,
+    id: 5,
     label: "Visuels",
     description: "Créez vos visuels",
     path: (id) => `/vs/projects/${id}/visuals`,

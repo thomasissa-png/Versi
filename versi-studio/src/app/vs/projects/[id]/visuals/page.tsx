@@ -211,9 +211,10 @@ export default function VisualsPage({
   const allValidated = totalRooms > 0 && validatedRooms === totalRooms;
 
   // Étapes complétées pour le stepper
-  const completedSteps: (1 | 2 | 3 | 4)[] = [1, 2, 3];
+  // s25 : 5 étapes (1=Plans, 2=Reformatage, 3=Lots, 4=Pièces, 5=Visuels)
+  const completedSteps: (1 | 2 | 3 | 4 | 5)[] = [1, 2, 3, 4];
   if (project?.status === "completed") {
-    completedSteps.push(4);
+    completedSteps.push(5);
   }
 
   // ─── Handlers ─────────────────────────────────────────────────
@@ -246,7 +247,7 @@ export default function VisualsPage({
     return (
       <div className="flex gap-2xl h-[calc(100vh-120px)]">
         <aside className="w-64 flex-shrink-0">
-          <Stepper currentStep={4} projectId={projectId} />
+          <Stepper currentStep={5} projectId={projectId} />
         </aside>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -294,7 +295,7 @@ export default function VisualsPage({
       <div className="flex gap-2xl">
         <aside className="w-64 flex-shrink-0">
           <Stepper
-            currentStep={4}
+            currentStep={5}
             projectId={projectId}
             completedSteps={completedSteps}
           />
@@ -330,7 +331,7 @@ export default function VisualsPage({
       {/* Stepper latéral — caché sur mobile */}
       <aside className="hidden sm:block w-64 flex-shrink-0">
         <Stepper
-          currentStep={4}
+          currentStep={5}
           projectId={projectId}
           completedSteps={completedSteps}
         />

@@ -378,8 +378,9 @@ export default function UploadPage({
         return;
       }
 
-      // 3. Rediriger vers l'étape 2
-      router.push(`/vs/projects/${projectId}/lots`);
+      // 3. Rediriger vers l'étape Reformatage (s25 Round B)
+      //    Thomas vérifie le plan reformaté avant de passer au découpage des lots.
+      router.push(`/vs/projects/${projectId}/reformatage`);
     } catch {
       setError(
         "Impossible de lancer l'analyse — vérifiez votre connexion et réessayez."
