@@ -683,6 +683,40 @@ export default function RoomsPage({
     list.some((r) => r.source === "ai")
   );
 
+  // s25 BUG 1 — Régénérer les pièces IA pour le lot sélectionné depuis
+  // extraction_data. Remplit un lot sans rooms (manuel ou IA pré-c5ea140) sans
+  // relancer le pipeline extract complet (5 min, coûteux).
+  const [isRegeneratingRooms, setIsRegeneratingRooms] = useState(false);
+  const handleRegenerateRooms = useCallback(async () => {
+    if (!selectedLotId || isRegeneratingRooms) return;
+    setIsRegeneratingRooms(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/vs/lots/${selectedLotId}/rooms/regenerate`,
+        { method: "POST" }
+      );
+      const json = (await res.json()) as ApiResponse<{
+        rooms_created: number;
+      }>;
+      if (!json.success) {
+        setError(json.error);
+        return;
+      }
+      await fetchData();
+      if (json.data.rooms_created > 0) {
+        setWarningMessage(
+          `${json.data.rooms_created} pièce${json.data.rooms_created > 1 ? "s" : ""} régénérée${json.data.rooms_created > 1 ? "s" : ""} par l'IA.`
+        );
+        setTimeout(() => setWarningMessage(null), 5000);
+      }
+    } catch {
+      setError("Impossible de régénérer les pièces. Réessayez.");
+    } finally {
+      setIsRegeneratingRooms(false);
+    }
+  }, [selectedLotId, isRegeneratingRooms, fetchData]);
+
   // ─── État Loading ─────────────────────────────────────────────
 
   if (loading) {
@@ -892,6 +926,7 @@ export default function RoomsPage({
               onRedo={handleRedoRooms}
               canUndo={history.canUndo}
               canRedo={history.canRedo}
+              projectId={projectId}
             />
           </div>
 
@@ -912,6 +947,8 @@ export default function RoomsPage({
             onResolveOverlaps={handleResolveOverlaps}
             hasAiRooms={hasAiRooms}
             isResolvingOverlaps={isResolvingOverlaps}
+            onRegenerateRooms={handleRegenerateRooms}
+            isRegeneratingRooms={isRegeneratingRooms}
             allLotsValidated={allLotsValidated}
             isValidating={isValidating}
             currentLotValidated={currentLotValidated}

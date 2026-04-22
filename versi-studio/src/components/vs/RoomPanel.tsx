@@ -40,6 +40,9 @@ interface RoomPanelProps {
   /** s23 fix régression — visible uniquement si au moins 1 pièce IA existe. */
   hasAiRooms?: boolean;
   isResolvingOverlaps?: boolean;
+  /** s25 BUG 1 — régénérer les pièces IA pour ce lot depuis extraction_data. */
+  onRegenerateRooms?: () => void;
+  isRegeneratingRooms?: boolean;
   allLotsValidated: boolean;
   isValidating: boolean;
   currentLotValidated: boolean;
@@ -75,6 +78,8 @@ export default function RoomPanel({
   onResolveOverlaps,
   hasAiRooms = false,
   isResolvingOverlaps = false,
+  onRegenerateRooms,
+  isRegeneratingRooms = false,
   allLotsValidated,
   isValidating,
   currentLotValidated,
@@ -428,12 +433,39 @@ export default function RoomPanel({
         </button>
       )}
 
+      {/* s25 BUG 1 — Bouton "Régénérer les pièces IA" TOUJOURS visible.
+          Pattern découvrabilité s22 : feature invisible = feature inexistante.
+          Remplit le lot depuis extraction_data mémorisé sur les plans (lots
+          manuels, lots IA pré-c5ea140 sans rooms associées). */}
+      {onRegenerateRooms && (
+        <button
+          type="button"
+          onClick={onRegenerateRooms}
+          disabled={isRegeneratingRooms}
+          className="
+            w-full mt-xs px-md py-sm rounded-md text-sm font-medium min-h-[44px]
+            border border-border-default bg-bg-card
+            text-text-default hover:bg-bg-default active:opacity-80
+            transition-colors duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+          "
+          aria-label="Régénérer les pièces IA pour ce lot depuis l'analyse mémorisée"
+        >
+          {isRegeneratingRooms
+            ? "Régénération en cours…"
+            : rooms.length === 0
+              ? "Régénérer les pièces avec l'IA"
+              : "Régénérer les pièces IA"}
+        </button>
+      )}
+
       {/* Grille des pièces (s22 Point 4 — cards en grille au lieu de liste latérale) */}
       <div className="py-md">
         {rooms.length === 0 ? (
           <div className="text-center py-2xl">
             <p className="text-sm text-text-muted">
-              L&apos;IA n&apos;a pas détecté de pièces — ajoutez-en manuellement
+              Aucune pièce pour ce lot. Utilisez &laquo;&nbsp;Régénérer les pièces avec l&apos;IA&nbsp;&raquo; ci-dessus ou ajoutez-les manuellement.
             </p>
           </div>
         ) : (
