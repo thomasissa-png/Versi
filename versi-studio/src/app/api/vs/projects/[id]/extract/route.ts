@@ -17,6 +17,7 @@ import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { readFile, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { canonicalizePlan } from "@/lib/ai/plan-canonicalizer";
+import { canonicalizePlanMock } from "@/lib/ai/plan-canonicalizer-mock";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import {
@@ -32,6 +33,7 @@ import {
 } from "@/lib/vs/visual-verifier";
 import {
   detectLabels,
+  detectLabelsOnOriginal,
   snapRoomsToLabels,
   type OcrLabel,
   type RoomForSnap,
@@ -158,6 +160,10 @@ export async function POST(
         // plan original si timeout/error/gates. Gate @moi Phase 2.
         let extractBuffer: Buffer = fileBuffer;
         let extractMime: string = plan.mime_type;
+        // s25 Round A — buffer ORIGINAL raster (post-PDF-rasterisation) que
+        // l'OCR Tesseract utilisera quand VS_PLAN_CANONICALIZE=true, pour
+        // éviter d'OCR le canonical (labels reformulés par gpt-image-1).
+        let originalRasterBuffer: Buffer | null = null;
 
         if (process.env.VS_PLAN_CANONICALIZE === "true") {
           // ─── s25 idempotence (US-VS-R4) ─────────────────────────────
@@ -212,7 +218,17 @@ export async function POST(
               }
             }
 
-            const result = await canonicalizePlan(sourceBuffer);
+            // s25 Round A — mémoriser le raster ORIGINAL pour l'OCR ultérieur.
+            originalRasterBuffer = sourceBuffer;
+
+            // s25 Round A — routing mock vs réel selon feature flag.
+            // VS_USE_MOCK_CANONICAL=true → pipeline sharp local (tests E2E
+            // sans clé OpenAI). Sinon → canonicalizer réel gpt-image-1.
+            const USE_MOCK =
+              process.env.VS_USE_MOCK_CANONICAL === "true";
+            const result = USE_MOCK
+              ? await canonicalizePlanMock(sourceBuffer)
+              : await canonicalizePlan(sourceBuffer);
             if (!result.fallback) {
               // Persist le PNG canonicalisé à côté du plan original
               const canonicalPath = join(
@@ -317,7 +333,32 @@ export async function POST(
             if (SNAP_LABELS_ENABLED) {
               try {
                 const tOcr = Date.now();
-                const labels = await detectLabels(imageBuffer, imgW, imgH);
+                // s25 Round A — si un canonical a été produit (ou un mock),
+                // `imageBuffer` est en coords canonical mais les labels
+                // imprimés peuvent avoir été reformulés. OCR sur le raster
+                // ORIGINAL (labels garantis lisibles) et reprojette les
+                // coords en canonical-space via transformation affine.
+                let labels: OcrLabel[];
+                if (
+                  originalRasterBuffer &&
+                  originalRasterBuffer !== imageBuffer
+                ) {
+                  const origMeta = await sharp(originalRasterBuffer).metadata();
+                  const origW = origMeta.width || imgW;
+                  const origH = origMeta.height || imgH;
+                  labels = await detectLabelsOnOriginal(
+                    originalRasterBuffer,
+                    origW,
+                    origH,
+                    imgW,
+                    imgH,
+                  );
+                  console.log(
+                    `[snap-ocr] plan ${plan.id}: OCR sur original ${origW}×${origH} → reproj canonical ${imgW}×${imgH}`,
+                  );
+                } else {
+                  labels = await detectLabels(imageBuffer, imgW, imgH);
+                }
                 planIdToOcrLabels.set(plan.id, labels);
                 console.log(
                   `[snap-ocr] plan ${plan.id}: ${labels.length} labels détectés en ${((Date.now() - tOcr) / 1000).toFixed(1)}s`,
