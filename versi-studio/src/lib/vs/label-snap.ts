@@ -334,6 +334,90 @@ export async function detectLabels(
   return labels;
 }
 
+// ─── s25 — OCR sur original + reprojection canonical ────────────
+/**
+ * Session s25 — Canonicalisation préalable à l'extraction.
+ *
+ * Problème : quand `VS_PLAN_CANONICALIZE=true`, les polygones IA sont
+ * produits dans un espace "canonical" (PNG reformaté par gpt-image-1
+ * en 1536×1024 avec fit=inside, bandes blanches si aspect ratio ≠).
+ * Sur ce canonical, les labels texte peuvent être REFORMULÉS ou
+ * simplifiés par le modèle image → OCR Tesseract échoue silencieusement.
+ *
+ * Solution : OCR sur le buffer ORIGINAL (labels imprimés garantis
+ * lisibles), puis transformer les coords % vers l'espace canonical
+ * via une transformation affine scale + offset (padding blanc dû au
+ * fit=inside).
+ *
+ * Math :
+ *   Soit scale = min(canonical_w / original_w, canonical_h / original_h).
+ *   Un pixel (px, py) original devient (px * scale + ox, py * scale + oy)
+ *   dans le canonical, où (ox, oy) est l'offset de centrage :
+ *     ox = (canonical_w - original_w * scale) / 2
+ *     oy = (canonical_h - original_h * scale) / 2
+ *
+ *   En % :
+ *     x_pct_canonical = ((x_pct_original / 100) * original_w * scale + ox) / canonical_w * 100
+ *     y_pct_canonical = ((y_pct_original / 100) * original_h * scale + oy) / canonical_h * 100
+ *
+ * Cas identique-dims : scale = 1, ox = oy = 0 → coords inchangées.
+ */
+export function reprojectLabelToCanonical(
+  label: OcrLabel,
+  originalW: number,
+  originalH: number,
+  canonicalW: number,
+  canonicalH: number,
+): OcrLabel {
+  if (originalW <= 0 || originalH <= 0 || canonicalW <= 0 || canonicalH <= 0) {
+    return label;
+  }
+  const scale = Math.min(canonicalW / originalW, canonicalH / originalH);
+  const ox = (canonicalW - originalW * scale) / 2;
+  const oy = (canonicalH - originalH * scale) / 2;
+
+  const xPxOrig = (label.x_percent / 100) * originalW;
+  const yPxOrig = (label.y_percent / 100) * originalH;
+
+  const xPxCanon = xPxOrig * scale + ox;
+  const yPxCanon = yPxOrig * scale + oy;
+
+  return {
+    text: label.text,
+    x_percent: (xPxCanon / canonicalW) * 100,
+    y_percent: (yPxCanon / canonicalH) * 100,
+    confidence: label.confidence,
+  };
+}
+
+/**
+ * Variante de detectLabels qui lance Tesseract sur un buffer ORIGINAL
+ * et retourne les labels avec coords % re-projetées dans l'espace
+ * CANONICAL (où vivent les polygones IA).
+ *
+ * Utilisé quand `VS_PLAN_CANONICALIZE=true` ou `VS_USE_MOCK_CANONICAL=true` :
+ * l'OCR sur canonical est peu fiable (labels reformulés) mais l'OCR sur
+ * l'original l'est — à condition de reprojeter les coords.
+ *
+ * Si `canonicalW` / `canonicalH` === original → pas de transformation
+ * (fast-path mathématique : scale=1, offset=0).
+ */
+export async function detectLabelsOnOriginal(
+  originalBuffer: Buffer,
+  originalW: number,
+  originalH: number,
+  canonicalW: number,
+  canonicalH: number,
+): Promise<OcrLabel[]> {
+  const rawLabels = await detectLabels(originalBuffer, originalW, originalH);
+  if (originalW === canonicalW && originalH === canonicalH) {
+    return rawLabels;
+  }
+  return rawLabels.map((l) =>
+    reprojectLabelToCanonical(l, originalW, originalH, canonicalW, canonicalH),
+  );
+}
+
 // ─── Snap core ───────────────────────────────────────────────────
 
 /**

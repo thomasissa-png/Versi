@@ -15,6 +15,7 @@ import {
   nameMatchScore,
   centroid,
   snapRoomsToLabels,
+  reprojectLabelToCanonical,
   type OcrLabel,
   type RoomForSnap,
 } from "../../src/lib/vs/label-snap";
@@ -254,6 +255,97 @@ describe("snapRoomsToLabels", () => {
     const ys = poly.map((p) => p.y_percent);
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(20, 3); // largeur = 20
     expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(10, 3); // hauteur = 10
+  });
+
+  // ─── s25 reprojection canonical (Round A) ──────────────────────
+
+  it("s25 — reprojection identique-dims : coords inchangées", () => {
+    const label: OcrLabel = {
+      text: "Chambre",
+      x_percent: 30,
+      y_percent: 45,
+      confidence: 80,
+    };
+    // originalW/H == canonicalW/H → pas de transformation
+    const out = reprojectLabelToCanonical(label, 1536, 1024, 1536, 1024);
+    expect(out.x_percent).toBeCloseTo(30, 5);
+    expect(out.y_percent).toBeCloseTo(45, 5);
+    expect(out.text).toBe("Chambre");
+    expect(out.confidence).toBe(80);
+  });
+
+  it("s25 — reprojection portrait original → canonical 1536×1024 (fit inside, bandes H)", () => {
+    // Original portrait 1000×2000, canonical 1536×1024 fit:inside.
+    // scale = min(1536/1000, 1024/2000) = min(1.536, 0.512) = 0.512
+    // Dims scaled = 512 × 1024, centered in 1536 → ox = (1536-512)/2 = 512
+    // oy = 0 (hauteur scaled == canonicalH)
+    // Label OCR au centre original (50%, 50%) = pixel (500, 1000)
+    //   → canonical pixel (500*0.512 + 512, 1000*0.512 + 0) = (768, 512)
+    //   → canonical % (50%, 50%) (centre préservé — logique)
+    const labelCenter: OcrLabel = {
+      text: "Séjour",
+      x_percent: 50,
+      y_percent: 50,
+      confidence: 80,
+    };
+    const outCenter = reprojectLabelToCanonical(
+      labelCenter,
+      1000,
+      2000,
+      1536,
+      1024,
+    );
+    expect(outCenter.x_percent).toBeCloseTo(50, 3);
+    expect(outCenter.y_percent).toBeCloseTo(50, 3);
+
+    // Label au coin haut-gauche original (0%, 0%) = pixel (0, 0)
+    //   → canonical pixel (0*0.512 + 512, 0*0.512 + 0) = (512, 0)
+    //   → canonical % (512/1536 * 100, 0) ≈ (33.33%, 0%)
+    const labelCorner: OcrLabel = {
+      text: "Entrée",
+      x_percent: 0,
+      y_percent: 0,
+      confidence: 80,
+    };
+    const outCorner = reprojectLabelToCanonical(
+      labelCorner,
+      1000,
+      2000,
+      1536,
+      1024,
+    );
+    expect(outCorner.x_percent).toBeCloseTo(33.333, 2);
+    expect(outCorner.y_percent).toBeCloseTo(0, 3);
+  });
+
+  it("s25 — reprojection défensive : dims invalides → label inchangé", () => {
+    const label: OcrLabel = {
+      text: "Cuisine",
+      x_percent: 42,
+      y_percent: 42,
+      confidence: 75,
+    };
+    expect(reprojectLabelToCanonical(label, 0, 0, 1536, 1024)).toEqual(label);
+    expect(reprojectLabelToCanonical(label, 1000, 1000, 0, 1024)).toEqual(
+      label,
+    );
+  });
+
+  it("s25 — snap avec coords re-projetées canonical : match spatial OK", () => {
+    // Simule : OCR sur original a trouvé label à (50%, 50%) original.
+    // Original 1000×2000, canonical 1536×1024 → label reprojeté à (50%, 50%)
+    // canonical (cas centre). Polygone room IA déjà en coords canonical %.
+    const label = reprojectLabelToCanonical(
+      { text: "Chambre", x_percent: 50, y_percent: 50, confidence: 85 },
+      1000,
+      2000,
+      1536,
+      1024,
+    );
+    const rooms = [makeRoom("r1", "Chambre", 45, 48)];
+    const result = snapRoomsToLabels(rooms, [label]);
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].room_id).toBe("r1");
   });
 
   it("labels non utilisés rapportés dans unusedLabels", () => {
