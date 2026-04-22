@@ -19,6 +19,7 @@ import { dirname, join } from "path";
 import { canonicalizePlan } from "@/lib/ai/plan-canonicalizer";
 import { canonicalizePlanMock } from "@/lib/ai/plan-canonicalizer-mock";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
+import { extractPlanDataMock } from "@/lib/vs/plan-extractor-mock";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import {
   resolveRoomOverlaps,
@@ -273,11 +274,27 @@ export async function POST(
 
         const base64 = extractBuffer.toString("base64");
 
-        // Appeler le plan-extractor (retourne maintenant unit_id + bounding_polygon)
-        const extraction: PlanExtractionResult = await extractPlanData(
+        // s25 Round D — routing mock vs réel selon feature flag.
+        // VS_USE_MOCK_EXTRACTOR=true → données fixes cohérentes (tests E2E
+        // sans clé OpenAI). Signatures alignées, pas de branchement aval.
+        // Le floor est injecté via retryContext (exploité par le mock uniquement).
+        const useMockExtractor = process.env.VS_USE_MOCK_EXTRACTOR === "true";
+        if (useMockExtractor) {
+          console.log(
+            `[extract] mock extractor actif — plan ${plan.id} floor=${plan.floor_number}`,
+          );
+        }
+        const mockFloorHint = useMockExtractor
+          ? `[MOCK_FLOOR=${plan.floor_number}]`
+          : undefined;
+        const extractorFn = useMockExtractor
+          ? extractPlanDataMock
+          : extractPlanData;
+        const extraction: PlanExtractionResult = await extractorFn(
           base64,
           extractMime,
-          project.type_bien
+          project.type_bien,
+          mockFloorHint
         );
 
         // s23 final — Mémoriser le building_outline en polygone CCW (4 points
