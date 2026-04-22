@@ -1,0 +1,106 @@
+{
+  "totals": {
+    "plans": 4,
+    "lots": 7,
+    "rooms": 29
+  },
+  "totalScore": 16,
+  "results": [
+    {
+      "plan": "P00",
+      "projectId": "e98b1f3a-74fd-413f-8987-86e85d9d3644",
+      "planId": "57b0b9a6-b2dc-4d14-bfaf-4c3467c7fc70",
+      "canonical_prompt_version": "mock-1.0",
+      "extraction_status": "done",
+      "canonical_path": "OK",
+      "lots": 1,
+      "rooms": 5,
+      "withEnvelope": 1,
+      "totalOverlap": 0,
+      "coverageRatios": [
+        "1.00"
+      ],
+      "coverageOK": 1,
+      "scores": {
+        "c1": true,
+        "c2": true,
+        "c3": true,
+        "c4": true
+      },
+      "planScore": 4
+    },
+    {
+      "plan": "P01",
+      "projectId": "80cfebc8-ce1f-4f4b-9471-46bbb052e9b1",
+      "planId": "9c52e33d-10e9-4ea7-a721-8798063d05b7",
+      "canonical_prompt_version": "mock-1.0",
+      "extraction_status": "done",
+      "canonical_path": "OK",
+      "lots": 2,
+      "rooms": 8,
+      "withEnvelope": 2,
+      "totalOverlap": 0,
+      "coverageRatios": [
+        "1.00",
+        "1.00"
+      ],
+      "coverageOK": 2,
+      "scores": {
+        "c1": true,
+        "c2": true,
+        "c3": true,
+        "c4": true
+      },
+      "planScore": 4
+    },
+    {
+      "plan": "P02",
+      "projectId": "e30dc6ea-d8f7-44e4-b6e3-f7f61707a85b",
+      "planId": "b5a682cb-2bed-4222-b20f-86ac3ed37ae5",
+      "canonical_prompt_version": "mock-1.0",
+      "extraction_status": "done",
+      "canonical_path": "OK",
+      "lots": 2,
+      "rooms": 8,
+      "withEnvelope": 2,
+      "totalOverlap": 0,
+      "coverageRatios": [
+        "1.00",
+        "1.00"
+      ],
+      "coverageOK": 2,
+      "scores": {
+        "c1": true,
+        "c2": true,
+        "c3": true,
+        "c4": true
+      },
+      "planScore": 4
+    },
+    {
+      "plan": "P03",
+      "projectId": "4b6f029d-1aab-4445-a7c1-63b4585e0a45",
+      "planId": "22b2a3f1-c938-491d-882e-65361b32b3b0",
+      "canonical_prompt_version": "mock-1.0",
+      "extraction_status": "done",
+      "canonical_path": "OK",
+      "lots": 2,
+      "rooms": 8,
+      "withEnvelope": 2,
+      "totalOverlap": 0,
+      "coverageRatios": [
+        "1.00",
+        "1.00"
+      ],
+      "coverageOK": 2,
+      "scores": {
+        "c1": true,
+        "c2": true,
+        "c3": true,
+        "c4": true
+      },
+      "planScore": 4
+    }
+  ],
+  "at": "2026-04-22T13:14:27.571Z"
+}
