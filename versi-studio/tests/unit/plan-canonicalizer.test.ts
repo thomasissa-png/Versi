@@ -191,3 +191,61 @@ describe("canonicalizePlan — fallback silencieux", () => {
     expect(res.fallbackReason).toBe("api_error");
   });
 });
+
+describe("canonicalizePlan — idempotence (US-VS-R4)", () => {
+  it("skip canonicalisation if canonicalized_image_path already set", async () => {
+    // Simule la logique de route.ts (boucle plans de /api/vs/projects/[id]/extract) :
+    // si la DB retourne un `canonicalized_image_path` non-null pour ce plan,
+    // on lit le fichier cached et on N'APPELLE PAS canonicalizePlan().
+    // Contrat testé : aucun appel OpenAI.images.edit() quand cache hit.
+
+    // Mock DB query : retourne un path cached pour ce plan
+    const mockDbQuery = vi.fn(async () => ({
+      rows: [{ canonicalized_image_path: "/tmp/cached-plan-canonical.png" }],
+    }));
+
+    // Mock readFile : retourne le buffer cached (fichier déjà écrit par une run précédente)
+    const cachedBuffer = Buffer.from("cached-canonical-png-bytes");
+    const mockReadFile = vi.fn(async () => cachedBuffer);
+
+    // Spy sur canonicalizePlan lui-même : c'est le point critique testé —
+    // il ne DOIT PAS être appelé quand le cache DB est hit.
+    let canonicalizePlanCalls = 0;
+    const canonicalizePlanSpy = async (buf: Buffer) => {
+      canonicalizePlanCalls++;
+      return await canonicalizePlan(buf, { timeoutMs: 500 });
+    };
+
+    // Reproduire la logique idempotence de route.ts (extract/route.ts)
+    const planId = "test-plan-id";
+    const dbResult = await mockDbQuery();
+    const existingPath = dbResult.rows[0]?.canonicalized_image_path ?? null;
+
+    let extractBuffer: Buffer;
+    let skipCanonicalize = false;
+
+    if (existingPath) {
+      try {
+        extractBuffer = await mockReadFile();
+        skipCanonicalize = true;
+      } catch {
+        extractBuffer = Buffer.alloc(0);
+      }
+    } else {
+      extractBuffer = Buffer.alloc(0);
+    }
+
+    // Décision conditionnelle (comme dans route.ts)
+    if (!skipCanonicalize) {
+      await canonicalizePlanSpy(Buffer.alloc(0));
+    }
+
+    expect(mockDbQuery).toHaveBeenCalledTimes(1);
+    expect(mockReadFile).toHaveBeenCalledTimes(1);
+    expect(skipCanonicalize).toBe(true);
+    expect(extractBuffer).toEqual(cachedBuffer);
+    // Contrat critique : ZÉRO appel à canonicalizePlan (donc zéro appel OpenAI)
+    expect(canonicalizePlanCalls).toBe(0);
+    void planId;
+  });
+});

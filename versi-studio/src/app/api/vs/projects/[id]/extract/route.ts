@@ -160,7 +160,45 @@ export async function POST(
         let extractMime: string = plan.mime_type;
 
         if (process.env.VS_PLAN_CANONICALIZE === "true") {
+          // ─── s25 idempotence (US-VS-R4) ─────────────────────────────
+          // Si le plan a déjà été canonicalisé avec succès (path en DB),
+          // réutiliser le fichier existant au lieu de rappeler OpenAI.
+          // Évite $0.04 doublement facturé + 20s perdues si Thomas relance
+          // "Lancer l'analyse" sur un projet déjà extrait.
+          // Re-query en DB : plan.canonicalized_image_path peut avoir été
+          // set par une run précédente (l'objet plan en mémoire est stale).
+          let skipCanonicalize = false;
           try {
+            const existingRow = await query<{ canonicalized_image_path: string | null }>(
+              "SELECT canonicalized_image_path FROM vs_plans WHERE id = $1",
+              [plan.id],
+            );
+            const existingPath = existingRow.rows[0]?.canonicalized_image_path ?? null;
+            if (existingPath) {
+              try {
+                const cachedBuffer = await readFile(existingPath);
+                extractBuffer = cachedBuffer;
+                extractMime = "image/png";
+                skipCanonicalize = true;
+                console.log(
+                  `[extract/canonical] plan ${plan.id} canonicalisation skippée (déjà faite)`,
+                );
+              } catch (readErr) {
+                // Fichier effacé par Replit (storage éphémère) : re-canonicalise
+                console.warn(
+                  `[extract/canonical] plan ${plan.id} cache invalide (${existingPath}), re-canonicalisation`,
+                  readErr instanceof Error ? readErr.message : readErr,
+                );
+              }
+            }
+          } catch (dbErr) {
+            console.error(
+              `[extract/canonical] plan ${plan.id} check idempotence DB échec, re-canonicalisation`,
+              dbErr instanceof Error ? dbErr.message : dbErr,
+            );
+          }
+
+          if (!skipCanonicalize) try {
             // Si le plan est un PDF, le rasteriser d'abord en PNG (gpt-image-1
             // n'accepte que les images). Le buffer rasterisé devient l'input
             // canonicalizer + fallback si canonicalisation échoue.
