@@ -14,7 +14,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
+import { dirname, join } from "path";
+import { canonicalizePlan } from "@/lib/ai/plan-canonicalizer";
 import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import {
@@ -149,12 +151,78 @@ export async function POST(
       try {
         // Lire le fichier
         const fileBuffer = await readFile(plan.file_path);
-        const base64 = fileBuffer.toString("base64");
+
+        // ─── s25 — Canonicalisation pré-extraction (feature flag) ───
+        // VS_PLAN_CANONICALIZE=true → gpt-image-1 reformate le plan en
+        // PNG noir sur blanc épuré AVANT extract. Fallback silencieux sur
+        // plan original si timeout/error/gates. Gate @moi Phase 2.
+        let extractBuffer: Buffer = fileBuffer;
+        let extractMime: string = plan.mime_type;
+
+        if (process.env.VS_PLAN_CANONICALIZE === "true") {
+          try {
+            // Si le plan est un PDF, le rasteriser d'abord en PNG (gpt-image-1
+            // n'accepte que les images). Le buffer rasterisé devient l'input
+            // canonicalizer + fallback si canonicalisation échoue.
+            let sourceBuffer: Buffer = fileBuffer;
+            if (plan.mime_type === "application/pdf") {
+              const { pdf } = await import("pdf-to-img");
+              const pages = await pdf(fileBuffer, { scale: 3 });
+              for await (const page of pages) {
+                sourceBuffer = Buffer.from(page);
+                break;
+              }
+            }
+
+            const result = await canonicalizePlan(sourceBuffer);
+            if (!result.fallback) {
+              // Persist le PNG canonicalisé à côté du plan original
+              const canonicalPath = join(
+                dirname(plan.file_path),
+                `${plan.id}-canonical.png`,
+              );
+              await writeFile(canonicalPath, result.canonical);
+              await query(
+                `UPDATE vs_plans SET
+                   canonicalized_image_path = $1,
+                   canonicalized_at = NOW(),
+                   canonical_fallback_reason = NULL,
+                   canonical_prompt_version = $2
+                 WHERE id = $3`,
+                [canonicalPath, result.promptVersion, plan.id],
+              );
+              extractBuffer = result.canonical;
+              extractMime = "image/png";
+              console.log(
+                `[extract/canonical] plan ${plan.id} canonicalisé en ${result.duration}ms`,
+              );
+            } else {
+              await query(
+                `UPDATE vs_plans SET
+                   canonical_fallback_reason = $1,
+                   canonical_prompt_version = $2
+                 WHERE id = $3`,
+                [result.fallbackReason ?? "unknown", result.promptVersion, plan.id],
+              );
+              console.warn(
+                `[extract/canonical] plan ${plan.id} fallback (${result.fallbackReason}) — extract sur original`,
+              );
+            }
+          } catch (canonicalErr) {
+            // Ne jamais casser le pipeline : logger + continuer sur fileBuffer
+            console.error(
+              `[extract/canonical] erreur plan ${plan.id} :`,
+              canonicalErr instanceof Error ? canonicalErr.message : canonicalErr,
+            );
+          }
+        }
+
+        const base64 = extractBuffer.toString("base64");
 
         // Appeler le plan-extractor (retourne maintenant unit_id + bounding_polygon)
         const extraction: PlanExtractionResult = await extractPlanData(
           base64,
-          plan.mime_type,
+          extractMime,
           project.type_bien
         );
 

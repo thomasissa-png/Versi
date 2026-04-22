@@ -48,6 +48,14 @@ export interface VsPlan {
   extraction_data: Record<string, unknown> | null;
   extraction_status: ExtractionStatus;
   m2_per_pixel: number | null;
+  /** s25 — chemin local du plan canonicalisé (feature flag VS_PLAN_CANONICALIZE). Null si canonicalisation désactivée ou fallback. */
+  canonicalized_image_path: string | null;
+  /** s25 — horodatage de la canonicalisation (null si jamais canonicalisé). */
+  canonicalized_at: string | null;
+  /** s25 — raison du fallback (null si succès ou pas tenté). */
+  canonical_fallback_reason: string | null;
+  /** s25 — version du prompt utilisé (ex "1.0"). */
+  canonical_prompt_version: string | null;
   created_at: string;
 }
 
