@@ -234,6 +234,7 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
+| @moi (s25 Phase 2 — gate intermédiaire code-level) | 2026-04-22 | `docs/reviews/s25-gate-moi-intermediaire.md` | Verdict **GO CODE-LEVEL — 2/4 conditions PASS (code review + tests auto), 2/4 SUSPENDUES (reality check E2E + audit Yann post-canonicalisation) nécessitent activation Thomas staging.** Zéro P0, zéro P1 bloquant, zéro drift vs arbitrage Phase 1. Script `scripts/s25-canonicalisation-reality-check.ts` prêt clé-en-main. 5 conditions restantes Thomas : activer flag staging, exécuter script, mesurer 4 métriques PM, pré-fetch + Yann, forcer fallback. 5 pistes itération documentées si <9/10 (prompt v2, gates G1-G4 durcis, downsample 1536, post-process OCR, fallback dataset). GO PRODUCTION strictement suspendu tant que 4/4 non atteint (doctrine 3/4=NO-GO). | Activation empirique impossible en autopilot : OPENAI_API_KEY absente en local + pas d'accès admin Replit. Script `reality-check` prêt pour 1 commande Thomas. Baseline Yann 5.5/10 → objectif empirique 8.5-9/10 (prédiction +3 pts). 10/10 strict possible si piste 4 (post-process OCR snap-to-label, précédent s23 6.03→9.35/10). Dette technique non-bloquante reportée s26 : sentinel `__CANONICAL_SKIP_SENTINEL__` à refacto en flag booléen, `<img>` onError, detection placeholder étendue. |
 | @reviewer (s25 Phase 2 — revue croisée gate @moi vs impl @fullstack) | 2026-04-22 | `docs/reviews/s25-reviewer-coherence-phase2.md` | Verdict **GO CONDITIONNEL 9/10 critères PASS + 1 PARTIEL (#1 validation prompt @ia hors scope impl)**. Zéro drift architectural vs arbitrage Phase 1. US-VS-R4 idempotence LEVÉE : `extract/route.ts:171-208` contient bien skip-if-cached (contrairement au doute @fullstack rapport step 2). Feature flag nom exact + OFF par défaut vérifié ligne 162 (`=== "true"` strict). Jargon banni vérifié PlanComparator.tsx = 0 match. Logs structurés OK (inputHash+outputHash+duration_ms+prompt_version+gates+reason). P1 identifiés : (a) confirmer `docs/ia/s25-canonical-test-cases.md` 3/3 PASS, (b) refacto sentinel `__CANONICAL_SKIP_SENTINEL__` ligne 198 en flag booléen (dette technique non-bloquante), (c) seuils gates G1-G4 conservateurs → audit Yann doit catcher fallback=false visuellement mauvais. GO vers @qa + @interior-architect en parallèle. | Revue basée sur 4 Read budget (arbitrage Phase 1 + canonicalizer lib + PlanComparator + hook extract/route.ts section canonicalisation + rapport @fullstack). Chaque critère gate @moi Phase 1 (11 critères listés) vérifié ligne par ligne avec preuve fichier:ligne. Critère #1 classé PARTIEL (pas FAIL) car validation prompt visuelle relève de @ia Phase 2 step 1, pas de @fullstack step 2 — absence d'information vs absence de critère. Rappel doctrinal @moi : 3/4 conditions gate finale = NO-GO strict (pas GO conditionnel). |
 | @qa (s25 Phase 2 step 3a — audit code canonicalisation + script reality check staging) | 2026-04-22 | `docs/qa/s25-audit-code-canonicalisation.md` (150L, 5 fichiers audités, matrice gravité 6 items MOYEN/FAIBLE, 0 BLOQUANT, vérif mot pivot métier 0 jargon banni, conformité brief @moi Phase 2 7/8 critères PASS avec reality check E2E en attente) + `scripts/s25-canonicalisation-reality-check.ts` (200L Playwright+fetch DB debug, upload 4 plans P00-P03, screenshot comparator par plan, rapport JSON metrics). Verdict audit : **PASS CONDITIONNEL** — débloquer merge uniquement après reality check Thomas staging. | Audit statique uniquement (OpenAI mockée donc prompt non validé sur plans réels — reality check indispensable). Script préparé clé-en-main pour Thomas : 1 commande (`npx tsx scripts/s25-canonicalisation-reality-check.ts <url>`) → rapport JSON + screenshots. Script utilise endpoint `/api/vs/debug/plans` (à créer côté API si absent — fallback documenté). Points audit à surveiller post-staging : gates G1-G4 seuils permissifs (0.6 vs 0.95 théorique), PDF multi-pages (seule page 1 canonicalisée), placeholder detection (manque detection chaîne vide). |
 | @fullstack (s25 Phase 2 step 2 — pipeline canonicalisation) | 2026-04-22 | 6 fichiers nouveaux/modifiés : `versi-studio/src/lib/ai/prompts/canonical.ts` (prompt + hyperparams), `versi-studio/src/lib/ai/plan-canonicalizer.ts` (270L, fonction `canonicalizePlan` avec timeout 45s, gates G1-G4, fallback silencieux typé), migration `versi-studio/src/lib/vs/migrations/001_s25_canonicalized_plan.sql` + ajout colonnes dans `db.ts ensureVsTables()` (canonicalized_image_path + canonicalized_at + canonical_fallback_reason + canonical_prompt_version), hook pipeline dans `extract/route.ts` (rasterise PDF → canonicalise → persist → extract sur canonical), `versi-studio/src/components/vs/PlanComparator.tsx` (180L, grille 2 cols desktop + stack mobile + lightbox Escape, jargon banni respecté), intégration page upload (section conditionnelle affichée dès qu'au moins un plan est canonicalisé), tests `tests/unit/plan-canonicalizer.test.ts` (7 tests PASS : happy path + timeout + api_error + gate_fail + empty + placeholder key + idempotence hash). Build : tsc 0 err, next build PASS, vitest 125/125 PASS. Rapport `docs/qa/s25-phase2-impl-report.md`. | Feature flag `VS_PLAN_CANONICALIZE` OFF par défaut → zéro régression pipeline actuel confirmée par build PASS. Size gpt-image-1 = `1536x1024` (max paysage supporté par SDK OpenAI v5, cohérent avec A4 paysage 1.41:1 du prompt — prompt-library.md mentionne 2048×2048 théorique mais SDK rejette, noté dans commentaire canonical.ts pour bump futur). Canonical écrit dans `dirname(plan.file_path)/{plan.id}-canonical.png` → réutilise endpoint `/api/vs/files?path=` existant sans nouvelle route. PDF rasterisé via `pdf-to-img` avant canonicalisation (gpt-image-1 n'accepte pas PDF). Gates G1-G4 implémentés en quick-check sharp (ratio pixels blanc/noir sur resize 256px) avec seuils conservateurs (G1 ≥60% blanc vs 95% théorique) pour éviter faux fallbacks. Comparateur UI intégré à la page upload (pas lots/) car visible dès retour utilisateur, sans nouveau routing. Import dynamique `sharp` + `openai` (pattern s24 tesseract) pour éviter crash Turbopack. Pattern s22 `openai.images.edit() + toFile()` + JAMAIS `responses.create()` respecté. |
@@ -442,6 +443,69 @@
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ## Mémo de reprise — dernière session
+
+### Mémo de reprise versi-s25 → s26
+
+**Branche dernière clôturée** : `claude/versi-s25-reality-check-ux-audit-UHDfK`
+**Date de clôture** : 2026-04-22
+**Numéro de session** : 25 (session 26 à venir)
+**Statut s25** : PARTIELLEMENT CLÔTURÉE — GO CODE-LEVEL sur refonte pipeline étape 1 canonicalisation plan. Gate @moi Phase 2 finale SUSPENDUE tant que Thomas n'a pas exécuté le reality check empirique en staging Replit.
+
+**Résumé session s25 (~40 commits, 4 phases)** :
+- **Phase 0** — Reality check prod initial sur commit c5ea140 (@qa) : 2/4 critères Thomas PASS. Bug P0 "L'IA n'a pas détecté de pièces" confirmé par Thomas en prod réelle.
+- **Phase 1** — Fix 3 bugs P0/P1 (@fullstack, 4 commits) : bouton "Régénérer les pièces avec l'IA" via extraction_data mémorisé + recalibrer permanent + viewport sessionStorage zoom/pan partagé étape 2↔3.
+- **Phase 2** — Reality check post-redeploy a11bb84 : Thomas remonte rooms mal positionnées/formes bizarres/espaces vides. Diagnostic : route regenerate bypass passes 4-5 s24, rooms brutes affichées. ROOT CAUSE métier : pipeline IA plafonne sur plans réels (monochromie orange, mobilier fusionné, calques superposés).
+- **Phase 3 MAJEURE** — Refonte pipeline étape 1 avec canonicalisation plan (décision Thomas "fais le nécessaire pour meilleure solution marché marchand de biens") :
+  - Phase 0 cadrage : @product-manager (V1 bloquante) + @creative-strategy (benchmark 6 concurrents, canonicalisation = différenciateur structurel) + @ia POC 3 approches (Approche B image-to-image gpt-image-1 retenue, $0.04/plan, +15-25s latence)
+  - Phase 1 arbitrage @moi : GO Approche B, zéro drift, feature flag `VS_PLAN_CANONICALIZE`, colonne DB `canonicalized_image_path`
+  - Phase 2 step 1 @ia : `CANONICAL_PROMPT_V1` finalisé dans `prompt-library.md` + 3 test cases (TC1/TC2/TC3 seuils 6/7, 6/7, 5/7)
+  - Phase 2 step 2 @fullstack : 6 fichiers livrés (canonical.ts + plan-canonicalizer.ts + migration SQL + hook extract/route.ts + PlanComparator.tsx + tests) — 125/125 Vitest PASS, tsc 0, next build PASS
+  - Phase 2 step 3 autopilote (4 agents parallèles) : @fullstack fix idempotence US-VS-R4 (+1 test unit) / @qa audit statique 0 BLOQUANT + script reality check clé-en-main / @reviewer 9/10 PASS + 1 PARTIEL 0 P0 / @interior-architect Yann baseline 4 plans P00-P03 = 5.5/10 moyenne (3 défauts communs : monochromie orange, mobilier fusionné, calques superposés) — prédiction +3 pts post-canonicalisation → 8.5-9/10
+  - Gate @moi intermédiaire : 2/4 conditions PASS code-level, 2/4 SUSPENDUES activation Thomas — GO CODE-LEVEL, NO-GO PRODUCTION jusqu'à 4/4
+
+**Commits clés s25** : 66f176a qa reality check prod c5ea140 / 0d44a8d 7c49d82 156bd55 a11bb84 fix 3 bugs P0/P1 / 2aeb30a IA prompt + TC / d3a979c fullstack impl 6 fichiers / 7e804c1 idempotence renforcée / fdb4014 qa audit + script / 81bfebe reviewer + Yann baseline / + gate @moi intermédiaire.
+
+**Travaux en cours (non terminés) — ACTION THOMAS REQUISE** :
+1. **Activer `VS_PLAN_CANONICALIZE=true` en staging Replit** + vérifier `OPENAI_API_KEY` autorisée sur `images.edit` gpt-image-1
+2. **Pull branche `claude/versi-s25-reality-check-ux-audit-UHDfK`** en staging + déployer (migration SQL auto via `ensureVsTables()`)
+3. **Exécuter** : `npx tsx scripts/s25-canonicalisation-reality-check.ts https://versi-studio.replit.app` → upload 4 plans + extract + screenshots + rapport JSON
+4. **Mesurer 4 métriques PM** : P95 latence ≤90s, coût ≤$0.10/plan, gain ≥+1.5 pts ON vs OFF, fallback rate <20%
+5. **Pré-fetch images outputs canonicalisés** dans `audit-data/` puis lancer Yann `@interior-architect` sur les 4-5 outputs (protocole CLAUDE.md "Workflow d'audit visuel")
+6. **Forcer un fallback** (bad API key temporaire) → screenshot bannière "Plan non reformaté — résultats moins précis", vérifier pipeline continue
+
+**Prochaines actions recommandées (s26)** :
+1. **Reality check empirique @qa + Yann** (Thomas active staging puis relance orchestrator) : si 4/4 PASS → gate @moi Phase 2 finale GO PRODUCTION direct. Si 1+ FAIL → itération sur piste correspondante.
+2. **Piste itération si <9/10** (documentée dans `docs/reviews/s25-gate-moi-intermediaire.md`) :
+   - Piste 1 : Prompt v2 @ia (durcir règles négatives, few-shot)
+   - Piste 2 : Gates G1-G4 resserrés + gate géométrique bbox (@fullstack, 2h)
+   - Piste 3 : Downsample input 2048→1536 (@fullstack, 15min)
+   - Piste 4 : Technique adjacente post-process OCR snap-to-label (précédent s23 6.03→9.35/10)
+   - Piste 5 : Fallback opt-in admin si 2 pistes échouent
+3. **Dette technique s25 à nettoyer** : sentinel `__CANONICAL_SKIP_SENTINEL__` (extract/route.ts:198) → flag booléen, `<img>` sans `onError` dans PlanComparator, detection placeholder étendue (`sk-test`, vide trim)
+4. **Migration Versimo v61** : toujours reportée depuis s22, à décider en s26
+
+**Blockers éventuels** :
+- **OPENAI_API_KEY** : Thomas doit confirmer que la clé prod a droits `images.edit` sur gpt-image-1. Si non autorisée → canonicalisation fallback silencieux sur TOUS les plans (bannière s'affiche, pipeline continue normal). Tester avec 1 plan AVANT d'activer en prod.
+- **Clé OpenAI exposée 2x transcript s23+s24** : rappel — Thomas doit révoquer `sk-proj-joFKhcd...` sur platform.openai.com.
+- **Endpoint `/api/vs/debug/plans`** : utilisé par le script reality check, peut ne pas exister — à créer côté API OU remplacer par query Postgres directe via `psql $DATABASE_URL`.
+- **Feature flag OFF par défaut** en prod : activer d'abord en staging + tester 5 plans + audit Yann AVANT de passer flag ON en prod.
+
+**Patterns validés à réutiliser s25** :
+- **Pattern @moi gate intermédiaire 4 conditions strictes** : code review + tests auto + reality check E2E + audit persona. 3/4 = NO-GO, pas GO conditionnel (doctrinal).
+- **Pattern autopilote 4 agents parallèles** : @fullstack + @qa + @reviewer + @interior-architect sur scope disjoint + rapport @moi synthèse.
+- **Pattern Yann baseline avant refonte** : scorer le "avant" (5.5/10) pour mesurer gain empirique après. Applicable à tout chantier qualité IA.
+- **Pattern prompt + TC versionnés dans prompt-library.md** : découpler prompt engineering de l'impl, traçable DB via `CANONICAL_PROMPT_VERSION`.
+- **Pattern idempotence DB-driven** : skip appel IA coûteux si `*_path IS NOT NULL` + readFile + catch ephemeral storage → re-canonicalise.
+- **Pattern brief @ia anti-timeout** : max 1500 mots, Write d'abord, max 10 Read (s22-s24 renforcé s25 après 3 timeouts initiaux de 4000+ mots).
+
+**Nom de branche recommandé pour la prochaine session** : garder `claude/versi-s25-reality-check-ux-audit-UHDfK` pour finir le reality check post-activation, OU `claude/versi-s26-canonicalisation-empirique-[suffix]` si Thomas préfère branche neuve.
+
+**Commande de reprise suggérée** :
+```
+@orchestrator Mode reprise s25→s26. Lis project-context.md mémo s25→s26 et docs/reviews/s25-gate-moi-intermediaire.md. Statut : GO CODE-LEVEL (2/4 conditions PASS) mais 2/4 SUSPENDUES activation Thomas. J'ai [exécuté/pas exécuté] le script reality check staging. [Si exécuté] Voici les outputs canonicalisés dans audit-data/ : [liste]. Priorité s26 : (A) lancer Yann audit visuel sur les 4-5 outputs post-canonicalisation, (B) gate @moi Phase 2 finale GO PRODUCTION selon score, (C) itération piste 1-4 si <9/10. Propose plan avant de lancer.
+```
+
+---
 
 ### Mémo de reprise versi-s24 → s25
 
