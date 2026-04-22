@@ -1,0 +1,154 @@
+{
+  "results": [
+    {
+      "id": "P00",
+      "scores": {
+        "c1": true,
+        "c2": false,
+        "c3": false,
+        "c4": false
+      },
+      "notes": [
+        "project=2875bd75 plan=1d8e47fa",
+        "canonical_prompt_version=mock-1.0 fb=- path=OK",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "lots=0 rooms=0 avg=0.0"
+      ],
+      "bugs": [
+        "P0: canvas rooms absent",
+        "P0: 0 lots/rooms créés (lots=0 rooms=0)",
+        "P1: cohérence visuelle lots/rooms échouée"
+      ],
+      "projectId": "2875bd75-d378-4031-8904-a13f80982a6b",
+      "planDbId": "1d8e47fa-65b3-4f8c-82ff-ba7ab1de8a78"
+    },
+    {
+      "id": "P01",
+      "scores": {
+        "c1": true,
+        "c2": false,
+        "c3": false,
+        "c4": false
+      },
+      "notes": [
+        "project=9e940473 plan=ef1b0c96",
+        "canonical_prompt_version=mock-1.0 fb=- path=OK",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "lots=0 rooms=0 avg=0.0"
+      ],
+      "bugs": [
+        "P0: canvas rooms absent",
+        "P0: 0 lots/rooms créés (lots=0 rooms=0)",
+        "P1: cohérence visuelle lots/rooms échouée"
+      ],
+      "projectId": "9e940473-45a6-4072-840b-5041782eedac",
+      "planDbId": "ef1b0c96-6ba8-48f4-ae38-b20716fd413e"
+    },
+    {
+      "id": "P02",
+      "scores": {
+        "c1": true,
+        "c2": false,
+        "c3": false,
+        "c4": false
+      },
+      "notes": [
+        "project=451b3ee7 plan=f65c0f33",
+        "canonical_prompt_version=mock-1.0 fb=- path=OK",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "lots=0 rooms=0 avg=0.0"
+      ],
+      "bugs": [
+        "P0: canvas rooms absent",
+        "P0: 0 lots/rooms créés (lots=0 rooms=0)",
+        "P1: cohérence visuelle lots/rooms échouée"
+      ],
+      "projectId": "451b3ee7-ba03-4f17-a9ea-4d1db81c0b1c",
+      "planDbId": "f65c0f33-e45b-41cd-8d6c-c1add79ce57b"
+    },
+    {
+      "id": "P03",
+      "scores": {
+        "c1": true,
+        "c2": false,
+        "c3": false,
+        "c4": false
+      },
+      "notes": [
+        "project=ac73655a plan=a3ef024c",
+        "canonical_prompt_version=mock-1.0 fb=- path=OK",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "console.error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "lots=0 rooms=0 avg=0.0"
+      ],
+      "bugs": [
+        "P0: canvas rooms absent",
+        "P0: 0 lots/rooms créés (lots=0 rooms=0)",
+        "P1: cohérence visuelle lots/rooms échouée"
+      ],
+      "projectId": "ac73655a-cb23-40a2-af46-8cf533d2fdec",
+      "planDbId": "a3ef024c-a7bb-4928-a147-7f5cf44f223d"
+    }
+  ],
+  "total": 4,
+  "at": "2026-04-22T12:43:40.261Z"
+}
