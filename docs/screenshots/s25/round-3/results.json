@@ -1,0 +1,76 @@
+{
+  "at": "2026-04-22T15:40:25.545Z",
+  "plans": [
+    {
+      "id": "P00",
+      "projectId": "b03e11b3-4c89-431b-9398-de42d7c36b2e",
+      "planId": "a27272a9-149e-4fcd-8506-e2db2243e7ed",
+      "extraction": "timeout",
+      "lotsCount": 1,
+      "roomsCount": 5,
+      "canonical_prompt_version": "mock-1.0",
+      "canonical_fallback_reason": null
+    },
+    {
+      "id": "P01",
+      "projectId": "61c11f37-5107-4a88-9078-56b7855e590a",
+      "planId": "456d0b4e-08ec-46d7-a40d-2e2e6ff36393",
+      "extraction": "timeout",
+      "lotsCount": 2,
+      "roomsCount": 8,
+      "canonical_prompt_version": "mock-1.0",
+      "canonical_fallback_reason": null
+    },
+    {
+      "id": "P02",
+      "projectId": "2bfff539-34ef-45bd-a5f4-6ae13ad966da",
+      "planId": "a9d0d8c1-2c93-42b9-b616-658aa96561c0",
+      "extraction": "timeout",
+      "lotsCount": 2,
+      "roomsCount": 8,
+      "canonical_prompt_version": "mock-1.0",
+      "canonical_fallback_reason": null
+    },
+    {
+      "id": "P03",
+      "projectId": "0103b92a-c303-4f9a-b24b-5ba8276dae93",
+      "planId": "68c7a237-047d-4adb-9e42-e7ece73efdd3",
+      "extraction": "timeout",
+      "lotsCount": 2,
+      "roomsCount": 8,
+      "canonical_prompt_version": "mock-1.0",
+      "canonical_fallback_reason": null
+    }
+  ],
+  "criteria": {
+    "A_redirect_lots": {
+      "pass": true,
+      "detail": "current URL=http://localhost:3100/vs/projects/0103b92a-c303-4f9a-b24b-5ba8276dae93/lots"
+    },
+    "B_stepper": {
+      "pass": true,
+      "detail": "stepper=[\"PLANS\",\"Déposez vos plans\",\"2\",\"LOTS\",\"Découpez vos lots\",\"3\",\"PIÈCES\",\"Identifiez les pièces\",\"4\",\"VISUELS\",\"Créez vos visuels\"]"
+    },
+    "C_no_banned_words": {
+      "pass": true,
+      "detail": "0 occurrence"
+    },
+    "D_calib_banner": {
+      "pass": true,
+      "detail": "bannière reformulée ou absente (pas de mot technique)"
+    },
+    "E_reformatage_dead": {
+      "pass": true,
+      "detail": "HTTP 404"
+    },
+    "F_db_totals": {
+      "pass": true,
+      "detail": "lots=7/7 rooms=29/29 allMockVer=true"
+    }
+  },
+  "summary": {
+    "passCount": 6,
+    "total": 6,
+    "verdict": "PASS"
+  }
+}
