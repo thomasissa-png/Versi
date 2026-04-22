@@ -37,13 +37,7 @@ const polygons = reconstructRectilinear(horizontals, verticals);
 renderCleanPlan(polygons, './canonical.png');
 ```
 
-### Métriques
-| Critère | Valeur |
-|---|---|
-| Faisabilité Node | 2/5 |
-| Coût | $0 |
-| Latence | 2-5s |
-| Taux échec estimé | 40-60% sur scans médiocres |
+**Métriques** : Faisabilité Node 2/5 · Coût $0 · Latence 2-5s · Échec estimé 40-60% sur scans médiocres.
 
 ### Risques
 - `opencv4nodejs` / `@u4/opencv4nodejs` requiert binding natif = casse sur Replit serverless (pattern s24 tesseract crash Turbopack en pire)
@@ -107,13 +101,7 @@ STRIP (MUST REMOVE):
 - ZERO color, ZERO grayscale, pure B&W only
 ```
 
-### Métriques
-| Critère | Valeur |
-|---|---|
-| Faisabilité Node | 5/5 |
-| Coût | ~$0.04/plan (gpt-image-1 high quality 2048) |
-| Latence | 15-25s |
-| Taux échec estimé | 10-20% (hallucination géométrique sur plans complexes) |
+**Métriques** : Faisabilité Node 5/5 · Coût ~$0.04/plan (gpt-image-1 high quality 2048) · Latence 15-25s · Échec estimé 10-20% (hallucination géométrique sur plans complexes).
 
 ### Risques
 - Hallucination géométrique : gpt-image-1 peut déplacer un mur de quelques pixels → pipeline extract reste ancré sur plan original pour le polygon-resolver
@@ -121,11 +109,7 @@ STRIP (MUST REMOVE):
 - Variance output entre appels (seed non contrôlable)
 - **Mitigation** : feature flag `VS_CANONICAL_PREPASS`, fallback silencieux vers plan original si image sortie fait échouer les gates du pipeline (ex : 0 rooms extraites)
 
-### Pourquoi ça gagne
-- Zéro dépendance native (tout en HTTP API OpenAI déjà intégré pour extraction)
-- Aligné pattern s22 validé (`openai.images.edit()` + `toFile()` fonctionne en prod versi)
-- Règles négatives explicites = pattern versi-s22 validé 10/10 sur transformations structurelles (open-plan, removed walls)
-- ROI évident : si taux 10/10 passe de 6/10 à 8/10 plans, Thomas retrouve confiance produit
+**Pourquoi ça gagne** : 0 dépendance native (HTTP API OpenAI déjà intégré) · Pattern s22 validé en prod versi (`openai.images.edit()` + `toFile()`) · Règles négatives = pattern s22 validé 10/10 sur transformations structurelles · ROI évident si taux 10/10 passe de 6/10 à 8/10 plans.
 
 ---
 
@@ -148,13 +132,7 @@ if (ambiguousZones.length > 0) {
 }
 ```
 
-### Métriques
-| Critère | Valeur |
-|---|---|
-| Faisabilité Node | 2/5 (hérite limitations A) |
-| Coût | ~$0.02/plan (vision crops only) |
-| Latence | 10-20s |
-| Taux échec estimé | 25-40% |
+**Métriques** : Faisabilité Node 2/5 (hérite limitations A) · Coût ~$0.02/plan (vision crops) · Latence 10-20s · Échec estimé 25-40%.
 
 ### Risques
 - Complexité cumulée : hérite TOUS les risques de A (CV fragile) + ajoute couche d'intégration
@@ -177,36 +155,26 @@ if (ambiguousZones.length > 0) {
 ## Plan d'implémentation (Approche B)
 
 ### Architecture cible
-- **Nouveau module** : `versi-studio/src/lib/vs/plan-canonicalizer.ts` (~150 lignes)
-  - `canonicalizePlan(inputBuffer: Buffer): Promise<{ canonical: Buffer; duration: number; fallback: boolean }>`
-  - Utilise `openai.images.edit()` + `toFile()` (pattern s22)
-  - Timeout 45s, fallback silencieux vers buffer original
-- **Nouveau prompt versionné** : `CANONICAL_PROMPT_V1` dans `prompt-library.md` (draft ci-dessus à raffiner + 3 test cases)
-- **Feature flag** : `VS_CANONICAL_PREPASS` (env var) — off par défaut, on pour A/B test
-- **DB column** : `vs_plans.canonical_image_url` (TEXT nullable) — stocker le plan canonique pour debug/audit
-- **Route** : pas de nouvelle route. Hook dans `extract/route.ts` AVANT appel `extractPlan()` existant
-- **Budget tokens** : image gen facturée à l'image, pas token. Cap : 1 canonicalisation par plan par upload (idempotent via hash).
+- Module `versi-studio/src/lib/vs/plan-canonicalizer.ts` (~150L). Signature : `canonicalizePlan(buf: Buffer): Promise<{ canonical: Buffer; duration: number; fallback: boolean }>`. Timeout 45s, fallback silencieux.
+- Prompt `CANONICAL_PROMPT_V1` versionné dans `prompt-library.md` + 3 test cases (scan A3 médiocre, PDF vectoriel, plan manuscrit).
+- Feature flag env `VS_CANONICAL_PREPASS` (off par défaut).
+- DB column `vs_plans.canonical_image_url` (TEXT nullable) pour debug/audit.
+- Hook dans `extract/route.ts` AVANT `extractPlan()` existant. Pas de nouvelle route. Idempotent via hash input.
 
-### Étapes (3-5)
-1. **Prompt library + test cases** (@ia, 0.5j) : finaliser `CANONICAL_PROMPT_V1` + 3 test cases (plan scanné A3 médiocre, PDF vectoriel propre, plan manuscrit). Valider outputs visuellement avant code.
-2. **Module canonicalizer + feature flag** (@fullstack, 0.5j) : créer `plan-canonicalizer.ts`, intégrer dans `extract/route.ts` derrière `VS_CANONICAL_PREPASS`, colonne DB, logs Langfuse-style (input/output/duration/fallback).
-3. **Reality check E2E** (Thomas + @qa, 0.5j) : 5 plans réels (scannés + vectoriels), comparer pipeline ON vs OFF sur score 10/10 existant (rooms détectées, surface totale, confidence moyenne). Screenshots avant/après dans rapport.
-4. **Gate GO / NO-GO** : si gain ≥ +1.5 points sur score 10/10 moyen → activer par défaut. Sinon → documenter échec, essayer prompt v2 ou approche fallback.
-5. **Observabilité** : tracker `canonical_success_rate`, `canonical_duration_p95`, `canonical_fallback_rate` dans dashboard analytics.
+### Étapes
+1. **@ia** — finaliser prompt + 3 test cases, valider visuellement. 0.5j.
+2. **@fullstack** — implémenter `plan-canonicalizer.ts` + flag + colonne DB + logs (input/output/duration/fallback). 0.5j.
+3. **@qa + Thomas** — reality check E2E sur 5 plans réels (scannés + vectoriels), comparer ON vs OFF sur score 10/10 existant + screenshots. 0.5j.
+4. **Gate GO/NO-GO** — si gain ≥ +1.5 pts score moyen → activer par défaut. Sinon → prompt v2 ou fallback stratégique.
+5. **Observabilité** — tracker `canonical_success_rate`, `canonical_duration_p95`, `canonical_fallback_rate`.
 
-### Fallback si échec
-- **Fallback immédiat (runtime)** : si `openai.images.edit()` timeout/erreur OU si pipeline extract sur plan canonique retourne 0 rooms → réutiliser plan original. User jamais bloqué.
-- **Fallback stratégique (si POC fail gate)** : tester approche A avec `@napi-rs/canvas` + custom Hough JS (lourd mais 100% JS). Si A fail aussi → accepter plafond pipeline actuel et investir sur l'UX de correction manuelle (drag/resize déjà livré s22).
+### Fallback
+- **Runtime** : si `openai.images.edit()` timeout/erreur OU si extract sur plan canonique retourne 0 rooms → réutiliser plan original. User jamais bloqué.
+- **Stratégique** (si POC fail gate 4) : tester approche A avec `@napi-rs/canvas` + custom Hough JS. Si A fail aussi → accepter plafond pipeline actuel, investir sur UX correction manuelle (drag/resize déjà livré s22).
 
 ---
 
-## Points d'attention
-
-- **s22 critique** : `openai.responses.create()` NE SUPPORTE PAS gpt-image-1. Utiliser `openai.images.edit()` + `toFile()` obligatoirement. Testé cassé en prod versi-s22.
-- **Règles négatives** : prompt canonicalisation utilise `no dimensions, no hatching, ZERO color` pattern s22 validé 10/10.
-- **Cap tokens** : N/A (image API, facturé à l'image, $0.04 high quality 2048).
-- **Reality check E2E obligatoire** (règle CLAUDE.md s22) : tests mockés insuffisants. Thomas doit valider 5 plans réels avant GO PRODUCTION.
-- **Alias modèle** : `gpt-image-1` est stable, pas de version dated. Monitorer changelog OpenAI.
+**Points d'attention** : `openai.responses.create()` NE SUPPORTE PAS gpt-image-1 (s22 critique) · Cap tokens N/A (image API facturée à l'image) · Reality check E2E obligatoire sur 5 plans réels avant GO PRODUCTION · `gpt-image-1` stable sans version dated, monitorer changelog OpenAI.
 
 ---
 
