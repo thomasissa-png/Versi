@@ -1,0 +1,23 @@
+[
+  {
+    "name": "01-root",
+    "url": "https://versi-studio.replit.app/",
+    "error": "Error: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://versi-studio.replit.app/\nCall log:\n  - navigating to \"https://versi-studio.replit.app/\", waiting until \"domcontentloaded\"\n",
+    "screenshot": "/home/user/Versi/docs/screenshots/s25/01-root.png",
+    "console": []
+  },
+  {
+    "name": "02-vs",
+    "url": "https://versi-studio.replit.app/vs",
+    "error": "Error: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://versi-studio.replit.app/vs\nCall log:\n  - navigating to \"https://versi-studio.replit.app/vs\", waiting until \"domcontentloaded\"\n",
+    "screenshot": "/home/user/Versi/docs/screenshots/s25/02-vs.png",
+    "console": []
+  },
+  {
+    "name": "03-vs-projects",
+    "url": "https://versi-studio.replit.app/vs/projects",
+    "error": "Error: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://versi-studio.replit.app/vs/projects\nCall log:\n  - navigating to \"https://versi-studio.replit.app/vs/projects\", waiting until \"domcontentloaded\"\n",
+    "screenshot": "/home/user/Versi/docs/screenshots/s25/03-vs-projects.png",
+    "console": []
+  }
+]
