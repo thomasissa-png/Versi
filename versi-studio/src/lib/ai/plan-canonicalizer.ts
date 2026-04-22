@@ -31,6 +31,7 @@ import {
 export type CanonicalizeFallbackReason =
   | "timeout"
   | "api_error"
+  | "org_not_verified"
   | "gate_fail"
   | "flag_off"
   | "empty_input";
@@ -63,7 +64,73 @@ export interface CanonicalizeOptions {
   signal?: AbortSignal;
 }
 
-const DEFAULT_TIMEOUT_MS = 45_000;
+const DEFAULT_TIMEOUT_MS = 90_000;
+const RETRY_MAX_ATTEMPTS = 3; // initiale + 2 retries
+
+/**
+ * Backoff configurable via env (utile en test pour ne pas attendre 6s en vrai).
+ * Prod : 2000ms (→ 2s, 4s). Tests unit : 5ms (→ 5ms, 10ms).
+ * Lu dynamiquement (pas au module-load) pour que les tests puissent l'override
+ * depuis beforeEach().
+ */
+function getRetryBackoffMs(): number {
+  const v = Number(process.env.VS_CANONICALIZER_BACKOFF_MS);
+  return Number.isFinite(v) && v >= 0 ? v : 2_000;
+}
+
+// Extrait du détail structuré d'une erreur OpenAI (ou erreur transport générique).
+interface OpenAIErrorDetail {
+  status?: number;
+  code?: string | null;
+  type?: string | null;
+  message: string;
+}
+
+function parseOpenAIError(err: unknown): OpenAIErrorDetail {
+  const msg = err instanceof Error ? err.message : String(err);
+  const e = err as {
+    status?: number;
+    code?: string | null;
+    type?: string | null;
+    error?: { code?: string; type?: string; message?: string };
+  };
+  return {
+    status: typeof e?.status === "number" ? e.status : undefined,
+    code: e?.error?.code ?? e?.code ?? null,
+    type: e?.error?.type ?? e?.type ?? null,
+    message: msg,
+  };
+}
+
+/**
+ * Certaines erreurs OpenAI ne doivent PAS être retry :
+ *  - 401/403 (clé invalide, org non vérifiée — retry inutile)
+ *  - 400 (payload invalide, retry inutile)
+ *  - Tout 2xx (impossible en branche erreur) ou code 'content_policy_violation'
+ * Les autres (5xx, timeout, erreurs réseau) sont transientes.
+ */
+function isRetryable(detail: OpenAIErrorDetail): boolean {
+  if (detail.status === 400 || detail.status === 401 || detail.status === 403) {
+    return false;
+  }
+  if (detail.code === "content_policy_violation") return false;
+  return true;
+}
+
+/**
+ * Détecte le cas spécifique "organisation OpenAI non vérifiée pour gpt-image-1"
+ * (H1 diagnostic s25 — 60% des fallbacks en prod). Message type :
+ *   "Your organization must be verified to use the model..."
+ */
+function isOrgNotVerified(detail: OpenAIErrorDetail): boolean {
+  if (detail.status !== 403) return false;
+  const msg = detail.message.toLowerCase();
+  return msg.includes("organization") && msg.includes("verif");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -250,13 +317,56 @@ export async function canonicalizePlan(
     };
   }
 
+  const inputBytes = buf.length;
+  let lastErrorDetail: OpenAIErrorDetail | null = null;
+
   try {
     const prepared = await downsampleIfNeeded(buf);
-    const canonicalBuf = await callOpenAIImagesEdit(
-      prepared,
-      timeoutMs,
-      opts.signal,
-    );
+
+    // ─── Retry loop (max 3 tentatives : initiale + 2) ──────────
+    let canonicalBuf: Buffer | null = null;
+    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+      try {
+        canonicalBuf = await callOpenAIImagesEdit(
+          prepared,
+          timeoutMs,
+          opts.signal,
+        );
+        break; // succès
+      } catch (err) {
+        const detail = parseOpenAIError(err);
+        lastErrorDetail = detail;
+
+        // Non-retryable : on sort immédiatement vers le fallback
+        if (!isRetryable(detail)) {
+          throw err;
+        }
+
+        // Dernière tentative atteinte : on sort vers le fallback
+        if (attempt >= RETRY_MAX_ATTEMPTS) {
+          throw err;
+        }
+
+        const backoff = getRetryBackoffMs() * attempt; // 2s, 4s (prod)
+        logEvent("retry", {
+          attempt,
+          next_backoff_ms: backoff,
+          api_status: detail.status,
+          api_code: detail.code,
+          api_type: detail.type,
+          error: detail.message,
+          input_bytes: inputBytes,
+          timeout_ms: timeoutMs,
+          prompt_version: CANONICAL_PROMPT_VERSION,
+        });
+        await sleep(backoff);
+      }
+    }
+
+    if (!canonicalBuf) {
+      // Garde-fou TypeScript — en pratique inaccessible (catch ci-dessus throw)
+      throw new Error("canonicalizer: no buffer after retry loop");
+    }
 
     const gates = await runQualityGates(canonicalBuf);
     const failed = countFailedGates(gates);
@@ -265,10 +375,12 @@ export async function canonicalizePlan(
       const outputHash = sha256(buf);
       logEvent("fallback", {
         reason: "gate_fail",
-        inputHash,
-        outputHash,
+        input_hash: inputHash,
+        output_hash: outputHash,
         gates,
         duration_ms: Date.now() - started,
+        timeout_ms: timeoutMs,
+        input_bytes: inputBytes,
         prompt_version: CANONICAL_PROMPT_VERSION,
       });
       return {
@@ -286,10 +398,12 @@ export async function canonicalizePlan(
 
     const outputHash = sha256(canonicalBuf);
     logEvent("success", {
-      inputHash,
-      outputHash,
+      input_hash: inputHash,
+      output_hash: outputHash,
       gates,
       duration_ms: Date.now() - started,
+      timeout_ms: timeoutMs,
+      input_bytes: inputBytes,
       prompt_version: CANONICAL_PROMPT_VERSION,
       bytes_out: canonicalBuf.length,
     });
@@ -304,18 +418,35 @@ export async function canonicalizePlan(
       gates,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const reason: CanonicalizeFallbackReason =
-      /timeout|aborted/i.test(msg) ? "timeout" : "api_error";
+    const detail = lastErrorDetail ?? parseOpenAIError(err);
+    const msg = detail.message;
+    const isTimeout = /timeout|aborted/i.test(msg);
+    const reason: CanonicalizeFallbackReason = isTimeout
+      ? "timeout"
+      : isOrgNotVerified(detail)
+        ? "org_not_verified"
+        : "api_error";
     const outputHash = sha256(buf);
-    logEvent("fallback", {
-      reason,
-      inputHash,
-      outputHash,
-      error: msg,
-      duration_ms: Date.now() - started,
-      prompt_version: CANONICAL_PROMPT_VERSION,
-    });
+    // console.error pour les fallbacks (visibilité prod) — logs structurés.
+    try {
+      console.error(
+        `[plan-canonicalizer] fallback ${JSON.stringify({
+          reason,
+          api_status: detail.status,
+          api_code: detail.code,
+          api_type: detail.type,
+          timeout_ms: timeoutMs,
+          input_bytes: inputBytes,
+          duration_ms: Date.now() - started,
+          prompt_version: CANONICAL_PROMPT_VERSION,
+          input_hash: inputHash,
+          output_hash: outputHash,
+          error: msg,
+        })}`,
+      );
+    } catch {
+      // noop — logging ne doit jamais casser le pipeline
+    }
     return {
       canonical: buf,
       duration: Date.now() - started,

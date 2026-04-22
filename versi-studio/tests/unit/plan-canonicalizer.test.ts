@@ -60,9 +60,17 @@ vi.mock("sharp", () => {
 
 // OpenAI mock : comportement piloté par openAIControl
 type MockOpenAIControl = {
-  mode: "success" | "timeout" | "error" | "empty";
+  mode: "success" | "timeout" | "error" | "empty" | "transient-then-ok";
   delayMs?: number;
   outputBytes?: Buffer;
+  /** status HTTP de l'erreur simulée (401/403 non-retryable, 5xx retryable). */
+  errorStatus?: number;
+  /** message d'erreur (pour simuler "organization verification"). */
+  errorMessage?: string;
+  /** nombre de tentatives à faire échouer avant succès (mode transient-then-ok). */
+  errorCount?: number;
+  /** compteur interne — nb d'appels reçus. */
+  attempts?: number;
 };
 const openAIControl: MockOpenAIControl = { mode: "success" };
 
@@ -75,15 +83,29 @@ vi.mock("openai", () => {
     images = {
       edit: vi.fn(async (_params: unknown, opts?: { signal?: AbortSignal }) => {
         const delay = openAIControl.delayMs ?? 10;
+        openAIControl.attempts = (openAIControl.attempts ?? 0) + 1;
+        const currentAttempt = openAIControl.attempts;
         return await new Promise((resolve, reject) => {
           const timer = setTimeout(() => {
             if (openAIControl.mode === "success") {
               const b = openAIControl.outputBytes ?? Buffer.from("canonical-png");
               resolve({ data: [{ b64_json: b.toString("base64") }] });
             } else if (openAIControl.mode === "error") {
-              reject(new Error("API error mock"));
+              const errObj = new Error(openAIControl.errorMessage ?? "API error mock") as Error & { status?: number };
+              if (openAIControl.errorStatus) errObj.status = openAIControl.errorStatus;
+              reject(errObj);
             } else if (openAIControl.mode === "empty") {
               resolve({ data: [{}] });
+            } else if (openAIControl.mode === "transient-then-ok") {
+              const errCount = openAIControl.errorCount ?? 1;
+              if (currentAttempt <= errCount) {
+                const errObj = new Error("transient 503 Service Unavailable") as Error & { status?: number };
+                errObj.status = 503;
+                reject(errObj);
+              } else {
+                const b = openAIControl.outputBytes ?? Buffer.from("canonical-png");
+                resolve({ data: [{ b64_json: b.toString("base64") }] });
+              }
             } else {
               // timeout : ne jamais résoudre
             }
@@ -114,9 +136,15 @@ beforeEach(() => {
   openAIControl.mode = "success";
   openAIControl.delayMs = 10;
   openAIControl.outputBytes = undefined;
+  openAIControl.errorStatus = undefined;
+  openAIControl.errorMessage = undefined;
+  openAIControl.errorCount = undefined;
+  openAIControl.attempts = 0;
   sharpControl.forceGateFail = false;
   sharpControl.width = 512;
   process.env.OPENAI_API_KEY = "sk-test-valid-not-placeholder";
+  // Accélère les backoffs pour que les 3 retries tiennent dans le timeout Vitest (5s)
+  process.env.VS_CANONICALIZER_BACKOFF_MS = "5";
 });
 
 // ─── Tests ─────────────────────────────────────────────────────────
@@ -247,5 +275,52 @@ describe("canonicalizePlan — idempotence (US-VS-R4)", () => {
     // Contrat critique : ZÉRO appel à canonicalizePlan (donc zéro appel OpenAI)
     expect(canonicalizePlanCalls).toBe(0);
     void planId;
+  });
+});
+
+// ─── Retry policy (s25 Round 2) ────────────────────────────────────
+
+describe("canonicalizePlan — retry policy", () => {
+  it("retry 2x on transient 5xx → succeeds on attempt 3", async () => {
+    openAIControl.mode = "transient-then-ok";
+    openAIControl.errorCount = 2; // 2 premiers échecs, 3e succès
+    const input = makeBuffer();
+    const res = await canonicalizePlan(input, { timeoutMs: 500 });
+    expect(res.fallback).toBe(false);
+    expect(openAIControl.attempts).toBe(3); // initiale + 2 retries
+    expect(res.canonical).not.toEqual(input); // buffer canonique, pas original
+  });
+
+  it("retry 2x puis fallback si toujours KO", async () => {
+    openAIControl.mode = "transient-then-ok";
+    openAIControl.errorCount = 10; // toujours KO
+    const input = makeBuffer();
+    const res = await canonicalizePlan(input, { timeoutMs: 500 });
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(openAIControl.attempts).toBe(3); // s'arrête à 3 tentatives
+  });
+
+  it("skip retry on 401 (unauthorized)", async () => {
+    openAIControl.mode = "error";
+    openAIControl.errorStatus = 401;
+    openAIControl.errorMessage = "Invalid API key";
+    const input = makeBuffer();
+    const res = await canonicalizePlan(input, { timeoutMs: 500 });
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(openAIControl.attempts).toBe(1); // 1 tentative seulement, pas de retry
+  });
+
+  it("skip retry on 403 + log reason=org_not_verified", async () => {
+    openAIControl.mode = "error";
+    openAIControl.errorStatus = 403;
+    openAIControl.errorMessage =
+      "Your organization must be verified to use the model gpt-image-1.";
+    const input = makeBuffer();
+    const res = await canonicalizePlan(input, { timeoutMs: 500 });
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("org_not_verified");
+    expect(openAIControl.attempts).toBe(1); // pas de retry sur 403
   });
 });
