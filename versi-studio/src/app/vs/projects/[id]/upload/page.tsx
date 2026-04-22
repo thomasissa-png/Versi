@@ -27,7 +27,6 @@ import DropZone from "@/components/vs/DropZone";
 import PlanThumbnail from "@/components/vs/PlanThumbnail";
 import Stepper from "@/components/vs/Stepper";
 import ConfirmModal from "@/components/vs/ConfirmModal";
-import PlanComparator from "@/components/vs/PlanComparator";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
 import { MAX_FILES_PER_PROJECT } from "@/lib/vs/types";
 
@@ -378,9 +377,10 @@ export default function UploadPage({
         return;
       }
 
-      // 3. Rediriger vers l'étape Reformatage (s25 Round B)
-      //    Thomas vérifie le plan reformaté avant de passer au découpage des lots.
-      router.push(`/vs/projects/${projectId}/reformatage`);
+      // 3. Rediriger vers l'étape Lots (stepper 4 étapes — UI Reformatage supprimée s25 Round 2)
+      //    La canonicalisation reste active en backend (flag VS_PLAN_CANONICALIZE)
+      //    mais invisible côté utilisateur : fallback silencieux si échec.
+      router.push(`/vs/projects/${projectId}/lots`);
     } catch {
       setError(
         "Impossible de lancer l'analyse — vérifiez votre connexion et réessayez."
@@ -612,53 +612,9 @@ export default function UploadPage({
               ))}
             </div>
 
-            {/* US-VS-R1 (s25) — Comparateur Original / Reformaté.
-                Visible dès qu'un plan a été traité par la canonicalisation
-                (feature flag VS_PLAN_CANONICALIZE). Permet à l'utilisateur
-                de comparer avant de relancer l'analyse. */}
-            {plans.some(
-              (p) =>
-                p.canonicalized_image_path !== null ||
-                p.canonical_fallback_reason !== null,
-            ) && (
-              <section className="mt-2xl">
-                <h2 className="vs-h5 mb-md">
-                  Aperçu des plans reformatés
-                </h2>
-                <p className="text-sm text-text-muted mb-lg">
-                  Chaque plan est reformaté en version épurée noir sur
-                  blanc pour améliorer l&apos;analyse des pièces et lots.
-                </p>
-                <div className="flex flex-col gap-xl">
-                  {plans
-                    .filter(
-                      (p) =>
-                        p.canonicalized_image_path !== null ||
-                        p.canonical_fallback_reason !== null,
-                    )
-                    .map((p) => (
-                      <div key={p.id} className="flex flex-col gap-sm">
-                        <p className="text-sm font-medium text-text-primary">
-                          {p.original_filename ?? `Plan ${p.id.slice(0, 8)}`}
-                        </p>
-                        <PlanComparator
-                          plan={p}
-                          originalUrl={`/api/vs/files?path=${encodeURIComponent(
-                            p.file_path,
-                          )}`}
-                          canonicalizedUrl={
-                            p.canonicalized_image_path
-                              ? `/api/vs/files?path=${encodeURIComponent(
-                                  p.canonicalized_image_path,
-                                )}`
-                              : null
-                          }
-                        />
-                      </div>
-                    ))}
-                </div>
-              </section>
-            )}
+            {/* s25 Round 2 — Comparateur "avant/après" retiré de l'UI client-facing.
+                Le composant PlanComparator reste disponible pour un futur écran
+                admin de debug. La canonicalisation tourne en silencieux. */}
           </div>
         )}
 
