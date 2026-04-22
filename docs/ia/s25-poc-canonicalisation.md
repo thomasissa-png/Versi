@@ -1,10 +1,8 @@
 # POC Canonicalisation Plan — s25 Phase 0
 
-**Date** : 2026-04-22
-**Agent** : @ia
-**Contexte** : Pipeline actuel (PDF → GPT-4.1 vision → 5 passes refinement + OCR snap) plafonne sur plans réels scannés. s23 a montré plafond prompt-only 6.03/10, remonté à 9.35/10 via snap-to-label OCR. Thomas rapporte que ça reste insuffisant sur plans scannés médiocres. Hypothèse : le goulot n'est plus en AVAL (refinement) mais en AMONT (qualité input image). Idée : canonicaliser le plan (redessin vectoriel épuré rectilinéaire) AVANT extraction IA pour inputs prévisibles.
+**Date** : 2026-04-22 · **Agent** : @ia
 
-**Cohérence framework** : `patterns-post-process.md` stipule "si plafond < 9/10 après 3 itérations prompt → post-processing". Ici on applique le pattern à l'AMONT (pré-processing input), pas à l'aval. Même philosophie : explorer techniques adjacentes quand une technique plafonne (règle CLAUDE.md s23 "10/10 objectif strict").
+**Contexte** : Pipeline actuel (PDF → GPT-4.1 vision → 5 passes + OCR snap) plafonne sur plans réels scannés. s23 : plafond prompt-only 6.03/10 → 9.35/10 via snap-to-label. Thomas rapporte résiduel insuffisant. Hypothèse : goulot en AMONT (qualité input) pas AVAL (refinement). Idée : canonicaliser le plan (redessin vectoriel épuré) AVANT extraction. Cohérent `patterns-post-process.md` appliqué à l'amont + règle s23 "10/10 objectif strict — technique adjacente si plafond".
 
 ---
 
