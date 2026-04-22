@@ -74,10 +74,10 @@ async function main() {
           const bb = r.bounding_box;
           if (bb) {
             console.log(
-              `    - "${r.name}" bbox=(${bb.x_percent.toFixed(1)}%, ${bb.y_percent.toFixed(1)}%, ${bb.width_percent.toFixed(1)}%, ${bb.height_percent.toFixed(1)}%)`
+              `    - "${r.name_raw}" bbox=(${bb.x_percent.toFixed(1)}%, ${bb.y_percent.toFixed(1)}%, ${bb.width_percent.toFixed(1)}%, ${bb.height_percent.toFixed(1)}%)`
             );
           } else {
-            console.log(`    - "${r.name}" (no bbox)`);
+            console.log(`    - "${r.name_raw}" (no bbox)`);
           }
         }
       } else {
