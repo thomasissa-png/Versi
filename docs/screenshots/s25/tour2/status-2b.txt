@@ -1,0 +1,6 @@
+ERROR
+page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://versi-studio.replit.app/vs
+Call log:
+  - navigating to "https://versi-studio.replit.app/vs", waiting until "domcontentloaded"
+
+    at main (/home/user/Versi/scripts/s25-reality-check-tour2b.ts:30:16)

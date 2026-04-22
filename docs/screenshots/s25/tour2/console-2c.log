@@ -1,0 +1,23 @@
+[c.error] Failed to load resource: the server responded with a status of 503 ()
+[c.log] [analytics] vs_dashboard_loaded {}
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://api.fontshare.com' that is not equal to the supplied origin.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://api.fontshare.com' that is not equal to the supplied origin.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.log] [analytics] vs_project_opened {project_id: 750515ca-83c1-4210-a757-65b7d3c37b12, position_in_list: 0}
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://api.fontshare.com' that is not equal to the supplied origin.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://api.fontshare.com' that is not equal to the supplied origin.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@700&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: The 'Access-Control-Allow-Origin' header has a value 'https://api.fontshare.com' that is not equal to the supplied origin.
+[c.error] Failed to load resource: net::ERR_FAILED
+recal count=0 visible=false

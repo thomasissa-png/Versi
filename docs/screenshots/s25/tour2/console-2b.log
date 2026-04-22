@@ -1,0 +1,46 @@
+[2026-04-22T10:15:51.968Z] nav /vs
+[c.error] Failed to load resource: the server responded with a status of 503 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.log] [analytics] vs_dashboard_loaded {}
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.log] [analytics] vs_project_opened {project_id: 750515ca-83c1-4210-a757-65b7d3c37b12, position_in_list: 0}
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[2026-04-22T10:15:59.990Z] projectId=750515ca-83c1-4210-a757-65b7d3c37b12
+[c.error] Failed to load resource: the server responded with a status of 503 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@700&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[2026-04-22T10:16:06.316Z] calibrer btn visible=false
+[2026-04-22T10:16:06.322Z] banner "Calibrez un plan"=false
+[2026-04-22T10:16:06.329Z] step2 sessionStorage BEFORE any scroll: {"scale":1,"offsetX":0,"offsetY":0}
+[c.error] Unable to preventDefault inside passive event listener invocation.
+[c.error] Unable to preventDefault inside passive event listener invocation.
+[c.error] Unable to preventDefault inside passive event listener invocation.
+[c.error] Unable to preventDefault inside passive event listener invocation.
+[c.error] Unable to preventDefault inside passive event listener invocation.
+[2026-04-22T10:16:07.749Z] step2 sessionStorage AFTER zoom: {"scale":1.6105100000000008,"offsetX":-277.1715400000003,"offsetY":-166.66923000000014}
+[2026-04-22T10:16:08.001Z] snap 31-step2-after-zoom.png
+[c.error] Failed to load resource: the server responded with a status of 503 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@500&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@400&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[c.error] Failed to load resource: the server responded with a status of 404 ()
+[c.error] Access to font at 'https://api.fontshare.com/v2/css?f[]=pp-neue-montreal@700&display=swap' from origin 'https://versi-studio.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+[c.error] Failed to load resource: net::ERR_FAILED
+[2026-04-22T10:16:14.247Z] step3 sessionStorage (after hydration): {"scale":1.6105100000000008,"offsetX":-277.1715400000003,"offsetY":-166.66923000000014}
+[2026-04-22T10:16:14.563Z] snap 32-step3-after-nav.png
+[2026-04-22T10:16:14.563Z] step2.scale=1.6105100000000008 step3.scale=1.6105100000000008 delta=0

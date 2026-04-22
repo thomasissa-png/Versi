@@ -1,0 +1,8 @@
+{
+  "d_bloc_recalibrer": "FAIL",
+  "e_modale_recalibrer": "SKIP",
+  "f_viewport_shared": "FAIL",
+  "a_bouton_regenerer_visible": "PASS",
+  "b_clic_regenere": "PASS",
+  "c_rooms_remplissent": "PASS"
+}
