@@ -488,6 +488,29 @@ export async function POST(
 
     const lotsCreated: Array<{ name: string; confidenceAvg: number }> = [];
 
+    // ─── s25 — Skip création lot IA si lot manuel existe déjà sur le floor ──
+    // Bug Thomas s25 : après une analyse IA relancée sur un projet où Thomas
+    // avait déjà dessiné un lot manuel (source='manual'), l'IA recréait un lot
+    // "T2 RDC" en doublon par-dessus le "Lot 1 — RDC" manuel. Le DELETE IA
+    // ligne 131 ne supprime QUE les lots source='ai' (préserve les manuels),
+    // mais rien n'empêchait l'IA d'en recréer un sur le même floor.
+    // Règle : si un lot manual existe sur un floor, on suppose que l'utilisateur
+    // a pris la décision métier pour cet étage → skip complet du clustering IA
+    // sur ce floor (pas de lot, pas de rooms).
+    const manualLotsResult = await query<{ floor_number: number }>(
+      `SELECT DISTINCT floor_number FROM vs_lots
+       WHERE project_id = $1 AND source = 'manual'`,
+      [projectId]
+    );
+    const manualFloorsSet = new Set<number>(
+      manualLotsResult.rows.map((r) => r.floor_number)
+    );
+    if (manualFloorsSet.size > 0) {
+      console.log(
+        `[extract] skip IA lot creation sur floors ${Array.from(manualFloorsSet).join(", ")} : lot(s) manual existant(s)`
+      );
+    }
+
     if (unitGroups.length > 0) {
       // Compter les groupes par étage pour le nommage (détection doublon)
       // I2 : trier par avgX pour affecter positionIndex stable
@@ -512,6 +535,11 @@ export async function POST(
       // (tri avgX préalable dans groupsByFloor). lotsCreated ordre d'arrivée
       // OK (juste une liste d'analytics).
       await Promise.all(unitGroups.map(async (group) => {
+        // s25 — skip si lot manual existe déjà sur ce floor (voir bloc ci-dessus)
+        if (manualFloorsSet.has(group.floor)) {
+          return;
+        }
+
         const habitableCount = countHabitableRooms(group.rooms);
         const avgX = computeAvgX(group.rooms);
 
