@@ -55,6 +55,7 @@ import {
   polygonBoundingBox,
   type RoomForEnvelope,
 } from "@/lib/vs/envelope-polygon";
+import { shrinkOutlineToRooms } from "@/lib/vs/outline-shrinker";
 import {
   tileRoomsInLot,
   computeTilingMetrics,
@@ -1107,6 +1108,42 @@ export async function POST(
           (sum, r) => sum + (r.surface_m2 || 0),
           0
         );
+
+        // ─── s25 P0 — Outline shrinker (pattern s23 technique adjacente) ─
+        // Recalcule zoneData comme tight-bbox des rooms finales (post-tiling,
+        // post-resolver, post-snap). Ignore l'outline IA qui peut déborder
+        // (escalier colimaçon, terrasse — bug P0 Muguets RDC : IA 47m² vs
+        // rooms 44m²). Déterministe, 0 appel IA.
+        const shrunk = shrinkOutlineToRooms(group.rooms);
+        if (shrunk && shrunk.width_percent > 0 && shrunk.height_percent > 0) {
+          const oldArea = zoneData.width_percent * zoneData.height_percent;
+          const newArea = shrunk.width_percent * shrunk.height_percent;
+          const oldW = zoneData.width_percent;
+          const oldH = zoneData.height_percent;
+          zoneData.x_percent = shrunk.x_percent;
+          zoneData.y_percent = shrunk.y_percent;
+          zoneData.width_percent = shrunk.width_percent;
+          zoneData.height_percent = shrunk.height_percent;
+          console.log(
+            `[outline-shrinker] ${lotName} unit=${group.unitId}: ` +
+            `IA bbox ${oldW.toFixed(1)}×${oldH.toFixed(1)}=${oldArea.toFixed(1)}%² → ` +
+            `shrunk ${shrunk.width_percent.toFixed(1)}×${shrunk.height_percent.toFixed(1)}=${newArea.toFixed(1)}%² ` +
+            `(Δ=${(oldArea - newArea).toFixed(1)}%²)`
+          );
+          // Invalider le polygon d'enveloppe : son bbox peut être plus large
+          // que le shrink (ex: colimaçon inclus). On persiste un rect
+          // déterministe plutôt qu'un polygon trop généreux.
+          if (envelopePolygon) {
+            const envBbox = polygonBoundingBox(envelopePolygon);
+            const envArea = envBbox.width_percent * envBbox.height_percent;
+            if (envArea > newArea * 1.05) {
+              console.log(
+                `[outline-shrinker] ${lotName}: envelope polygon (${envArea.toFixed(1)}%²) > shrunk (${newArea.toFixed(1)}%²), fallback rect`
+              );
+              envelopePolygon = null;
+            }
+          }
+        }
 
         // s24 Passe-4 — zone_data final : polygon si disponible, sinon rect legacy
         const finalZoneData = envelopePolygon
