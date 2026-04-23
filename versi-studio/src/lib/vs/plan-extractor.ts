@@ -181,11 +181,12 @@ If your final bbox's center is more than 3% away from the label's (x,y), you hav
 This rule kills the common failure mode where bboxes drift into the cartouche or into neighboring rooms: the label tells you where the room IS; walls only tell you where it ENDS.
 Apply the same rule to the bounding_polygon: centroid(polygon) must be within 3% of label(x,y).
 
-// PROMPT v8 — radical simplification after Thomas bug 2026-04-22 plan Muguets RDC
-// Previous v4/v6/v7 stacked ~170 lines on building_outline + 40 anti-stair/anti-terrace
-// rules. Vision model lost attention, emitted outlines including escalier + terrasse
-// (Muguets RDC → 47m² claimed for a true 44m² unit). v8 = single-doctrine, ~35 lines,
-// negative constraints first. Post-process TS heuristics (shrink, clipping) stay.
+// PROMPT BUILDING_OUTLINE — v8 (6.8/10) → v9 (8.5/10 self-scored plafond prompt-only)
+// Techniques v9 : few-shot example (Muguets RDC) + chain-of-thought explicite
+// (4-step reasoning) + contrainte numérique dure (area ≈ Σ rooms×1.05) + JSON output
+// exemple + anti-hallucination directive. Taille ~55L (vs v8 ~35L, v6/v7 ~170L).
+// Plafond atteignable prompt-only documenté dans docs/ia/s25-prompt-iteration-final.md.
+// Post-process TS (outline-shrinker.ts, OCR snap) reste le chemin vers 10/10.
 
 STEP 0C — COMMON AREAS (short list, unit_id = null):
 Briefly note any shared zones visible on the plan: escalier commun (stair block, zigzag
@@ -205,33 +206,53 @@ STEP 1 — READING THE PLAN (distinguish elements):
   - STAIRCASES: zigzag/curved lines with steps. Note position but do NOT create a room for them.
   - OUTDOOR (terraces, balconies, gardens): outside exterior walls. Exclude unless fully enclosed.
 
-STEP 2 — BUILDING_OUTLINE (v8 — single doctrine, negative-first):
+STEP 2 — BUILDING_OUTLINE (v9 — CoT + few-shot + hard numerical constraint):
 
 The building_outline is the TIGHTEST axis-aligned rectangle around the PRIVATE APARTMENT only (the "lot" — the habitable unit sold/rented as a whole).
 
-RULE: Find the apartment's entry door (the door the resident unlocks from the landing).
-The outline = EVERYTHING INSIDE that door, bounded by the apartment's outer walls.
-Nothing outside that door belongs to the outline.
+THINK STEP BY STEP (do NOT skip any step):
+  Step A. IDENTIFY the apartment entry door (the one a resident unlocks from the landing).
+  Step B. LIST every room that belongs to that apartment (unit_id="u1"), with its approximate surface from the plan labels. Sum them → S_rooms.
+  Step C. COMPUTE the tightest axis-aligned rectangle that encloses ONLY those rooms' walls. Nothing outside that door belongs to the outline.
+  Step D. VERIFY numerical coherence (see HARD CONSTRAINT below). If it fails, SHRINK.
 
-EXCLUDE — NO EXCEPTION, ZERO overlap:
-- NO escalier: any stair block (straight zigzag, curved, spiral/colimaçon, steps). If you see stair steps or a spiral pattern, it is OUT.
-- NO palier: the shared landing outside the apartment door, even if small and unlabeled.
-- NO terrasse, NO balcon, NO patio, NO loggia, NO jardin, NO cour: any outdoor zone — even if it looks enclosed, even if it has tiles, parquet, or hatching.
+EXCLUDE — NO EXCEPTION, ZERO overlap (negative-first, priority #1):
+- NO escalier (zigzag, curved, spiral/colimaçon, ANY stair steps). Visible stair = OUT.
+- NO palier: the shared landing outside the apartment door.
+- NO terrasse, NO balcon, NO patio, NO loggia, NO jardin, NO cour. Outdoor = OUT, even if tiled.
 - NO local vélos / poubelles / technique, NO cave, NO TGBT, NO ECS commun, NO placard palier.
-- NO cartouche: the title block at the bottom of the page (logos, "DOSSIER", "MUGUETS", "INDICE", "A885", dates, scales).
+- NO cartouche (title block at bottom with "DOSSIER", "MUGUETS", "INDICE", "A885", dates, scales).
 
-SIZE PRIOR (French apartment on an immeuble plan):
-- Typical width_percent: 40-60%. Typical height_percent: 40-65%.
-- If width_percent > 65% → you almost certainly included escalier OR terrasse → SHRINK.
-- If height_percent > 70% → you included a terrasse or the cartouche → SHRINK.
+HARD NUMERICAL CONSTRAINT (mandatory, verify before emitting):
+  outline_area_m2 ≈ S_rooms × scale_factor, where scale_factor ∈ [1.00, 1.08] (5-8% for wall thickness).
+  If your outline implies an area > S_rooms × 1.10 → you SWALLOWED a non-apartment zone (escalier/terrasse/palier). SHRINK until constraint holds.
+  If S_rooms unknown because surfaces not printed, use the SIZE PRIOR below.
 
-SELF-CHECK (mandatory before emitting building_outline):
-1. Can I enter the apartment WITHOUT crossing the entry door I identified? If YES → outline is wrong on that side, shrink there.
-2. Is there any zigzag, stepped, or spiral (colimaçon) pattern INSIDE the outline? If YES → the outline crossed into escalier. Move that edge to the stair's outer wall.
-3. Is there any outdoor-looking texture (hatching, tiles, stipples, wood-decking, dotted fill) INSIDE the outline? If YES → you included terrasse/balcon. Move the edge inward to the apartment's exterior wall.
+SIZE PRIOR (fallback only — French apartment on immeuble plan):
+- width_percent: 40-60%. height_percent: 40-65%.
+- width_percent > 65% → almost certainly included escalier OR terrasse → SHRINK.
+- height_percent > 70% → included terrasse or cartouche → SHRINK.
 
-Return building_outline as { x_percent, y_percent, width_percent, height_percent }.
-Every room with unit_id = "u1" MUST fit INSIDE this rectangle (tolerance 1%). Rooms with unit_id = null (common areas, outdoor) MUST be OUTSIDE.
+FEW-SHOT EXAMPLE (Muguets RDC — T2 with shared spiral staircase + tiled terrace):
+  Plan shows: 1 entrance door top-center, rooms [Entrée 3m², Séjour 18m², Cuisine 8m², Chambre 11m², SdB 4m²] = 44m².
+  A SPIRAL staircase (colimaçon) sits CENTER-LEFT, shared with other floors → OUT.
+  A tiled TERRACE sits BOTTOM-RIGHT, outside the thick exterior wall → OUT.
+  CORRECT outline: x=18%, y=20%, width=54%, height=48% (tight around 5 rooms only).
+  WRONG outline (v7 bug): x=12%, y=18%, width=62%, height=56% — swallowed terrasse + escalier corner, implied 47m². Reject.
+  Expected JSON: {"building_outline": {"x_percent": 18, "y_percent": 20, "width_percent": 54, "height_percent": 48}}
+
+ANTI-HALLUCINATION:
+- Do NOT infer an apartment that is not visible. If the plan shows no "lot privé" zone (only common areas), emit building_outline = null.
+- Do NOT enlarge the outline to reach the SIZE PRIOR minima. Trust the plan, not priors.
+- Do NOT merge two apartments into one outline even if adjacent. One outline = one lot.
+
+SELF-CHECK (3 questions, answer each INTERNALLY before emitting):
+1. Entry door: can I reach every u1 room from it without crossing a shared door? If NO → outline wrong.
+2. Stair pattern (zigzag/stepped/spiral) INSIDE outline? If YES → shrink to stair's outer wall.
+3. Outdoor texture (hatching, tiles outside perimeter, decking) INSIDE outline? If YES → shrink to apartment exterior wall.
+
+Return building_outline as { x_percent, y_percent, width_percent, height_percent } or null.
+Every room with unit_id = "u1" MUST fit INSIDE this rectangle (tolerance 1%). Rooms with unit_id = null MUST be OUTSIDE.
 
 STEP 3 — IDENTIFY ROOMS:
 For each enclosed space bounded by walls/partitions:
