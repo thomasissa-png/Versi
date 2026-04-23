@@ -156,7 +156,7 @@ describe("canonicalizePlan — happy path", () => {
     expect(res.fallback).toBe(false);
     expect(res.canonical).toBeInstanceOf(Buffer);
     expect(res.canonical.length).toBeGreaterThan(0);
-    expect(res.model).toBe("gpt-image-1");
+    expect(res.model).toBe("gpt-image-2");
     expect(res.promptVersion).toBe(CANONICAL_PROMPT_VERSION);
     expect(res.inputHash).toHaveLength(64);
     expect(res.outputHash).toHaveLength(64);

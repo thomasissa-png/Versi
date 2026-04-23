@@ -23,8 +23,14 @@ import {
   CANONICAL_PROMPT_V1,
   CANONICAL_PROMPT_VERSION,
   CANONICAL_IMAGE_PARAMS,
+  CANONICAL_PRIMARY_MODEL,
+  CANONICAL_FALLBACK_MODEL,
   CANONICAL_DOWNSAMPLE_MAX_WIDTH,
 } from "./prompts/canonical";
+
+export type CanonicalizeModel =
+  | typeof CANONICAL_PRIMARY_MODEL
+  | typeof CANONICAL_FALLBACK_MODEL;
 
 // ─── Types publics ─────────────────────────────────────────────────
 
@@ -45,8 +51,8 @@ export interface CanonicalizeResult {
   fallback: boolean;
   /** Raison du fallback (absent si fallback=false). */
   fallbackReason?: CanonicalizeFallbackReason;
-  /** Modèle IA utilisé. */
-  model: "gpt-image-1";
+  /** Modèle IA utilisé (primaire ou fallback). */
+  model: CanonicalizeModel;
   /** Version du prompt pour traçabilité DB. */
   promptVersion: typeof CANONICAL_PROMPT_VERSION;
   /** Hash SHA-256 de l'input (idempotence / dedup). */
@@ -175,6 +181,7 @@ async function callOpenAIImagesEdit(
   inputBuf: Buffer,
   timeoutMs: number,
   externalSignal?: AbortSignal,
+  model: CanonicalizeModel = CANONICAL_PRIMARY_MODEL,
 ): Promise<Buffer> {
   const { default: OpenAI, toFile } = await import("openai");
 
@@ -198,7 +205,7 @@ async function callOpenAIImagesEdit(
     const file = await toFile(inputBuf, "plan.png", { type: "image/png" });
     const response = await client.images.edit(
       {
-        model: CANONICAL_IMAGE_PARAMS.model,
+        model,
         image: file,
         prompt: CANONICAL_PROMPT_V1,
         size: CANONICAL_IMAGE_PARAMS.size,
@@ -302,6 +309,8 @@ export async function canonicalizePlan(
   const started = Date.now();
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const inputHash = sha256(buf);
+  // Modèle effectivement utilisé (bascule sur FALLBACK si PRIMARY renvoie model_not_found)
+  let modelUsed: CanonicalizeModel = CANONICAL_PRIMARY_MODEL;
 
   if (!buf || buf.length === 0) {
     logEvent("fallback", { reason: "empty_input", inputHash });
@@ -310,7 +319,7 @@ export async function canonicalizePlan(
       duration: Date.now() - started,
       fallback: true,
       fallbackReason: "empty_input",
-      model: "gpt-image-1",
+      model: modelUsed,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash: inputHash,
@@ -331,11 +340,33 @@ export async function canonicalizePlan(
           prepared,
           timeoutMs,
           opts.signal,
+          modelUsed,
         );
         break; // succès
       } catch (err) {
         const detail = parseOpenAIError(err);
         lastErrorDetail = detail;
+
+        // Bascule automatique PRIMARY → FALLBACK si le modèle primaire n'existe pas
+        // (org pas éligible à gpt-image-2, ou modèle retiré). Pas un "retry" classique.
+        if (
+          modelUsed === CANONICAL_PRIMARY_MODEL &&
+          (detail.status === 404 || detail.code === "model_not_found")
+        ) {
+          logEvent("retry", {
+            attempt,
+            next_backoff_ms: 0,
+            api_status: detail.status,
+            api_code: detail.code,
+            api_type: detail.type,
+            error: `${CANONICAL_PRIMARY_MODEL} not available, falling back to ${CANONICAL_FALLBACK_MODEL}`,
+            input_bytes: inputBytes,
+            timeout_ms: timeoutMs,
+            prompt_version: CANONICAL_PROMPT_VERSION,
+          });
+          modelUsed = CANONICAL_FALLBACK_MODEL;
+          continue; // re-essaye immédiatement avec fallback (même attempt)
+        }
 
         // Non-retryable : on sort immédiatement vers le fallback
         if (!isRetryable(detail)) {
@@ -388,7 +419,7 @@ export async function canonicalizePlan(
         duration: Date.now() - started,
         fallback: true,
         fallbackReason: "gate_fail",
-        model: "gpt-image-1",
+        model: modelUsed,
         promptVersion: CANONICAL_PROMPT_VERSION,
         inputHash,
         outputHash,
@@ -411,7 +442,7 @@ export async function canonicalizePlan(
       canonical: canonicalBuf,
       duration: Date.now() - started,
       fallback: false,
-      model: "gpt-image-1",
+      model: modelUsed,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash,
@@ -452,7 +483,7 @@ export async function canonicalizePlan(
       duration: Date.now() - started,
       fallback: true,
       fallbackReason: reason,
-      model: "gpt-image-1",
+      model: modelUsed,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash,

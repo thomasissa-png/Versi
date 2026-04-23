@@ -6,7 +6,8 @@
  * ouvertures. Prépass IA image-to-image consommée par `plan-canonicalizer.ts`.
  *
  * Source validée : docs/ia/prompt-library.md § CANONICAL_PROMPT_V1.
- * Modèle cible : gpt-image-1 via openai.images.edit() (PAS responses.create()).
+ * Modèle cible : gpt-image-2 via openai.images.edit() (PAS responses.create()).
+ * Fallback : gpt-image-1 si l'org n'a pas encore accès à gpt-image-2.
  * Toute modification du texte DOIT bumper CANONICAL_PROMPT_VERSION.
  */
 
@@ -50,17 +51,31 @@ export const CANONICAL_PROMPT_V1 = `Redraw this architectural floor plan as a cl
 Output: A single top-down 2D floor plan, orthogonal projection, A4 landscape proportions (ratio ~1.41:1), filling the canvas with minimal white margin (max 50px border).`;
 
 /**
- * Hyperparamètres gpt-image-1 pour openai.images.edit().
- * Source : docs/ia/prompt-library.md § CANONICAL_PROMPT_V1 > Hyperparamètres.
+ * Modèle primaire : gpt-image-2 (lancé 2026-04-21, remplace gpt-image-1).
+ * Hyperparamètres partagés entre primaire et fallback (size/quality/format
+ * supportés identiquement par les 2 modèles — confirmé docs OpenAI avril 2026).
  */
+export const CANONICAL_PRIMARY_MODEL = "gpt-image-2" as const;
+
 /**
- * Note s25 : le SDK OpenAI v5 expose `1536x1024` comme plus grande taille
- * paysage pour `images.edit`. Cohérent avec l'output A4 paysage (~1.41:1)
- * demandé par le prompt. Si gpt-image-1 débloque `2048x2048` plus tard,
- * bumper la version du prompt et ce constant.
+ * Modèle de fallback si gpt-image-2 retourne 404 / model_not_found
+ * (organisation pas encore éligible au nouveau modèle).
+ * Note : gpt-image-1 peut être retiré par OpenAI à tout moment — si retiré,
+ * bumper CANONICAL_PROMPT_VERSION et retirer ce fallback.
+ */
+export const CANONICAL_FALLBACK_MODEL = "gpt-image-1" as const;
+
+/**
+ * Hyperparamètres images.edit() pour CANONICAL_PRIMARY_MODEL.
+ *
+ * Note s25 (avril 2026) : gpt-image-2 supporte les mêmes tailles paysage que
+ * gpt-image-1 (1024x1024, 1536x1024, 1024x1536). Quality tiers étendus à
+ * low/medium/high/auto. On garde `high` + `1536x1024` pour cohérence A4.
+ * Breaking : gpt-image-2 NE supporte PAS `background: "transparent"`
+ * (on utilise "opaque" → OK).
  */
 export const CANONICAL_IMAGE_PARAMS = {
-  model: "gpt-image-1" as const,
+  model: CANONICAL_PRIMARY_MODEL,
   size: "1536x1024" as const,
   quality: "high" as const,
   output_format: "png" as const,
