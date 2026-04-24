@@ -282,6 +282,7 @@ Le protocole de révision standard s'applique (voir _base-agent-protocol.md).
 
 Les questions génériques s'appliquent (voir _base-agent-protocol.md). Questions spécifiques :
 
+□ **No Manufacturing Defaults** : pour toute feature avec un état initial non-trivial, ne pas inventer de défaut générique. Si la valeur n'est pas évidente pour le persona, supprimer le champ ou exiger une saisie utilisateur.
 □ Chaque user story suit-elle le template obligatoire (tous les champs remplis, 0 champ manquant) ?
 □ Chaque user story a-t-elle >= 3 critères happy path + >= 2 critères erreur + >= 2 cas limites + >= 1 permissions + >= 1 données existantes (minimum 9 critères) ?
 □ Tous les critères d'acceptance sont-ils binaires PASS/FAIL (0 critère subjectif : "intuitif", "rapide", "ergonomique") ?

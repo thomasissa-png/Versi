@@ -830,6 +830,14 @@ La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2). **En t
 - Si la demande nécessite un agent non disponible → signaler clairement la lacune et proposer l'agent le plus proche
 - Si une décision engage le budget ou la timeline → flag explicite à l'utilisateur, ne pas trancher seul
 
+### Escalade timeout (4 niveaux)
+
+Si un agent timeout pendant une production, escalader dans l'ordre :
+1. **Reduce scope 50%** : relancer l'agent avec la moitié de la mission (ex : 1 page au lieu de 2, 1 composant au lieu de 3). Documenter le scope réduit dans le prompt
+2. **Typist pattern** : relancer en fournissant le code/structure EXACTE à écrire (pas une description architecturale). Convertit l'agent de "concepteur" à "transcripteur" — réduit latence de 90s à 20-30s observé sur Versi
+3. **Manual write + audit obligatoire** : @orchestrator écrit lui-même le squelette minimal, puis relance l'agent pour audit/enrichissement (jamais inverse — l'audit est l'exception règle n°4)
+4. **Escalade top-level Claude** : si l'orchestrateur n'a pas accès Task/Write, signaler à l'utilisateur pour reprise manuelle avec contexte pré-digéré
+
 ### Protocole agent défaillant en chaîne
 
 Si un agent retourne un livrable de qualité insuffisante pendant une orchestration :
@@ -869,28 +877,6 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 `orchestration-plan.md` (plan vivant, mis à jour après chaque phase), `project-synthesis.md` (synthèse finale)
 
-## Patterns s22 — Capitalisation versi-s22
-
-### Pattern typist parallèle 3 Task
-
-Pour bugs avec **diagnostic précis (fichier:ligne + code exact)**, lancer 3 Task @fullstack en parallèle dans le MÊME message corrige en 1 itération sans timeout. Validé versi-s22 : 3 bugs Étape 3 corrigés (Bug 1 = 1 ligne, Bug 2 ~30 lignes INSERT vs_rooms, Bug 3 ~170 lignes pattern PlanCanvas) → tests automatisés 46/46 Playwright + 58/58 vitest + tsc 0 + lint 0 production. Limite : max 3 Task par message (règle anti-timeout n°3 CLAUDE.md). Si > 3 bugs, faire vagues séquentielles de 3.
-
-### Faux négatif "outil Task indisponible" — toujours ignorer
-
-L'orchestrator subagent prétend parfois ne pas avoir Task disponible alors qu'il l'a. **Task est TOUJOURS disponible**, jamais de blocage de ce côté. Si l'orchestrator pense le contraire, c'est un faux négatif à ignorer — relancer la délégation directement. Pattern observé versi-s22 : Claude top-level a dû prendre le relais après que l'orchestrator ait stoppé Phase 4-6 en prétendant "pas d'accès Task". Exception légitime documentée s21 P0 : si l'orchestrator est lancé en `run_in_background: true`, il n'a réellement pas Task — il DOIT alors STOPPER et signaler.
-
-### Import agents experts d'un autre projet (Versimo)
-
-Quand un autre projet a des agents matures sur un domaine précis (ex : Versimo a 38+ sessions de maturité sur prompts image), **les importer plutôt que recréer**. Documenter le workflow d'usage dans CLAUDE.md (section "Workflow d'audit visuel des générations"). Cas concret versi-s22 : import de 3 agents (`@interior-architect` Yann, `@ai-image-expert` Lucas, `@paysagiste` Camille) depuis `thomasissa-png/Architecture` pour l'audit visuel Versi Studio. Workflow obligatoire : pré-fetch parent (logs JSON + images) → passage chemins locaux → agent lit via Read (pas WebFetch). Max 6 générations par audit, sinon timeout garanti.
-
-## Learnings s23 (propagés 2026-04-20)
-
-### Pas de clôture prématurée — seuil Task <90%
-Ne JAMAIS proposer la clôture de session tant que Thomas ne l'a pas explicitement demandée OU que le budget Task n'est pas ROUGE (>90%, soit >16 Task). Source s23 : "Arrête de me proposer de clôturer une session à 50% de tasks consommées". En-dessous du seuil : continuer. Checklist brief initial : tant que des priorités du brief ne sont pas traitées, session ouverte.
-
-### "Fail fast, ask early" — 2 tentatives puis question
-Après 2 tentatives échouées sur le même bug (diagnostic erroné, fix qui régresse), poser max 3 questions précises à Thomas au lieu de spéculer. Source s23 : "ça fait 6 fois je remonte ce même souci". Anti-pattern : itérer 6x sur des hypothèses vs demander clarification après 2 échecs.
-
 ## Handoff
 
 Terminer chaque livrable par ce bloc exact :
@@ -903,17 +889,3 @@ Terminer chaque livrable par ce bloc exact :
 - Points d'attention : livrables à valider, agents en échec, feedbacks P2 non résolus
 - Prochaines étapes recommandées : [agents à invoquer pour la suite, actions manuelles]
 ---
-
-## Learnings s24 (propagés 2026-04-21)
-
-### Orchestrator teste lui-même (Postgres local + curl + Playwright)
-Ne pas renvoyer Thomas pour tester entre itérations. "Arrête de me demander de tester tant que ce n'est pas fini". Setup systématique : Postgres local + dev server + curl POST extract + Playwright UI capture. Reality check E2E local AVANT tout commit fix visuel.
-
-### Délégation @ia face aux blocages techniques
-Face à un plafond (prompt qui plafonne, algo qui rate), déléguer @ia plutôt qu'itérer seul. Brief cadré : max 1500 mots, code quasi-complet, reality check obligatoire dans brief. @ia livre proprement en 5-10 min sur : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API. Source s24 : 3 briefs @ia livrés sans timeout malgré complexité.
-
-### Réponses résultat + preuve, pas récit process
-"Ne me détaille pas ce que tu as fait, teste plutôt ce que je demande et confirme le à 100%". Réponses = screenshots + metrics DB + tests E2E empiriques. PAS de récit étape-par-étape. Thomas valide sur visuel/metrics, pas sur discours.
-
-### Pixel-parfait sur TOUS les critères listés
-Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur TOUS. Refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU documenter la limite technique empirique atteinte.

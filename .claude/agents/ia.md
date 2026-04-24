@@ -227,45 +227,6 @@ Tout loader de contexte dynamique (RAG, knowledge base, historique conversation,
 - Documenter le cap dans `ai-architecture.md` pour chaque loader
 - **Pourquoi** : sans cap, les coûts explosent linéairement et la qualité se dégrade (context pollution — le modèle noie le signal dans le bruit)
 
-## Patterns s22 — Capitalisation versi-s22
-
-### Pattern 2-pass extraction polygones (vision IA haute résolution)
-
-Pour toute extraction d'éléments précis (polygones, annotations, détection fine) sur image avec multiples zones d'intérêt, le pattern 2-pass donne une résolution 4-8× supérieure :
-- **Pass 1** : identifier pièces/éléments + bbox grossier sur image complète (un seul appel GPT-4.1 vision)
-- **Pass 2** : crop autour de chaque bbox (+15% de marge pour contexte) → appel GPT-4.1 dédié pour polygone précis sur le crop
-- Conversion coordonnées crop-local → plan-global après chaque appel
-- **Outils** : `sharp` pour le crop, Zod Structured Outputs pour valider chaque polygone
-- **Validé versi-s22** : 24/24 rooms à confidence ≥0.98 sur 4 plans. Coût +6× acceptable (~$0.05/plan vs ~$0.008 single-pass)
-- Implémentation référence : `versi-studio/src/lib/polygon-refiner.ts`
-
-### Règles négatives > règles positives pour gpt-image-1
-
-Pour les transformations structurelles (suppression mur, ouverture, démolition) avec gpt-image-1, **les interdictions explicites surperforment les instructions positives** :
-- v1-v2 "remove the wall" (positif) → résultat : archways, pillars, partial walls résiduels
-- v3 "no remnant, no archway, no pillar, no column, no partial wall, ZERO vertical separation" (négatif explicite) → 10/10 unanime
-- **Règle** : pour gpt-image-1, privilégier `no X, no Y, ZERO Z` plutôt que `apply X`. Les modèles image respectent mieux les contraintes négatives
-- Positionner les transformations structurelles AVANT les règles de style + flag `#1 PRIORITY`
-- Validé versi-s22 sur transformations open-plan kitchen, removed walls, doorway widening
-
-### `openai.responses.create()` ne supporte PAS gpt-image-1
-
-`openai.responses.create()` avec `gpt-image-1.5` ou `gpt-image-1` retourne une erreur silencieuse en production (testé versi-s22, bug Étape 4 "La création a échoué" non détecté car tests mockés).
-- **Mauvais** : `openai.responses.create({ model: "gpt-image-1", ... })`
-- **Bon** : `openai.images.edit({ model: "gpt-image-1", image: await toFile(buffer, "input.png", { type: "image/png" }), ... })` ou `openai.images.generate(...)`
-- Pour image generation/editing : TOUJOURS utiliser `openai.images.edit()` ou `openai.images.generate()`. L'API Responses NE SUPPORTE PAS les modèles image
-- Utiliser `toFile()` du SDK OpenAI pour les buffers, pas `Buffer.from()` direct
-- Enrichir les messages d'erreur côté UI : afficher la vraie raison (model not supported, quota, network), pas un générique "La création a échoué"
-
-### Pattern fallback orphan rooms (clustering 2 niveaux)
-
-Pour le clustering IA avec scores de confiance, prévoir un **fallback de second niveau** quand le premier niveau échoue mais que des données utilisables existent :
-- **Niveau 1 (primaire)** : seuils stricts (ex : `confidenceAvg ≥ 0.7 AND confidenceMin ≥ 0.5 AND groupRooms.length ≥ 2`)
-- **Niveau 2 (fallback)** : seuils permissifs (`avg ≥ 0.5 AND min ≥ 0.3`) si `candidateCount=0` mais `≥2 rooms avec unit_id=null`. Créer 1 lot par étage avec id `u_fallback_f{N}`
-- Permet de gérer les plans partiels (ex : duplex minimal P03 versi-s22) sans violer le principe "no AI > bad AI"
-- Implémentation référence : `versi-studio/src/lib/clustering.ts` (boucle fallback après filtrage normal)
-- Documenter chaque seuil + raison dans `ai-architecture.md`
-
 ## Gestion des timeouts
 
 Les règles anti-timeout standard s'appliquent (voir CLAUDE.md Règle n°3). Spécificités : écrire choix de modèle → architecture → prompts → code d'intégration (dans cet ordre de priorité).
@@ -289,6 +250,7 @@ Le protocole de révision standard s'applique (voir _base-agent-protocol.md). Sp
 
 Les questions génériques s'appliquent (voir _base-agent-protocol.md). Questions spécifiques :
 
+□ **No Manufacturing Defaults** : si une pré-définition IA manque de confiance ou n'apporte pas de valeur claire au persona, l'a-t-on SUPPRIMÉE plutôt que livrée ? Bad AI worse than no AI.
 □ Le coût mensuel estimé en tokens est-il documenté et compatible avec le budget ?
 □ Un fallback est-il prévu si le modèle principal est indisponible ou trop lent ?
 □ Les prompts sont-ils optimisés pour le prompt caching Anthropic quand applicable ?
@@ -307,26 +269,6 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 Chemin obligatoire : documentation dans `docs/ia/`, code d'intégration dans `src/lib/ai/`. Tout doc hors de `docs/ia/` sera rejeté par @reviewer.
 
-## Learnings s23 (propagés 2026-04-20)
-
-### Agrégats sur données RAFFINÉES
-Quand pipeline IA a raffinement + données brutes coexistantes, agrégats (envelope, surface, bbox englobant) calculés sur données RAFFINÉES finales. Source s23 : `zoneData` depuis `bounding_box` grossiers → débord cartouche ; fix = recalcul depuis `bounding_polygon` finaux.
-
-### Sync représentations multiples — point source unique
-Objet à plusieurs représentations (polygon + bbox IA) → dérivées depuis UN point source. Si raffinement après IA, forcer sync. Source s23 : désync polygon/bbox Étape 3 résolue via `bbox = tight(polygon)`.
-
-### Drift IA vision systémique — envisager post-processing code-level
-Quand modèle vision produit biais systémique insensible aux prompts (5 itérations testées), explorer post-processing AVANT de changer de modèle. Source s23 : GPT-4.1 drift ~10% y plafond prompt-only 7/10. Solution code-level (Tesseract OCR + fuzzy match Levenshtein + snap centroid polygon) = 9.35/10 pic.
-
-### Pattern snap-to-label OCR (réutilisable plans annotés)
-Post-process OCR local (Tesseract gratuit) + fuzzy match (Levenshtein+accent-strip) + snap géométrique. Robuste pour corriger drift IA vision sur plans/cartes/schémas annotés. Feature flag obligatoire (`VS_SNAP_LABELS`). Source s23 : `label-snap.ts` 363L + 18 tests, P00 6.03→9.35/10.
-
-### 10/10 objectif strict — technique adjacente si plafond
-Si itération sur une technique plafonne (prompt-only), explorer technique adjacente : prompt → post-process → modèle alternatif → dataset. Jamais "c'est déjà bien".
-
-### Passe vérification IA : preserve-complexity (N in → N out)
-Sortie vérifieur IA DOIT être au moins aussi riche que l'entrée (N vertices, N polygones, N confidence). Si dégradation détectée → rejeter correction. Source s23 : passe-3 visual-verifier dégradait parfois polygones raffinés (6-8 pts → 4 pts). Règles R9/R10/R11 preserve-complexity ajoutées + seuil confidence 0.8→0.6.
-
 ## Handoff
 
 Terminer chaque livrable par un bloc de handoff. L'agent destinataire dépend du contexte :
@@ -341,17 +283,3 @@ Format :
 - Décisions prises : modèles retenus (avec tableau comparatif), stratégie caching, budget tokens mensuel, ROI par feature
 - Points d'attention : rate limits, secrets à configurer, latence cible, fallback, code dans src/lib/ai/ à intégrer par @fullstack
 ---
-
-## Learnings s24 (propagés 2026-04-21)
-
-### Pattern power diagram pour tiling géométrique
-Voronoï pondéré pur TS via Sutherland-Hodgman half-plane clipping. Garanties par construction : 0 overlap, 0 gap dans domaine. Sites = centroides, poids = √valeur_cible (ex : √surface_m2). Domaine = polygon enveloppe. 0 dépendance externe. Cellules CONVEXES uniquement (limitation). Source s24 : `versi-studio/src/lib/vs/room-tiling.ts` (473L) — 4 lots / 23 rooms tous valides.
-
-### Pattern convex hull + expansion radiale pour envelope polygon
-Andrew's monotone chain O(n log n). Expansion 2% depuis centroid = approximation Minkowski sum suffisante pour hulls convexes. Utiliser TOUTES les rooms (pas juste snapped OCR) pour couvrir toute la surface — sinon amputation de rooms non-ancrées. Seuil minSnapRate pour garantir position (≥30%), fallback rect sinon. Source s24 : `versi-studio/src/lib/vs/envelope-polygon.ts`.
-
-### Brief @ia anti-timeout — format standard validé 3x
-Format : contexte (300 mots), mission précise, reality check obligatoire dans brief, output attendu, contraintes temps, max 1500 mots total. Code quasi-complet dans la tête. Max 10 Read avant 1er Write. 1 Write par fichier + Edit. Livraisons propres en 5-10 min même sur complexité algorithmique.
-
-### tesseract.js import dynamique
-Voir fullstack.md — même règle pour @ia qui utilise tesseract dans post-process OCR. Top-level import crashe Turbopack. `await import()` dans fonction.

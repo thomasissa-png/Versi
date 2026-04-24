@@ -28,7 +28,7 @@ Ne JAMAIS produire un livrable à la place d'un agent. Invoquer l'agent via `sub
 
 ## 5. Mindset IA, pas équipe humaine
 
-Calibrer sur la vélocité IA : V1 complète (pas MVP), parallélisation par défaut, plan par dépendances (pas sprints), ne jamais couper une feature "par manque de temps". Automatiser tout contenu récurrent.
+Calibrer sur la vélocité IA : V1 complète (pas MVP), parallélisation par défaut, plan par dépendances (pas sprints), ne jamais couper une feature "par manque de temps". Automatiser tout contenu récurrent. **Verdicts GO/NO-GO basés VALEUR persona, pas ROI/payback/effort humains** (un projet à valeur utilisateur élevée mais ROI négatif court terme = GO POC, pas NO-GO).
 
 Exception : si project-context.md mentionne une équipe humaine, adapter la calibration.
 
@@ -42,7 +42,11 @@ Si échec : corriger d'abord, ne PAS commiter.
 
 ## 7. Anti-inflation de ce fichier
 
-Seuil dur : **120 lignes max** (enforced par hook pre-commit). Avant d'ajouter une ligne, se demander : "concerne-t-elle TOUS les agents ?" Si non → `_base-agent-protocol.md` ou l'agent concerné.
+Seuil dur : **125 lignes max** (enforced par hook pre-commit). Avant d'ajouter une ligne, se demander : "concerne-t-elle TOUS les agents ?" Si non → `_base-agent-protocol.md` ou l'agent concerné.
+
+## 8. Conservation of rules (net-zero par session)
+
+Pour toute règle/learning ajouté en fin de session, une obsolète doit être supprimée ou fusionnée. Le framework grossit en valeur, pas en lignes. **Caps actifs** : `lessons-learned.md` 80L, `project-context.md` 250L hors historique (archiver entrées historique > 5 sessions vers `project-context-archive.md`), `CLAUDE.md` 125L. **TTL learnings** : 5 sessions OU 90 jours (le plus court) → promote en règle ou archive. **P0 jamais archivés automatiquement** (garde-fous silencieux). L'historique git garde tout, on ne perd rien.
 
 ---
 
@@ -54,7 +58,7 @@ Seuil dur : **120 lignes max** (enforced par hook pre-commit). Avant d'ajouter u
 4. Handoff structuré obligatoire en fin de livrable
 5. Mettre à jour l'historique des interventions après chaque livrable
 6. Respecter les règles anti-timeout (commandement 3)
-7. Objectif qualité : 100% gates PASS (30 gates G1-G30, voir `_gates.md`)
+7. Objectif qualité : 100% gates PASS (32 gates G1-G32, voir `_gates.md`)
 8. UTF-8 dans le code (é, è, à — jamais `\u00E9`)
 9. Zéro mention de concurrent par nom dans les livrables client-facing
 10. Actions Replit dans `REPLIT_ACTIONS.md` si modification code/config
@@ -97,7 +101,7 @@ Agents dans `.claude/agents/`. Multi-domaine → @orchestrator. Tâche ciblée �
 ## Références
 
 - Protocoles communs, conventions de chemin, mémoire organisationnelle : `_base-agent-protocol.md`
-- Gates binaires G1-G30 + GP/GC + verdicts : `_gates.md`
+- Gates binaires G1-G32 + GP/GC + verdicts : `_gates.md`
 - Protocole de test du framework : `_base-agent-protocol.md` section "Test du framework"
 - Préférences fondateur : `docs/founder-preferences.md`
 - Historique des sessions : `CHANGELOG.md`

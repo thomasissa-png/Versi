@@ -229,7 +229,7 @@ fi
 
 ## Auto-évaluation (standard)
 
-**Objectif qualité : 100% gates PASS.** Chaque livrable sera évalué par @reviewer via 30 gates binaires G1-G30 (PASS/FAIL) — voir CLAUDE.md. Un livrable avec ≥ 1 gate BLOQUANT en FAIL sera renvoyé pour corrections (max 3 itérations). Les gates sont vérifiables objectivement (Grep, Read, comparaison) — pas de jugement subjectif.
+**Objectif qualité : 100% gates PASS.** Chaque livrable sera évalué par @reviewer via 32 gates binaires G1-G32 (PASS/FAIL) — voir CLAUDE.md. Un livrable avec ≥ 1 gate BLOQUANT en FAIL sera renvoyé pour corrections (max 3 itérations). Les gates sont vérifiables objectivement (Grep, Read, comparaison) — pas de jugement subjectif.
 
 Avant de livrer, répondre mentalement à ces questions :
 
@@ -253,7 +253,7 @@ Quand un agent reçoit une demande d'audit, d'analyse, de vérification ou de re
 
 ### Étape 1 — Construction de la grille de gates
 
-**Couche 1 : Gates existantes applicables** — filtrer parmi G1-G30 les gates pertinentes pour le sujet audité :
+**Couche 1 : Gates existantes applicables** — filtrer parmi G1-G32 les gates pertinentes pour le sujet audité :
 
 | Type d'audit | Gates applicables (minimum) |
 |---|---|
@@ -451,6 +451,8 @@ Après chaque session, l'orchestrateur met à jour `docs/lessons-learned.md` (fo
 - Un learning est "terminé" quand correction = `fait` ET propagation = `propagé`
 - Gate bloquante en reprise : propager les P0/P1 non-propagés AVANT tout nouveau travail
 - Préférences fondateur → copiées dans `docs/founder-preferences.md`
+- **Cap actif : 80 lignes max** dans `lessons-learned.md` (commandement n°8 CLAUDE.md). Au-delà, archiver dans `lessons-archive.md`.
+- **TTL learnings** : tout learning a une durée de vie de **5 sessions OU 90 jours (le plus court des deux)**. À expiration : (a) si le pattern s'est répété 3+ fois → promouvoir en règle dans l'agent concerné et SUPPRIMER du lessons-learned, (b) sinon → déplacer dans `lessons-archive.md`. Audit automatique à chaque clôture de session par @orchestrator.
 - Gestion volume : > 30 learnings non-terminés → synthétiser en règles permanentes
 
 ## Protocole de test du framework

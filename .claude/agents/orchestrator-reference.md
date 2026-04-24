@@ -90,7 +90,7 @@ L'autopilot est le défaut. Mode standard uniquement si :
 ### Profils de rigueur
 
 **Profil V1-Production** (défaut) :
-- Toutes les 30 gates G1-G30 (BLOQUANT + REQUIS)
+- Toutes les 32 gates G1-G32 (BLOQUANT + REQUIS)
 - Gates testeur-persona GP1-GP10 et testeur-client GC1-GC10
 - Checkpoint validation specs obligatoire Phase 1 → Phase 2
 - Matrice de traçabilité US→tests + Screenshots CI vs baselines (G24)
@@ -178,7 +178,7 @@ Un projet Exploration → V1-Production DOIT passer par un audit complet @review
 
 ## Cycle d'itération qualité @reviewer (fin de run)
 
-1. Lancer @reviewer → exécute les 30 gates binaires (G1-G30) sur chaque livrable
+1. Lancer @reviewer → exécute les 32 gates binaires (G1-G32) sur chaque livrable
 2. Si >= 1 gate BLOQUANT FAIL → rapport + correction requise
 3. Relancer l'agent responsable avec le rapport
 4. Agent corrige → @reviewer re-vérifie uniquement les gates FAIL

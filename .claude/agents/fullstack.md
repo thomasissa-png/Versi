@@ -107,6 +107,9 @@ src/
 - Les variables d'environnement sont validées au démarrage via `config/env.ts` avec zod
 - Import paths avec `@/` alias configuré dans tsconfig.json
 - Caractères UTF-8 natifs obligatoires dans les strings JS/TS (voir CLAUDE.md Règle n°13) — pas d'escapes unicode ni d'entités HTML dans les constantes
+- **Tailwind v4 custom properties** : préfixer pour éviter collision avec classes utilitaires (`--app-spacing-md` plutôt que `--spacing-md` qui collide avec `max-w-md`)
+- **Canvas clearRect explicite** : utiliser `ctx.clearRect(0, 0, w, h)` avant chaque dessin. Ne jamais se reposer sur `canvas.width = X` pour clear (artefacts visuels)
+- **Express 5 named route params** : utiliser wildcards nommés (`/{*splat}`) — l'ancienne syntaxe `*` est cassée en Express 5
 - **Favicon et Web App Manifest (obligatoire)** : tout projet Next.js DOIT déclarer dans `app/layout.tsx` via Metadata API : `icons` (favicon.ico, PNG 16x16/32x32, SVG, apple-touch-icon 180x180), `manifest` (`/site.webmanifest` avec icônes Android 192x192 et 512x512, theme_color, display: standalone), `themeColor`, `openGraph.images` (1200x630), `twitter.card: summary_large_image` + `twitter.images`. Assets fournis par @design dans `public/`. Alternative Next.js : placer `icon.ico`, `apple-icon.png`, `opengraph-image.jpg` directement dans `app/` (détection automatique). **NE PAS ajouter** : `mstile-*.png`, `browserconfig.xml`, `safari-pinned-tab.svg` (obsolètes 2026)
 
 ## Gestion des timeouts
@@ -339,16 +342,6 @@ Pour chaque feature > 1 fichier :
    Si une commande échoue → corriger AVANT de commiter. Zéro exception.
 6. **Grep rollout** : toute modification d'un composant, type, constante, ou utilitaire partagé → `Grep` le nom dans tout `src/` → modifier TOUTES les occurrences impactées. Documenter dans le handoff : "Grep [pattern] : X fichiers trouvés, X modifiés, Y ignorés car [justification]". Ratio modifiés/trouvés DOIT être justifié à 100%.
 
-### Canvas éditeur : undo/redo obligatoire (s22)
-
-Tout canvas éditeur (lots, rooms, visuels, schémas, annotations) DOIT implémenter undo/redo de bout en bout :
-- **Hook générique** : `useHistory<T>` avec stack ≥ 50 ops (modèle versi-s22 : `versi-studio/src/lib/useHistory.ts`)
-- **Keyboard shortcuts** : `Ctrl+Z` (undo) / `Ctrl+Shift+Z` ou `Ctrl+Y` (redo) — listener global non-bloquant
-- **Boutons UI** : Undo/Redo visibles dans la toolbar, pas seulement keyboard. Désactivés (greyed) quand stack vide
-- **Standard attendu Thomas** : pattern Figma/Miro. Aucune édition non réversible n'est acceptable sur un canvas
-- Source : versi-s22 — `useHistory<T>` intégré dans `lots/page.tsx` + `rooms/page.tsx` après demande Thomas
-- Étendre à tout futur canvas (visuels, plans, schémas) — règle non négociable
-
 ### Protocole projet existant (code déjà en place)
 
 Si du code existe déjà dans `src/` :
@@ -392,25 +385,7 @@ Fichiers de code dans `src/` selon la structure projet, `dev-decisions.md`, `api
 
 Chemin obligatoire : code dans `src/`, documentation technique dans `docs/dev-decisions.md` et `docs/api-documentation.md` (à la racine de docs/, pas dans un sous-dossier agent — exception documentée car ces fichiers sont transversaux).
 
-## Learnings s23 (propagés 2026-04-20)
-
-### Reality check E2E : UI ou DB read obligatoire
-Unit tests mockés NE SUFFISENT PAS. Pour tout code qui passe par IA + persistance + rendu, reality check au plus haut niveau OBLIGATOIRE (Playwright UI ou DB read après persist). Source s23 : resolver v1 8/8 tests PASS mais E2E a révélé 3 bugs cumulatifs.
-
-### Agrégats sur données RAFFINÉES (envelope, bbox, surface)
-Quand un pipeline a raffinement + données brutes coexistantes, agrégats calculés sur données RAFFINÉES finales, pas brutes. Source s23 : `zoneData` depuis `bounding_box` IA grossiers → envelope débordait cartouche. Fix : recalcul APRÈS toutes passes depuis `bounding_polygon` finaux dans `extract/route.ts`.
-
-### Sync représentations multiples : point source unique
-Objet à plusieurs représentations (polygon + bbox) → dérivées depuis UN point source. Pas de double vérité. Si IA produit l'une et raffinement l'autre, forcer sync via dérivation. Source s23 : désync polygon/bbox Étape 3 (handles bbox, contour polygon) corrigée via `getRoomRenderBbox(polygon)` et `transformPolygon` pour resize proportionnel.
-
-### Screenshot Playwright preuve obligatoire
-Tout fix UI DOIT être accompagné d'un screenshot preuve. Pas de claim "fixé" sans screenshot dans commit/rapport.
-
-### "Fail fast, ask early" — 2 tentatives puis question
-Après 2 tentatives échouées sur le même bug, poser max 3 questions précises à Thomas au lieu de spéculer. Thomas s23 : "ça fait 6 fois je remonte ce même souci".
-
-### Pattern dev server + Playwright = reality check rapide
-Dev server + Playwright script dédié = diagnostic UI < 20 min. Systématiser pour tout fix UI visuel (script + screenshot = preuve).
+**Favicon coverage** : générer les 18 fichiers favicon (à partir du SVG source produit par @design) + intégrer les 9 balises HTML head + créer `site.webmanifest` et `browserconfig.xml`. Référence : `docs/checklists/favicon-checklist.md` (gate G31). Outil recommandé : realfavicongenerator.net.
 
 ## Handoff
 
@@ -428,17 +403,3 @@ Format :
 - **Actions Replit requises** : (voir _base-agent-protocol.md — section obligatoire)
 - **Pre-commit check** : confirmer que la Règle n°6 (CLAUDE.md) est PASS avant commit. Si hook Husky non installé → l'installer (voir _base-agent-protocol.md)
 ---
-
-## Learnings s24 (propagés 2026-04-21)
-
-### Build prod = tsc SANS filtre sur tout le projet
-`scripts/` est inclus dans tsconfig Next.js → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Source s24 : commit 03c627f bloquait build prod sur 2 erreurs `r.name` dans script test.
-
-### Canvas letterbox : drawRectRef pour tous les overlays
-Canvas rendering bug : lots rendus en % du canvas entier alors que image letterboxée (drawX > 0 quand aspect ratio image ≠ canvas). Fix : drawRectRef stocke {x, y, w, h} effectif. Tous les rendus + hit tests projettent via drawRect. Pattern : tout canvas qui dessine une image letterboxée DOIT stocker drawRect. Source s24 : PlanCanvas.tsx fix.
-
-### Parallélisation pipeline multi-étapes = Promise.all à tous niveaux
-Pipeline IA timeout sur reverse-proxy Replit 60s strict. Fix : Promise.all sur plans + passe intra + boucle post-process + DB inserts. Gain empirique 190s → 30-55s sur 4 plans. Rate limit OpenAI tier 1 pas saturé. Ajouter aussi `export const maxDuration = 300` sur route Next.js.
-
-### tesseract.js import dynamique OBLIGATOIRE
-`import { createWorker } from "tesseract.js"` top-level crashe au module loading runtime Next.js (`Cannot find module worker-script/node/index.js`). Fix : `const { createWorker } = await import("tesseract.js")` dans la fonction. ET ajouter `serverExternalPackages: ["tesseract.js"]` dans next.config. Pattern applicable à toutes libs Node-only avec workers/binaries.

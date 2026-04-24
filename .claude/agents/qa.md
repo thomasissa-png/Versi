@@ -47,6 +47,7 @@ Exploiter les 3 agents IA natifs de Playwright pour accélérer la création et 
 - **Generator** : transformer le plan en fichiers de tests Playwright avec locators `getByRole()` (accessibility-tree-first)
 - **Healer** : exécuter les tests en mode debug, analyser les échecs via snapshots d'accessibility tree, et réparer automatiquement les locators cassés
 - Workflow : Planner sur chaque nouvelle feature → Generator pour scaffolding → review humain des assertions → Healer en CI pour maintenance
+- **Mock chaining** : utiliser `route.fallback()` pour chaîner les mocks. Ne JAMAIS utiliser `route.continue()` sans upstream handler explicite (cause de tests flaky difficiles à diagnostiquer)
 
 ### Self-healing et locators résilients
 
@@ -233,26 +234,6 @@ Si project-context.md indique un modèle B2B :
 - Zoom 200% : contenu utilisable avec zoom navigateur 200%, pas de débordement ni contenu masqué
 - Structure screen reader : hiérarchie headings correcte (H1 unique, pas de saut), tous les interactifs ont un label accessible, images avec alt pertinent
 
-### Reality check E2E obligatoire (s22 — gate bloquante GO PRODUCTION)
-
-Pour tout workflow multi-étapes (upload → extract → lots → rooms → visuels), un test E2E avec **données réelles** DOIT être exécuté avant tout verdict GO PRODUCTION :
-- **Vraie DB** (PostgreSQL local ou Replit, pas mock Prisma)
-- **Vrai fichier** d'utilisateur (PDF, image, doc — pas fixture synthétique)
-- **Vraie IA** ou snapshot IA réel (pas mock OpenAI hardcodé)
-- Capture console + screenshots de chaque étape critique
-- Documenter dans `docs/qa/reality-check-report.md`
-- Les tests automatisés mockés sont NÉCESSAIRES mais PAS SUFFISANTS
-- **Source versi-s22** : 3 bugs Étape 3 (plan gris, IA rooms vide, rectangle fixe) avaient échappé aux tests Playwright mockés (DB + IA). Thomas les a découverts au 1er usage réel
-- **Verdict GO PRODUCTION** exige 4 conditions : (1) code review PASS, (2) tests automatisés PASS, (3) reality check E2E PASS, (4) audit persona PASS. 3/4 = GO CONDITIONNEL
-
-### Validation visuelle ≠ "canvas non-vide"
-
-"Validation visuelle" exige une **comparaison pixel-par-pixel avec la référence attendue**, pas juste un constat d'affichage :
-- Vérifier : ratio canvas préservé (pas de déformation verticale/horizontale), polygones IA collent aux murs, drag/resize fonctionnel sans saut, déformations absentes après opérations
-- **Source versi-s22** : Étape 3 validée "10/10" en vérifiant uniquement que le canvas affichait quelque chose. Thomas a montré une capture où les rectangles IA ne collaient pas aux murs + plan déformé verticalement
-- Pattern correct : screenshot avant/après chaque opération + diff pixel + checklist humaine sur la fidélité géométrique
-- **Anti-pattern** : `expect(canvas).toBeVisible()` sans assertion sur le contenu rendu = faux positif garanti
-
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system
@@ -338,16 +319,7 @@ Mettre à jour le tableau "Historique des interventions agents" de project-conte
 
 Chemin obligatoire : documentation dans `docs/qa/`, fichiers de config (`vitest.config.ts`, `playwright.config.ts`, `.husky/pre-commit`) et tests (`tests/`) à la racine du projet, CI/CD dans `.github/workflows/`.
 
-## Learnings s23 (propagés 2026-04-20)
-
-### Reality check E2E : UI ou DB read obligatoire (renforcée)
-Tests unit mockés + scripts librairie NE SUFFISENT PAS. Reality check DOIT tester au niveau le plus haut : UI (Playwright screenshot) OU DB read après persist. Source s23 : 8/8 tests unit PASS sur resolver v1 mais E2E a révélé 3 bugs cumulatifs (overlaps P01 Entrée∩Cellier=36, P02 Séjour∩SDB=265.93). Règle : pour tout code qui passe par IA + persistance + rendu, reality check au niveau UI ou DB read obligatoire.
-
-### Screenshot Playwright preuve obligatoire pour fix UI
-Tout fix UI visuel DOIT être accompagné d'un screenshot preuve (Playwright script dédié ou manuel) dans le commit/rapport. Pas de claim "fixé" sans screenshot. Thomas s23 : "Peux-tu juste tester visuellement ? Ça se voit en 1s".
-
-### Pattern dev server + Playwright screenshot = reality check rapide
-Dev server local + Playwright script dédié = reality check E2E 20x plus rapide que itération Thomas. Time-to-diagnosis < 20 min avec screenshot vs feedback loops multiples. Systématiser pour tout fix UI. Exemples s23 : `tests/e2e/s23-*.spec.ts`, `scripts/s23-reality-check.ts`, `audit-overlay-s23.ts`.
+**Pre-launch favicon check** : exécuter le script bash de `docs/checklists/favicon-checklist.md` §4 (vérifie 20 fichiers + 9 balises HTML). Verdict gate G31 PASS/FAIL.
 
 ## Handoff
 

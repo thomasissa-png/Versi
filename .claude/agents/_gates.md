@@ -1,12 +1,12 @@
 # Gates binaires — Référence qualité
 
-Source de vérité pour les 30 gates G1-G30 + gates testeur-persona GP/GC.
+Source de vérité pour les 32 gates G1-G32 + gates testeur-persona GP/GC.
 Consommateurs : @reviewer (exécute), @orchestrator (vérifie BLOQUANT après chaque phase).
 
 ## Système de contrôle qualité
 
 1. **Vérification rapide par l'orchestrateur** (après chaque phase) : gates BLOQUANT uniquement. Si 1+ FAIL → relance corrective immédiate.
-2. **Audit complet par @reviewer** (fin de run) : 30 gates via Grep/Read/comparaison. Boucle max 3 passes.
+2. **Audit complet par @reviewer** (fin de run) : 32 gates via Grep/Read/comparaison. Boucle max 3 passes.
 
 ## Classification
 
@@ -14,7 +14,7 @@ Consommateurs : @reviewer (exécute), @orchestrator (vérifie BLOQUANT après ch
 - **REQUIS** : 1 FAIL = GO conditionnel (corriger dans la session)
 - **CONDITIONNEL** : s'applique uniquement si le livrable amont existe
 
-## Les 30 gates (PASS/FAIL)
+## Les 32 gates (PASS/FAIL)
 
 ### COMPLÉTUDE
 
@@ -85,6 +85,8 @@ Consommateurs : @reviewer (exécute), @orchestrator (vérifie BLOQUANT après ch
 | G28 | >= 1 image spécifiée par page client-facing | REQUIS | Vérifier specs images |
 | G29 | Architecture tokens 3 tiers (primitive → semantic → component) | REQUIS | Grep références directes tokens primitifs |
 | G30 | 6 états par composant interactif (default, hover, active, focus-visible, disabled, loading) | REQUIS | Grep 6 états |
+| G31 | Favicon Coverage (12 items 2026, voir `docs/checklists/favicon-checklist.md`) | REQUIS | Bash script §3 du checklist : 12/12 fichiers présents + 7 balises HTML head |
+| G32 | Typographie FR (m², …, œ, guillemets « » + apostrophes typo ’ + espaces insécables avant : ; ! ? %) | CONDITIONNEL | Bash : `grep -E "m2 \|\.\.\.\| oe\| :\| !\| ?\| %\|\"[^\"]+\"\|'[A-Za-zé]"` ne doit rien retourner sur livrables FR. Cap : 0 occurrence ASCII résiduelle dans docs/ et src/ pour livrables client-facing |
 
 ## Gates testeur-persona (si agents testeurs créés)
 

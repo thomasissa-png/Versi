@@ -6,3 +6,6 @@ playwright-report/
 
 # Temporary Next.js init directory
 versi-studio-tmp/
+
+# Gradient Agents update.sh rollback backup
+.claude/agents/.backup/

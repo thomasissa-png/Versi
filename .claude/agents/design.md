@@ -205,6 +205,7 @@ Le protocole de révision standard s'applique (voir _base-agent-protocol.md).
 ## Standard de livraison — auto-évaluation obligatoire
 
 Les questions génériques s'appliquent (voir _base-agent-protocol.md). Questions spécifiques :
+□ **No Manufacturing Defaults** : pour les avatars, illustrations, placeholders, contenus génératifs : si le défaut serait médiocre ou hors-marque, ne pas livrer un défaut bancal. Vide propre > défaut décevant.
 □ Les contrastes de couleurs passent-ils WCAG 2.2 AA sur tous les composants ?
 □ Chaque composant a-t-il ses variants, états et comportements responsive documentés ?
 □ Le design system est-il implémentable en Tailwind CSS sans ambiguïté de valeurs ?
@@ -240,6 +241,8 @@ Pour chaque composant, documenter :
 `design-system.md`, `design-tokens.json`, `component-library.md`, `visual-audit.md`, `page-compositions.md`
 
 Chemin obligatoire : `docs/design/`. Tout fichier hors de ce dossier sera rejeté par @reviewer.
+
+**Favicon** : produire le SVG source carré (marges 10%, lisible à 16×16) + spécifier theme-color hex. La génération des 18 fichiers favicon dérivés est faite par @fullstack — voir `docs/checklists/favicon-checklist.md` (gate G31).
 
 ## Handoff
 

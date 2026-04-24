@@ -66,11 +66,11 @@ echo ""
 echo -e "${BLUE}→ Récupération des dernières versions...${NC}"
 
 # Clone avec fallback pour repos privés
-if git clone --filter=blob:none --sparse --quiet "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
+if git clone --filter=blob:none --sparse --quiet -b master "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
   cd "$TEMP_DIR/repo"
-  git sparse-checkout set .claude/agents .claude/settings.json CLAUDE.md
+  git sparse-checkout set .claude/agents .claude/settings.json CLAUDE.md .githooks
 else
-  if git clone --quiet "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
+  if git clone --quiet -b master "$REPO_URL" "$TEMP_DIR/repo" 2>/dev/null; then
     cd "$TEMP_DIR/repo"
   else
     echo -e "${RED}✗ Impossible de cloner le repo.${NC}"
@@ -139,6 +139,15 @@ if [ -f "$TEMP_DIR/repo/update.sh" ]; then
   cp "$TEMP_DIR/repo/update.sh" "$OLDPWD/update.sh"
   chmod +x "$OLDPWD/update.sh"
   echo -e "  ${GREEN}✓ update.sh mis à jour${NC}"
+fi
+
+# ─── Mise à jour des hooks git ─────────────────────
+if [ -d "$TEMP_DIR/repo/.githooks" ]; then
+  mkdir -p "$OLDPWD/.githooks"
+  cp "$TEMP_DIR/repo/.githooks"/* "$OLDPWD/.githooks/" 2>/dev/null || true
+  chmod +x "$OLDPWD/.githooks"/* 2>/dev/null || true
+  cd "$OLDPWD" && git config core.hooksPath .githooks && cd "$TEMP_DIR/repo"
+  echo -e "  ${GREEN}✓ .githooks/ synchronisé (CLAUDE.md guard + pre-commit)${NC}"
 fi
 
 # ─── Mise à jour de CLAUDE.md (fusion avec marqueurs) ─
