@@ -31,7 +31,7 @@ const PROCESS_STEPS = [
       },
       {
         label: 'TRI — Taux de Rendement Interne',
-        value: 'ex. 12–15 % sur 10 ans',
+        value: 'ex. 10–15 % sur 10 ans',
         hint: 'L\'indicateur long terme : cashflow cumulé + plus-value à la revente + effet levier du crédit, ramenés à un taux annuel.',
       },
       {
