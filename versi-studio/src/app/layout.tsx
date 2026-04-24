@@ -15,6 +15,12 @@ export const metadata: Metadata = {
   description:
     "Pré-commercialisation simplifiée pour marchands de biens. Déposez vos plans, découpez vos lots, créez vos visuels.",
   manifest: "/site.webmanifest",
+  twitter: {
+    card: "summary_large_image",
+    title: "Versi Studio",
+    description:
+      "Pré-commercialisation simplifiée pour marchands de biens. Déposez vos plans, découpez vos lots, créez vos visuels.",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
