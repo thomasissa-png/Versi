@@ -27,13 +27,13 @@ export const LILLE_PROJECTS = [
     status: 'completed',
     buy_price: null,
     works_amount: null,
-    sell_price: '125 000 €',
+    sell_price: '135 000 €',
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 45 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, couloir. Immeuble acquis en septembre 2016 via SCI à l'IS, six lots au total (kinésithérapeute et restaurant au RDC, quatre appartements aux étages). Trois appartements sur quatre rénovés, loués à ce jour.
+    description: `T2 de 45 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, couloir. Immeuble de 280 m² acquis en septembre 2016 par la SCI MMM (IS), six lots au total — kinésithérapeute et restaurant au rez-de-chaussée, quatre appartements aux étages. Trois appartements sur quatre rénovés et loués à ce jour.
 
-Prix de revente estimé à la découpe : 125 000 €. Loyer mensuel actuel charges comprises : 720 €. Rentabilité brute de l'immeuble complet : 14,4 % sur le prix d'acquisition.`,
+Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comprises : 720 €. Rentabilité brute de l'immeuble : 14,4 % sur le prix d'acquisition de 336 000 €.`,
     featured: false,
     sort_order: 10,
     photos: {
@@ -57,9 +57,9 @@ Prix de revente estimé à la découpe : 125 000 €. Loyer mensuel actuel charg
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 35 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, entrée. Immeuble acquis en septembre 2016 via SCI à l'IS, six lots au total.
+    description: `T2 de 35 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, entrée. Immeuble de 280 m² acquis en septembre 2016 par la SCI MMM (IS), six lots au total — kinésithérapeute et restaurant au rez-de-chaussée, quatre appartements aux étages.
 
-Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel actuel charges comprises : 690 €.`,
+Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comprises : 690 €. Rentabilité brute de l'immeuble : 14,4 % sur le prix d'acquisition de 336 000 €.`,
     featured: false,
     sort_order: 11,
     photos: {
@@ -84,9 +84,9 @@ Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel actuel charg
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T1 Bis de 27 m² au rez-de-chaussée du 23 rue du Prieuré à Lille, avec accès au jardin de l'immeuble. Rénovation intégrale : chambre, séjour-cuisine, salle de bain. Immeuble acquis en octobre 2024 via SCI à l'IS, sept appartements tous rénovés et loués à ce jour.
+    description: `T1 Bis de 27 m² au rez-de-chaussée du 23 rue du Prieuré à Lille, avec accès direct au jardin de l'immeuble. Rénovation intégrale : chambre, séjour-cuisine ouvert, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept appartements rénovés en totalité et loués à ce jour.
 
-Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges comprises : 630 €.`,
+Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges comprises : 630 €. Revenus locatifs annuels de l'immeuble : 52 440 €.`,
     featured: false,
     sort_order: 20,
     photos: {
@@ -109,7 +109,7 @@ Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges compr
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 27 m² au premier étage du 23 rue du Prieuré à Lille, orienté jardin. Rénovation intégrale : chambre, séjour, cuisine, salle de bain. Immeuble de sept lots acquis en octobre 2024 via SCI à l'IS, tous rénovés et loués.
+    description: `T2 de 27 m² au premier étage du 23 rue du Prieuré à Lille, orienté jardin. Rénovation intégrale : chambre, séjour, cuisine ouverte, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
 
 Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges comprises : 630 €.`,
     featured: false,
