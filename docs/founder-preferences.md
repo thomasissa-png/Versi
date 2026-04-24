@@ -209,3 +209,34 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 - [PRÉFÉRENCE FONDATEUR] **Thomas recommande délégation @ia face aux blocages techniques**. "Si tu es bloqué fais analyser les prompts aux agents les plus ingénieux, peut-être @ia. Décide l'approche la plus smart et continue". Face à un plafond (prompt qui plafonne, algo qui rate), déléguer @ia plutôt qu'itérer seul. @ia a les meilleures chances sur : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API.
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas utilise "@orchestrator" comme interlocuteur principal**. Il s'adresse à l'orchestrator pour toutes les demandes même techniques. L'orchestrator décide ensuite qui déléguer (fullstack, @ia, qa, etc.). Ne pas casser ce flow : ne pas l'inviter à s'adresser directement à un sous-agent.
+
+---
+
+## Session s25 (2026-04-23) — nouvelles préférences capturées
+
+### Refus "à moitié fait" — exigence cycle complet testé
+Thomas répète 2× en session : "pourquoi crois-tu que je veux quelque chose à moitié fait ?". Anti-pattern : livrer du code + feature flag OFF + demander à Thomas d'activer/tester sans avoir validé la feature downstream complète.
+**Règle** : si une feature nécessite activation runtime externe (OpenAI key, KYC), @orchestrator doit MOCKER cette activation en local pour valider pipeline entier, pas seulement code isolé. Pattern `VS_USE_MOCK_CANONICAL` + `VS_USE_MOCK_EXTRACTOR` validé s25.
+
+### Zéro jargon technique dans l'UI persona (extension règle s23)
+Thomas rejette violemment tout terme qu'un persona marchand n'utilise pas quotidiennement. Cette session : "reformatage", "canonicalisation", "polygone", "zone", "calque", "contour", "vectoriel" tous bannis.
+Verbatim : "quelqu'un a-t-il réfléchit à ce que voit et comprend nos personas ? En ont-il quelque chose à secouer qu'on refasse les plans ?"
+**Règle** : test "le persona l'utilise dans une conversation métier quotidienne ?". Si NON → remplacer par métier OU supprimer la section. Grep `<jargon-technique>` sur HTML rendu = 0 occurrence obligatoire dans chaque PR UI.
+
+### Préférence suppression radicale > patch sur patch
+Face à une solution tiède (renommage/reformulation) vs solution radicale (suppression/refonte), Thomas pénalise le "à moitié réformé". Exemples s25 : étape "Reformatage" → SUPPRIMER (pas renommer "Préparation"), prompt v6+v7 empilé → v8 RADICAL (pas ajouter v6.5), bannières techniques → SUPPRIMER (pas reformuler).
+**Règle orchestrator** : face à divergence agents, défaut = solution radicale. Exception : coût >3× effort OU impact négatif non-mitigeable prouvé.
+
+### Feature invisible au persona = feature à supprimer
+Contre-exemple du pattern découvrabilité s22 ("boutons permanents visibles") : si une étape UI ne permet PAS au persona de décider ou d'agir métier, elle doit être SUPPRIMÉE, pas renommée.
+s25 : étape "Reformatage" ajoutée avec comparateur avant/après → Thomas ne pouvait pas juger/rejeter → source de confusion ("Reformatage indisponible"). Solution : suppression complète, canonicalisation devient invisible backend.
+**Règle UX** : chaque étape UI doit permettre une DÉCISION ou ACTION métier du persona. Sinon SUPPRIMER. Préférer silence métier > message technique.
+
+### Validation à l'œil prime sur tests qui PASS
+Tests auto 125/125, 151/151, 16/16 tous PASS en session s25, MAIS Thomas a rejeté la solution parce que VISUELLEMENT sur son plan Muguets, le lot débordait. Verbatim : "quelque chose qui est ultra simple pour toi à vérifier" (en parlant de la comparaison visuelle lot manuel 44m² vs lot IA 47m²).
+**Règle orchestrator + @moi** : gate @moi critère #3 reality check E2E = preuve VISUELLE obligatoire (screenshot Playwright, comparaison pixel-par-pixel vs référence terrain). Tests PASS ≠ feature valide. Pour pipeline IA : screenshot + comparaison vs manuel/snapshot validé.
+
+### Mocks OK pour tests pipeline, mais PAS pour GO PRODUCTION qualité IA
+Session s25 a raffiné la règle s22/s23/s24 "reality check E2E obligatoire" : distinguer (3a) reality check E2E pipeline (mocks OK, valide flux données+UI) et (3b) reality check E2E qualité IA réelle (vraie API obligatoire).
+**Règle @moi** : pas de GO PRODUCTION avec seulement mocks sur tâches IA. Score GO 4/4 exige (3a) + (3b) tous deux PASS.
+
