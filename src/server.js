@@ -10,6 +10,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ---------------------------------------------------------------------------
+// Liveness ultra-précoce — répond AVANT tout middleware pour éviter que
+// Replit Autoscale ne renvoie "DNS cache overflow" pendant le boot ou si
+// un middleware aval est lent/cassé. Pas d'accès DB, pas d'I/O disque.
+// (s26-it2 — fix DNS cache overflow sur versi.fr)
+// ---------------------------------------------------------------------------
+app.get('/api/live', (req, res) => {
+  res.status(200).json({ status: 'alive', ts: new Date().toISOString() });
+});
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '100kb' }));
@@ -154,6 +164,9 @@ app.get('/{*splat}', (req, res) => {
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
+// Binding 0.0.0.0 explicite (requis Replit Autoscale — sans ça, le proxy
+// ne peut pas atteindre le process et renvoie "DNS cache overflow").
+// (s26-it2 — fix DNS cache overflow sur versi.fr)
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[versi] Serveur démarré sur le port ${PORT}`);
 });

@@ -375,9 +375,6 @@ app.get('/{*splat}', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Démarrage
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 // Cron blog — node-cron (génération + renouvellement éditorial)
 // ---------------------------------------------------------------------------
 function scheduleBlogCron() {
@@ -440,12 +437,25 @@ function scheduleBlogCron() {
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
-async function start() {
-  await initDatabase();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[VERSI INVEST] Serveur démarré sur le port ${PORT}`);
-  });
-  scheduleBlogCron();
-}
+// Binding 0.0.0.0 explicite (requis Replit Autoscale — sans ça, le proxy
+// ne peut pas atteindre le process et renvoie "DNS cache overflow").
+// initDatabase() et scheduleBlogCron() s'exécutent en arrière-plan APRÈS
+// que listen() ait accepté des connexions — le proxy Replit reçoit donc
+// une réponse immédiate sur /api/live dès le boot.
+// (s26-it2 — fix DNS cache overflow : régression it1 corrigée. Avant,
+// initDatabase() était awaited AVANT listen() et bloquait le boot → 503.)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[VERSI INVEST] Serveur démarré sur le port ${PORT}`);
 
-start();
+  // Tâches asynchrones non-bloquantes (ne doivent PAS retarder la réponse
+  // du proxy Replit aux healthchecks)
+  initDatabase()
+    .then(() => console.log('[BOOT] initDatabase OK'))
+    .catch((err) => console.error('[BOOT] initDatabase ERROR :', err.message));
+
+  try {
+    scheduleBlogCron();
+  } catch (err) {
+    console.error('[BOOT] scheduleBlogCron ERROR :', err.message);
+  }
+});
