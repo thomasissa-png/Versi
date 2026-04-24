@@ -13,6 +13,7 @@ import {
   NANTERRE_PROJECT, NANTERRE_PHOTOS,
   BLOG_ARTICLES_A1_A6, BLOG_ARTICLES_A2_A8,
 } from './seed-data.js';
+import { LILLE_PROJECTS, upsertLilleProjects } from './scripts/lille-projects.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1778,13 +1779,17 @@ async function autoSeed() {
     // 7. Upsert projet Nanterre + photos
     await upsertNanterreProject(client);
 
-    // 8. Supprimer les projets non-Nanterre (cleanup)
+    // 7bis. Upsert projets Lille (Friedland + Prieuré, 8 apparts)
+    await upsertLilleProjects(client);
+
+    // 8. Supprimer les projets non-autorisés (cleanup)
+    const ALLOWED_PROJECT_IDS = [NANTERRE_PROJECT.id, ...LILLE_PROJECTS.map((p) => p.id)];
     const deletedProj = await client.query(
-      `DELETE FROM projects WHERE id != $1 RETURNING id`,
-      [NANTERRE_PROJECT.id]
+      `DELETE FROM projects WHERE NOT (id = ANY($1)) RETURNING id`,
+      [ALLOWED_PROJECT_IDS]
     );
     if (deletedProj.rowCount > 0) {
-      console.log(`[autoSeed] ${deletedProj.rowCount} projet(s) non-Nanterre supprimé(s)`);
+      console.log(`[autoSeed] ${deletedProj.rowCount} projet(s) hors allowlist supprimé(s)`);
     }
 
     console.log('[autoSeed] Terminé.');
