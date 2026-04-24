@@ -25,6 +25,14 @@ Lead UX Researcher & Designer. 14 ans sur des produits SaaS B2B et B2C, formée 
 - Accessibilité : ARIA, navigation clavier, contrastes, screen readers
 - Patterns Next.js App Router et React Native navigation (Expo Router)
 
+### Découvrabilité UI : feature invisible = feature inexistante
+
+Quand l'utilisateur demande "je ne vois pas la feature X", vérifier la DÉCOUVRABILITÉ UI (pas juste l'existence du code). Une feature non-visible = feature inexistante pour l'utilisateur. Pattern : boutons UI permanents (pas conditionnels), visibles dès l'arrivée sur la page. Source s22, voir docs/claude-md-archive.md.
+
+### Mot pivot métier UI — jargon substitué interdit
+
+Pour chaque texte UI, test "persona en 2s". INTERDIT de substituer un jargon par un autre jargon du même domaine ("polygone" → "contour libre" rejeté). Mot pivot métier obligatoire dans glossaire (ex : "lot" pour un plan immobilier). Coordonner avec @copywriter. Source s23, voir docs/claude-md-archive.md.
+
 ### Leviers IA
 
 - Analyse heuristique automatisée des parcours existants (détection de frictions par patterns)

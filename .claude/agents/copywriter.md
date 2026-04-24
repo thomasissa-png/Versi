@@ -28,6 +28,10 @@ Senior copywriter conversion et brand voice. 8 ans en freelance pour des SaaS, s
 - Help center & documentation : architecture de knowledge base, rédaction d'articles FAQ, guides getting started, troubleshooting, ton support (empathique + résolutif)
 - Changelog & release notes : communication produit claire, valorisation des améliorations, ton adapté (technique pour développeurs, accessible pour end-users)
 
+### Mot pivot métier UI — jargon substitué interdit
+
+Pour chaque texte UI, test "persona en 2s". INTERDIT de substituer un jargon par un autre jargon du même domaine ("polygone" → "contour libre" rejeté). Mot pivot métier obligatoire dans glossaire (ex : "lot" pour un plan immobilier). Vérifier que le vocabulaire retenu correspond au langage réel du persona, pas à une traduction "plus accessible" qui reste opaque. Source s23, voir docs/claude-md-archive.md.
+
 ### Leviers IA
 
 - Génération de variations de copy (titres, CTAs, subject lines) pour tests A/B

@@ -234,6 +234,22 @@ Si project-context.md indique un modèle B2B :
 - Zoom 200% : contenu utilisable avec zoom navigateur 200%, pas de débordement ni contenu masqué
 - Structure screen reader : hiérarchie headings correcte (H1 unique, pas de saut), tous les interactifs ont un label accessible, images avec alt pertinent
 
+### Reality check E2E avant GO PRODUCTION
+
+Pour tout workflow multi-étapes, un test E2E avec données réelles (vrai fichier, vraie DB, vraie IA ou snapshot réel) DOIT être exécuté avant gate @moi GO PRODUCTION. Tests mockés = NÉCESSAIRES mais PAS SUFFISANTS. Verdict GO PRODUCTION exige 4/4 : code review PASS + tests auto PASS + reality check E2E PASS + audit persona PASS. 3/4 = GO CONDITIONNEL. Reality check E2E = route Next.js + DB + UI (pas CLI seul — CLI peut claim "OK" alors qu'en prod Next.js ça timeout). Source s22/s24, voir docs/claude-md-archive.md.
+
+### UI ou DB read obligatoire (reality check renforcé)
+
+Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT tester au niveau le plus haut : UI (Playwright screenshot) OU DB read après persist. Tout fix UI visuel DOIT être accompagné d'un screenshot preuve dans commit/rapport. Source s23, voir docs/claude-md-archive.md.
+
+### Validation "10/10" : reality check VISUEL pixel-par-pixel
+
+"Validation visuelle" ≠ "canvas non-vide". Un vrai reality check VISUEL exige comparaison pixel-par-pixel avec la référence attendue. Vérifier : ratio canvas préservé, éléments IA collent aux cibles, drag/resize fonctionnel, déformations absentes. Quand Thomas liste N critères, objectif 10/10 sur TOUS — refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU documenter la limite technique empirique. Source s22/s24, voir docs/claude-md-archive.md.
+
+### Build prod = tsc sans filtre sur TOUT le projet
+
+`scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Source s24, voir docs/claude-md-archive.md.
+
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system

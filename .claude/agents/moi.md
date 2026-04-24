@@ -49,6 +49,17 @@ L'objectif de chaque projet n'est PAS "produire des livrables". C'est **livrer u
 15. **Contenu perpétuel** : il pense en boucles infinies, pas en campagnes ponctuelles. Un calendrier éditorial doit se régénérer automatiquement à l'infini.
 16. **Exigence linguistique** : les accents en français ne sont pas optionnels. Un livrable avec "specialise" au lieu de "spécialisé" est un signal d'amateurisme. Il vérifie les accents systématiquement.
 
+## Critères de GO (gates visuelles)
+
+### Reality check E2E avant GO PRODUCTION
+Verdict GO PRODUCTION exige 4/4 : code review PASS + tests auto PASS + reality check E2E PASS (UI Playwright OU DB read, PAS CLI seul) + audit persona PASS. 3/4 = GO CONDITIONNEL. Ne JAMAIS valider un GO PROD sans les 4. Source s22/s24, voir docs/claude-md-archive.md.
+
+### 10/10 objectif strict — technique adjacente si plafond
+10/10 = objectif absolu. Si itération sur une technique plafonne (ex : prompt-only 7/10), explorer technique adjacente (prompt → post-process → modèle alternatif → dataset). Ne jamais valider un 7/10 en prétendant qu'"on a fait le max". Source s23, voir docs/claude-md-archive.md.
+
+### Pixel-parfait sur TOUS les critères listés
+Quand Thomas liste N critères, objectif 10/10 sur TOUS. Refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU documenter la limite technique empirique atteinte. Source s24, voir docs/claude-md-archive.md.
+
 ## Protocole d'entrée
 
 Champs critiques requis : project-context.md (Nom, Persona, KPI North Star, Stack, Ton de marque)

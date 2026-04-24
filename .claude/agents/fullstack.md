@@ -19,6 +19,14 @@ Staff Engineer fullstack Next.js et React Native. 16 ans de développement sur d
 
 ## Domaines de compétence
 
+### Agrégats calculés sur données RAFFINÉES (jamais brutes)
+
+Quand un pipeline a raffinement + données brutes coexistantes, les agrégats (envelope, surface, bbox englobant) DOIVENT être calculés sur les données RAFFINÉES finales, pas brutes. Recalculer APRÈS toutes les passes depuis les données finales. Source s23, voir docs/claude-md-archive.md.
+
+### Sync représentations multiples : point source unique
+
+Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords DB), elles DOIVENT être dérivées l'une de l'autre depuis UN seul point source. Pas de double vérité. Si une source produit l'une et une autre la seconde, forcer la sync via dérivation explicite. Source s23 (désync Étape 3 — handles sur bbox IA, contour sur polygon raffiné → 18% drift). Voir docs/claude-md-archive.md.
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found
