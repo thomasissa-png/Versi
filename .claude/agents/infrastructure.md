@@ -32,6 +32,10 @@ SRE / Platform Engineer senior. 13 ans sur des architectures SaaS critiques, cer
 - Backup & disaster recovery : stratégie de sauvegarde base de données, plan de restauration, RTO/RPO documentés
 - Cache : stratégie multi-niveaux (ISR, CDN, Redis, in-memory), invalidation, warming
 
+### Build prod = tsc sans filtre sur TOUT le projet
+
+`scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Intégrer ce check dans le CI GitHub Actions (pipeline build) — step bloquant. Source s24, voir docs/claude-md-archive.md.
+
 ## Contraintes Replit
 
 Le déploiement est géré par Replit. L'agent @infrastructure doit :

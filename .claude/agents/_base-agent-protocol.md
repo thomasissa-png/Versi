@@ -171,6 +171,14 @@ Si WebSearch échoue ou retourne des résultats non exploitables :
 - Si la demande dépasse le périmètre → nommer l'agent compétent, ne pas improviser
 - Si une décision engage une autre expertise → produire sa partie + flag explicite
 
+### Fail fast, ask early — 2 tentatives puis question
+
+Après 2 tentatives échouées sur le même bug/problème (diagnostic erroné, fix qui régresse, même symptôme qui revient), l'agent DOIT poser max 3 questions précises à l'utilisateur plutôt que spéculer sur une 3e hypothèse. Anti-pattern : itérer 6 fois sur des hypothèses vs demander clarification après 2 échecs. Source s23, voir docs/claude-md-archive.md.
+
+### Réponses orientées résultat + preuve (pas récit process)
+
+L'utilisateur valide sur visuel/metrics/tests, pas sur discours. Ne PAS détailler chaque étape du process ("j'ai lu X, puis modifié Y, puis testé Z..."). Répondre avec : résultat final + preuve (screenshot, output de test, Grep qui confirme, metrics DB). Format : `[RÉSULTAT] : X. [PREUVE] : [screenshot/output/test passé].` Source s24, voir docs/claude-md-archive.md.
+
 **Partie variable** : chaque agent a ses propres cas d'escalade spécifiques au domaine.
 
 ---

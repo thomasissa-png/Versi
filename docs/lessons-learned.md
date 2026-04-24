@@ -16,20 +16,22 @@ Sessions 2026-04-17 → 2026-04-23. Ces patterns attendent soit promotion, soit 
 | s21 | P1 | Pattern audit cross-agents 3 itérations (méthode canonique refonte) | propagé `@orchestrator` | Stable — garder en règle |
 | s21 | P1 | Pattern typist it3 mini (< 80 L, code exact) | propagé `@orchestrator` | Stable |
 | s21 | P1 | Anti-`route.continue()` Playwright (remplacer par `route.fulfill 404`) | propagé `@qa` | Stable |
-| s22 | P0 | Reality check E2E avant GO PRODUCTION | propagé `CLAUDE.md n°21` | Stable |
-| s22 | P0 | Découvrabilité UI : feature invisible = inexistante | propagé `@ux` | Stable |
-| s22 | P0 | Validation "10/10" visuelle obligatoire (comparaison pixel-par-pixel) | propagé `CLAUDE.md n°21` | Stable |
-| s22 | P2 | `@ia` briefs > 2000 mots = timeout quasi-garanti | propagé `CLAUDE.md n°3` | Stable — vient d'échouer encore sur orchestrator TTL |
-| s23 | P0 | Reality check E2E : UI ou DB read obligatoire (renforcée) | propagé `CLAUDE.md s23` | Stable |
-| s23 | P0 | Agrégats calculés sur données RAFFINÉES (jamais brutes) | propagé `CLAUDE.md s23` | Stable |
-| s23 | P1 | Sync représentations multiples : point source unique | propagé `CLAUDE.md s23` | Stable |
-| s23 | P1 | "Fail fast, ask early" — 2 tentatives puis question | propagé `CLAUDE.md s23` | Stable |
-| s23 | P1 | 10/10 objectif strict — technique adjacente si plafond | propagé `CLAUDE.md s23` | Stable |
+| s22 | P0 | Reality check E2E avant GO PRODUCTION | promu `@qa` + `@moi` + `@reviewer` (s26) | Stable |
+| s22 | P0 | Découvrabilité UI : feature invisible = inexistante | promu `@ux` + `@design` (s26) | Stable |
+| s22 | P0 | Validation "10/10" visuelle obligatoire (comparaison pixel-par-pixel) | promu `@qa` + `@reviewer` (s26) | Stable |
+| s22 | P2 | `@ia` briefs > 2000 mots = timeout quasi-garanti | promu `@ia` section "Gestion des timeouts" (s26) | Stable |
+| s23 | P0 | Reality check E2E : UI ou DB read obligatoire (renforcée) | promu `@qa` (s26) | Stable |
+| s23 | P0 | Agrégats calculés sur données RAFFINÉES (jamais brutes) | promu `@fullstack` + `@ia` (s26) | Stable |
+| s23 | P1 | Sync représentations multiples : point source unique | promu `@fullstack` (s26) | Stable |
+| s23 | P1 | "Fail fast, ask early" — 2 tentatives puis question | promu `_base-agent-protocol` (s26) | Stable |
+| s23 | P1 | 10/10 objectif strict — technique adjacente si plafond | promu `@moi` + `@reviewer` (s26) | Stable |
 | s23 | P1 | Ressources réelles fournies = reality check immédiat | propagé `CLAUDE.md s23` | Stable |
-| s24 | P0 | Reality check E2E = route Next.js + DB + UI (pas CLI seul) | propagé `CLAUDE.md s24` | Stable |
-| s24 | P0 | Pixel-parfait sur TOUS critères listés | propagé `CLAUDE.md s24` | Stable |
-| s24 | P0 | Orchestrator teste lui-même, ne renvoie pas à Thomas | propagé `CLAUDE.md s24` | Stable |
-| s24 | P1 | Build prod = tsc sans filtre sur TOUT le projet | propagé `CLAUDE.md s24` | Stable |
+| s24 | P0 | Reality check E2E = route Next.js + DB + UI (pas CLI seul) | promu `@qa` + `@moi` (s26) | Stable |
+| s24 | P0 | Pixel-parfait sur TOUS critères listés | promu `@reviewer` + `@moi` (s26) | Stable |
+| s24 | P0 | Orchestrator teste lui-même, ne renvoie pas à Thomas | promu `@orchestrator` (s26) | Stable |
+| s24 | P1 | Build prod = tsc sans filtre sur TOUT le projet | promu `@infrastructure` + `@qa` (s26) | Stable |
+| s24 | P1 | Réponses orientées résultat + preuve (pas récit process) | promu `_base-agent-protocol` (s26) | Stable |
+| s24 | P1 | Mot pivot métier UI — jargon substitué interdit | promu `@copywriter` + `@ux` (s26) | Stable |
 | s25 | P0 | Canonicalisation pipeline refonte — sessions s25 à détailler au prochain commit | en-cours | Thomas tranche |
 
 ---

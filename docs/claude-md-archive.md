@@ -77,17 +77,19 @@ Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur
 
 | Règle | Agent cible | Statut |
 |---|---|---|
-| Reality check E2E avant GO PROD | `@qa`, `@moi` | à promouvoir |
-| Découvrabilité UI | `@ux`, `@design` | à promouvoir |
-| Validation "10/10" pixel-par-pixel | `@qa`, `@reviewer` | à promouvoir |
-| `@ia` briefs > 2000 mots | `@ia` (déjà dans section tools) | à promouvoir frontmatter |
-| UI ou DB read obligatoire | `@qa` | à promouvoir |
-| Agrégats sur données raffinées | `@fullstack`, `@ia` | à promouvoir |
-| Sync représentations multiples | `@fullstack` | à promouvoir |
-| Mot pivot métier UI | `@copywriter`, `@ux` | à promouvoir |
-| "Fail fast, ask early" | `_base-agent-protocol.md` | à promouvoir |
-| 10/10 objectif strict | `@moi`, `@reviewer` | à promouvoir |
-| Pixel-parfait TOUS critères | `@reviewer`, `@moi` | à promouvoir |
-| Build prod tsc sans filtre | `@infrastructure`, `@qa` | à promouvoir |
+| Reality check E2E avant GO PROD | `@qa`, `@moi` | PROMU s26 (qa L239, moi L54) |
+| Découvrabilité UI | `@ux`, `@design` | PROMU s26 (ux L28, design L32) |
+| Validation "10/10" pixel-par-pixel | `@qa`, `@reviewer` | PROMU s26 (qa L245, reviewer L33) |
+| `@ia` briefs > 2000 mots | `@ia` | PROMU s26 (ia L20) |
+| UI ou DB read obligatoire | `@qa` | PROMU s26 (qa L241) |
+| Agrégats sur données raffinées | `@fullstack`, `@ia` | PROMU s26 (fullstack L22, ia L24) |
+| Sync représentations multiples | `@fullstack` | PROMU s26 (fullstack L26) |
+| Mot pivot métier UI | `@copywriter`, `@ux` | PROMU s26 (copywriter L31, ux L32) |
+| "Fail fast, ask early" | `_base-agent-protocol.md` | PROMU s26 (base-protocol) |
+| 10/10 objectif strict | `@moi`, `@reviewer` | PROMU s26 (moi L57, reviewer L39) |
+| Pixel-parfait TOUS critères | `@reviewer`, `@moi` | PROMU s26 (reviewer L36, moi L60) |
+| Build prod tsc sans filtre | `@infrastructure`, `@qa` | PROMU s26 (infra ajouté, qa L249) |
+| Orchestrator teste lui-même (s24) | `@orchestrator` | PROMU s26 (orchestrator section s24) |
+| Résultat + preuve (s24) | `_base-agent-protocol.md` | PROMU s26 (base-protocol) |
 
-Cible : vider entièrement ce fichier d'ici s30 (TTL 4 sessions restantes).
+**Toutes les règles de promotion sont PROMUES en s26.** Ce fichier peut être archivé ou vidé au prochain audit TTL (s27+). Les règles restent accessibles via les agents cibles + via l'historique git.
