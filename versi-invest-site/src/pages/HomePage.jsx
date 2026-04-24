@@ -22,7 +22,24 @@ const PROCESS_STEPS = [
   {
     num: '03',
     title: 'Simulation financière',
-    desc: 'Rendement brut, net, net-net. Chaque charge listée, scénario prudent inclus.',
+    desc: 'Cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus — si les chiffres ne tiennent pas en scénario dégradé, le bien ne vous est pas présenté.',
+    metrics: [
+      {
+        label: 'Cashflow mensuel',
+        value: 'ex. +1 750 €/mois',
+        hint: 'Ce qui atterrit sur le compte chaque mois — loyers encaissés moins crédit, charges, assurances et vacance provisionnée.',
+      },
+      {
+        label: 'TRI — Taux de Rendement Interne',
+        value: 'ex. 12–15 % sur 10 ans',
+        hint: 'L\'indicateur long terme : cashflow cumulé + plus-value à la revente + effet levier du crédit, ramenés à un taux annuel.',
+      },
+      {
+        label: 'CoC — Cash-on-Cash Return',
+        value: 'ex. 13 %/an sur l\'apport',
+        hint: 'Ce que votre mise de départ rapporte chaque année. Cashflow annuel ÷ apport initial — simple, direct, parlant.',
+      },
+    ],
   },
   {
     num: '04',
@@ -86,6 +103,10 @@ const FAQ_ITEMS = [
   {
     q: 'Combien coûte Versi Invest ?',
     a: 'Nos honoraires sont de 5% du prix d\'acquisition, facturés uniquement à l\'investisseur. Zéro rémunération côté vendeur — c\'est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
+  },
+  {
+    q: 'Pourquoi y a-t-il une liste d\'attente ?',
+    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque opportunité est analysée et visitée par un fondateur en personne : pas de flux automatique, pas de dossier sous-traité. La majorité des biens qu\'on analyse ne passent pas nos filtres — rendement insuffisant, cashflow fragile, montage trop risqué, vendeur peu fiable. On refuse régulièrement des biens qui sembleraient "corrects" à un regard extérieur. Résultat : on présente peu de dossiers, mais chacun tient la route en scénario dégradé. La liste d\'attente, c\'est notre façon de ne pas accueillir plus d\'investisseurs qu\'on ne peut vraiment servir. Quand un bien correspondant à votre profil se présente, on vous contacte.',
   },
   {
     q: 'Quel rendement attendre d\'un investissement locatif avec Versi Invest ?',
@@ -207,11 +228,22 @@ export default function HomePage() {
             </h2>
             <div className="process__grid">
               {PROCESS_STEPS.map((step) => (
-                <div key={step.num} className={`process__card${step.optional ? ' process__card--optional' : ''}`}>
+                <div key={step.num} className={`process__card${step.optional ? ' process__card--optional' : ''}${step.metrics ? ' process__card--metrics' : ''}`}>
                   <span className="process__num">{step.num}</span>
                   {step.optional && <span className="process__badge">Optionnel</span>}
                   <h3 className="process__card-title">{step.title}</h3>
                   <p className="process__card-desc">{step.desc}</p>
+                  {step.metrics && (
+                    <ul className="process__metrics" aria-label="Indicateurs clés">
+                      {step.metrics.map((m) => (
+                        <li key={m.label} className="process__metric">
+                          <span className="process__metric-value">{m.value}</span>
+                          <span className="process__metric-label">{m.label}</span>
+                          <span className="process__metric-hint">{m.hint}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
