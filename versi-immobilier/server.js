@@ -56,6 +56,16 @@ function isVersiFr(req) {
 }
 
 // ---------------------------------------------------------------------------
+// Liveness ultra-précoce — répond AVANT tout le reste pour éviter que
+// Replit Autoscale ne renvoie "DNS cache overflow" pendant le boot ou si
+// un middleware aval est lent/cassé. Pas d'accès DB, pas d'I/O disque.
+// (s26 — fix DNS cache overflow)
+// ---------------------------------------------------------------------------
+app.get('/api/live', (req, res) => {
+  res.status(200).json({ status: 'alive', ts: new Date().toISOString() });
+});
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '10mb' }));
@@ -1989,10 +1999,25 @@ function scheduleBlogCron() {
 // ---------------------------------------------------------------------------
 // Démarrage
 // ---------------------------------------------------------------------------
-app.listen(PORT, async () => {
+// Binding 0.0.0.0 explicite (requis Replit Autoscale — sans ça, le proxy
+// ne peut pas atteindre le process et renvoie "DNS cache overflow").
+// autoSeed() et scheduleBlogCron() s'exécutent en arrière-plan APRÈS que
+// listen() ait accepté des connexions — le proxy Replit reçoit donc une
+// réponse immédiate sur /api/live et /api/health dès le boot.
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[versi] Serveur multi-site démarré sur le port ${PORT}`);
   console.log(`  - versi-immobilier : ${VERSI_IMMO_DIST}`);
   console.log(`  - versi.fr         : ${VERSI_FR_DIST}`);
-  await autoSeed();
-  scheduleBlogCron();
+
+  // Tâches asynchrones non-bloquantes (ne doivent PAS retarder la réponse
+  // du proxy Replit aux healthchecks)
+  autoSeed()
+    .then(() => console.log('[BOOT] autoSeed OK'))
+    .catch((err) => console.error('[BOOT] autoSeed ERROR :', err.message));
+
+  try {
+    scheduleBlogCron();
+  } catch (err) {
+    console.error('[BOOT] scheduleBlogCron ERROR :', err.message);
+  }
 });

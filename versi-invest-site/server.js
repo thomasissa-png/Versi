@@ -119,6 +119,15 @@ if (resend) {
 }
 
 // ---------------------------------------------------------------------------
+// Liveness ultra-précoce — répond AVANT tout middleware pour éviter que
+// Replit Autoscale ne renvoie "DNS cache overflow". Pas d'accès DB.
+// (s26 — fix DNS cache overflow)
+// ---------------------------------------------------------------------------
+app.get('/api/live', (req, res) => {
+  res.status(200).json({ status: 'alive', ts: new Date().toISOString() });
+});
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '1mb' }));
