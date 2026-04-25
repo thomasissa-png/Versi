@@ -1083,8 +1083,14 @@ ul, ol {
 
 .realisations__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-xl);
+}
+
+@media (max-width: 1023px) {
+  .realisations__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 767px) {

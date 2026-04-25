@@ -18,7 +18,7 @@ export default function RealisationsPage() {
   );
 
   const stats = [
-    { value: '5', label: 'rénovations terminées' },
+    { value: '21', label: 'rénovations terminées' },
     { value: '3,2M€', label: 'de volume traité' },
   ];
 
@@ -26,7 +26,7 @@ export default function RealisationsPage() {
     <>
       <PageHead
         title="Rénovations immobilières Lille | Versi Immobilier"
-        description="5 rénovations terminées à Lille et Hauts-de-France. Chaque projet documenté : adresse, surface, délais, prix de vente. 3,2M€ de volume traité."
+        description="21 rénovations terminées à Lille et Hauts-de-France. Chaque projet documenté : adresse, surface, délais, prix de vente. 3,2M€ de volume traité."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
