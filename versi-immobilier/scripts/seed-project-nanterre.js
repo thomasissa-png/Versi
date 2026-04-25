@@ -1,24 +1,26 @@
 // Seed script — Nanterre Barbusse reference project
 // Idempotent: uses ON CONFLICT DO UPDATE
 //
-// Photos : déléguées à scripts/photo-sync.js qui copie + resize chaque
-// fichier source de Photos/references/nanterre-barbusse/ vers
-// versi-immobilier/public/projects/nanterre-barbusse/ puis stocke
-// uniquement l'URL relative en DB (pattern versi-invest).
-// → Plus aucun base64 stocké dans le code ni dans la DB.
+// Photos : précompilées en local par scripts/generate-photos.js qui resize
+// les sources Photos/references/nanterre-barbusse/ vers
+// versi-immobilier/public/projects/nanterre-barbusse/ + manifest.json.
+// Le repo contient les JPEG, prod ne fait QUE lire le manifest et INSERT
+// les URLs en DB (pas de sharp ni d'I/O lourd au boot — fix Neon timeout).
 
 import pg from 'pg';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { syncProjectPhotos, upsertProjectPhotosDb, ensurePhotoSchema } from './photo-sync.js';
+import { upsertProjectPhotosDb, ensurePhotoSchema } from './photo-sync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Sélection figée des "après" Nanterre (hand-picked par le fondateur).
+// Utilisée uniquement par generate-photos.js (local) — la prod lit le manifest.
 // Le dossier source contient ~26 fichiers WhatsApp, on garde uniquement
 // ceux-ci dans cet ordre précis (sort = position dans la galerie publique).
 // Le premier (sort: 0) sert de hero / cover_url pour la liste des projets.
-const NANTERRE_APRES_FILES = [
+export const NANTERRE_APRES_FILES = [
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54917.jpeg', sort: 0 },
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54918.jpeg', sort: 1 },
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54915.jpeg', sort: 2 },
@@ -55,8 +57,24 @@ Opération bouclée en 6 mois. Cession à 750 000 €.`,
 };
 
 // Export public utilisé par seed-data.js → server.js (autoSeed).
-// NANTERRE_PHOTOS supprimé : photo-sync gère la persistance désormais.
 export { PROJECT as NANTERRE_PROJECT };
+
+// Lit le manifest pré-compilé (généré en local par generate-photos.js).
+// Renvoie [] si absent (le projet sera seedé sans photos, à régénérer en local).
+function readManifestPhotosFor(projectId) {
+  const manifestPath = path.resolve(__dirname, '..', 'public', 'projects', 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    console.warn(`[seed-nanterre] Manifest absent : ${manifestPath} — lance scripts/generate-photos.js en local.`);
+    return [];
+  }
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    return manifest?.projects?.[projectId]?.photos || [];
+  } catch (err) {
+    console.warn(`[seed-nanterre] Manifest illisible : ${err.message}`);
+    return [];
+  }
+}
 
 // CLI standalone : `node scripts/seed-project-nanterre.js` (rare, debug only).
 // Le pipeline normal passe par autoSeed() dans server.js.
@@ -90,9 +108,9 @@ async function seed() {
         PROJECT.duration, PROJECT.description, PROJECT.featured, PROJECT.sort_order,
       ]
     );
-    const manifest = await syncProjectPhotos(PROJECT);
-    await upsertProjectPhotosDb(client, PROJECT.id, manifest);
-    console.log(`[seed-nanterre] OK — ${manifest.length} photos URL-only.`);
+    const photos = readManifestPhotosFor(PROJECT.id);
+    await upsertProjectPhotosDb(client, PROJECT.id, photos);
+    console.log(`[seed-nanterre] OK — ${photos.length} photos URL-only (manifest).`);
   } finally {
     client.release();
     await pool.end();
