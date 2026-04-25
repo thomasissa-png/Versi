@@ -23,23 +23,6 @@ const PROCESS_STEPS = [
     num: '03',
     title: 'Simulation financière',
     desc: 'Cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus — si les chiffres ne tiennent pas en scénario dégradé, le bien ne vous est pas présenté.',
-    metrics: [
-      {
-        label: 'Cashflow mensuel',
-        value: 'ex. +1 750 €/mois',
-        hint: 'Ce qui atterrit sur le compte chaque mois — loyers encaissés moins crédit, charges, assurances et vacance provisionnée.',
-      },
-      {
-        label: 'TRI — Taux de Rendement Interne',
-        value: 'ex. 10–15 % sur 10 ans',
-        hint: 'L\'indicateur long terme : cashflow cumulé + plus-value à la revente + effet levier du crédit, ramenés à un taux annuel.',
-      },
-      {
-        label: 'CoC — Cash-on-Cash Return',
-        value: 'ex. 13 %/an sur l\'apport',
-        hint: 'Ce que votre mise de départ rapporte chaque année. Cashflow annuel ÷ apport initial — simple, direct, parlant.',
-      },
-    ],
   },
   {
     num: '04',
