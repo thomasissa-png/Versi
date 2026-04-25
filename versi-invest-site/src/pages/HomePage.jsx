@@ -22,7 +22,7 @@ const PROCESS_STEPS = [
   {
     num: '03',
     title: 'Simulation financière',
-    desc: 'Cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus — si les chiffres ne tiennent pas en scénario dégradé, le bien ne vous est pas présenté.',
+    desc: 'Cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus.',
   },
   {
     num: '04',
@@ -89,7 +89,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Pourquoi y a-t-il une liste d\'attente ?',
-    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque opportunité est analysée et visitée par un fondateur en personne : pas de flux automatique, pas de dossier sous-traité. La majorité des biens qu\'on analyse ne passent pas nos filtres — rendement insuffisant, cashflow fragile, montage trop risqué, vendeur peu fiable. On refuse régulièrement des biens qui sembleraient "corrects" à un regard extérieur. Résultat : on présente peu de dossiers, mais chacun tient la route en scénario dégradé. La liste d\'attente, c\'est notre façon de ne pas accueillir plus d\'investisseurs qu\'on ne peut vraiment servir. Quand un bien correspondant à votre profil se présente, on vous contacte.',
+    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque dossier est analysé et visité par un fondateur en personne. La majorité des biens ne passent pas nos filtres : rendement insuffisant, cashflow fragile, montage trop risqué. On accueille peu d\'investisseurs pour rester en capacité de vraiment servir chacun. Quand un bien correspond à votre profil, on vous contacte.',
   },
   {
     q: 'Quel rendement attendre d\'un investissement locatif avec Versi Invest ?',
