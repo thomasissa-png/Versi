@@ -83,6 +83,17 @@ function ensureDirSync(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+// Accepte soit ["filename1", "filename2"] soit [{file:"...", sort: 0}, ...].
+// Renvoie ["filename1", ...] dans l'ordre voulu.
+function normalizeExplicitList(list) {
+  const items = list.map((entry, idx) => {
+    if (typeof entry === 'string') return { file: entry, sort: idx };
+    return { file: entry.file, sort: typeof entry.sort === 'number' ? entry.sort : idx };
+  });
+  items.sort((a, b) => a.sort - b.sort);
+  return items.map((it) => it.file);
+}
+
 function rmDirContentsSync(dir) {
   if (!fs.existsSync(dir)) return;
   for (const entry of fs.readdirSync(dir)) {
@@ -131,6 +142,8 @@ export async function syncProjectPhotos(project) {
   const safeId = sanitizeProjectId(project.id);
   const scanDirRel = project.photos.scanDir;
   const heroFilename = project.photos.heroFilename;
+  const apresFilesExplicit = project.photos.apresFiles; // [{ file, sort }] OU [filename, ...]
+  const avantFilesExplicit = project.photos.avantFiles;
 
   const scanDir = resolveDirNFCNFD(scanDirRel);
   if (!scanDir || !fs.existsSync(scanDir)) {
@@ -142,37 +155,52 @@ export async function syncProjectPhotos(project) {
   rmDirContentsSync(destDir);
   ensureDirSync(destDir);
 
-  const files = fs.readdirSync(scanDir).filter(isWebSupportedImage);
-  const avant = [];
-  const apres = [];
-  for (const filename of files) {
-    const category = detectCategory(filename);
-    if (category === 'avant') avant.push(filename);
-    else apres.push(filename);
-  }
+  let avant = [];
+  let apres = [];
 
-  avant.sort((a, b) => a.localeCompare(b));
-  apres.sort((a, b) => a.localeCompare(b));
+  if (Array.isArray(apresFilesExplicit) && apresFilesExplicit.length > 0) {
+    // Mode "liste explicite ordonnée" — utilisé pour Nanterre où le fondateur
+    // a hand-picked une sélection précise dans un dossier qui contient
+    // beaucoup d'autres photos non retenues.
+    apres = normalizeExplicitList(apresFilesExplicit);
+    avant = Array.isArray(avantFilesExplicit) ? normalizeExplicitList(avantFilesExplicit) : [];
+  } else {
+    // Mode "auto-detect" — scan complet du dossier, classement par mots-clefs.
+    const files = fs.readdirSync(scanDir).filter(isWebSupportedImage);
+    for (const filename of files) {
+      const category = detectCategory(filename);
+      if (category === 'avant') avant.push(filename);
+      else apres.push(filename);
+    }
+    avant.sort((a, b) => a.localeCompare(b));
+    apres.sort((a, b) => a.localeCompare(b));
 
-  // Hero : si présent, mettre en tête de la liste "après"
-  if (heroFilename) {
-    const heroIdx = apres.findIndex((f) => normalize(f) === normalize(heroFilename));
-    if (heroIdx > 0) {
-      const [hero] = apres.splice(heroIdx, 1);
-      apres.unshift(hero);
-    } else if (heroIdx === -1) {
-      console.warn(`[photo-sync] Hero introuvable pour "${safeId}" : ${heroFilename}`);
+    // Hero : remonte en tête de "après" (uniquement en mode auto-detect ;
+    // en mode explicite, l'ordre fourni est la source de vérité).
+    if (heroFilename) {
+      const heroIdx = apres.findIndex((f) => normalize(f) === normalize(heroFilename));
+      if (heroIdx > 0) {
+        const [hero] = apres.splice(heroIdx, 1);
+        apres.unshift(hero);
+      } else if (heroIdx === -1) {
+        console.warn(`[photo-sync] Hero introuvable pour "${safeId}" : ${heroFilename}`);
+      }
     }
   }
 
   const manifest = [];
 
   // "Après" : photo-01..NN.jpeg
+  let writtenApres = 0;
   for (let i = 0; i < apres.length; i++) {
     const srcFilename = apres[i];
-    const seq = String(i + 1).padStart(2, '0');
-    const destFilename = `photo-${seq}.jpeg`;
     const srcPath = path.join(scanDir, srcFilename);
+    if (!fs.existsSync(srcPath)) {
+      console.warn(`[photo-sync] Source manquante "${srcFilename}" pour "${safeId}", skip.`);
+      continue;
+    }
+    const seq = String(writtenApres + 1).padStart(2, '0');
+    const destFilename = `photo-${seq}.jpeg`;
     const destPath = path.join(destDir, destFilename);
     try {
       const sizeBytes = await resizeAndWrite(srcPath, destPath);
@@ -182,20 +210,26 @@ export async function syncProjectPhotos(project) {
         original_filename: srcFilename,
         mime_type: 'image/jpeg',
         category: 'apres',
-        sort_order: i,
+        sort_order: writtenApres,
         size_bytes: sizeBytes,
       });
+      writtenApres++;
     } catch (err) {
       console.warn(`[photo-sync] Erreur traitement "${srcFilename}" pour "${safeId}" : ${err.message}`);
     }
   }
 
   // "Avant" : avant-01..MM.jpeg
+  let writtenAvant = 0;
   for (let i = 0; i < avant.length; i++) {
     const srcFilename = avant[i];
-    const seq = String(i + 1).padStart(2, '0');
-    const destFilename = `avant-${seq}.jpeg`;
     const srcPath = path.join(scanDir, srcFilename);
+    if (!fs.existsSync(srcPath)) {
+      console.warn(`[photo-sync] Source avant manquante "${srcFilename}" pour "${safeId}", skip.`);
+      continue;
+    }
+    const seq = String(writtenAvant + 1).padStart(2, '0');
+    const destFilename = `avant-${seq}.jpeg`;
     const destPath = path.join(destDir, destFilename);
     try {
       const sizeBytes = await resizeAndWrite(srcPath, destPath);
@@ -205,15 +239,16 @@ export async function syncProjectPhotos(project) {
         original_filename: srcFilename,
         mime_type: 'image/jpeg',
         category: 'avant',
-        sort_order: i,
+        sort_order: writtenAvant,
         size_bytes: sizeBytes,
       });
+      writtenAvant++;
     } catch (err) {
       console.warn(`[photo-sync] Erreur traitement "${srcFilename}" pour "${safeId}" : ${err.message}`);
     }
   }
 
-  console.log(`[photo-sync] "${safeId}" : ${apres.length} après + ${avant.length} avant écrits dans ${path.relative(process.cwd(), destDir)}`);
+  console.log(`[photo-sync] "${safeId}" : ${writtenApres} après + ${writtenAvant} avant écrits dans ${path.relative(process.cwd(), destDir)}`);
   return manifest;
 }
 

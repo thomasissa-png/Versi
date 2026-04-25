@@ -10,10 +10,15 @@ import pool from './db.js';
 import { runGates } from './gate-runner.js';
 import {
   MUGUETS_PROPERTIES,
-  NANTERRE_PROJECT, NANTERRE_PHOTOS,
+  NANTERRE_PROJECT,
   BLOG_ARTICLES_A1_A6, BLOG_ARTICLES_A2_A8,
 } from './seed-data.js';
 import { LILLE_PROJECTS, upsertLilleProjects } from './scripts/lille-projects.js';
+import {
+  syncProjectPhotos,
+  upsertProjectPhotosDb,
+  ensurePhotoSchema,
+} from './scripts/photo-sync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -87,6 +92,16 @@ app.use((req, res, next) => {
 // Servir les fichiers statiques du bon site selon le hostname
 const versiImmoStatic = express.static(VERSI_IMMO_DIST);
 const versiFrStatic = express.static(VERSI_FR_DIST);
+
+// Photos projets : servies depuis public/ avec cache HTTP long (immutable
+// car le naming inclut un sort_order figé par photo-sync). Doit être
+// déclaré AVANT le routing par hostname pour s'appliquer aux deux sites.
+const PUBLIC_DIR = join(__dirname, 'public');
+app.use(express.static(PUBLIC_DIR, {
+  maxAge: '7d',
+  etag: true,
+  immutable: false, // false : si on remplace photo-NN.jpeg, le cache se rafraîchit en 7j
+}));
 
 app.use((req, res, next) => {
   if (isVersiFr(req)) {
@@ -460,17 +475,18 @@ app.get('/api/public/projects', async (req, res) => {
   }
 
   try {
-    // Subquery: pick first "apres" photo per project (fallback: first photo by sort_order)
+    // Subquery : 1ère photo "après" par sort_order ASC, fallback sur les autres.
+    // Renvoie l'URL relative servie par express.static (pas de base64).
     const coverSubquery = `
       LEFT JOIN LATERAL (
-        SELECT pp.data, pp.mime_type
+        SELECT pp.url
         FROM project_photos pp
-        WHERE pp.project_id = p.id
+        WHERE pp.project_id = p.id AND pp.url IS NOT NULL
         ORDER BY CASE WHEN pp.category = 'apres' THEN 0 ELSE 1 END, pp.sort_order ASC
         LIMIT 1
       ) cover ON true
     `;
-    const columns = 'p.id, p.title, p.city, p.type, p.surface, p.units, p.status, p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay, p.duration, p.description, p.featured, p.sort_order, p.created_at, p.updated_at, cover.data AS cover_data, cover.mime_type AS cover_mime';
+    const columns = 'p.id, p.title, p.city, p.type, p.surface, p.units, p.status, p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay, p.duration, p.description, p.featured, p.sort_order, p.created_at, p.updated_at, cover.url AS cover_url';
 
     let result;
     if (status === 'all') {
@@ -484,18 +500,8 @@ app.get('/api/public/projects', async (req, res) => {
       );
     }
 
-    // Build cover_url from base64 data
-    const projects = result.rows.map((row) => {
-      const { cover_data, cover_mime, ...project } = row;
-      if (cover_data) {
-        project.cover_url = cover_data.startsWith('data:')
-          ? cover_data
-          : `data:${cover_mime};base64,${cover_data}`;
-      } else {
-        project.cover_url = null;
-      }
-      return project;
-    });
+    // cover_url est déjà l'URL statique servie par express.static.
+    const projects = result.rows;
 
     return res.json({ projects });
   } catch (err) {
@@ -511,14 +517,19 @@ app.get('/api/public/projects/:id', async (req, res) => {
     if (projResult.rows.length === 0) {
       return res.status(404).json({ ok: false, error: 'Réalisation non trouvée' });
     }
+    // Photos servies en statique : on retourne directement l'URL stockée
+    // par photo-sync (`/projects/<id>/photo-NN.jpeg`). Tri category+sort
+    // pour que les "après" passent avant les "avant" dans la galerie.
     const photosResult = await pool.query(
-      'SELECT id, data, filename, mime_type, size_bytes, category, sort_order, created_at FROM project_photos WHERE project_id = $1 ORDER BY sort_order ASC',
+      `SELECT id, url, filename, mime_type, size_bytes, category, sort_order, created_at
+       FROM project_photos
+       WHERE project_id = $1 AND url IS NOT NULL
+       ORDER BY CASE WHEN category = 'apres' THEN 0 ELSE 1 END, sort_order ASC`,
       [req.params.id]
     );
-    // Build photo URLs from base64 data
     const photos = photosResult.rows.map((p) => ({
       id: p.id,
-      url: p.data.startsWith('data:') ? p.data : `data:${p.mime_type};base64,${p.data}`,
+      url: p.url,
       filename: p.filename,
       category: p.category || 'apres',
       alt: null,
@@ -1728,6 +1739,10 @@ const MUGUETS_IDS = MUGUETS_PROPERTIES.map(p => p.id);
 async function autoSeed() {
   const client = await pool.connect();
   try {
+    // 0. Migration schéma photos : ajout colonne url, drop NOT NULL sur data.
+    // Idempotent — safe à rejouer à chaque boot.
+    await ensurePhotoSchema(client);
+
     // 1. Seed properties si la table est vide
     const { rows: propCount } = await client.query('SELECT COUNT(*) AS c FROM properties');
     if (parseInt(propCount[0].c, 10) === 0) {
@@ -1831,7 +1846,9 @@ async function upsertProperty(client, prop) {
   );
 }
 
-// Nouvelles photos "après" Nanterre — lues depuis le disque au lieu des base64 embarquées
+// Sélection figée des 6 "après" Nanterre (hand-picked par le fondateur).
+// Le dossier source contient ~26 fichiers WhatsApp, on garde uniquement ceux-ci
+// dans cet ordre précis (sort = position dans la galerie publique).
 const NANTERRE_APRES_FILES = [
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54917.jpeg', sort: 0 },
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54918.jpeg', sort: 1 },
@@ -1840,27 +1857,6 @@ const NANTERRE_APRES_FILES = [
   { file: 'WhatsApp Image 2026-04-13 at 09.42.591.jpeg',   sort: 4 },
   { file: 'WhatsApp Image 2026-04-13 at 09.42.54916.jpeg', sort: 5 },
 ];
-const NANTERRE_PHOTOS_DIR = join(__dirname, '..', 'Photos', 'references', 'nanterre-barbusse');
-
-function loadNanterreApresPhotos() {
-  const photos = [];
-  for (const entry of NANTERRE_APRES_FILES) {
-    const filePath = join(NANTERRE_PHOTOS_DIR, entry.file);
-    if (fs.existsSync(filePath)) {
-      const buffer = fs.readFileSync(filePath);
-      photos.push({
-        data: `data:image/jpeg;base64,${buffer.toString('base64')}`,
-        filename: entry.file,
-        mime_type: 'image/jpeg',
-        category: 'apres',
-        sort_order: entry.sort,
-      });
-    } else {
-      console.warn(`[autoSeed] Photo introuvable : ${filePath}`);
-    }
-  }
-  return photos;
-}
 
 async function upsertNanterreProject(client) {
   const p = NANTERRE_PROJECT;
@@ -1885,42 +1881,20 @@ async function upsertNanterreProject(client) {
     ]
   );
 
-  // Delete existing photos then re-insert
-  await client.query('DELETE FROM project_photos WHERE project_id = $1', [p.id]);
-
-  // Photos "avant" : garder celles embarquées dans NANTERRE_PHOTOS
-  const avantPhotos = NANTERRE_PHOTOS.filter((ph) => ph.category === 'avant');
-  for (const photo of avantPhotos) {
-    await client.query(
-      `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
-    );
-  }
-
-  // Photos "après" : lire les 6 nouvelles depuis le disque (sélection fondateur)
-  const apresPhotos = loadNanterreApresPhotos();
-  if (apresPhotos.length > 0) {
-    for (const photo of apresPhotos) {
-      await client.query(
-        `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
-      );
-    }
-    console.log(`[autoSeed] Projet "${p.id}" : ${avantPhotos.length} avant + ${apresPhotos.length} après (nouvelles WhatsApp).`);
-  } else {
-    // Fallback : utiliser les anciennes photos "après" embarquées
-    const oldApres = NANTERRE_PHOTOS.filter((ph) => ph.category === 'apres');
-    for (const photo of oldApres) {
-      await client.query(
-        `INSERT INTO project_photos (project_id, data, filename, mime_type, size_bytes, category, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [p.id, photo.data, photo.filename, photo.mime_type, photo.data.length, photo.category, photo.sort_order]
-      );
-    }
-    console.log(`[autoSeed] Projet "${p.id}" : ${avantPhotos.length} avant + ${oldApres.length} après (fallback embarquées).`);
-  }
+  // Photos : on délègue à photo-sync qui copie+resize les fichiers source
+  // dans public/projects/<id>/, puis on persiste uniquement les URLs en DB.
+  // Les anciennes "avant" base64 (NANTERRE_PHOTOS) sont DROP — la galerie
+  // affichait surtout les "après", et les "avant" ne sont plus dispos sur
+  // disque pour Nanterre. À ré-ajouter quand le fondateur fournira les sources.
+  const manifest = await syncProjectPhotos({
+    id: p.id,
+    photos: {
+      scanDir: 'nanterre-barbusse',
+      apresFiles: NANTERRE_APRES_FILES, // sélection figée
+    },
+  });
+  await upsertProjectPhotosDb(client, p.id, manifest);
+  console.log(`[autoSeed] Projet "${p.id}" : ${manifest.length} photos URL-only synchronisées.`);
 }
 
 async function upsertBlogArticle(client, article) {
