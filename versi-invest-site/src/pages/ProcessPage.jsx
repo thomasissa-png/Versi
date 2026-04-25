@@ -24,25 +24,8 @@ const STEPS = [
   {
     num: '03',
     title: 'Simulation financière',
-    description: 'Si le bien passe la visite fondateur, une simulation complète est produite. Chaque charge est listée — taxe foncière, copropriété, assurance PNO, vacance provisionnée. Deux scénarios systématiques : nominal et prudent (+15% de charges). Si les chiffres ne tiennent pas en scénario prudent, on n\'en parle pas.',
-    metrics: [
-      {
-        label: 'Cashflow mensuel',
-        example: 'ex. +1 750 €/mois sur un immeuble de 8 studios à Nanterre',
-        definition: 'Loyers encaissés moins toutes les charges : mensualité crédit, charges de copropriété, taxe foncière, assurance PNO, et vacance locative provisionnée. Ce qui atterrit réellement sur le compte chaque mois — pas le rendement brut affiché, les liquidités nettes.',
-      },
-      {
-        label: 'TRI — Taux de Rendement Interne',
-        example: 'Typiquement 10–15 % sur 10 ans pour les biens sélectionnés',
-        definition: 'Ce que rapporte réellement l\'opération sur toute sa durée — en tenant compte de la plus-value à la revente, de l\'effet levier du crédit, et du cashflow cumulé. L\'indicateur long terme par excellence.',
-      },
-      {
-        label: 'CoC — Cash-on-Cash Return',
-        example: 'ex. 13 %/an sur l\'apport initial',
-        definition: 'Cashflow annuel divisé par votre apport initial. Mesure concrètement ce que votre mise de départ rapporte chaque année, indépendamment de la valeur du bien.',
-      },
-    ],
-    included: 'Simulation financière complète en PDF. Scénario nominal et scénario prudent. Détail de chaque charge. Cashflow mensuel, TRI et CoC calculés.',
+    description: 'Si le bien passe la visite fondateur, une simulation complète est produite : rendement brut, net, net-net, cashflow mensuel, TRI, Cash-on-Cash. Chaque charge est listée — taxe foncière, copropriété, assurance PNO, vacance provisionnée. Deux scénarios systématiques : nominal et prudent (+15 % de charges). Si le cashflow ne tient pas en scénario prudent, on ne présente pas le bien.',
+    included: 'Simulation financière complète en PDF. Scénario nominal et scénario prudent. Détail de chaque charge.',
     notIncluded: 'Conseil fiscal personnalisé (consulter un expert-comptable pour l\'optimisation propre à votre situation).',
     duration: '2 à 3 jours après la visite fondateur.',
   },
