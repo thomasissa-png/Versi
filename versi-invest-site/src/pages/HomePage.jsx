@@ -22,7 +22,7 @@ const PROCESS_STEPS = [
   {
     num: '03',
     title: 'Simulation financière',
-    desc: 'Cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus.',
+    desc: 'Rendement brut, net, net-net, cashflow mensuel, TRI, Cash-on-Cash. Chaque charge listée, scénario prudent inclus.',
   },
   {
     num: '04',
