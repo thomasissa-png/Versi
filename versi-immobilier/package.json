@@ -18,7 +18,8 @@
     "react-dom": "^19.2.4",
     "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.14.0",
-    "resend": "^6.10.0"
+    "resend": "^6.10.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
