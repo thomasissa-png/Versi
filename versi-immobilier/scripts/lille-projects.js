@@ -41,6 +41,7 @@ Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comp
       apresDir: 'rue-de-friedland/2ème Droite',
       // Les fichiers contiennent "avant" ou "après" dans le nom — auto-détection
       autoDetect: true,
+      hero: 'Cuisine après rénovation - louée.jpeg',
     },
   },
   {
@@ -66,6 +67,7 @@ Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comp
       avantDir: 'rue-de-friedland/2ème gauche',
       apresDir: 'rue-de-friedland/2ème gauche',
       autoDetect: true,
+      hero: 'Séjour après travaux 2.jpeg',
     },
   },
 
@@ -93,6 +95,7 @@ Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges compr
       avantDir: 'rue-du-prieure/RDC Jardin',
       apresDir: 'rue-du-prieure/RDC Jardin',
       autoDetect: true,
+      hero: 'Séjour cuisine après travaux.jpeg',
     },
   },
   {
@@ -118,6 +121,7 @@ Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges compr
       avantDir: 'rue-du-prieure/Appartements Jardin',
       apresDir: 'rue-du-prieure/Appartements Jardin',
       autoDetect: true,
+      hero: 'Séjour cuisine - Après travaux - Meublé.jpeg',
     },
   },
   {
@@ -143,6 +147,7 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
       avantDir: 'rue-du-prieure/Appartements Rue',
       apresDir: 'rue-du-prieure/Appartements Rue',
       autoDetect: true,
+      hero: 'Cuisine - Après travaux.jpeg',
     },
   },
   {
@@ -168,6 +173,7 @@ Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges compr
       avantDir: 'rue-du-prieure/Appartements Jardin',
       apresDir: 'rue-du-prieure/Appartements Jardin',
       autoDetect: true,
+      hero: 'Séjour cuisine - Après travaux - Meublé.jpeg',
     },
   },
   {
@@ -193,6 +199,7 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
       avantDir: 'rue-du-prieure/Appartements Rue',
       apresDir: 'rue-du-prieure/Appartements Rue',
       autoDetect: true,
+      hero: 'Cuisine - Après travaux.jpeg',
     },
   },
   {
@@ -218,6 +225,7 @@ Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comp
       avantDir: 'rue-du-prieure/3ème étage',
       apresDir: 'rue-du-prieure/3ème étage',
       autoDetect: true,
+      hero: 'Séjour - Après travaux - Meublé.jpeg',
     },
   },
 ];
@@ -305,6 +313,20 @@ export function loadProjectPhotos(project) {
   // Tri alphabétique pour un sort_order stable
   avant.sort((a, b) => a.filename.localeCompare(b.filename));
   apres.sort((a, b) => a.filename.localeCompare(b.filename));
+
+  // Hero : si le projet définit `hero`, placer cette photo en sort_order=0
+  // dans la catégorie "après" (= cover affiché sur la liste réalisations).
+  // Le backend prend la 1ère photo `category='apres'` triée par sort_order ASC.
+  const heroFile = project.photos.hero;
+  if (heroFile) {
+    const heroIdx = apres.findIndex((p) => normalize(p.filename) === normalize(heroFile));
+    if (heroIdx > 0) {
+      const [hero] = apres.splice(heroIdx, 1);
+      apres.unshift(hero);
+    } else if (heroIdx === -1) {
+      console.warn(`[lille-projects] Hero introuvable pour "${project.id}" : ${heroFile}`);
+    }
+  }
 
   const photos = [];
   avant.forEach((p, i) => photos.push({ ...p, category: 'avant', sort_order: i }));

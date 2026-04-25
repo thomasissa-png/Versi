@@ -28,7 +28,7 @@ Le projet est structuré autour de la lumière naturelle traversante. Double hau
 
 Opération bouclée en 6 mois. Cession à 750 000 €.`,
   featured: true,
-  sort_order: 0,
+  sort_order: 99,
 };
 
 // Photo base64 data loaded at runtime from embedded strings
