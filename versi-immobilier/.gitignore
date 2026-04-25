@@ -1,7 +1,8 @@
 dist/
 node_modules/
 
-# Photos générées au boot par scripts/photo-sync.js
-# Source de vérité = Photos/references/<dir>/ (workspace racine)
-# Le dossier est régénéré à chaque boot serveur, on ne commit pas.
-public/projects/
+# Photos projets : pré-compilées en local par scripts/generate-photos.js
+# (resize sharp + écriture des JPEG + manifest.json) puis commitées dans
+# le repo. Source de vérité = Photos/references/<dir>/ (workspace racine).
+# La prod sert public/projects/ en static (express.static), zéro work runtime.
+# → public/projects/ EST commité (intentionnel, ~10-20 Mo de JPEG).

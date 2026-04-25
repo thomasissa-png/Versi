@@ -1,12 +1,31 @@
 // Lille references — Rue de Friedland (2) + Rue du Prieuré (6) = 8 apparts
 // Données extraites des PDFs descriptifs 17/04/2026 fournis par le fondateur.
 //
-// Photos : déléguées à scripts/photo-sync.js qui copie + resize chaque
-// fichier source de Photos/references/<dir>/ vers public/projects/<id>/
-// puis stocke uniquement l'URL relative en DB (pattern versi-invest).
-// → Payload API divisé par ~100, cache HTTP exploitable, DB allégée.
+// Photos : pré-compilées en local par scripts/generate-photos.js (resize
+// sharp + écriture des JPEG dans public/projects/<id>/ + manifest.json).
+// La prod LIT le manifest et INSERT URLs en DB — zéro sharp au boot.
+// Fix Neon timeout 57P01 (autoSeed prenait > 60s sur Replit).
 
-import { syncProjectPhotos, upsertProjectPhotosDb } from './photo-sync.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { upsertProjectPhotosDb } from './photo-sync.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MANIFEST_PATH = path.resolve(__dirname, '..', 'public', 'projects', 'manifest.json');
+
+function readManifest() {
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    console.warn(`[lille-projects] Manifest absent : ${MANIFEST_PATH} — lance scripts/generate-photos.js en local.`);
+    return { projects: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
+  } catch (err) {
+    console.warn(`[lille-projects] Manifest illisible : ${err.message}`);
+    return { projects: {} };
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Projects metadata
@@ -229,27 +248,10 @@ Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comp
 
 // ────────────────────────────────────────────────────────────────────────────
 // Upsert projet + photos (idempotent — DELETE + INSERT à chaque boot)
-// Photos : déléguées à syncProjectPhotos qui copie+resize les sources
-// vers public/projects/<id>/, puis upsertProjectPhotosDb persiste les URLs.
+// Photos : lecture du manifest pré-compilé. Zéro I/O lourd au boot.
 // ────────────────────────────────────────────────────────────────────────────
 
-// Adapte le `spec.photos` du projet vers le format attendu par photo-sync.
-// Les projets Lille utilisent {avantDir, apresDir, autoDetect, hero} avec
-// avantDir == apresDir (même dossier, classement par mot-clef du nom).
-// photo-sync attend {scanDir, heroFilename, autoDetect}.
-function toSyncSpec(project) {
-  const p = project.photos || {};
-  const scanDir = p.scanDir || p.apresDir || p.avantDir;
-  return {
-    id: project.id,
-    photos: {
-      scanDir,
-      heroFilename: p.hero || p.heroFilename,
-    },
-  };
-}
-
-export async function upsertLilleProject(client, project) {
+export async function upsertLilleProject(client, project, manifest) {
   await client.query(
     `INSERT INTO projects (
       id, title, city, type, surface, units, status,
@@ -272,20 +274,20 @@ export async function upsertLilleProject(client, project) {
     ]
   );
 
-  // Sync photos sur disque + persist URLs en DB (idempotent).
-  const manifest = await syncProjectPhotos(toSyncSpec(project));
-  await upsertProjectPhotosDb(client, project.id, manifest);
+  const photos = manifest?.projects?.[project.id]?.photos || [];
+  await upsertProjectPhotosDb(client, project.id, photos);
 
-  const avantCount = manifest.filter((p) => p.category === 'avant').length;
-  const apresCount = manifest.filter((p) => p.category === 'apres').length;
+  const avantCount = photos.filter((p) => p.category === 'avant').length;
+  const apresCount = photos.filter((p) => p.category === 'apres').length;
   console.log(`[lille-projects] "${project.id}" : ${avantCount} avant + ${apresCount} après (URL-only).`);
   return { avantCount, apresCount };
 }
 
 export async function upsertLilleProjects(client) {
+  const manifest = readManifest();
   let total = 0;
   for (const project of LILLE_PROJECTS) {
-    await upsertLilleProject(client, project);
+    await upsertLilleProject(client, project, manifest);
     total++;
   }
   console.log(`[lille-projects] ${total} projets Lille upsertés (Friedland + Prieuré).`);

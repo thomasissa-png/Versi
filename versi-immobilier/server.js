@@ -15,10 +15,30 @@ import {
 } from './seed-data.js';
 import { LILLE_PROJECTS, upsertLilleProjects } from './scripts/lille-projects.js';
 import {
-  syncProjectPhotos,
   upsertProjectPhotosDb,
   ensurePhotoSchema,
 } from './scripts/photo-sync.js';
+
+// Lecture du manifest pré-compilé (généré en local par scripts/generate-photos.js,
+// commité dans le repo). En prod, on lit ce JSON puis INSERT URLs en DB —
+// zéro sharp, zéro resize, zéro I/O lourd au boot. Fix Neon timeout 57P01.
+function readPhotosManifest() {
+  const manifestPath = join(__dirname, 'public', 'projects', 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    console.warn(`[autoSeed] Manifest photos absent : ${manifestPath} — lance scripts/generate-photos.js en local.`);
+    return { projects: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  } catch (err) {
+    console.warn(`[autoSeed] Manifest photos illisible : ${err.message}`);
+    return { projects: {} };
+  }
+}
+function manifestPhotosFor(projectId) {
+  const manifest = readPhotosManifest();
+  return manifest?.projects?.[projectId]?.photos || [];
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1846,18 +1866,6 @@ async function upsertProperty(client, prop) {
   );
 }
 
-// Sélection figée des 6 "après" Nanterre (hand-picked par le fondateur).
-// Le dossier source contient ~26 fichiers WhatsApp, on garde uniquement ceux-ci
-// dans cet ordre précis (sort = position dans la galerie publique).
-const NANTERRE_APRES_FILES = [
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.54917.jpeg', sort: 0 },
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.54918.jpeg', sort: 1 },
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.54915.jpeg', sort: 2 },
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.5495.jpeg',  sort: 3 },
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.591.jpeg',   sort: 4 },
-  { file: 'WhatsApp Image 2026-04-13 at 09.42.54916.jpeg', sort: 5 },
-];
-
 async function upsertNanterreProject(client) {
   const p = NANTERRE_PROJECT;
   await client.query(
@@ -1881,20 +1889,12 @@ async function upsertNanterreProject(client) {
     ]
   );
 
-  // Photos : on délègue à photo-sync qui copie+resize les fichiers source
-  // dans public/projects/<id>/, puis on persiste uniquement les URLs en DB.
-  // Les anciennes "avant" base64 (NANTERRE_PHOTOS) sont DROP — la galerie
-  // affichait surtout les "après", et les "avant" ne sont plus dispos sur
-  // disque pour Nanterre. À ré-ajouter quand le fondateur fournira les sources.
-  const manifest = await syncProjectPhotos({
-    id: p.id,
-    photos: {
-      scanDir: 'nanterre-barbusse',
-      apresFiles: NANTERRE_APRES_FILES, // sélection figée
-    },
-  });
-  await upsertProjectPhotosDb(client, p.id, manifest);
-  console.log(`[autoSeed] Projet "${p.id}" : ${manifest.length} photos URL-only synchronisées.`);
+  // Photos : lecture du manifest pré-compilé (généré en local par
+  // scripts/generate-photos.js puis commité dans le repo).
+  // En prod : zéro sharp, zéro resize. Just INSERT URLs.
+  const photos = manifestPhotosFor(p.id);
+  await upsertProjectPhotosDb(client, p.id, photos);
+  console.log(`[autoSeed] Projet "${p.id}" : ${photos.length} photos URL-only (manifest).`);
 }
 
 async function upsertBlogArticle(client, article) {
