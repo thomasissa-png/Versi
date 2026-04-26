@@ -56,9 +56,7 @@ Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comp
       scanDir: 'rue-de-friedland/2ème Droite',
       apresFiles: [
         { file: 'Cuisine après rénovation - louée.jpeg', sort: 0 },
-        { file: 'Séjour après rénovation 2.JPG', sort: 1 },
-        { file: 'Chambre après rénovation.JPG', sort: 2 },
-        { file: 'Séjour après rénovation.JPG', sort: 3 },
+        { file: 'Chambre après rénovation.JPG', sort: 1 },
       ],
       avantFiles: [
         { file: 'Séjour avant rénovation.JPG', sort: 0 },
@@ -190,10 +188,11 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     photos: {
       scanDir: 'rue-du-prieure/Appartements Rue',
       apresFiles: [
-        { file: 'Cuisine - Après travaux.jpeg', sort: 0 },
-        { file: 'Chambre - Après travaux.jpeg', sort: 1 },
-        { file: 'Entrée - Après travaux.jpeg', sort: 2 },
-        { file: 'Salle de bain - Après travaux.jpeg', sort: 3 },
+        { file: 'Chambre - Cuisine - Après travaux.jpeg', sort: 0 },
+        { file: 'Cuisine - Après travaux.jpeg', sort: 1 },
+        { file: 'Chambre - Après travaux.jpeg', sort: 2 },
+        { file: 'Entrée - Après travaux.jpeg', sort: 3 },
+        { file: 'Salle de bain - Après travaux.jpeg', sort: 4 },
       ],
       avantFiles: [
         { file: 'Chambre - Pendant travaux.jpg', sort: 0 },
@@ -254,10 +253,11 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     photos: {
       scanDir: 'rue-du-prieure/Appartements Rue',
       apresFiles: [
-        { file: 'Séjour - Après travaux.jpeg', sort: 0 },
-        { file: 'Cuisine - Après travaux - 2.jpeg', sort: 1 },
-        { file: 'Chambre - Après travaux 2.jpeg', sort: 2 },
-        { file: 'Salle de bain après travaux.jpeg', sort: 3 },
+        { file: 'Séjour - Après travaux - 2.jpeg', sort: 0 },
+        { file: 'Séjour - Après travaux.jpeg', sort: 1 },
+        { file: 'Cuisine - Après travaux - 2.jpeg', sort: 2 },
+        { file: 'Chambre - Après travaux 2.jpeg', sort: 3 },
+        { file: 'Salle de bain après travaux.jpeg', sort: 4 },
       ],
       avantFiles: [
         { file: 'Chambre - Salle de bain - Avant travaux.jpg', sort: 0 },

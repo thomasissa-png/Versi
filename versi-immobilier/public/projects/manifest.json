@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-26T19:00:40.193Z",
+  "generated_at": "2026-04-26T19:15:26.785Z",
   "projects": {
     "nanterre-barbusse": {
       "hero": "/projects/nanterre-barbusse/photo-01.jpeg",
@@ -75,29 +75,11 @@
         {
           "url": "/projects/friedland-2eme-droite/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "original_filename": "Séjour après rénovation 2.JPG",
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 1,
-          "size_bytes": 389634
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/photo-03.jpeg",
-          "filename": "photo-03.jpeg",
           "original_filename": "Chambre après rénovation.JPG",
           "mime_type": "image/jpeg",
           "category": "apres",
-          "sort_order": 2,
+          "sort_order": 1,
           "size_bytes": 361948
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/photo-04.jpeg",
-          "filename": "photo-04.jpeg",
-          "original_filename": "Séjour après rénovation.JPG",
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 3,
-          "size_bytes": 262575
         },
         {
           "url": "/projects/friedland-2eme-droite/avant-01.jpeg",
@@ -311,37 +293,46 @@
         {
           "url": "/projects/prieure-1er-rue/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "original_filename": "Cuisine - Après travaux.jpeg",
+          "original_filename": "Chambre - Cuisine - Après travaux.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
-          "size_bytes": 307168
+          "size_bytes": 352123
         },
         {
           "url": "/projects/prieure-1er-rue/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "original_filename": "Chambre - Après travaux.jpeg",
+          "original_filename": "Cuisine - Après travaux.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 297829
+          "size_bytes": 307168
         },
         {
           "url": "/projects/prieure-1er-rue/photo-03.jpeg",
           "filename": "photo-03.jpeg",
-          "original_filename": "Entrée - Après travaux.jpeg",
+          "original_filename": "Chambre - Après travaux.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 2,
-          "size_bytes": 213372
+          "size_bytes": 297829
         },
         {
           "url": "/projects/prieure-1er-rue/photo-04.jpeg",
           "filename": "photo-04.jpeg",
-          "original_filename": "Salle de bain - Après travaux.jpeg",
+          "original_filename": "Entrée - Après travaux.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 3,
+          "size_bytes": 213372
+        },
+        {
+          "url": "/projects/prieure-1er-rue/photo-05.jpeg",
+          "filename": "photo-05.jpeg",
+          "original_filename": "Salle de bain - Après travaux.jpeg",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 4,
           "size_bytes": 302987
         },
         {
@@ -411,7 +402,7 @@
         {
           "url": "/projects/prieure-2eme-rue/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "original_filename": "Séjour - Après travaux.jpeg",
+          "original_filename": "Séjour - Après travaux - 2.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
@@ -420,28 +411,37 @@
         {
           "url": "/projects/prieure-2eme-rue/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "original_filename": "Cuisine - Après travaux - 2.jpeg",
+          "original_filename": "Séjour - Après travaux.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 332114
+          "size_bytes": 375395
         },
         {
           "url": "/projects/prieure-2eme-rue/photo-03.jpeg",
           "filename": "photo-03.jpeg",
-          "original_filename": "Chambre - Après travaux 2.jpeg",
+          "original_filename": "Cuisine - Après travaux - 2.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 2,
-          "size_bytes": 352123
+          "size_bytes": 332114
         },
         {
           "url": "/projects/prieure-2eme-rue/photo-04.jpeg",
           "filename": "photo-04.jpeg",
-          "original_filename": "Salle de bain après travaux.jpeg",
+          "original_filename": "Chambre - Après travaux 2.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 3,
+          "size_bytes": 352123
+        },
+        {
+          "url": "/projects/prieure-2eme-rue/photo-05.jpeg",
+          "filename": "photo-05.jpeg",
+          "original_filename": "Salle de bain après travaux.jpeg",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 4,
           "size_bytes": 309305
         },
         {
