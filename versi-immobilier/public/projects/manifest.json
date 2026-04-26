@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-26T18:57:01.049Z",
+  "generated_at": "2026-04-26T19:00:40.193Z",
   "projects": {
     "nanterre-barbusse": {
       "hero": "/projects/nanterre-barbusse/photo-01.jpeg",
@@ -66,20 +66,20 @@
         {
           "url": "/projects/friedland-2eme-droite/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "original_filename": "Séjour après rénovation 2.JPG",
+          "original_filename": "Cuisine après rénovation - louée.jpeg",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
-          "size_bytes": 389634
+          "size_bytes": 329131
         },
         {
           "url": "/projects/friedland-2eme-droite/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "original_filename": "Cuisine après rénovation - louée.jpeg",
+          "original_filename": "Séjour après rénovation 2.JPG",
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 329131
+          "size_bytes": 389634
         },
         {
           "url": "/projects/friedland-2eme-droite/photo-03.jpeg",

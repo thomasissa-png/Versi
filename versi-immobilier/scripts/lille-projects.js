@@ -55,8 +55,8 @@ Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comp
     photos: {
       scanDir: 'rue-de-friedland/2ème Droite',
       apresFiles: [
-        { file: 'Séjour après rénovation 2.JPG', sort: 0 },
-        { file: 'Cuisine après rénovation - louée.jpeg', sort: 1 },
+        { file: 'Cuisine après rénovation - louée.jpeg', sort: 0 },
+        { file: 'Séjour après rénovation 2.JPG', sort: 1 },
         { file: 'Chambre après rénovation.JPG', sort: 2 },
         { file: 'Séjour après rénovation.JPG', sort: 3 },
       ],
