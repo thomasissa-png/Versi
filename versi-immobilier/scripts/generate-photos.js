@@ -127,6 +127,18 @@ async function generateForProject(spec) {
     return { id: safeId, hero: null, photos: [] };
   }
 
+  // Index NFC-normalized des fichiers réellement présents → résout les
+  // problèmes macOS NFD vs NFC (les noms avec é, è, à) au matching.
+  const realFiles = fs.readdirSync(scanDirAbs);
+  const nfcIndex = new Map();
+  for (const f of realFiles) {
+    nfcIndex.set(normalize(f), f);
+  }
+  function resolveFile(srcFilename) {
+    const realName = nfcIndex.get(normalize(srcFilename));
+    return realName ? path.join(scanDirAbs, realName) : null;
+  }
+
   const destDir = path.join(PUBLIC_PROJECTS_DIR, safeId);
   rmDirContentsSync(destDir);
   ensureDirSync(destDir);
@@ -162,8 +174,8 @@ async function generateForProject(spec) {
 
   let writtenApres = 0;
   for (const srcFilename of apres) {
-    const srcPath = path.join(scanDirAbs, srcFilename);
-    if (!fs.existsSync(srcPath)) {
+    const srcPath = resolveFile(srcFilename);
+    if (!srcPath) {
       console.warn(`[generate-photos] Source manquante "${srcFilename}" pour "${safeId}".`);
       continue;
     }
@@ -189,8 +201,8 @@ async function generateForProject(spec) {
 
   let writtenAvant = 0;
   for (const srcFilename of avant) {
-    const srcPath = path.join(scanDirAbs, srcFilename);
-    if (!fs.existsSync(srcPath)) {
+    const srcPath = resolveFile(srcFilename);
+    if (!srcPath) {
       console.warn(`[generate-photos] Source avant manquante "${srcFilename}" pour "${safeId}".`);
       continue;
     }

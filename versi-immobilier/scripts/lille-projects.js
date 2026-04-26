@@ -53,11 +53,18 @@ Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comp
     featured: false,
     sort_order: 10,
     photos: {
-      avantDir: 'rue-de-friedland/2ème Droite',
-      apresDir: 'rue-de-friedland/2ème Droite',
-      // Les fichiers contiennent "avant" ou "après" dans le nom — auto-détection
-      autoDetect: true,
-      hero: 'Cuisine après rénovation - louée.jpeg',
+      scanDir: 'rue-de-friedland/2ème Droite',
+      apresFiles: [
+        { file: 'Séjour après rénovation 2.JPG', sort: 0 },
+        { file: 'Cuisine après rénovation - louée.jpeg', sort: 1 },
+        { file: 'Chambre après rénovation.JPG', sort: 2 },
+        { file: 'Séjour après rénovation.JPG', sort: 3 },
+      ],
+      avantFiles: [
+        { file: 'Séjour avant rénovation.JPG', sort: 0 },
+        { file: 'Cuisine avant rénovation.JPG', sort: 1 },
+        { file: 'Chambre avant rénovation.JPG', sort: 2 },
+      ],
     },
   },
   {
@@ -80,10 +87,18 @@ Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comp
     featured: false,
     sort_order: 11,
     photos: {
-      avantDir: 'rue-de-friedland/2ème gauche',
-      apresDir: 'rue-de-friedland/2ème gauche',
-      autoDetect: true,
-      hero: 'Séjour après travaux 2.jpeg',
+      scanDir: 'rue-de-friedland/2ème gauche',
+      apresFiles: [
+        { file: 'Séjour après travaux 2.jpeg', sort: 0 },
+        { file: 'Cuisine après travaux.jpeg', sort: 1 },
+        { file: 'Chambre après travaux.jpeg', sort: 2 },
+        { file: 'Salle de bain après travaux.jpeg', sort: 3 },
+      ],
+      avantFiles: [
+        { file: 'Séjour avant travaux.jpeg', sort: 0 },
+        { file: 'Cuisine pendant travaux.jpeg', sort: 1 },
+        { file: 'Chambre pendant travaux 4.jpeg', sort: 2 },
+      ],
     },
   },
 
@@ -108,10 +123,17 @@ Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges compr
     featured: false,
     sort_order: 20,
     photos: {
-      avantDir: 'rue-du-prieure/RDC Jardin',
-      apresDir: 'rue-du-prieure/RDC Jardin',
-      autoDetect: true,
-      hero: 'Séjour cuisine après travaux.jpeg',
+      scanDir: 'rue-du-prieure/RDC Jardin',
+      apresFiles: [
+        { file: 'Séjour cuisine après travaux.jpeg', sort: 0 },
+        { file: 'Séjour après travaux.jpeg', sort: 1 },
+        { file: 'Chambre après travaux.jpeg', sort: 2 },
+        { file: 'Salle de bain après travaux.jpeg', sort: 3 },
+      ],
+      avantFiles: [
+        { file: 'Séjour - Avant travaux.jpg', sort: 0 },
+        { file: 'Salle de bain - Avant travaux.jpg', sort: 1 },
+      ],
     },
   },
   {
@@ -134,10 +156,16 @@ Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges compr
     featured: false,
     sort_order: 21,
     photos: {
-      avantDir: 'rue-du-prieure/Appartements Jardin',
-      apresDir: 'rue-du-prieure/Appartements Jardin',
-      autoDetect: true,
-      hero: 'Séjour cuisine - Après travaux - Meublé.jpeg',
+      scanDir: 'rue-du-prieure/Appartements Jardin',
+      apresFiles: [
+        { file: 'Séjour cuisine - Après travaux - Meublé.jpeg', sort: 0 },
+        { file: 'Salle de bain - Après travaux - Meublé.jpeg', sort: 1 },
+        { file: 'Salle de bain - Après travaux .jpeg', sort: 2 },
+      ],
+      avantFiles: [
+        { file: 'Séjour - Avant travaux - 7.jpg', sort: 0 },
+        { file: 'Séjour - Avant travaux 2.jpeg', sort: 1 },
+      ],
     },
   },
   {
@@ -160,10 +188,17 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     featured: false,
     sort_order: 22,
     photos: {
-      avantDir: 'rue-du-prieure/Appartements Rue',
-      apresDir: 'rue-du-prieure/Appartements Rue',
-      autoDetect: true,
-      hero: 'Cuisine - Après travaux.jpeg',
+      scanDir: 'rue-du-prieure/Appartements Rue',
+      apresFiles: [
+        { file: 'Cuisine - Après travaux.jpeg', sort: 0 },
+        { file: 'Chambre - Après travaux.jpeg', sort: 1 },
+        { file: 'Entrée - Après travaux.jpeg', sort: 2 },
+        { file: 'Salle de bain - Après travaux.jpeg', sort: 3 },
+      ],
+      avantFiles: [
+        { file: 'Chambre - Pendant travaux.jpg', sort: 0 },
+        { file: 'Cuisine - Travaux en cours.jpeg', sort: 1 },
+      ],
     },
   },
   {
@@ -186,10 +221,15 @@ Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges compr
     featured: false,
     sort_order: 23,
     photos: {
-      avantDir: 'rue-du-prieure/Appartements Jardin',
-      apresDir: 'rue-du-prieure/Appartements Jardin',
-      autoDetect: true,
-      hero: 'Séjour cuisine - Après travaux - Meublé.jpeg',
+      scanDir: 'rue-du-prieure/Appartements Jardin',
+      apresFiles: [
+        { file: 'Séjour - Après travaux - Meublé.jpeg', sort: 0 },
+        { file: 'Chambre - Après travaux - Meublé.jpeg', sort: 1 },
+      ],
+      avantFiles: [
+        { file: 'Séjour - Avant travaux 3.jpeg', sort: 0 },
+        { file: 'Séjour - Pendant travaux.jpeg', sort: 1 },
+      ],
     },
   },
   {
@@ -212,10 +252,17 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     featured: false,
     sort_order: 24,
     photos: {
-      avantDir: 'rue-du-prieure/Appartements Rue',
-      apresDir: 'rue-du-prieure/Appartements Rue',
-      autoDetect: true,
-      hero: 'Cuisine - Après travaux.jpeg',
+      scanDir: 'rue-du-prieure/Appartements Rue',
+      apresFiles: [
+        { file: 'Séjour - Après travaux.jpeg', sort: 0 },
+        { file: 'Cuisine - Après travaux - 2.jpeg', sort: 1 },
+        { file: 'Chambre - Après travaux 2.jpeg', sort: 2 },
+        { file: 'Salle de bain après travaux.jpeg', sort: 3 },
+      ],
+      avantFiles: [
+        { file: 'Chambre - Salle de bain - Avant travaux.jpg', sort: 0 },
+        { file: 'Séjour - Travaux en cours.jpeg', sort: 1 },
+      ],
     },
   },
   {
@@ -238,10 +285,19 @@ Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comp
     featured: true,
     sort_order: 25,
     photos: {
-      avantDir: 'rue-du-prieure/3ème étage',
-      apresDir: 'rue-du-prieure/3ème étage',
-      autoDetect: true,
-      hero: 'Séjour - Après travaux - Meublé.jpeg',
+      scanDir: 'rue-du-prieure/3ème étage',
+      apresFiles: [
+        { file: 'Séjour - Après travaux - Meublé.jpeg', sort: 0 },
+        { file: 'Séjour - Après travaux 3.jpeg', sort: 1 },
+        { file: 'Chambre - Après travaux.jpeg', sort: 2 },
+        { file: 'Cuisine - Après travaux.jpeg', sort: 3 },
+        { file: 'Salle de bain - Après travaux.jpeg', sort: 4 },
+      ],
+      avantFiles: [
+        { file: 'Séjour - Avant travaux.jpg', sort: 0 },
+        { file: 'Chambre - Avant travaux - 2.jpeg', sort: 1 },
+        { file: 'Salle de bain - En travaux.jpeg', sort: 2 },
+      ],
     },
   },
 ];
