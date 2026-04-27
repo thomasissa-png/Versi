@@ -467,12 +467,12 @@
 
 ## Mémo de reprise — dernière session
 
-### Mémo de reprise versi-s27 → s28
+### Point d'étape versi-s27 (session ACTIVE — pas clôturée)
 
-**Branche dernière clôturée** : `claude/session-recovery-setup-iDOWX` (HEAD `516e343`)
-**Date de clôture** : 2026-04-27
-**Numéro de session** : 27 (session 28 à venir)
-**Statut s27** : CLÔTURÉE — propagation P0/P1 + consolidation framework + 2 livrables agents (script IndexNow + doc architecture R2). 7 commits.
+**Branche en cours** : `claude/session-recovery-setup-iDOWX` (HEAD `c4bb2c9`)
+**Date** : 2026-04-27
+**Numéro de session** : 27 (ACTIVE — Thomas n'a pas validé la clôture)
+**Statut s27** : EN COURS — propagation + 2 livrables agents faits, mais P1 property_photos pas implémenté, P2 IndexNow non exécuté, P3 audit UX non fait. Session continue.
 
 **Résumé session s27 (7 commits, autonomie max après plan A validé)** :
 1. **Propagation P0/P1 s26** (`5a1d99c`) : 11 learnings → "propagé s27" dans `lessons-learned.md`. Section "Règles s26" ajoutée à `_base-agent-protocol.md` (sandbox DNS 503, compléter≠remplacer, audit visuel multimodal Read, archive-first net-zero, reality check visuel BLOQUANT pré-commit). Gate bloquante reprise levée.
