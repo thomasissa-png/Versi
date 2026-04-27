@@ -55,7 +55,7 @@ import {
   polygonBoundingBox,
   type RoomForEnvelope,
 } from "@/lib/vs/envelope-polygon";
-import { shrinkOutlineToRooms } from "@/lib/vs/outline-shrinker";
+import { shrinkOutlinePolygonToRooms } from "@/lib/vs/outline-shrinker";
 import {
   tileRoomsInLot,
   computeTilingMetrics,
@@ -1109,44 +1109,56 @@ export async function POST(
           0
         );
 
-        // ─── s25 P0 — Outline shrinker (pattern s23 technique adjacente) ─
-        // Recalcule zoneData comme tight-bbox des rooms finales (post-tiling,
-        // post-resolver, post-snap). Ignore l'outline IA qui peut déborder
-        // (escalier colimaçon, terrasse — bug P0 Muguets RDC : IA 47m² vs
-        // rooms 44m²). Déterministe, 0 appel IA.
-        const shrunk = shrinkOutlineToRooms(group.rooms);
-        if (shrunk && shrunk.width_percent > 0 && shrunk.height_percent > 0) {
+        // ─── s25 P0 / s27 R3 — Outline shrinker concave (pattern s23) ─
+        // Recalcule zoneData comme polygone concave (alpha-shape) des rooms
+        // finales (post-tiling, post-resolver, post-snap). Ignore l'outline
+        // IA qui peut déborder (escalier colimaçon, terrasse — bug P0 Muguets
+        // RDC : IA 47m² vs rooms 44m²). Déterministe, 0 appel IA.
+        // s27 R3 : on persiste désormais le POLYGONE concave (forme réelle
+        // T/L/U préservée), pas la bbox axis-aligned (audit s27 5.2/10).
+        let shrunkPolygon: Array<{ x_percent: number; y_percent: number }> | null = null;
+        const shrunk = shrinkOutlinePolygonToRooms(group.rooms);
+        if (shrunk && shrunk.bbox.width_percent > 0 && shrunk.bbox.height_percent > 0) {
           const oldArea = zoneData.width_percent * zoneData.height_percent;
-          const newArea = shrunk.width_percent * shrunk.height_percent;
+          const newArea = shrunk.bbox.width_percent * shrunk.bbox.height_percent;
           const oldW = zoneData.width_percent;
           const oldH = zoneData.height_percent;
-          zoneData.x_percent = shrunk.x_percent;
-          zoneData.y_percent = shrunk.y_percent;
-          zoneData.width_percent = shrunk.width_percent;
-          zoneData.height_percent = shrunk.height_percent;
+          zoneData.x_percent = shrunk.bbox.x_percent;
+          zoneData.y_percent = shrunk.bbox.y_percent;
+          zoneData.width_percent = shrunk.bbox.width_percent;
+          zoneData.height_percent = shrunk.bbox.height_percent;
+          if (!shrunk.usedFallbackBBox) {
+            shrunkPolygon = shrunk.polygon;
+          }
           console.log(
             `[outline-shrinker] ${lotName} unit=${group.unitId}: ` +
             `IA bbox ${oldW.toFixed(1)}×${oldH.toFixed(1)}=${oldArea.toFixed(1)}%² → ` +
-            `shrunk ${shrunk.width_percent.toFixed(1)}×${shrunk.height_percent.toFixed(1)}=${newArea.toFixed(1)}%² ` +
-            `(Δ=${(oldArea - newArea).toFixed(1)}%²)`
+            `shrunk ${shrunk.bbox.width_percent.toFixed(1)}×${shrunk.bbox.height_percent.toFixed(1)}=${newArea.toFixed(1)}%² ` +
+            `(Δ=${(oldArea - newArea).toFixed(1)}%²) ` +
+            `polygon=${shrunkPolygon ? `${shrunkPolygon.length}pts` : "fallback-bbox"}`
           );
           // Invalider le polygon d'enveloppe : son bbox peut être plus large
-          // que le shrink (ex: colimaçon inclus). On persiste un rect
+          // que le shrink (ex: colimaçon inclus). On persiste un rect/polygon
           // déterministe plutôt qu'un polygon trop généreux.
           if (envelopePolygon) {
             const envBbox = polygonBoundingBox(envelopePolygon);
             const envArea = envBbox.width_percent * envBbox.height_percent;
             if (envArea > newArea * 1.05) {
               console.log(
-                `[outline-shrinker] ${lotName}: envelope polygon (${envArea.toFixed(1)}%²) > shrunk (${newArea.toFixed(1)}%²), fallback rect`
+                `[outline-shrinker] ${lotName}: envelope polygon (${envArea.toFixed(1)}%²) > shrunk (${newArea.toFixed(1)}%²), fallback shrunk`
               );
               envelopePolygon = null;
             }
           }
         }
 
-        // s24 Passe-4 — zone_data final : polygon si disponible, sinon rect legacy
-        const finalZoneData = envelopePolygon
+        // s24 Passe-4 / s27 R3 — zone_data final :
+        //   1. Priorité au polygon concave shrunk (forme réelle, non débordée)
+        //   2. Sinon, envelope polygon (si pas invalidée par shrink check)
+        //   3. Sinon, rect legacy (bbox)
+        const finalZoneData = shrunkPolygon
+          ? { type: "polygon", points: shrunkPolygon }
+          : envelopePolygon
           ? { type: "polygon", points: envelopePolygon }
           : zoneData;
 
