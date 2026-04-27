@@ -77,18 +77,15 @@
 - **`@orchestrator` = interlocuteur principal de Thomas** pour toute demande, même technique. L'orchestrator décide ensuite qui déléguer (`@fullstack`, `@ia`, `@qa`...). Ne pas inviter Thomas à s'adresser directement à un sous-agent.
 - **Face à un plafond technique** (prompt qui plafonne, algo qui rate), déléguer `@ia` plutôt qu'itérer seul. Cible privilégiée : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API.
 
-### Session s10 — 2026-04-15
-- **Bleu #1B3A5C rejeté** — palette unique pour l'écosystème Versi (charcoal + stone). Pas de couleur d'accent par entité.
+### Décisions identité & branding (s10)
+- **Bleu #1B3A5C rejeté** — palette unique écosystème Versi (charcoal + stone). Pas de couleur d'accent par entité.
 - **Off-market pas systématique** — ne jamais présenter comme promesse principale.
-- **Stats volatiles** — 7 immeubles, 3,2M€ (au 2026-04-15). Toujours utiliser les derniers chiffres fondateur.
-- **Carte T obtenue** — ne plus écrire "en cours d'obtention".
 - **"Thèse" rejeté** — mot trop académique. Préfère "Le regard Versi".
 - **Autonomie = IA end-to-end** — automatisation IA qui génère, audite et publie seule.
-- **Simulateur supprimé** du site V1.
 - **Processus métier = vérité fondateur** — les 8 étapes dictées par Thomas.
-- **Audits sévères exigés** — les notes complaisantes (8-9/10 premier jet) sont inacceptables.
 - **H1 court** — pattern versi.fr "Quatre métiers. Un cycle maîtrisé." 2 lignes max.
 - **Description versi.fr sacrée** — ne pas modifier sans demande explicite.
+- **Stats fondateur volatiles** — toujours utiliser les derniers chiffres communiqués (état s26 : 21 rénovations, 3,2M€).
 
 ### Langue française (session s15)
 - **Zéro anglicisme en copy client-facing = P0 bloquant.** Tout anglicisme visible en surface utilisateur est traité comme une typo majeure ou un contraste WCAG FAIL. Non négociable.
