@@ -101,3 +101,60 @@ Stratégie A en fallback si refus vendor (score 3.6/5).
 Stratégie C rejetée (viole P0 s26, score 1.4/5).
 
 Validation requise sur les 8 points de la section [Hypothèses à valider par Thomas](#5-hypothèses-à-valider-par-thomas) avant ouverture des tasks @fullstack.
+
+---
+
+## 6. Implémentation amont prête (storage adapter agnostique) — s27
+
+Pour ne pas bloquer le pipeline en attendant l'arbitrage Thomas, l'infrastructure **agnostique** est en place. Toute la suite tient en 1-2 tasks @fullstack post-arbitrage (au lieu de 4-5 sans cette préparation).
+
+### Contrat `PhotoStorage` (interface implicite)
+
+Implémenté dans `versi-immobilier/src/lib/photo-storage.js` :
+
+```js
+class PhotoStorage {
+  // upload une photo et retourne sa référence persistable
+  upload(buffer: Buffer, metadata: {
+    propertyId: string,
+    filename: string,
+    mimeType: string,
+    sizeBytes: number,
+    sortOrder: number,
+  }): Promise<{ id, url, key, storageBackend, row }>;
+
+  // supprime la photo (objet + row DB selon backend)
+  delete(key: { id, storageKey? }): Promise<void>;
+
+  // construit une URL servable côté client à partir des métadonnées DB
+  getUrl(key: { id, storageKey?, data?, mimeType? }): string | null;
+}
+```
+
+3 implémentations livrées :
+- **`Base64DbAdapter`** — fonctionnel, wrappe le SQL existant (status quo, default).
+- **`R2Adapter`** — stub Cloudflare R2 (signature complète, lit `R2_ACCESS_KEY_ID/SECRET_ACCESS_KEY/BUCKET/PUBLIC_URL/ENDPOINT`).
+- **`ReplitObjectStorageAdapter`** — stub Replit OS natif (lit `REPLIT_OBJECT_STORAGE_BUCKET_ID`).
+
+Sélection runtime via env var `PHOTO_STORAGE_BACKEND` (`db` | `r2` | `replit-os`, default `db`).
+Migration SQL préparée mais non appliquée : `versi-immobilier/scripts/migrations/002_property_photos_url.sql` (additive — ajoute `url`, `storage_key`, `storage_backend`, garde `data`).
+Tests unitaires : `versi-immobilier/tests/unit/photo-storage.test.js` (9 tests, 100% pass — `node --test`).
+
+### Flow Thomas post-arbitrage (~30 lignes à écrire)
+
+1. **Décide A vs B** sur les 8 hypothèses §5.
+2. **Fournit secrets Replit** :
+   - Stratégie B → `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`, `R2_ENDPOINT`.
+   - Stratégie A → `REPLIT_OBJECT_STORAGE_BUCKET_ID`.
+3. **@fullstack implémente la méthode `upload()` retenue** (~30 lignes : `PutObjectCommand` pour R2, `client.uploadFromBytes` pour Replit OS) + `delete()` symétrique. Stubs déjà en place avec pseudo-code dans `photo-storage.js`.
+4. **@fullstack adapte les routes admin** dans `server.js` (POST/DELETE photos) pour appeler `getPhotoStorage().upload(buffer, metadata)` au lieu du SQL inline. Routes GET retournent `url` au lieu de `data`. (~1 task)
+5. **Bascule env** : `PHOTO_STORAGE_BACKEND=r2` (ou `replit-os`) appliquée + migration `002_property_photos_url.sql` jouée.
+6. **Backfill** : script one-shot itère les rows `storage_backend='db'` existantes, upload vers R2/Replit, met à jour `url` + `storage_key` + `storage_backend`. (~1 task incluse dans la 1).
+7. **Cleanup** : après 1 semaine de stabilité, `ALTER TABLE property_photos DROP COLUMN data`.
+
+### Estimation effort post-arbitrage
+
+- **Sans cette préparation** : 4-5 tasks @fullstack (provisioning, schéma, réécriture 6 routes, migration, backfill, tests, doc).
+- **Avec cette préparation** : **1-2 tasks** @fullstack (implémenter 1 adapter `upload`/`delete` + brancher 6 routes sur `getPhotoStorage()` + script backfill).
+
+Gain : ~60% du travail déjà fait, zéro régression sur le code actuel (mode `db` reste default).
