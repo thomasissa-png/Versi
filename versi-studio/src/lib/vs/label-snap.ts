@@ -339,7 +339,7 @@ export async function detectLabels(
  * Session s25 — Canonicalisation préalable à l'extraction.
  *
  * Problème : quand `VS_PLAN_CANONICALIZE=true`, les polygones IA sont
- * produits dans un espace "canonical" (PNG reformaté par gpt-image-1
+ * produits dans un espace "canonical" (PNG reformaté par gpt-image-2
  * en 1536×1024 avec fit=inside, bandes blanches si aspect ratio ≠).
  * Sur ce canonical, les labels texte peuvent être REFORMULÉS ou
  * simplifiés par le modèle image → OCR Tesseract échoue silencieusement.

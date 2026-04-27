@@ -8,10 +8,13 @@
  *   3. Resize 1536 × 1024 fit:inside, fond blanc (préserve aspect)
  *   4. Dilate léger (blur 0.5 + threshold 200) pour épaissir les traits
  *
- * Ce module est partagé entre :
+ * Ce module est utilisé UNIQUEMENT par :
  *   - `plan-canonicalizer-mock.ts` (mode test E2E sans clé OpenAI, s25 Round A)
- *   - `plan-canonicalizer.ts` (FALLBACK déterministe quand gpt-image-1 échoue,
- *      s27 fix H2 — évite de passer le PDF brut au pipeline aval)
+ *
+ * IMPORTANT s27 : ce pipeline n'est PLUS utilisé en fallback par
+ * `plan-canonicalizer.ts` (décision fondateur Thomas — zéro fallback
+ * déterministe en prod). Le revert des commits 4c70b81 + 0343149 a retiré
+ * `attemptSharpFallback`. Le module reste car il sert au mock E2E.
  *
  * Pattern s24 : import dynamique sharp (évite crash worker Turbopack).
  */

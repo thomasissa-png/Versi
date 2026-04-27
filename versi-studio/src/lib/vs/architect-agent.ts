@@ -6,10 +6,13 @@
  *
  * Flux :
  * 1. gpt-4.1-mini enrichit l'instruction → prompt détaillé
- * 2. gpt-image-1 (Images API — edit) génère la nouvelle version
+ * 2. gpt-image-2 (Images API — edit) génère la nouvelle version
  *
- * Note versi-s22 : migré de responses.create + gpt-image-1.5 vers
- * images.edit + gpt-image-1 car le modèle n'est pas supporté via Responses API.
+ * Migration s27 : gpt-image-1 → gpt-image-2 (lancé 2026-04-21).
+ * Décision fondateur Thomas : gpt-image-2 exclusivement, aucun fallback.
+ *
+ * Note versi-s22 historique : responses.create() ne supporte pas
+ * la génération d'images. On utilise images.edit().
  */
 import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
@@ -85,7 +88,7 @@ ${structuralConstraint}
 - Photorealistic interior design photograph quality.
 - No text, watermark, or overlay on the image.${surfaceM2 ? `\n- Room is approximately ${surfaceM2}m².` : ""}`;
 
-  // Étape 2 : Générer la nouvelle version via gpt-image-1 (Images API)
+  // Étape 2 : Générer la nouvelle version via gpt-image-2 (Images API)
   // Premier essai
   try {
     const imageBase64 = await callIterationGeneration(openai, currentVisualBase64, mimeType, finalPrompt);
@@ -113,7 +116,7 @@ ${structuralConstraint}
   }
 }
 
-// ─── Appel gpt-image-1 (Images API — edit) pour itération ─────────
+// ─── Appel gpt-image-2 (Images API — edit) pour itération ─────────
 
 async function callIterationGeneration(
   openai: OpenAI,
@@ -126,7 +129,7 @@ async function callIterationGeneration(
   const imageFile = await toFile(imageBuffer, `visual.${ext}`, { type: mimeType });
 
   const response = await openai.images.edit({
-    model: "gpt-image-1",
+    model: "gpt-image-2",
     image: imageFile,
     prompt,
     quality: "high",
@@ -135,7 +138,7 @@ async function callIterationGeneration(
 
   const imageData = response.data?.[0];
   if (!imageData?.b64_json) {
-    throw new Error("Résultat image vide dans la réponse gpt-image-1");
+    throw new Error("Résultat image vide dans la réponse gpt-image-2");
   }
   return imageData.b64_json;
 }

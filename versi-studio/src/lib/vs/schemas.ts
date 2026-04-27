@@ -370,7 +370,7 @@ export const EnrichedPromptSchema = z.object({
   enriched_prompt: z
     .string()
     .min(10)
-    .describe("Prompt enrichi pour gpt-image-1.5"),
+    .describe("Prompt enrichi pour gpt-image-2"),
   interpretation: z
     .string()
     .describe("Reformulation de la demande de l'utilisateur"),

@@ -1,9 +1,12 @@
 /**
- * Génération de visuels post-travaux via gpt-image-1 (Images API — edit).
+ * Génération de visuels post-travaux via gpt-image-2 (Images API — edit).
  *
- * Note versi-s22 : ni gpt-image-1.5 ni gpt-image-1 ne fonctionnent via
- * openai.responses.create. La seule API qui fonctionne est openai.images.edit
- * avec model="gpt-image-1". Migration vers gpt-image-1.5 quand supporté.
+ * Migration s27 : gpt-image-1 → gpt-image-2 (lancé 2026-04-21, GA OpenAI).
+ * gpt-image-1 sera retiré le 2026-05-12. Décision fondateur Thomas s27 :
+ * gpt-image-2 exclusivement, aucun fallback de modèle.
+ *
+ * Note versi-s22 historique : openai.responses.create() ne supporte pas
+ * la génération d'images (erreur silencieuse). On utilise images.edit().
  *
  * Input : photo brute (base64), style de décoration, infos pièce
  * Output : image générée (base64) + prompt utilisé
@@ -29,7 +32,7 @@ export interface VisualGenerationResult {
 // ─── Prompt builder ────────────────────────────────────────────────
 
 /**
- * Construit le prompt de génération pour gpt-image-1.5.
+ * Construit le prompt de génération pour gpt-image-2.
  * Le prompt doit :
  * - Décrire la transformation de la pièce brute en pièce meublée
  * - Respecter le style choisi (utiliser style.prompt_hint de styles.ts)
@@ -134,7 +137,7 @@ export async function generateVisual(
   }
 }
 
-// ─── Appel gpt-image-1 (Images API — edit) ───────────────────────
+// ─── Appel gpt-image-2 (Images API — edit) ───────────────────────
 
 async function callImageGeneration(
   openai: OpenAI,
@@ -148,17 +151,17 @@ async function callImageGeneration(
   const imageFile = await toFile(photoBuffer, `photo.${ext}`, { type: mimeType });
 
   const response = await openai.images.edit({
-    model: "gpt-image-1",
+    model: "gpt-image-2",
     image: imageFile,
     prompt,
     quality: "high",
     size: "auto",
   });
 
-  // Extraire l'image générée (b64_json par défaut pour gpt-image-1)
+  // Extraire l'image générée (b64_json par défaut pour gpt-image-2)
   const imageData = response.data?.[0];
   if (!imageData?.b64_json) {
-    throw new Error("Résultat image vide dans la réponse gpt-image-1");
+    throw new Error("Résultat image vide dans la réponse gpt-image-2");
   }
   return imageData.b64_json;
 }
@@ -172,7 +175,7 @@ async function callImageGeneration(
  * @param instruction - L'instruction brute de l'utilisateur
  * @param styleId - Le style actif
  * @param roomType - Le type de pièce
- * @returns Le prompt enrichi pour gpt-image-1.5
+ * @returns Le prompt enrichi pour gpt-image-2
  */
 export async function enrichPromptForIteration(
   instruction: string,

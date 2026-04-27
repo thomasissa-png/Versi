@@ -1,18 +1,25 @@
 /**
- * Versi Studio — Plan Canonicalizer (s25)
+ * Versi Studio — Plan Canonicalizer (s25, refonte s27)
  *
  * Canonicalise un plan architectural hétérogène en PNG noir sur blanc épuré
- * via gpt-image-1 (openai.images.edit). Prépass consommée par le pipeline
+ * via gpt-image-2 (openai.images.edit). Prépass consommée par le pipeline
  * extract aval. Feature flag VS_PLAN_CANONICALIZE gouverne l'activation
  * côté route — cette lib est toujours appelable et fallback silencieusement.
  *
  * Pattern s22 : JAMAIS openai.responses.create() (erreur silencieuse prod).
  * Pattern s24 : import dynamique sharp + OpenAI (évite Turbopack crash).
  *
+ * Décision fondateur s27 : ZÉRO fallback automatique.
+ *  - PAS de modèle de secours (gpt-image-1 deprecated, retiré 2026-05-12)
+ *  - PAS de pipeline sharp local en filet (revert commits 4c70b81 + 0343149)
+ *  - Si gpt-image-2 échoue → buffer original + fallback=true + reason typée.
+ *  - Le mock `plan-canonicalizer-mock.ts` reste utilisable hors prod via
+ *    VS_USE_MOCK_CANONICAL=true (chemin distinct, pas un fallback).
+ *
  * Contrat public :
  *   canonicalizePlan(buf, opts?) → { canonical, duration, fallback, ... }
  *   - Jamais throw : tout échec → fallback silencieux avec reason typée
- *   - Timeout par défaut 45s (configurable via opts.timeoutMs)
+ *   - Timeout par défaut 90s (configurable via opts.timeoutMs)
  *   - Gates G1-G4 post-pipeline : si ≥2 FAIL → fallback vers buffer original
  *
  * Logs structurés JSON préfixés [plan-canonicalizer] pour parsing prod.
@@ -24,24 +31,10 @@ import {
   CANONICAL_PROMPT_VERSION,
   CANONICAL_IMAGE_PARAMS,
   CANONICAL_PRIMARY_MODEL,
-  CANONICAL_FALLBACK_MODEL,
   CANONICAL_DOWNSAMPLE_MAX_WIDTH,
 } from "./prompts/canonical";
-import {
-  runSharpCanonicalPipeline,
-  withSharpTimeout,
-} from "./plan-canonicalizer-sharp";
 
-/**
- * Version du pipeline sharp utilisé en fallback déterministe (s27 fix H2).
- * Bumper à chaque évolution du pipeline pour traçabilité DB.
- */
-const SHARP_FALLBACK_VERSION = "sharp-fallback-v1" as const;
-const SHARP_FALLBACK_TIMEOUT_MS = 15_000;
-
-export type CanonicalizeModel =
-  | typeof CANONICAL_PRIMARY_MODEL
-  | typeof CANONICAL_FALLBACK_MODEL;
+export type CanonicalizeModel = typeof CANONICAL_PRIMARY_MODEL;
 
 // ─── Types publics ─────────────────────────────────────────────────
 
@@ -49,6 +42,7 @@ export type CanonicalizeFallbackReason =
   | "timeout"
   | "api_error"
   | "org_not_verified"
+  | "model_not_found"
   | "gate_fail"
   | "flag_off"
   | "empty_input";
@@ -62,10 +56,10 @@ export interface CanonicalizeResult {
   fallback: boolean;
   /** Raison du fallback (absent si fallback=false). */
   fallbackReason?: CanonicalizeFallbackReason;
-  /** Modèle IA utilisé (primaire ou fallback sharp local). */
-  model: CanonicalizeModel | "sharp-fallback";
-  /** Version du prompt (ou pipeline sharp) pour traçabilité DB. */
-  promptVersion: typeof CANONICAL_PROMPT_VERSION | typeof SHARP_FALLBACK_VERSION;
+  /** Modèle IA utilisé (toujours gpt-image-2 — pas de fallback de modèle). */
+  model: CanonicalizeModel;
+  /** Version du prompt pour traçabilité DB. */
+  promptVersion: typeof CANONICAL_PROMPT_VERSION;
   /** Hash SHA-256 de l'input (idempotence / dedup). */
   inputHash: string;
   /** Hash SHA-256 de l'output retourné (canonical OU original si fallback). */
@@ -75,7 +69,7 @@ export interface CanonicalizeResult {
 }
 
 export interface CanonicalizeOptions {
-  /** Timeout de l'appel API en ms. Défaut 45 000 (45s). */
+  /** Timeout de l'appel API en ms. Défaut 90 000 (90s). */
   timeoutMs?: number;
   /** AbortSignal externe pour annulation coordonnée. */
   signal?: AbortSignal;
@@ -123,26 +117,42 @@ function parseOpenAIError(err: unknown): OpenAIErrorDetail {
  * Certaines erreurs OpenAI ne doivent PAS être retry :
  *  - 401/403 (clé invalide, org non vérifiée — retry inutile)
  *  - 400 (payload invalide, retry inutile)
+ *  - 404 / model_not_found (gpt-image-2 indisponible — retry inutile, signal direct)
  *  - Tout 2xx (impossible en branche erreur) ou code 'content_policy_violation'
  * Les autres (5xx, timeout, erreurs réseau) sont transientes.
  */
 function isRetryable(detail: OpenAIErrorDetail): boolean {
-  if (detail.status === 400 || detail.status === 401 || detail.status === 403) {
+  if (
+    detail.status === 400 ||
+    detail.status === 401 ||
+    detail.status === 403 ||
+    detail.status === 404
+  ) {
     return false;
   }
+  if (detail.code === "model_not_found") return false;
   if (detail.code === "content_policy_violation") return false;
   return true;
 }
 
 /**
- * Détecte le cas spécifique "organisation OpenAI non vérifiée pour gpt-image-1"
- * (H1 diagnostic s25 — 60% des fallbacks en prod). Message type :
+ * Détecte le cas spécifique "organisation OpenAI non vérifiée pour gpt-image-2"
+ * (équivalent du diagnostic H1 s25 sur gpt-image-1). Message type :
  *   "Your organization must be verified to use the model..."
  */
 function isOrgNotVerified(detail: OpenAIErrorDetail): boolean {
   if (detail.status !== 403) return false;
   const msg = detail.message.toLowerCase();
   return msg.includes("organization") && msg.includes("verif");
+}
+
+/**
+ * Détecte le cas "modèle gpt-image-2 introuvable" (org pas encore éligible
+ * au modèle, ou typo). Ne devrait JAMAIS arriver en prod si l'org Thomas
+ * a bien gpt-image-2 activé — Thomas l'a confirmé s26.
+ */
+function isModelNotFound(detail: OpenAIErrorDetail): boolean {
+  return detail.status === 404 || detail.code === "model_not_found";
 }
 
 function sleep(ms: number): Promise<void> {
@@ -192,7 +202,6 @@ async function callOpenAIImagesEdit(
   inputBuf: Buffer,
   timeoutMs: number,
   externalSignal?: AbortSignal,
-  model: CanonicalizeModel = CANONICAL_PRIMARY_MODEL,
 ): Promise<Buffer> {
   const { default: OpenAI, toFile } = await import("openai");
 
@@ -216,7 +225,7 @@ async function callOpenAIImagesEdit(
     const file = await toFile(inputBuf, "plan.png", { type: "image/png" });
     const response = await client.images.edit(
       {
-        model,
+        model: CANONICAL_PRIMARY_MODEL,
         image: file,
         prompt: CANONICAL_PROMPT_V1,
         size: CANONICAL_IMAGE_PARAMS.size,
@@ -302,63 +311,18 @@ function countFailedGates(g: { g1: boolean; g2: boolean; g3: boolean; g4: boolea
   return [g.g1, g.g2, g.g3, g.g4].filter((v) => !v).length;
 }
 
-/**
- * Tente le pipeline sharp local comme fallback déterministe (s27 fix H2).
- * Évite de passer le PDF brut (ou un canonical "gate-failed") au pipeline aval
- * — GPT-4.1 Vision détecte mal les murs sur un PDF brut, dégradant tout
- * le flux extract / room-tiling / outline-shrinker.
- *
- * Retourne `null` si le pipeline sharp échoue (très improbable en pratique :
- * sharp + pdf-to-img sont 100 % locaux et ne dépendent pas du réseau).
- * Le caller doit alors revenir au fallback original (buffer source).
- */
-async function attemptSharpFallback(
-  sourceBuf: Buffer,
-  originalReason: CanonicalizeFallbackReason,
-  startedAt: number,
-): Promise<Buffer | null> {
-  const sharpStarted = Date.now();
-  try {
-    const out = await withSharpTimeout(
-      runSharpCanonicalPipeline(sourceBuf),
-      SHARP_FALLBACK_TIMEOUT_MS,
-    );
-    if (!out || out.length === 0) {
-      return null;
-    }
-    const sharpDuration = Date.now() - sharpStarted;
-    // Log explicite demandé par l'audit s27 — visibilité prod pour
-    // distinguer "vrai fallback PDF brut" de "fallback sharp local OK".
-    console.log(
-      `[canonicalizer] gpt-image-1 fallback (${originalReason}) → ${SHARP_FALLBACK_VERSION} OK (${sharpDuration}ms)`,
-    );
-    logEvent("sharp_fallback_success", {
-      original_reason: originalReason,
-      sharp_duration_ms: sharpDuration,
-      total_duration_ms: Date.now() - startedAt,
-      bytes_out: out.length,
-      sharp_version: SHARP_FALLBACK_VERSION,
-    });
-    return out;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logEvent("sharp_fallback_error", {
-      original_reason: originalReason,
-      sharp_duration_ms: Date.now() - sharpStarted,
-      error: msg,
-      sharp_version: SHARP_FALLBACK_VERSION,
-    });
-    return null;
-  }
-}
-
 // ─── API publique ──────────────────────────────────────────────────
 
 /**
- * Canonicalise un plan en PNG noir sur blanc via gpt-image-1.
+ * Canonicalise un plan en PNG noir sur blanc via gpt-image-2.
  *
  * Ne throw JAMAIS : tout échec (timeout, API error, gates FAIL) retourne
  * le buffer original avec `fallback=true` + `fallbackReason` typée.
+ *
+ * Décision fondateur s27 : aucun pipeline de secours déterministe (sharp).
+ * Si gpt-image-2 échoue, le caller (route extract) reçoit `fallback=true`
+ * et continue sur le PDF brut. Le diagnostic est immédiat (logs structurés)
+ * et on corrige côté API/org settings, pas via une béquille en prod.
  *
  * Idempotent par hash : même input → même output (côté caller via cache DB
  * sur `canonicalized_image_path`, pas côté librairie).
@@ -370,8 +334,6 @@ export async function canonicalizePlan(
   const started = Date.now();
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const inputHash = sha256(buf);
-  // Modèle effectivement utilisé (bascule sur FALLBACK si PRIMARY renvoie model_not_found)
-  let modelUsed: CanonicalizeModel = CANONICAL_PRIMARY_MODEL;
 
   if (!buf || buf.length === 0) {
     logEvent("fallback", { reason: "empty_input", inputHash });
@@ -380,7 +342,7 @@ export async function canonicalizePlan(
       duration: Date.now() - started,
       fallback: true,
       fallbackReason: "empty_input",
-      model: modelUsed,
+      model: CANONICAL_PRIMARY_MODEL,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash: inputHash,
@@ -401,35 +363,13 @@ export async function canonicalizePlan(
           prepared,
           timeoutMs,
           opts.signal,
-          modelUsed,
         );
         break; // succès
       } catch (err) {
         const detail = parseOpenAIError(err);
         lastErrorDetail = detail;
 
-        // Bascule automatique PRIMARY → FALLBACK si le modèle primaire n'existe pas
-        // (org pas éligible à gpt-image-2, ou modèle retiré). Pas un "retry" classique.
-        if (
-          modelUsed === CANONICAL_PRIMARY_MODEL &&
-          (detail.status === 404 || detail.code === "model_not_found")
-        ) {
-          logEvent("retry", {
-            attempt,
-            next_backoff_ms: 0,
-            api_status: detail.status,
-            api_code: detail.code,
-            api_type: detail.type,
-            error: `${CANONICAL_PRIMARY_MODEL} not available, falling back to ${CANONICAL_FALLBACK_MODEL}`,
-            input_bytes: inputBytes,
-            timeout_ms: timeoutMs,
-            prompt_version: CANONICAL_PROMPT_VERSION,
-          });
-          modelUsed = CANONICAL_FALLBACK_MODEL;
-          continue; // re-essaye immédiatement avec fallback (même attempt)
-        }
-
-        // Non-retryable : on sort immédiatement vers le fallback
+        // Non-retryable : on sort immédiatement vers le fallback (buffer original)
         if (!isRetryable(detail)) {
           throw err;
         }
@@ -474,29 +414,14 @@ export async function canonicalizePlan(
         prompt_version: CANONICAL_PROMPT_VERSION,
       });
 
-      // s27 fix H2 : tenter le pipeline sharp local AVANT de revenir au buffer brut.
-      const sharpOut = await attemptSharpFallback(buf, "gate_fail", started);
-      if (sharpOut) {
-        return {
-          canonical: sharpOut,
-          duration: Date.now() - started,
-          fallback: false,
-          model: "sharp-fallback",
-          promptVersion: SHARP_FALLBACK_VERSION,
-          inputHash,
-          outputHash: sha256(sharpOut),
-          gates: { g1: true, g2: true, g3: true, g4: true },
-        };
-      }
-
-      // Sharp a échoué aussi (très improbable) → buffer original.
+      // s27 : pas de pipeline sharp en filet — buffer original direct.
       const outputHash = sha256(buf);
       return {
         canonical: buf,
         duration: Date.now() - started,
         fallback: true,
         fallbackReason: "gate_fail",
-        model: modelUsed,
+        model: CANONICAL_PRIMARY_MODEL,
         promptVersion: CANONICAL_PROMPT_VERSION,
         inputHash,
         outputHash,
@@ -519,7 +444,7 @@ export async function canonicalizePlan(
       canonical: canonicalBuf,
       duration: Date.now() - started,
       fallback: false,
-      model: modelUsed,
+      model: CANONICAL_PRIMARY_MODEL,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash,
@@ -531,9 +456,11 @@ export async function canonicalizePlan(
     const isTimeout = /timeout|aborted/i.test(msg);
     const reason: CanonicalizeFallbackReason = isTimeout
       ? "timeout"
-      : isOrgNotVerified(detail)
-        ? "org_not_verified"
-        : "api_error";
+      : isModelNotFound(detail)
+        ? "model_not_found"
+        : isOrgNotVerified(detail)
+          ? "org_not_verified"
+          : "api_error";
     // console.error pour les fallbacks (visibilité prod) — logs structurés.
     try {
       console.error(
@@ -554,30 +481,14 @@ export async function canonicalizePlan(
       // noop — logging ne doit jamais casser le pipeline
     }
 
-    // s27 fix H2 : tenter le pipeline sharp local AVANT de retourner le buffer brut.
-    // Évite de passer un PDF brut au pipeline aval (mauvaise détection murs).
-    const sharpOut = await attemptSharpFallback(buf, reason, started);
-    if (sharpOut) {
-      return {
-        canonical: sharpOut,
-        duration: Date.now() - started,
-        fallback: false,
-        model: "sharp-fallback",
-        promptVersion: SHARP_FALLBACK_VERSION,
-        inputHash,
-        outputHash: sha256(sharpOut),
-        gates: { g1: true, g2: true, g3: true, g4: true },
-      };
-    }
-
-    // Sharp a échoué aussi (très improbable) → buffer original.
+    // s27 : pas de pipeline sharp en filet — buffer original direct.
     const outputHash = sha256(buf);
     return {
       canonical: buf,
       duration: Date.now() - started,
       fallback: true,
       fallbackReason: reason,
-      model: modelUsed,
+      model: CANONICAL_PRIMARY_MODEL,
       promptVersion: CANONICAL_PROMPT_VERSION,
       inputHash,
       outputHash,

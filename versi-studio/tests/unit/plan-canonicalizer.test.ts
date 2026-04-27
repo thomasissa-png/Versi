@@ -1,8 +1,11 @@
 /**
- * Tests unitaires — plan-canonicalizer (s25)
+ * Tests unitaires — plan-canonicalizer (s25, refonte s27)
  *
  * Mock OpenAI + sharp via vi.mock pour tester uniquement la logique :
  * timeout, api_error, idempotence par hash, gate_fail ≥ 2 → fallback.
+ *
+ * Décision fondateur s27 : ZÉRO fallback automatique (ni sharp, ni autre
+ * modèle). Si gpt-image-2 échoue → buffer original + fallback=true.
  *
  * Les tests ne tapent JAMAIS l'API OpenAI réelle (c'est le rôle de @qa
  * en reality check E2E Phase 2 step 3).
@@ -26,9 +29,6 @@ vi.mock("sharp", () => {
       resize: () => self,
       png: () => self,
       raw: () => self,
-      greyscale: () => self, // s27 : sharp fallback pipeline
-      threshold: () => self, // s27
-      blur: () => self,      // s27
       toBuffer: async (opts?: { resolveWithObject?: boolean }) => {
         if (opts?.resolveWithObject) {
           const w = 10;
@@ -174,54 +174,57 @@ describe("canonicalizePlan — happy path", () => {
   });
 });
 
-describe("canonicalizePlan — fallback sharp local (s27 fix H2)", () => {
-  // Comportement s27 : quand l'API gpt-image-1 échoue (timeout, error, gate_fail),
-  // le pipeline tente AUTOMATIQUEMENT le pipeline sharp local avant de revenir
-  // au buffer brut. Si sharp réussit (cas nominal), `fallback=false` et
-  // `model="sharp-fallback"`. Le PDF brut n'est plus passé au pipeline aval.
+describe("canonicalizePlan — fallback (s27 : zéro pipeline sharp)", () => {
+  // Décision fondateur s27 : pas de pipeline sharp en filet.
+  // Si l'API gpt-image-2 échoue → buffer original avec fallback=true et
+  // fallbackReason typée. Le pipeline aval reçoit le PDF brut et continue.
 
-  it("timeout → sharp fallback OK avec model=sharp-fallback", async () => {
+  it("timeout → fallback=true, reason=timeout, buffer original", async () => {
     openAIControl.mode = "timeout";
     openAIControl.delayMs = 5_000; // jamais résolu
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 50 });
-    expect(res.fallback).toBe(false);
-    expect(res.model).toBe("sharp-fallback");
-    expect(res.promptVersion).toBe("sharp-fallback-v1");
-    expect(res.canonical.length).toBeGreaterThan(0);
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("timeout");
+    expect(res.model).toBe("gpt-image-2");
+    expect(res.canonical).toEqual(input); // buffer original
   });
 
-  it("erreur API → sharp fallback OK avec model=sharp-fallback", async () => {
+  it("erreur API 5xx → fallback=true, reason=api_error", async () => {
     openAIControl.mode = "error";
+    openAIControl.errorStatus = 500;
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false);
-    expect(res.model).toBe("sharp-fallback");
-    expect(res.promptVersion).toBe("sharp-fallback-v1");
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(res.model).toBe("gpt-image-2");
+    expect(res.canonical).toEqual(input);
   });
 
-  it("gates ≥ 2 FAIL → sharp fallback OK avec model=sharp-fallback", async () => {
-    // forceGateFail → image tout noire : ≥ 2 gates FAIL → sharp fallback déclenché.
+  it("gates ≥ 2 FAIL → fallback=true, reason=gate_fail", async () => {
     sharpControl.forceGateFail = true;
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false);
-    expect(res.model).toBe("sharp-fallback");
-    expect(res.promptVersion).toBe("sharp-fallback-v1");
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("gate_fail");
+    expect(res.model).toBe("gpt-image-2");
+    expect(res.gates).toBeDefined();
+    expect(res.canonical).toEqual(input);
   });
 
-  it("input vide → fallback immédiat avec reason=empty_input (pas de sharp)", async () => {
+  it("input vide → fallback immédiat avec reason=empty_input", async () => {
     const res = await canonicalizePlan(Buffer.alloc(0));
     expect(res.fallback).toBe(true);
     expect(res.fallbackReason).toBe("empty_input");
   });
 
-  it("clé API placeholder → sharp fallback OK avec model=sharp-fallback", async () => {
+  it("clé API placeholder → fallback=true, reason=api_error", async () => {
     process.env.OPENAI_API_KEY = "sk-placeholder-dev";
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false);
-    expect(res.model).toBe("sharp-fallback");
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(res.canonical).toEqual(input);
   });
 });
 
@@ -296,54 +299,48 @@ describe("canonicalizePlan — retry policy", () => {
     expect(res.canonical).not.toEqual(input); // buffer canonique, pas original
   });
 
-  it("retry 2x puis sharp fallback si toujours KO (s27)", async () => {
+  it("retry 2x puis fallback=true si toujours KO (s27 : pas de sharp)", async () => {
     openAIControl.mode = "transient-then-ok";
     openAIControl.errorCount = 10; // toujours KO
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false); // sharp fallback réussit
-    expect(res.model).toBe("sharp-fallback");
-    expect(openAIControl.attempts).toBe(3); // s'arrête à 3 tentatives API
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(res.model).toBe("gpt-image-2");
+    expect(openAIControl.attempts).toBe(3); // 3 tentatives API
   });
 
-  it("skip retry on 401 (unauthorized) → sharp fallback (s27)", async () => {
+  it("skip retry on 401 (unauthorized) → fallback immédiat", async () => {
     openAIControl.mode = "error";
     openAIControl.errorStatus = 401;
     openAIControl.errorMessage = "Invalid API key";
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false); // sharp fallback réussit
-    expect(res.model).toBe("sharp-fallback");
-    expect(openAIControl.attempts).toBe(1); // 1 tentative seulement, pas de retry API
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("api_error");
+    expect(openAIControl.attempts).toBe(1); // 1 tentative seulement, pas de retry
   });
 
-  it("skip retry on 403 → sharp fallback (s27)", async () => {
+  it("skip retry on 403 (org not verified) → fallback=true reason=org_not_verified", async () => {
     openAIControl.mode = "error";
     openAIControl.errorStatus = 403;
     openAIControl.errorMessage =
-      "Your organization must be verified to use the model gpt-image-1.";
+      "Your organization must be verified to use the model gpt-image-2.";
     const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false); // sharp fallback réussit
-    expect(res.model).toBe("sharp-fallback");
-    expect(openAIControl.attempts).toBe(1); // pas de retry sur 403
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("org_not_verified");
+    expect(openAIControl.attempts).toBe(1);
   });
-});
 
-// ─── Sharp fallback (s27 fix H2) ───────────────────────────────────
-
-describe("canonicalizePlan — sharp fallback détaillé (s27)", () => {
-  it("API échoue → sharp réussit → fallback=false, buffer non-vide", async () => {
+  it("skip retry on 404 (model_not_found) → fallback=true reason=model_not_found", async () => {
     openAIControl.mode = "error";
-    openAIControl.errorStatus = 500;
-    const input = makeBuffer(2048, 0x42);
+    openAIControl.errorStatus = 404;
+    openAIControl.errorMessage = "Model gpt-image-2 not found";
+    const input = makeBuffer();
     const res = await canonicalizePlan(input, { timeoutMs: 500 });
-    expect(res.fallback).toBe(false);
-    expect(res.model).toBe("sharp-fallback");
-    expect(res.promptVersion).toBe("sharp-fallback-v1");
-    expect(res.canonical).toBeInstanceOf(Buffer);
-    expect(res.canonical.length).toBeGreaterThan(0);
-    // Tous les gates marqués PASS pour le sharp fallback (déterministe)
-    expect(res.gates).toEqual({ g1: true, g2: true, g3: true, g4: true });
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("model_not_found");
+    expect(openAIControl.attempts).toBe(1);
   });
 });

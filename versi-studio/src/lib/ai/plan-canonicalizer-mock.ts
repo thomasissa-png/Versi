@@ -66,8 +66,10 @@ function logEvent(event: string, payload: Record<string, unknown>): void {
 /**
  * Mock de `canonicalizePlan()` — ne throw JAMAIS, fallback silencieux.
  *
- * Le pipeline sharp est mutualisé via `plan-canonicalizer-sharp.ts`
- * (également utilisé par `plan-canonicalizer.ts` en fallback déterministe s27).
+ * Le pipeline sharp est exposé via `plan-canonicalizer-sharp.ts`.
+ * IMPORTANT s27 : ce pipeline n'est PLUS utilisé en fallback par
+ * `plan-canonicalizer.ts` (décision Thomas — zéro fallback déterministe).
+ * Il reste utilisé UNIQUEMENT par ce mock, pour les tests E2E hors prod.
  */
 export async function canonicalizePlanMock(
   buf: Buffer,

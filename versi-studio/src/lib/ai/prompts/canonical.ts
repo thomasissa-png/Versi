@@ -7,11 +7,16 @@
  *
  * Source validée : docs/ia/prompt-library.md § CANONICAL_PROMPT_V1.
  * Modèle cible : gpt-image-2 via openai.images.edit() (PAS responses.create()).
- * Fallback : gpt-image-1 si l'org n'a pas encore accès à gpt-image-2.
+ *
+ * Décision Thomas s27 : aucun fallback (ni autre modèle, ni pipeline sharp local).
+ * Si gpt-image-2 échoue → on retourne le buffer original avec fallback=true,
+ * et le pipeline aval continue sur le PDF brut. "Je veux que ça marche bien
+ * c'est tout" — pas de béquille déterministe qui masque les vrais échecs.
+ *
  * Toute modification du texte DOIT bumper CANONICAL_PROMPT_VERSION.
  */
 
-export const CANONICAL_PROMPT_VERSION = "1.0" as const;
+export const CANONICAL_PROMPT_VERSION = "1.1" as const;
 
 export const CANONICAL_PROMPT_V1 = `Redraw this architectural floor plan as a clean, precise vector-style technical diagram. Preserve the source geometry exactly — this is a faithful redraw, NOT a creative reinterpretation.
 
@@ -51,28 +56,31 @@ export const CANONICAL_PROMPT_V1 = `Redraw this architectural floor plan as a cl
 Output: A single top-down 2D floor plan, orthogonal projection, A4 landscape proportions (ratio ~1.41:1), filling the canvas with minimal white margin (max 50px border).`;
 
 /**
- * Modèle primaire : gpt-image-2 (lancé 2026-04-21, remplace gpt-image-1).
- * Hyperparamètres partagés entre primaire et fallback (size/quality/format
- * supportés identiquement par les 2 modèles — confirmé docs OpenAI avril 2026).
+ * Modèle unique : gpt-image-2 (lancé 2026-04-21, GA Azure & OpenAI direct).
+ *
+ * Décision fondateur Thomas s27 : aucun fallback de modèle. gpt-image-1 est
+ * deprecated (retrait DALL-E 2/3 le 2026-05-12) et le projet doit utiliser
+ * gpt-image-2 exclusivement. Si l'org n'est pas éligible → erreur visible,
+ * on diagnostique et on corrige côté OpenAI org settings, pas en prod.
+ *
+ * Source : OpenAI docs avril 2026 — gpt-image-2 supporte size flexible
+ * (multiples de 16, ≤ 3840px, aspect ratio ≤ 3:1, pixels 655k-8.3M),
+ * quality low/medium/high/auto, output_format png/jpeg/webp,
+ * background opaque/auto (PAS de transparent).
  */
 export const CANONICAL_PRIMARY_MODEL = "gpt-image-2" as const;
 
 /**
- * Modèle de fallback si gpt-image-2 retourne 404 / model_not_found
- * (organisation pas encore éligible au nouveau modèle).
- * Note : gpt-image-1 peut être retiré par OpenAI à tout moment — si retiré,
- * bumper CANONICAL_PROMPT_VERSION et retirer ce fallback.
- */
-export const CANONICAL_FALLBACK_MODEL = "gpt-image-1" as const;
-
-/**
- * Hyperparamètres images.edit() pour CANONICAL_PRIMARY_MODEL.
+ * Hyperparamètres images.edit() pour gpt-image-2.
  *
- * Note s25 (avril 2026) : gpt-image-2 supporte les mêmes tailles paysage que
- * gpt-image-1 (1024x1024, 1536x1024, 1024x1536). Quality tiers étendus à
- * low/medium/high/auto. On garde `high` + `1536x1024` pour cohérence A4.
- * Breaking : gpt-image-2 NE supporte PAS `background: "transparent"`
- * (on utilise "opaque" → OK).
+ * - size 1536×1024 : ratio 3:2 (cohérent A4 landscape), multiples de 16,
+ *   pixels 1.572M (entre 655k et 8.29M) → OK.
+ * - quality high : qualité maximale (le canonical est consommé par GPT-4.1
+ *   Vision aval, on ne peut pas se permettre de pertes de détail).
+ * - output_format png : format lossless (WebP introduirait du bruit sur
+ *   les traits 1-pixel des arcs de portes / fenêtres).
+ * - background opaque : gpt-image-2 ne supporte PAS transparent (breaking).
+ * - n 1 : un seul candidat (pas de variation/scoring côté client).
  */
 export const CANONICAL_IMAGE_PARAMS = {
   model: CANONICAL_PRIMARY_MODEL,

@@ -157,14 +157,14 @@ export async function POST(
         const fileBuffer = await readFile(plan.file_path);
 
         // ─── s25 — Canonicalisation pré-extraction (feature flag) ───
-        // VS_PLAN_CANONICALIZE=true → gpt-image-1 reformate le plan en
+        // VS_PLAN_CANONICALIZE=true → gpt-image-2 reformate le plan en
         // PNG noir sur blanc épuré AVANT extract. Fallback silencieux sur
         // plan original si timeout/error/gates. Gate @moi Phase 2.
         let extractBuffer: Buffer = fileBuffer;
         let extractMime: string = plan.mime_type;
         // s25 Round A — buffer ORIGINAL raster (post-PDF-rasterisation) que
         // l'OCR Tesseract utilisera quand VS_PLAN_CANONICALIZE=true, pour
-        // éviter d'OCR le canonical (labels reformulés par gpt-image-1).
+        // éviter d'OCR le canonical (labels reformulés par gpt-image-2).
         let originalRasterBuffer: Buffer | null = null;
 
         if (process.env.VS_PLAN_CANONICALIZE === "true") {
@@ -207,7 +207,7 @@ export async function POST(
           }
 
           if (!skipCanonicalize) try {
-            // Si le plan est un PDF, le rasteriser d'abord en PNG (gpt-image-1
+            // Si le plan est un PDF, le rasteriser d'abord en PNG (gpt-image-2
             // n'accepte que les images). Le buffer rasterisé devient l'input
             // canonicalizer + fallback si canonicalisation échoue.
             let sourceBuffer: Buffer = fileBuffer;
@@ -225,7 +225,7 @@ export async function POST(
 
             // s25 Round A — routing mock vs réel selon feature flag.
             // VS_USE_MOCK_CANONICAL=true → pipeline sharp local (tests E2E
-            // sans clé OpenAI). Sinon → canonicalizer réel gpt-image-1.
+            // sans clé OpenAI). Sinon → canonicalizer réel gpt-image-2.
             const USE_MOCK =
               process.env.VS_USE_MOCK_CANONICAL === "true";
             const result = USE_MOCK

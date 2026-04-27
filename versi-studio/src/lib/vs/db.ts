@@ -164,7 +164,7 @@ export async function ensureVsTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_vs_plans_project ON vs_plans(project_id);
     -- Migration F05 (versi-s19) : ajout colonne m2_per_pixel pour bases existantes
     ALTER TABLE vs_plans ADD COLUMN IF NOT EXISTS m2_per_pixel DECIMAL(12, 6);
-    -- Migration s25 : canonicalisation plan via gpt-image-1 (feature flag VS_PLAN_CANONICALIZE)
+    -- Migration s25 : canonicalisation plan via gpt-image-2 (feature flag VS_PLAN_CANONICALIZE)
     ALTER TABLE vs_plans ADD COLUMN IF NOT EXISTS canonicalized_image_path TEXT;
     ALTER TABLE vs_plans ADD COLUMN IF NOT EXISTS canonicalized_at TIMESTAMPTZ;
     ALTER TABLE vs_plans ADD COLUMN IF NOT EXISTS canonical_fallback_reason VARCHAR(30);
