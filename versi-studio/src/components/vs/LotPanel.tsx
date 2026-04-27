@@ -340,7 +340,7 @@ export default function LotPanel({
                 : `${aiSuggestedLots.length} lots détectés`}
             </p>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Vérifiez les contours, puis validez.
+              Vérifiez les délimitations, puis validez.
             </p>
           </div>
         )}
@@ -356,7 +356,7 @@ export default function LotPanel({
         )}
         {lots.some((l) => l.source === "ai") && (
           <p className="text-xs text-[var(--color-text-muted)] italic mt-2xs">
-            Les contours proposés par l&apos;IA sont des estimations. Ajustez-les si nécessaire.
+            Les délimitations proposées par l&apos;IA sont des estimations. Ajustez-les si nécessaire.
           </p>
         )}
       </div>

@@ -970,11 +970,11 @@ export default function PlanCanvas({
         if (Math.sqrt(dxSnap * dxSnap + dySnap * dySnap) <= POLYGON_CLOSE_SNAP_DISTANCE) {
           // Guards (cohérence avec double-clic et Enter)
           if (polygonHasSelfIntersection(drawingPolygonPoints)) {
-            showDrawingError("Le contour se croise — corrigez les points qui se chevauchent.");
+            showDrawingError("Le lot se croise — corrigez les points qui se chevauchent.");
             return;
           }
           if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
-            showDrawingError("Le contour est trop petit. Tracez une zone plus grande.");
+            showDrawingError("Le lot est trop petit. Tracez une zone plus grande.");
             return;
           }
           if (onPolygonComplete) {
@@ -1419,17 +1419,17 @@ export default function PlanCanvas({
       if (drawingPolygon) {
         // versi-s20 P0 — feedback explicite si trop peu de points.
         if (drawingPolygonPoints.length < 3) {
-          showDrawingError("Posez au moins 3 points avant de fermer le contour.");
+          showDrawingError("Posez au moins 3 points avant de fermer le lot.");
           return;
         }
         // versi-s20 P0 — refus si polygone auto-intersecté (papillon).
         if (polygonHasSelfIntersection(drawingPolygonPoints)) {
-          showDrawingError("Le contour se croise — corrigez les points qui se chevauchent.");
+          showDrawingError("Le lot se croise — corrigez les points qui se chevauchent.");
           return;
         }
         // versi-s20 it3 — refus si polygone dégénéré (aire trop petite).
         if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
-          showDrawingError("Le contour est trop petit. Tracez une zone plus grande.");
+          showDrawingError("Le lot est trop petit. Tracez une zone plus grande.");
           return;
         }
         if (onPolygonComplete) {
@@ -1513,17 +1513,17 @@ export default function PlanCanvas({
         e.preventDefault();
         // versi-s20 P0 — feedback explicite si trop peu de points.
         if (drawingPolygonPoints.length < 3) {
-          showDrawingError("Posez au moins 3 points avant de fermer le contour.");
+          showDrawingError("Posez au moins 3 points avant de fermer le lot.");
           return;
         }
         // versi-s20 P0 — refus si polygone auto-intersecté.
         if (polygonHasSelfIntersection(drawingPolygonPoints)) {
-          showDrawingError("Le contour se croise — corrigez les points qui se chevauchent.");
+          showDrawingError("Le lot se croise — corrigez les points qui se chevauchent.");
           return;
         }
         // versi-s20 it3 — refus si polygone dégénéré (aire trop petite).
         if (polygonAreaPercent(drawingPolygonPoints) < MIN_POLYGON_AREA_PERCENT) {
-          showDrawingError("Le contour est trop petit. Tracez une zone plus grande.");
+          showDrawingError("Le lot est trop petit. Tracez une zone plus grande.");
           return;
         }
         if (onPolygonComplete) {
