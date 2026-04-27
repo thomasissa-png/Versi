@@ -139,10 +139,22 @@ export async function ensureVsTables(): Promise<void> {
       type_bien VARCHAR(20) NOT NULL CHECK (type_bien IN ('immeuble', 'maison', 'appartement')),
       surface_totale INT,
       status VARCHAR(30) NOT NULL DEFAULT 'draft'
-        CHECK (status IN ('draft','step_1_complete','step_2_complete','step_3_complete','completed')),
+        CHECK (status IN ('draft','step_1_complete','step_2_complete','step_3_complete','completed','archived')),
+      archived_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    -- Migration s27 : soft delete (archivage) — colonne archived_at + statut 'archived'
+    ALTER TABLE vs_projects ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+    -- Migration s27 : étendre la contrainte CHECK status pour inclure 'archived' (idempotent)
+    DO $migration_s27_status$
+    BEGIN
+      ALTER TABLE vs_projects DROP CONSTRAINT IF EXISTS vs_projects_status_check;
+      ALTER TABLE vs_projects ADD CONSTRAINT vs_projects_status_check
+        CHECK (status IN ('draft','step_1_complete','step_2_complete','step_3_complete','completed','archived'));
+    END
+    $migration_s27_status$;
+    CREATE INDEX IF NOT EXISTS idx_vs_projects_archived ON vs_projects(archived_at) WHERE archived_at IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS vs_plans (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

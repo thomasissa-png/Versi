@@ -23,6 +23,7 @@ const VALID_STATUSES: ProjectStatus[] = [
   "step_2_complete",
   "step_3_complete",
   "completed",
+  "archived",
 ];
 
 function isValidUUID(str: string): boolean {
@@ -140,6 +141,14 @@ export async function PATCH(
       }
       setClauses.push(`status = $${paramIndex++}`);
       values.push(body.status);
+
+      // s27 — sync archived_at avec le statut.
+      // Single source of truth : status drive archived_at (pas de double vérité).
+      if (body.status === "archived") {
+        setClauses.push("archived_at = NOW()");
+      } else {
+        setClauses.push("archived_at = NULL");
+      }
     }
 
     if (setClauses.length === 0) {
@@ -170,6 +179,47 @@ export async function PATCH(
     console.error("[API] PATCH /api/vs/projects/[id] erreur :", err);
     return NextResponse.json(
       { success: false, error: "Impossible de modifier l'opération." },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── DELETE /api/vs/projects/[id] ─────────────────────────────────
+// s27 — hard delete (CASCADE supprime plans, lots, rooms, photos, visuals).
+// L'archivage (soft delete) se fait via PATCH { status: "archived" }.
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<ApiResponse<{ id: string }>>> {
+  try {
+    await ensureDbReady();
+    const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      return NextResponse.json(
+        { success: false, error: "Identifiant invalide." },
+        { status: 400 }
+      );
+    }
+
+    const result = await query<{ id: string }>(
+      "DELETE FROM vs_projects WHERE id = $1 RETURNING id",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Opération introuvable." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, data: { id: result.rows[0].id } });
+  } catch (err) {
+    console.error("[API] DELETE /api/vs/projects/[id] erreur :", err);
+    return NextResponse.json(
+      { success: false, error: "Impossible de supprimer l'opération." },
       { status: 500 }
     );
   }

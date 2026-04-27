@@ -14,7 +14,8 @@ export type ProjectStatus =
   | "step_1_complete"
   | "step_2_complete"
   | "step_3_complete"
-  | "completed";
+  | "completed"
+  | "archived";
 
 export type ExtractionStatus = "pending" | "processing" | "done" | "failed";
 
@@ -34,6 +35,8 @@ export interface VsProject {
   type_bien: TypeBien;
   surface_totale: number | null;
   status: ProjectStatus;
+  /** s27 — horodatage soft-delete (archivage). Null si projet actif. */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
