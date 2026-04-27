@@ -62,6 +62,29 @@ import {
   type RoomInput as TilingRoomInput,
 } from "@/lib/vs/room-tiling";
 import { track } from "@/lib/vs/analytics";
+// ─── s27 Refonte pipeline (M1→M5) — branchement derrière VS_NEW_PIPELINE ───
+import {
+  detectPdfType,
+  PdfTypeDetectorError,
+} from "@/lib/vs/pdf-type-detector";
+import {
+  extractWallSegments,
+  PdfVectorParserError,
+} from "@/lib/vs/pdf-vector-parser";
+import {
+  extractWallSegmentsFromBitmap,
+  BitmapLineDetectorError,
+} from "@/lib/vs/bitmap-line-detector";
+import {
+  buildWallGraph,
+  detectRooms,
+  WallGraphError,
+  type WallSegmentInput,
+} from "@/lib/vs/wall-graph";
+import {
+  classifyRooms,
+  LotClassifierError,
+} from "@/lib/vs/lot-classifier";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
 // passe-2 + OCR + passe-3 × N plans). Sans cela : coupure réseau ~60-100s
@@ -131,6 +154,176 @@ export async function POST(
     await query(
       "DELETE FROM vs_lots WHERE project_id = $1 AND source = 'ai'",
       [projectId]
+    );
+
+    // ─── s27 — Branchement nouveau pipeline (M1→M5) ──────────────────
+    // Activé uniquement si VS_NEW_PIPELINE=true. Fail-fast (P0 s27) :
+    // les erreurs typées des modules sont mappées en 422 visible UI,
+    // jamais de fallback silencieux vers le pipeline legacy.
+    if (process.env.VS_NEW_PIPELINE === "true") {
+      console.log(
+        `[extract] pipeline=NEW (VS_NEW_PIPELINE=true), plans=${plansResult.rows.length}`
+      );
+      try {
+        const newPipelineLots: Array<{ name: string; floor: number }> = [];
+
+        for (const plan of plansResult.rows) {
+          const fileBuffer = await readFile(plan.file_path);
+
+          // M1 — Détection type PDF
+          const detection = await detectPdfType(fileBuffer);
+          console.log(
+            `[extract/NEW] plan ${plan.id} (floor=${plan.floor_number}) ` +
+              `type=${detection.type} (paths=${detection.vectorPathCount}, ` +
+              `images=${detection.imageCount}, conf=${detection.confidence.toFixed(2)})`
+          );
+
+          // M2/M3 — Extraction segments selon type + raster page pour OCR
+          let segments: WallSegmentInput[];
+          let pngBuffer: Buffer;
+          let imageWidth: number;
+          let imageHeight: number;
+
+          // Toujours rasteriser la page 1 en PNG (utilisé par M5 pour OCR)
+          // Pattern existant ligne 213-220 (pdf-to-img scale=3).
+          {
+            const { pdf } = await import("pdf-to-img");
+            const pages = await pdf(fileBuffer, { scale: 3 });
+            let firstPage: Buffer | null = null;
+            for await (const page of pages) {
+              firstPage = Buffer.from(page);
+              break;
+            }
+            if (!firstPage) {
+              throw new Error(
+                `Rasterisation page 1 échouée pour plan ${plan.id}`
+              );
+            }
+            pngBuffer = firstPage;
+            const meta = await sharp(pngBuffer).metadata();
+            imageWidth = meta.width ?? 0;
+            imageHeight = meta.height ?? 0;
+          }
+
+          if (detection.type === "vector") {
+            const vectorResult = await extractWallSegments(fileBuffer);
+            // Reprojection user-space PDF → pixels raster (scale = imageWidth/pageWidth)
+            const sx =
+              vectorResult.pageWidth > 0
+                ? imageWidth / vectorResult.pageWidth
+                : 1;
+            const sy =
+              vectorResult.pageHeight > 0
+                ? imageHeight / vectorResult.pageHeight
+                : 1;
+            segments = vectorResult.segments.map((s) => ({
+              x1: s.x1 * sx,
+              y1: s.y1 * sy,
+              x2: s.x2 * sx,
+              y2: s.y2 * sy,
+            }));
+            console.log(
+              `[extract/NEW] plan ${plan.id}: M2 vector → ${segments.length} segments ` +
+                `(reprojected pdf ${vectorResult.pageWidth.toFixed(0)}×${vectorResult.pageHeight.toFixed(0)} ` +
+                `→ raster ${imageWidth}×${imageHeight})`
+            );
+          } else {
+            // bitmap | hybrid → M3 sur raster
+            const bitmapResult = await extractWallSegmentsFromBitmap(pngBuffer);
+            segments = bitmapResult.segments;
+            console.log(
+              `[extract/NEW] plan ${plan.id}: M3 bitmap → ${segments.length} segments ` +
+                `(raster ${bitmapResult.imageWidth}×${bitmapResult.imageHeight})`
+            );
+          }
+
+          // M4 — Graphe + détection pièces (faces planaires)
+          const graph = buildWallGraph(segments);
+          const rooms = detectRooms(graph);
+          console.log(
+            `[extract/NEW] plan ${plan.id}: M4 → ${graph.nodes.length} nodes, ` +
+              `${graph.edges.length} edges, ${rooms.length} rooms`
+          );
+
+          // M5 — Classification lots vs communs (OCR + adjacence)
+          const { lots, communs } = await classifyRooms(rooms, pngBuffer);
+          console.log(
+            `[extract/NEW] plan ${plan.id}: M5 → ${lots.length} lots, ${communs.length} communs`
+          );
+
+          // Persistance : convertir polygones pixels → % plan-global, écrire vs_lots
+          for (const lot of lots) {
+            // Polygone enveloppe en % (point source unique pour bbox dérivée)
+            const polyPct = lot.envelope.points.map((p) => ({
+              x_percent: imageWidth > 0 ? (p.x / imageWidth) * 100 : 0,
+              y_percent: imageHeight > 0 ? (p.y / imageHeight) * 100 : 0,
+            }));
+            const zoneData = { type: "polygon", points: polyPct };
+
+            await query(
+              `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
+               VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
+              [
+                projectId,
+                lot.name,
+                plan.floor_number,
+                null,
+                JSON.stringify(zoneData),
+                detection.confidence,
+              ]
+            );
+            newPipelineLots.push({ name: lot.name, floor: plan.floor_number });
+          }
+
+          // Marquer le plan en done (pipeline NEW ne stocke pas extraction_data)
+          await query(
+            "UPDATE vs_plans SET extraction_status = 'done' WHERE id = $1",
+            [plan.id]
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            lots_created: newPipelineLots.length,
+            extraction_reason:
+              newPipelineLots.length > 0 ? "success" : "no_units_detected",
+            warnings: [],
+          },
+        });
+      } catch (newPipelineErr) {
+        // Erreurs typées M1→M5 : mapper en 422 avec message clair, pas de fallback.
+        // Marquer tous les plans en failed pour cohérence UI.
+        await query(
+          "UPDATE vs_plans SET extraction_status = 'failed' WHERE project_id = $1",
+          [projectId]
+        );
+
+        let errorMessage = "Échec du nouveau pipeline d'extraction.";
+        if (newPipelineErr instanceof PdfTypeDetectorError) {
+          errorMessage = `Détection type PDF échouée : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof PdfVectorParserError) {
+          errorMessage = `Extraction vectorielle échouée [${newPipelineErr.code}] : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof BitmapLineDetectorError) {
+          errorMessage = `Détection lignes bitmap échouée : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof WallGraphError) {
+          errorMessage = `Construction graphe murs échouée [${newPipelineErr.code}] : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof LotClassifierError) {
+          errorMessage = `Classification lots échouée [${newPipelineErr.code}] : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof Error) {
+          errorMessage = `Pipeline NEW : ${newPipelineErr.message}`;
+        }
+
+        console.error("[extract/NEW] échec :", newPipelineErr);
+        return NextResponse.json(
+          { success: false, error: errorMessage },
+          { status: 422 }
+        );
+      }
+    }
+
+    console.log(
+      `[extract] pipeline=LEGACY (VS_NEW_PIPELINE != true), plans=${plansResult.rows.length}`
     );
 
     // Collecter toutes les pièces extraites de tous les plans
