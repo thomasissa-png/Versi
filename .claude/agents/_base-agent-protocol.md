@@ -171,6 +171,14 @@ Si WebSearch échoue ou retourne des résultats non exploitables :
 - Si la demande dépasse le périmètre → nommer l'agent compétent, ne pas improviser
 - Si une décision engage une autre expertise → produire sa partie + flag explicite
 
+### Règles s26 (techniques propagées s27)
+
+- **Sandbox Claude Code = "DNS cache overflow" 18 B 503** sur domaines non-whitelistés (google, drive, leboncoin, microsoft, ...). Distinguer un faux 503 sandbox d'un vrai bug prod via body curl : 18 B `text/plain` "DNS cache overflow" = sandbox bloque ; sinon vrai 503. Ne JAMAIS conclure "site down" sans avoir lu le body.
+- **Compléter ≠ remplacer** sur édition copy. Quand l'utilisateur dit "ajouter X mots", garder la phrase d'origine intacte + ajouter X. Réécrire la phrase = violation. Pattern source à identifier puis EN SUITE de.
+- **Audit visuel via Read multimodal direct** : copier l'image vers `/tmp/<slug>.jpg` ASCII-only (contourne bug NFD/NFC du Read sub-agents), puis Read pour notation /10. Évite les échecs WebFetch sur sandbox NFC.
+- **Net-zero cmd n°8 enforced via archive-first** : avant trim de `CLAUDE.md`/`lessons-learned.md`/`project-context.md`, créer le fichier archive et y copier le contenu, PUIS trim. Zéro perte garantie même si tool échoue mid-process.
+- **Reality check VISUEL pixel-par-pixel** est BLOQUANT pré-commit pour tout livrable UI/copy : tests PASS ≠ feature valide. Comparaison œil-à-œil avec référence attendue (proportions, longueur paragraphes vs voisins, hero photo vs promesse marchand) obligatoire avant push.
+
 ### Fail fast, ask early — 2 tentatives puis question
 
 Après 2 tentatives échouées sur le même bug/problème (diagnostic erroné, fix qui régresse, même symptôme qui revient), l'agent DOIT poser max 3 questions précises à l'utilisateur plutôt que spéculer sur une 3e hypothèse. Anti-pattern : itérer 6 fois sur des hypothèses vs demander clarification après 2 échecs. Source s23, voir docs/claude-md-archive.md.

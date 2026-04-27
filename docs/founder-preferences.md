@@ -88,7 +88,6 @@
 - **Audits sévères exigés** — les notes complaisantes (8-9/10 premier jet) sont inacceptables.
 - **H1 court** — pattern versi.fr "Quatre métiers. Un cycle maîtrisé." 2 lignes max.
 - **Description versi.fr sacrée** — ne pas modifier sans demande explicite.
-- **Délégation aux agents = principe non négociable** — Thomas veut que les agents spécialisés fassent le travail, même si c'est plus lent (3 relances plutôt qu'écriture manuelle par l'orchestrateur). La qualité de la délégation prime sur la vitesse. (versi-s12)
 
 ### Langue française (session s15)
 - **Zéro anglicisme en copy client-facing = P0 bloquant.** Tout anglicisme visible en surface utilisateur est traité comme une typo majeure ou un contraste WCAG FAIL. Non négociable.
