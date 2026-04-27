@@ -9,7 +9,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type {
   VsProject,
@@ -18,6 +18,19 @@ import type {
   ApiResponse,
 } from "@/lib/vs/types";
 import { TYPE_BIEN_OPTIONS } from "@/lib/vs/types";
+
+// ─── Filtres statut ────────────────────────────────────────────────
+
+type StatusFilter = "all" | "in_progress" | "completed" | "archived";
+
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: "Tous",
+  in_progress: "En cours",
+  completed: "Terminés",
+  archived: "Archivés",
+};
+
+const PAGE_SIZE = 20;
 
 // ─── Status labels ─────────────────────────────────────────────────
 
@@ -45,6 +58,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [lastCreatedTitle, setLastCreatedTitle] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Auto-dismiss toast après 4s
+  useEffect(() => {
+    if (!lastCreatedTitle) return;
+    const t = setTimeout(() => setLastCreatedTitle(null), 4000);
+    return () => clearTimeout(t);
+  }, [lastCreatedTitle]);
 
   const fetchProjects = useCallback(async (externalSignal?: AbortSignal) => {
     const controller = new AbortController();
@@ -86,13 +110,90 @@ export default function DashboardPage() {
 
   const handleProjectCreated = (project: VsProject) => {
     setShowForm(false);
+    setLastCreatedTitle(project.adresse);
     router.push(`/vs/projects/${project.id}/upload`);
   };
 
+  const handleArchive = useCallback(async (projectId: string) => {
+    try {
+      const res = await fetch(`/api/vs/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "archived" }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, status: "archived" } : p))
+      );
+    } catch {
+      setError("Impossible d'archiver l'opération. Réessayez.");
+    }
+  }, []);
+
+  const handleDelete = useCallback(async (projectId: string) => {
+    if (!window.confirm("Supprimer définitivement cette opération ? Cette action est irréversible.")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/vs/projects/${projectId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(String(res.status));
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    } catch {
+      setError("Impossible de supprimer l'opération. Réessayez.");
+    }
+  }, []);
+
+  // Filtrage client-side : statut + recherche
+  const filteredProjects = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return projects.filter((p) => {
+      // Filtre statut
+      if (statusFilter === "archived" && p.status !== "archived") return false;
+      if (statusFilter === "completed" && p.status !== "completed") return false;
+      if (
+        statusFilter === "in_progress" &&
+        (p.status === "completed" || p.status === "archived")
+      )
+        return false;
+      if (statusFilter === "all" && p.status === "archived") return false;
+
+      // Filtre recherche
+      if (q.length > 0) {
+        const haystack = `${p.adresse ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [projects, statusFilter, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedProjects = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
+    return filteredProjects.slice(start, start + PAGE_SIZE);
+  }, [filteredProjects, safeCurrentPage]);
+
+  // Reset page quand filtre change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery]);
+
   return (
     <div aria-busy={loading}>
+      {/* Toast feedback création projet */}
+      {lastCreatedTitle && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-4 right-4 z-50 max-w-sm bg-success/10 border border-success/30 text-success rounded-md px-lg py-md shadow-md text-sm"
+        >
+          Opération &laquo;&nbsp;{lastCreatedTitle}&nbsp;&raquo; créée
+        </div>
+      )}
+
       {/* Header section */}
-      <div className="flex items-start justify-between mb-2xl">
+      <div className="flex flex-col gap-md sm:flex-row sm:items-start sm:justify-between mb-2xl">
         <div>
           <h1 className="vs-h1">Mes opérations</h1>
           <p className="vs-body-sm text-text-muted mt-1">
@@ -107,7 +208,8 @@ export default function DashboardPage() {
             setShowForm(!showForm);
           }}
           className="
-            px-lg py-sm rounded-md text-sm font-medium
+            w-full sm:w-auto
+            px-lg py-[10px] rounded-md text-sm font-medium
             bg-interactive-primary text-text-inverse
             hover:bg-interactive-hover
             transition-colors duration-200
@@ -189,11 +291,105 @@ export default function DashboardPage() {
 
       {/* Liste des projets */}
       {!loading && !error && projects.length > 0 && (
-        <div className="grid gap-md">
-          {projects.map((project, index) => (
-            <ProjectCard key={project.id} project={project} position={index} />
-          ))}
-        </div>
+        <>
+          {/* Barre filtre + recherche */}
+          <div className="flex flex-col gap-md sm:flex-row sm:items-center sm:justify-between mb-lg">
+            <div className="flex flex-wrap gap-xs" role="group" aria-label="Filtrer par statut">
+              {(Object.keys(STATUS_FILTER_LABELS) as StatusFilter[]).map((key) => {
+                const active = statusFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStatusFilter(key)}
+                    aria-pressed={active}
+                    className={`
+                      px-md py-[10px] rounded-md text-sm font-medium border transition-colors
+                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+                      ${active
+                        ? "bg-interactive-primary text-text-inverse border-interactive-primary"
+                        : "bg-bg-card text-text-default border-border-default hover:border-interactive-primary/30"}
+                    `}
+                  >
+                    {STATUS_FILTER_LABELS[key]}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher une adresse…"
+              aria-label="Rechercher une opération"
+              className="
+                w-full sm:w-72 px-md py-[10px] rounded-md text-sm
+                border border-border-default bg-bg-card
+                focus:outline-none focus:ring-2 focus:ring-interactive-primary/20 focus:border-interactive-primary
+                placeholder:text-text-muted/50
+                transition-colors
+              "
+            />
+          </div>
+
+          {filteredProjects.length === 0 ? (
+            <div className="text-center py-2xl text-sm text-text-muted">
+              Aucune opération ne correspond à votre filtre.
+            </div>
+          ) : (
+            <div className="grid gap-md">
+              {paginatedProjects.map((project, index) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  position={(safeCurrentPage - 1) * PAGE_SIZE + index}
+                  onArchive={handleArchive}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredProjects.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between mt-lg">
+              <p className="text-xs text-text-muted">
+                Page {safeCurrentPage} sur {totalPages} — {filteredProjects.length} opération
+                {filteredProjects.length > 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-xs">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeCurrentPage <= 1}
+                  className="
+                    px-md py-[10px] rounded-md text-sm font-medium border border-border-default
+                    bg-bg-card text-text-default
+                    hover:border-interactive-primary/30
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors
+                  "
+                >
+                  Précédent
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safeCurrentPage >= totalPages}
+                  className="
+                    px-md py-[10px] rounded-md text-sm font-medium border border-border-default
+                    bg-bg-card text-text-default
+                    hover:border-interactive-primary/30
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors
+                  "
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -398,12 +594,13 @@ function CreateProjectForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-md mt-xl">
+      <div className="flex flex-col-reverse sm:flex-row gap-md mt-xl">
         <button
           type="submit"
           disabled={submitting}
           className="
-            px-xl py-sm rounded-md text-sm font-medium
+            w-full sm:w-auto
+            px-xl py-[10px] rounded-md text-sm font-medium
             bg-interactive-primary text-text-inverse
             hover:bg-interactive-hover
             disabled:opacity-50 disabled:cursor-not-allowed
@@ -417,7 +614,8 @@ function CreateProjectForm({
           type="button"
           onClick={onCancel}
           className="
-            px-xl py-sm rounded-md text-sm font-medium
+            w-full sm:w-auto
+            px-xl py-[10px] rounded-md text-sm font-medium
             text-text-muted hover:text-text-default
             transition-colors duration-200
           "
@@ -431,8 +629,39 @@ function CreateProjectForm({
 
 // ─── Carte projet ──────────────────────────────────────────────────
 
-function ProjectCard({ project, position }: { project: VsProject; position: number }) {
+function ProjectCard({
+  project,
+  position,
+  onArchive,
+  onDelete,
+}: {
+  project: VsProject;
+  position: number;
+  onArchive: (projectId: string) => void;
+  onDelete: (projectId: string) => void;
+}) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fermer le menu sur clic extérieur ou Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
 
   const createdDate = new Date(project.created_at).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -440,45 +669,106 @@ function ProjectCard({ project, position }: { project: VsProject; position: numb
     year: "numeric",
   });
 
+  const openProject = () => {
+    console.log("[analytics] vs_project_opened", {
+      project_id: project.id,
+      position_in_list: position,
+    });
+    router.push(`/vs/projects/${project.id}/upload`);
+  };
+
   return (
-    <button
-      onClick={() => {
-        console.log("[analytics] vs_project_opened", {
-          project_id: project.id,
-          position_in_list: position,
-        });
-        router.push(`/vs/projects/${project.id}/upload`);
-      }}
+    <div
       className="
-        w-full text-left bg-bg-card border border-border-default rounded-lg p-xl
+        relative w-full bg-bg-card border border-border-default rounded-lg p-sm sm:p-xl
         hover:border-interactive-primary/30 hover:shadow-sm
         transition-all duration-200
-        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+        focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-interactive-primary
       "
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-base font-medium text-text-default truncate max-w-sm">
-            {project.adresse}
-          </h3>
-          <div className="flex items-center gap-md mt-sm">
-            <span className="vs-label">
-              {TYPE_BIEN_OPTIONS.find((o) => o.value === project.type_bien)?.label ?? project.type_bien}
-            </span>
-            {project.surface_totale && (
+      <button
+        type="button"
+        onClick={openProject}
+        className="block w-full text-left pr-2xl focus:outline-none"
+        aria-label={`Ouvrir l'opération ${project.adresse}`}
+      >
+        <div className="flex items-start justify-between gap-md">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-medium text-text-default truncate">
+              {project.adresse}
+            </h3>
+            <div className="flex flex-wrap items-center gap-md mt-sm">
               <span className="vs-label">
-                {project.surface_totale} m²
+                {TYPE_BIEN_OPTIONS.find((o) => o.value === project.type_bien)?.label ?? project.type_bien}
               </span>
-            )}
+              {project.surface_totale && (
+                <span className="vs-label">
+                  {project.surface_totale} m²
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <span className={`inline-block px-sm py-2xs rounded text-xs ${STATUS_COLORS[project.status] ?? "bg-bg-default text-text-muted border border-border-default"}`}>
+              {STATUS_LABELS[project.status] || project.status}
+            </span>
+            <p className="text-xs text-text-muted mt-xs">{createdDate}</p>
           </div>
         </div>
-        <div className="text-right">
-          <span className={`inline-block px-sm py-2xs rounded text-xs ${STATUS_COLORS[project.status] ?? "bg-bg-default text-text-muted border border-border-default"}`}>
-            {STATUS_LABELS[project.status] || project.status}
-          </span>
-          <p className="text-xs text-text-muted mt-xs">{createdDate}</p>
-        </div>
+      </button>
+
+      {/* Menu kebab */}
+      <div ref={menuRef} className="absolute top-2 right-2">
+        <button
+          type="button"
+          aria-label="Actions sur l'opération"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((v) => !v);
+          }}
+          className="
+            w-11 h-11 inline-flex items-center justify-center rounded-md text-text-muted
+            hover:bg-bg-default hover:text-text-default
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+            transition-colors
+          "
+        >
+          <span aria-hidden="true" className="text-lg leading-none">⋯</span>
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute top-full right-0 mt-1 min-w-[160px] bg-bg-card border border-border-default rounded-md shadow-md py-1 z-10"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onArchive(project.id);
+              }}
+              className="block w-full text-left px-md py-[10px] text-sm text-text-default hover:bg-bg-default transition-colors"
+            >
+              Archiver
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onDelete(project.id);
+              }}
+              className="block w-full text-left px-md py-[10px] text-sm text-error hover:bg-error/10 transition-colors"
+            >
+              Supprimer
+            </button>
+          </div>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
