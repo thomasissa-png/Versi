@@ -146,7 +146,7 @@ function LotCard({
         group flex items-start gap-sm p-md rounded-md cursor-pointer transition-colors duration-150
         bg-white border
         ${lot.source === "ai" && lot.status === "suggested" ? "border-dashed border-[var(--color-interactive-primary)]/40" : ""}
-        ${lot.source === "ai" && lot.status === "validated" ? "border-solid border-[var(--color-success,#16A34A)]/40" : ""}
+        ${lot.source === "ai" && lot.status === "validated" ? "border-solid border-[var(--color-success)]/40" : ""}
         ${isSelected ? "ring-2 ring-[var(--color-interactive-primary)] border-[var(--color-interactive-primary)]" : ""}
         ${!isSelected && !(lot.source === "ai") ? "border-[var(--color-border-default)]" : ""}
         ${!isSelected ? "hover:bg-[var(--color-background-default)]" : ""}
@@ -192,7 +192,7 @@ function LotCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ml-xs inline-flex p-2xs rounded text-[var(--color-text-muted)] hover:text-[var(--color-text-default)] transition-opacity"
+              className="opacity-100 ml-xs inline-flex p-2xs rounded text-[var(--color-text-muted)] hover:text-[var(--color-text-default)] transition-opacity"
               aria-label={`Renommer ${lot.name}`}
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -215,15 +215,15 @@ function LotCard({
               )}
             </span>
           )}
-          {/* U1 — Badge confiance IA (versi-s21 it2) */}
+          {/* U1 — Badge confiance IA (versi-s21 it2, tokens design system s27 Round 3) */}
           {lot.confidence_avg != null && (
             <span
               className={`text-xs font-medium px-1.5 py-0.5 rounded ${
                 lot.confidence_avg < 0.75
-                  ? "bg-red-100 text-red-700"
+                  ? "bg-[var(--color-error)]/10 text-[var(--color-error)]"
                   : lot.confidence_avg < 0.85
-                    ? "bg-orange-100 text-orange-700"
-                    : "bg-green-100 text-green-700"
+                    ? "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
+                    : "bg-[var(--color-success)]/10 text-[var(--color-success)]"
               }`}
               title={`Confiance IA : ${Math.round(lot.confidence_avg * 100)} %`}
             >
@@ -243,7 +243,7 @@ function LotCard({
               e.stopPropagation();
               onValidateSingle();
             }}
-            className="mt-xs px-sm py-2xs rounded text-xs font-medium bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] hover:bg-[var(--color-success,#16A34A)]/20 transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
+            className="mt-xs px-sm py-2xs rounded text-xs font-medium bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20 transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)]"
             aria-label={`Valider ${lot.name}`}
           >
             Valider ce lot
@@ -556,7 +556,7 @@ export default function LotPanel({
           <div
             role="status"
             aria-live="polite"
-            className="flex items-center justify-center gap-sm text-xs text-[var(--color-success,#16A34A)] text-center"
+            className="flex items-center justify-center gap-sm text-xs text-[var(--color-success)] text-center"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

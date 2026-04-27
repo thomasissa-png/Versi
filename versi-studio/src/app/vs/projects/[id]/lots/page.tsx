@@ -800,7 +800,7 @@ export default function LotsPage({
   if (loading) {
     return (
       <div className="flex gap-2xl">
-        <aside className="w-64 flex-shrink-0">
+        <aside className="hidden md:block w-64 flex-shrink-0">
           <Stepper currentStep={2} projectId={projectId} completedSteps={[1]} />
         </aside>
         <div className="flex-1 flex items-center justify-center py-4xl">
@@ -851,8 +851,8 @@ export default function LotsPage({
 
   return (
     <div className="flex gap-2xl">
-      {/* Stepper latéral */}
-      <aside className="w-64 flex-shrink-0">
+      {/* Stepper latéral — masqué mobile (pattern E1, fix s27 Round 3) */}
+      <aside className="hidden md:block w-64 flex-shrink-0">
         <Stepper currentStep={2} projectId={projectId} completedSteps={completedSteps} />
       </aside>
 
@@ -874,7 +874,7 @@ export default function LotsPage({
           <p className="text-xs uppercase tracking-widest text-[var(--color-text-muted)] mb-xs">
             {project.adresse}
           </p>
-          <h1 className="text-xl font-semibold text-[var(--color-text-default)]">
+          <h1 className="vs-h3 text-[var(--color-text-default)]">
             {hasAiExtracted && aiSuggestedLots.length > 0
               ? `${aiSuggestedLots.length} lot${aiSuggestedLots.length > 1 ? "s" : ""} à valider`
               : "Découpez vos lots"}
@@ -906,17 +906,17 @@ export default function LotsPage({
               />
             </svg>
             <div className="flex-1">
-              <p className="font-medium">Vérifiez l&apos;échelle du plan</p>
+              <p className="font-medium">Vérifiez la mesure de référence</p>
               <p className="mt-2xs">
                 Ce plan a été mis à jour depuis votre dernière mesure.
-                Vérifiez que l&apos;échelle métrique reste correcte avant de valider vos lots.
+                Vérifiez que les surfaces m² restent correctes avant de valider vos lots.
               </p>
               <button
                 type="button"
                 onClick={() => setCalibrationOpen(true)}
                 className="mt-sm inline-flex items-center gap-xs text-sm font-medium underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 min-h-[44px]"
               >
-                Recalibrer le plan
+                Mettre à jour la mesure
               </button>
             </div>
           </div>
@@ -1034,33 +1034,33 @@ export default function LotsPage({
               />
             </svg>
             <span className="flex-1 text-sm text-[var(--color-text-default)]">
-              Calibrez ce plan pour afficher les surfaces m² pendant le tracé des lots.
+              Indiquez une mesure connue sur ce plan pour calculer les surfaces m² de vos lots automatiquement.
             </span>
             <button
               type="button"
               onClick={() => setCalibrationOpen(true)}
               className="px-md py-xs rounded-md text-sm font-medium bg-[var(--color-interactive-primary)] text-[var(--color-text-inverse)] hover:bg-[var(--color-interactive-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] active:opacity-80 min-h-[44px]"
             >
-              Calibrer le plan
+              Donner une mesure de référence
             </button>
           </div>
         )}
 
-        {/* s25 BUG 2 — Bouton "Recalibrer" toujours accessible après calibration.
-            Pattern découvrabilité s22 : Thomas doit pouvoir corriger une calibration
+        {/* s25 BUG 2 — Bouton "Modifier la mesure" toujours accessible après saisie.
+            Pattern découvrabilité s22 : Thomas doit pouvoir corriger une mesure
             erronée à tout moment. Modale pré-remplie avec la valeur actuelle. */}
         {currentPlan && m2PerPixel != null && (
           <div className="mb-md flex items-center justify-between gap-md px-md py-xs border border-[var(--color-border-default)] rounded-md">
             <span className="text-xs text-[var(--color-text-muted)]">
-              Plan calibré — les surfaces m² s&apos;affichent pendant le tracé.
+              Mesure de référence enregistrée — les surfaces m² s&apos;affichent pendant le tracé.
             </span>
             <button
               type="button"
               onClick={() => setCalibrationOpen(true)}
               className="px-md py-xs rounded-md text-xs font-medium border border-[var(--color-border-default)] text-[var(--color-text-default)] hover:bg-[var(--color-bg-default)] active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] min-h-[36px]"
-              aria-label="Recalibrer l'échelle du plan"
+              aria-label="Modifier la mesure de référence du plan"
             >
-              Recalibrer
+              Modifier la mesure
             </button>
           </div>
         )}
