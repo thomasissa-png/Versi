@@ -17,6 +17,10 @@
  */
 
 import { createHash } from "node:crypto";
+import {
+  runSharpCanonicalPipeline,
+  withSharpTimeout,
+} from "./plan-canonicalizer-sharp";
 
 // ─── Types publics (alignés sur plan-canonicalizer.ts) ─────────────
 
@@ -44,8 +48,6 @@ export interface CanonicalizeMockOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
-const CANONICAL_W = 1536;
-const CANONICAL_H = 1024;
 
 function sha256(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex");
@@ -62,81 +64,10 @@ function logEvent(event: string, payload: Record<string, unknown>): void {
 }
 
 /**
- * Décode un PDF en PNG (1ère page) si nécessaire.
- * Import dynamique comme dans le canonicalizer réel.
- */
-async function pdfToPngIfNeeded(buf: Buffer): Promise<Buffer> {
-  // Signature PDF : "%PDF" (0x25 0x50 0x44 0x46)
-  const isPdf =
-    buf.length >= 4 &&
-    buf[0] === 0x25 &&
-    buf[1] === 0x50 &&
-    buf[2] === 0x44 &&
-    buf[3] === 0x46;
-  if (!isPdf) return buf;
-
-  const { pdf } = await import("pdf-to-img");
-  const pages = await pdf(buf, { scale: 2 });
-  for await (const page of pages) {
-    return Buffer.from(page);
-  }
-  return buf;
-}
-
-/**
- * Pipeline sharp mock :
- * 1. Décoder PDF si besoin → PNG
- * 2. Greyscale + threshold 180 (binarise les traits)
- * 3. Resize 1536×1024 fit:inside background blanc (préserve aspect)
- * 4. Dilate léger (blur 0.5 + threshold 200) pour épaissir les traits
- *
- * Toutes les étapes via import dynamique sharp (pattern s24).
- */
-async function runSharpPipeline(inputBuf: Buffer): Promise<Buffer> {
-  const { default: sharp } = await import("sharp");
-
-  const png = await pdfToPngIfNeeded(inputBuf);
-
-  // Étape 1-2-3 : greyscale + threshold + resize cadre canonical
-  const step1 = await sharp(png)
-    .greyscale()
-    .threshold(180)
-    .resize(CANONICAL_W, CANONICAL_H, {
-      fit: "inside",
-      background: { r: 255, g: 255, b: 255 },
-    })
-    .png()
-    .toBuffer();
-
-  // Étape 4 : dilate léger (blur + threshold) pour épaissir les traits binarisés
-  const step2 = await sharp(step1)
-    .blur(0.5)
-    .threshold(200)
-    .png()
-    .toBuffer();
-
-  return step2;
-}
-
-/** Race helper pour timeout. */
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error("timeout")), ms);
-    p.then(
-      (v) => {
-        clearTimeout(t);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(t);
-        reject(e);
-      },
-    );
-  });
-}
-
-/**
  * Mock de `canonicalizePlan()` — ne throw JAMAIS, fallback silencieux.
+ *
+ * Le pipeline sharp est mutualisé via `plan-canonicalizer-sharp.ts`
+ * (également utilisé par `plan-canonicalizer.ts` en fallback déterministe s27).
  */
 export async function canonicalizePlanMock(
   buf: Buffer,
@@ -161,7 +92,10 @@ export async function canonicalizePlanMock(
   }
 
   try {
-    const canonical = await withTimeout(runSharpPipeline(buf), timeoutMs);
+    const canonical = await withSharpTimeout(
+      runSharpCanonicalPipeline(buf),
+      timeoutMs,
+    );
     const outputHash = sha256(canonical);
     logEvent("success", {
       inputHash,
