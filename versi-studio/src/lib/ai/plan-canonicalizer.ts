@@ -27,6 +27,17 @@ import {
   CANONICAL_FALLBACK_MODEL,
   CANONICAL_DOWNSAMPLE_MAX_WIDTH,
 } from "./prompts/canonical";
+import {
+  runSharpCanonicalPipeline,
+  withSharpTimeout,
+} from "./plan-canonicalizer-sharp";
+
+/**
+ * Version du pipeline sharp utilisé en fallback déterministe (s27 fix H2).
+ * Bumper à chaque évolution du pipeline pour traçabilité DB.
+ */
+const SHARP_FALLBACK_VERSION = "sharp-fallback-v1" as const;
+const SHARP_FALLBACK_TIMEOUT_MS = 15_000;
 
 export type CanonicalizeModel =
   | typeof CANONICAL_PRIMARY_MODEL
@@ -51,10 +62,10 @@ export interface CanonicalizeResult {
   fallback: boolean;
   /** Raison du fallback (absent si fallback=false). */
   fallbackReason?: CanonicalizeFallbackReason;
-  /** Modèle IA utilisé (primaire ou fallback). */
-  model: CanonicalizeModel;
-  /** Version du prompt pour traçabilité DB. */
-  promptVersion: typeof CANONICAL_PROMPT_VERSION;
+  /** Modèle IA utilisé (primaire ou fallback sharp local). */
+  model: CanonicalizeModel | "sharp-fallback";
+  /** Version du prompt (ou pipeline sharp) pour traçabilité DB. */
+  promptVersion: typeof CANONICAL_PROMPT_VERSION | typeof SHARP_FALLBACK_VERSION;
   /** Hash SHA-256 de l'input (idempotence / dedup). */
   inputHash: string;
   /** Hash SHA-256 de l'output retourné (canonical OU original si fallback). */
@@ -291,6 +302,56 @@ function countFailedGates(g: { g1: boolean; g2: boolean; g3: boolean; g4: boolea
   return [g.g1, g.g2, g.g3, g.g4].filter((v) => !v).length;
 }
 
+/**
+ * Tente le pipeline sharp local comme fallback déterministe (s27 fix H2).
+ * Évite de passer le PDF brut (ou un canonical "gate-failed") au pipeline aval
+ * — GPT-4.1 Vision détecte mal les murs sur un PDF brut, dégradant tout
+ * le flux extract / room-tiling / outline-shrinker.
+ *
+ * Retourne `null` si le pipeline sharp échoue (très improbable en pratique :
+ * sharp + pdf-to-img sont 100 % locaux et ne dépendent pas du réseau).
+ * Le caller doit alors revenir au fallback original (buffer source).
+ */
+async function attemptSharpFallback(
+  sourceBuf: Buffer,
+  originalReason: CanonicalizeFallbackReason,
+  startedAt: number,
+): Promise<Buffer | null> {
+  const sharpStarted = Date.now();
+  try {
+    const out = await withSharpTimeout(
+      runSharpCanonicalPipeline(sourceBuf),
+      SHARP_FALLBACK_TIMEOUT_MS,
+    );
+    if (!out || out.length === 0) {
+      return null;
+    }
+    const sharpDuration = Date.now() - sharpStarted;
+    // Log explicite demandé par l'audit s27 — visibilité prod pour
+    // distinguer "vrai fallback PDF brut" de "fallback sharp local OK".
+    console.log(
+      `[canonicalizer] gpt-image-1 fallback (${originalReason}) → ${SHARP_FALLBACK_VERSION} OK (${sharpDuration}ms)`,
+    );
+    logEvent("sharp_fallback_success", {
+      original_reason: originalReason,
+      sharp_duration_ms: sharpDuration,
+      total_duration_ms: Date.now() - startedAt,
+      bytes_out: out.length,
+      sharp_version: SHARP_FALLBACK_VERSION,
+    });
+    return out;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logEvent("sharp_fallback_error", {
+      original_reason: originalReason,
+      sharp_duration_ms: Date.now() - sharpStarted,
+      error: msg,
+      sharp_version: SHARP_FALLBACK_VERSION,
+    });
+    return null;
+  }
+}
+
 // ─── API publique ──────────────────────────────────────────────────
 
 /**
@@ -403,17 +464,33 @@ export async function canonicalizePlan(
     const failed = countFailedGates(gates);
 
     if (failed >= 2) {
-      const outputHash = sha256(buf);
       logEvent("fallback", {
         reason: "gate_fail",
         input_hash: inputHash,
-        output_hash: outputHash,
         gates,
         duration_ms: Date.now() - started,
         timeout_ms: timeoutMs,
         input_bytes: inputBytes,
         prompt_version: CANONICAL_PROMPT_VERSION,
       });
+
+      // s27 fix H2 : tenter le pipeline sharp local AVANT de revenir au buffer brut.
+      const sharpOut = await attemptSharpFallback(buf, "gate_fail", started);
+      if (sharpOut) {
+        return {
+          canonical: sharpOut,
+          duration: Date.now() - started,
+          fallback: false,
+          model: "sharp-fallback",
+          promptVersion: SHARP_FALLBACK_VERSION,
+          inputHash,
+          outputHash: sha256(sharpOut),
+          gates: { g1: true, g2: true, g3: true, g4: true },
+        };
+      }
+
+      // Sharp a échoué aussi (très improbable) → buffer original.
+      const outputHash = sha256(buf);
       return {
         canonical: buf,
         duration: Date.now() - started,
@@ -457,7 +534,6 @@ export async function canonicalizePlan(
       : isOrgNotVerified(detail)
         ? "org_not_verified"
         : "api_error";
-    const outputHash = sha256(buf);
     // console.error pour les fallbacks (visibilité prod) — logs structurés.
     try {
       console.error(
@@ -471,13 +547,31 @@ export async function canonicalizePlan(
           duration_ms: Date.now() - started,
           prompt_version: CANONICAL_PROMPT_VERSION,
           input_hash: inputHash,
-          output_hash: outputHash,
           error: msg,
         })}`,
       );
     } catch {
       // noop — logging ne doit jamais casser le pipeline
     }
+
+    // s27 fix H2 : tenter le pipeline sharp local AVANT de retourner le buffer brut.
+    // Évite de passer un PDF brut au pipeline aval (mauvaise détection murs).
+    const sharpOut = await attemptSharpFallback(buf, reason, started);
+    if (sharpOut) {
+      return {
+        canonical: sharpOut,
+        duration: Date.now() - started,
+        fallback: false,
+        model: "sharp-fallback",
+        promptVersion: SHARP_FALLBACK_VERSION,
+        inputHash,
+        outputHash: sha256(sharpOut),
+        gates: { g1: true, g2: true, g3: true, g4: true },
+      };
+    }
+
+    // Sharp a échoué aussi (très improbable) → buffer original.
+    const outputHash = sha256(buf);
     return {
       canonical: buf,
       duration: Date.now() - started,
