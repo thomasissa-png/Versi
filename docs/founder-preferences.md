@@ -239,3 +239,11 @@ Pour Thomas, le hero d'une fiche immobilière publique doit donner envie au pros
 Verbatim s26 sur friedland-2eme-droite : *"regarde celle de friedland, c'est une catastrophe. On doit prendre la plus belle photo apres."*
 **Règle creative-strategy + design** : pour toute fiche refs avec galerie photos, sélectionner manuellement le hero = LA meilleure photo "après". Si une photo est médiocre dans le pool, la retirer même si on descend à 2 photos après (qualité > quantité). Pattern audit @moi via Read multimodal direct (copie /tmp/<slug>.jpg ASCII-only) validé s26.
 
+### Modèles OpenAI imagés — gpt-image-2 obligatoire, JAMAIS gpt-image-1 (s27)
+Verbatim Thomas s27 : *"Merci d'utiliser gpt-image-2 et pas 1 !! J'ai déjà dit ça."* Cette préférence est apparue dès le mémo s26→s27 (`OPENAI_API_KEY images.edit autorisée sur gpt-image-2`) et a été ratée 2 fois (par @ia en s25 puis @orchestrator en s27).
+**Règle ia + fullstack + orchestrator** : sur tout appel `openai.images.*` de Versi Studio (et tout site Versi futur), utiliser `gpt-image-2` exclusivement. Avant tout commit qui touche un module canonicalizer/visual-generator/image-IA → grep `gpt-image-1` dans le diff = STOP. Si gpt-image-2 échoue empiriquement, l'investigation se fait au niveau prompt/hyperparamètres/org KYC, **PAS** par fallback sur gpt-image-1.
+
+### Pas de fallback automatique sur tâches IA critiques (s27)
+Verbatim Thomas s27 : *"Je ne veux pas de fallback. Je veux que ça marche bien c'est tout."* Refus explicite de la stratégie "si X échoue → bascule auto sur Y dégradé". Préfère un échec visible + investigation que une chaîne de fallbacks qui masque le vrai problème.
+**Règle ia + fullstack + orchestrator** : pour toute fonctionnalité où Thomas attend une qualité prod, NE PAS implémenter de fallback automatique vers une approche dégradée (ex: sharp à la place de gpt-image-2). Si l'IA primaire échoue → log explicite + fallback original (renvoie le buffer brut + `fallback: true` + raison) pour que Thomas voie le problème et le résolve à la source. Le pattern `Reality check VISUEL BLOQUANT` (cf. section dédiée) s'applique : Thomas doit pouvoir constater empiriquement que ÇA MARCHE, pas qu'on a un filet de sécurité.
+
