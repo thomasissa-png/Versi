@@ -254,6 +254,8 @@
 | @ia (s25 Phase 2 step 1 — prompt + test cases canonical) | 2026-04-22 | `docs/ia/prompt-library.md` + `docs/ia/s25-canonical-test-cases.md` | `CANONICAL_PROMPT_V1` finalisé : 4 sections (priority geometric fidelity / style / strip negative rules / absolute prohibitions), hyperparamètres gpt-image-1 (size 2048×2048, quality high, png opaque), gates qualité output (fond blanc 95%, murs ≥4 segments, ≥1 ouverture, pas de bloc texte résiduel). 3 test cases : TC1 scan A3 médiocre, TC2 PDF vectoriel archi, TC3 croquis main levée — 5-7 critères binaires chacun, seuils acceptation différenciés (TC1/TC2 6/7, TC3 5/7). Validation visuelle non exécutée faute d'accès local confirmé aux plans test — script minimal fourni pour @qa Phase 2 step 3. | Règles négatives explicites (no X, no Y, ZERO Z) appliquées systématiquement — pattern s22 validé. #1 PRIORITY flag sur fidélité géométrique (contrainte <3px drift mur) car c'est le risque principal identifié en Phase 1 par @moi. TC3 seuil abaissé (5/7) car input le plus dégradé mais critères bloquants préservés (C3 proportions + C6 pas d'invention). `openai.responses.create()` rappelé INTERDIT (pattern s22). Prompt statique en v1, placeholders reportés à v2 si nécessaire. |
 | @moi (s25 Phase 1 — arbitrage canonicalisation) | 2026-04-22 | `docs/reviews/s25-gate-moi-phase1-arbitrage.md` | GO implémentation Phase 2. Approche B validée (IA image-to-image gpt-image-1 + fallback silencieux). 3 risques majeurs identifiés (hallucination géométrique, latence cumulée ≤90s, perte détails downsample). Séquence équipe Phase 2 : @ia prompt+test cases → @fullstack implémentation+UI comparateur → @qa reality check E2E 5 plans + @interior-architect audit visuel en parallèle → gate @moi Phase 2 (4 conditions strictes, pas de GO conditionnel). Noms canoniques tranchés : feature flag `VS_PLAN_CANONICALIZE`, colonne DB `canonicalized_image_path`. | Cohérence inter-livrables Phase 0 confirmée (strategy+PM+IA convergent). Approches A (CV pur) et C (hybride) écartées sur critère factuel : stack native instable Replit serverless (pattern s24 tesseract). Pattern s22 `openai.images.edit()` + `toFile()` + règles négatives déjà validé en prod Versi. Règle s23 "technique adjacente si plafond" respectée. ROI $0.04/plan vs client 50€+ non-débattable. |
 | @creative-strategy (s26 — audit editorial references Lille) | 2026-04-24 | 9 fiches auditees (rue-d-arras versi-invest + 2 Friedland + 6 Prieure). 6 corrections appliquees sur `versi-immobilier/scripts/lille-projects.js` : formulation rentabilite Friedland (14,4% base corrigee), coherence SCI/surface Prieure-1er-rue, descriptions autonomes Prieure-2eme-jardin + 2eme-rue, mention SCI MMO + lumiere zenithale Prieure-3eme. Rapport : `docs/reviews/audit-references-lille-s26.md`. Toutes notes >= 9/10 post-corrections. | Formulation "14,4% sur le prix d'acquisition" etait trompeuse (le calcul PDF inclut les frais de notaire). Descriptions "identiques a l'etage inferieur" cassaient l'autonomie editoriale des fiches. Coherence SCI/surface manquante sur prieure-1er-rue vs les 5 autres fiches Prieure. |
+| @orchestrator + équipe (s26 — refonte multi-sites Versi, 36 commits) | 2026-04-26 | (1) Mise à jour Gradient Agents 2026-04-17 (commit `325b1dc`) : net-zero cmd n°8, gates G31 favicon + G32 typo, convergence reviewer, escalade timeout 4 niveaux, patterns Tailwind v4/Canvas/Express 5/Playwright. (2) Audit TTL s26 net-zero (`50a3c4b`) : caps 116/44/228 ≤ 125/80/250, 1209 L archivées sans perte. (3) Promotion 14 règles s22-s24 vers agents (`5f0eac4` + `00affa1`). (4) @seo audit 4 sites + Twitter cards + favicon checklist (`80736c4`). (5) @infrastructure fix résilience 503 (`f177326` + `a409bbc`). (6) Ajout 3 références Lille (Arras versi-invest + 8 apparts versi-immobilier) avec 116 photos via `lille-projects.js` + autoSeed extension (`4ef7b53` à `dd818b6`). (7) @creative-strategy + @copywriter audit + itérations refs versi-invest (Nanterre + Arras) jusqu'à 10/10 (`d1547b8` à `57350fb`). (8) Recalculs taux actuels Nanterre 3,1% / Arras 3,5% sur 25 ans, harmonisation 10 lignes tableau, ajout Frais d'acquisition + Frais divers (`9fbb395` à `13a35a8`). (9) Fix homepage simulation step 03 (suppression metrics disproportionnés) + alignement TRI 10-15% + FAQ liste d'attente raccourcie (`4f6c03e` + `175fa3e` + `240520b` + `ae457ad`). (10) **Migration architecture photos versi-immobilier base64 DB → fichiers statiques** (`bfd864b` + `c044e5c`) puis pré-compilation locale + drop sharp runtime (`9787749`) — fix bug Neon timeout 57P01. (11) @creative-strategy curation manuelle 137→55 photos avec apresFiles+avantFiles explicites (`e28e27c`). (12) @moi validation visuelle PIVOT 8.87/10 → swap hero friedland-2eme-droite (`4b02fcc`). (13) @moi audit visuel direct via Read multimodal : friedland 2 photos finales + swap hero prieure-1er-rue + 2eme-rue (`ffec913`). (14) Page réalisations 3 colonnes desktop + chiffres 21 rénovations / 3,2M€ alignés homepage (`9b8d84f`). (15) Fix mstile-150x150.png manquant versi-invest-site (`3f698dc`). | Stratégie qualité > quantité respectée à toutes les étapes. Architecture photos : passage de 262 Mo DB base64 → 33 Mo JPEG statiques + manifest 44 Ko. Payload `/api/public/projects` divisé par 7 000. Cache HTTP 7 jours activé. Fix bug NFC/NFD sur generate-photos.js pour matching filenames accentués. Workflow audit visuel via Read multimodal direct (pas WebFetch) après échec @moi avec sandbox NFC : copie ASCII /tmp puis Read. Pattern audit cross-agents 3 itérations canonique appliqué sur les refs versi-invest (note finale 9.4 → 10/10). | Option base64 DB écartée pour scalabilité + bug Neon. Option JSONB écartée pour conserver la jointure SQL existante. Resize au boot Replit écarté (timeout DB). Generate-photos local + commit JPEG dans repo retenu : déterministe, cacheable, prod ne fait QUE INSERT URLs. |
+| @orchestrator (s26 — clôture session) | 2026-04-26 | Clôture session : audit TTL caps + propagation check + mémo de reprise versi-s26→s27 + learnings session. Sites prêts production en attente redeploy Replit final (versi-immobilier après commit `ffec913`, versi-invest-site après `3f698dc`). | Pattern s23 "Pas de clôture prématurée" respecté : Thomas a explicitement demandé clôture (>=Task 90% restant). 36 commits sur la branche `claude/update-gradient-agents-Y0BKa` représentent un travail conséquent à pérenniser via les caps net-zero du cmd n°8. | — |
 | @ia (s25 Phase 0 — POC canonicalisation plan) | 2026-04-22 | `docs/ia/s25-poc-canonicalisation.md` | 3 approches évaluées. Verdict : **Approche B retenue** = pré-rendu IA image-to-image via `openai.images.edit()` gpt-image-1 (pattern s22). Faisabilité Node 5/5, ~$0.04/plan, +15-25s latence, échec estimé 10-20%. Architecture : nouveau module `plan-canonicalizer.ts` + prompt `CANONICAL_PROMPT_V1` versionné + feature flag `VS_CANONICAL_PREPASS` + colonne DB `vs_plans.canonical_image_url` + fallback silencieux vers plan original. Plan : prompt+test cases → implémentation → reality check E2E 5 plans → gate GO/NO-GO si gain ≥+1.5 pts score 10/10. | A écartée (CV pur OpenCV/Hough) : stack native instable Replit serverless, pattern casse Turbopack style tesseract s24. C écartée (hybride CV+IA) : antipattern s23 "technique adjacente vs empilement", cumule les risques de A sans réduction coût significative. B cohérent avec framework : pattern s22 validé (règles négatives > positives, `openai.images.edit()` + `toFile()` seule API gpt-image-1 fonctionnelle), pattern post-process s23 appliqué à l'amont (pré-processing input) au lieu de l'aval. ROI évident vu budget client 50€+/dossier. |
 | @ux (s25 — audit persona marchand refonte UX) | 2026-04-22 | `/home/user/Versi/docs/ux/s25-audit-persona-refonte.md` | Verdict D1-D5 : étape Reformatage SUPPRIMÉE du stepper (4 étapes : Plans→Lots→Pièces→Visuels), tous textes "reformatage/canonicalisation" bannis de l'UI, PlanComparator retiré de /upload, redirection post-analyse /upload→/lots directe. | Thomas en prod voit "Reformatage indisponible" — terme incompréhensible pour un marchand de biens. Le reformatage reste dans le pipeline technique mais disparaît entièrement de l'UI persona. |
 | @product-manager (s25 — spec refonte pipeline étape 1) | 2026-04-22 | `/home/user/Versi/docs/product/s25-refonte-pipeline-spec.md` | Canonicalisation plan = V1 bloquante (pas V2). 5 US couvrent : prévisualisation comparateur, correction orientation, nettoyage artefacts, persistence DB, mode dégradé. Jargon banni : "polygone/zone/calque/contour". Feature flag `VS_PLAN_CANONICALIZE` requis. Critères GO PRODUCTION : ≤90s pipeline, ≤$0.10/plan, audit Yann 10/10, 0 pièce fantôme sur panel P00-P03. | Canonicalisation V1 car le plafond actuel (~9.35/10) est un plafond d'input (PDF bruts hétérogènes), pas un plafond de prompt. Aucune optimisation passe-2/snap-to-label ne peut compenser un scan incliné 3°. Ratio Impact/Confiance exceptionnel (problème confirmé sur plan Thomas "Rue des Muguets" en conditions réelles). Mode dégradé (US-VS-R5) obligatoire pour éviter le blocage en transaction urgente. |
@@ -461,6 +463,64 @@
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ## Mémo de reprise — dernière session
+
+### Mémo de reprise versi-s26 → s27
+
+**Branche dernière clôturée** : `claude/update-gradient-agents-Y0BKa` (HEAD `ffec913`)
+**Date de clôture** : 2026-04-26
+**Numéro de session** : 26 (session 27 à venir)
+
+**Résumé session s26 (36 commits, ~3 jours du 24 au 26 avril)** :
+1. **Mise à jour Gradient Agents 2026-04-17** : net-zero cmd n°8, gates G31 favicon + G32 typo, convergence reviewer, escalade timeout 4 niveaux, patterns Tailwind v4/Canvas/Express 5/Playwright. Audit TTL : caps 116/44/228 ≤ 125/80/250 L respectés. 14 règles s22-s24 promues vers leurs agents cibles.
+2. **Audit SEO 4 sites Versi** : favicons G31 PASS sur 4/4, Twitter cards ajoutées partout, fix mstile-150x150 versi-invest. Bug Bing/Google "can't fetch" diagnostiqué = sandbox NFC du framework, pas vrai problème prod (sites OK chez Thomas, attendre 1-3 semaines pour SERP refresh).
+3. **3 nouvelles références immobilières Lille** : rue d'Arras (versi-invest, 1 immeuble) + rue de Friedland (versi-immobilier, 2 apparts) + rue du Prieuré (versi-immobilier, 6 apparts) avec curation manuelle 137→55 photos hand-picked et hero choisis manuellement. Audit @creative-strategy + @moi 9.4→10/10 sur les fiches.
+4. **Refonte fiches versi-invest** : recalcul taux actuels Nanterre 3,1% + Arras 3,5% sur 25 ans, harmonisation 10 lignes tableau, ajout Frais d'acquisition + Frais divers, anonymisation adresse Arras, suppression estimation vente bloc.
+5. **Migration architecture photos versi-immobilier** : base64 DB (262 Mo) → fichiers statiques précompilés en local (33 Mo) + manifest.json. Sharp drop du runtime → fix bug Neon timeout 57P01 ("autoSeed > 60s sur Replit"). Pattern durable identique à versi-invest.
+6. **Fix résilience 503** infra Replit Autoscale (`/api/live` ultra-précoce, binding 0.0.0.0, autoSeed fire-and-forget).
+
+**Décisions clés** :
+- Architecture photos = pré-compilation locale + commit JPEG dans repo + sharp en devDep (vraie solution durable, pas quick fix). Workflow futur : éditer `Photos/references/`, run `node scripts/generate-photos.js`, commit.
+- Tone fiches versi-invest = factuel-éditorial Nanterre, hero = espace de vie meublé > détail. Si photo médiocre dans pool, retirer (qualité > quantité).
+- versi-studio.fr DNS non résolu = hors scope s26, à investiguer côté registrar/Replit.
+- property_photos table versi-immobilier (biens en vente, distinct de project_photos = réalisations) : encore en base64 — chantier futur ~30 min même pattern.
+
+**Travaux en cours** : AUCUN côté agents. Tous les livrables sont complets.
+
+**Actions Thomas en attente (post-clôture)** :
+- ⏳ **Redeploy versi-immobilier** sur Replit (au boot, autoSeed lit manifest + INSERT URLs en DB en ~1-2s, plus aucun timeout Neon)
+- ⏳ **Redeploy versi-invest-site** sur Replit (mstile-150x150.png ajouté + curation finale)
+- 🔍 versi-studio.fr DNS à configurer côté registrar OVH/Gandi + Replit custom domain (HTTP 000 actuellement)
+- 🔍 Reality checks post-deploy : `curl /api/public/projects | jq '.projects[0].cover_url'` → format `/projects/.../photo-01.jpeg`, headers `Cache-Control: max-age=604800`
+
+**Prochaines actions recommandées s27** (si Thomas valide) :
+1. **[P1] @fullstack** : Migrer `property_photos` versi-immobilier (biens en vente) vers le même pattern photos statiques (réutilisation `photo-sync.js` + `generate-photos.js` étendu). Estimé ~30 min. Justification : cohérence avec `project_photos` migré, finir le ménage architecture.
+2. **[P2] @seo** : Soumission active Bing URL Submission API + Google Search Console "Demander indexation" pour les 3 sites prêts (cf. `docs/seo/bing-submission-procedure.md`). Justification : SERP favicons mettront 1-3 semaines sinon.
+3. **[P2] @design / @ux** : Audit UX page `/realisations` versi-immobilier après redeploy (3 colonnes desktop + nouveaux hero + 21 rénovations stats). Justification : valider que la curation 9 fiches en 3×3 donne le bon rendu visuel pour le persona acheteur.
+
+**Blockers éventuels** :
+- versi-studio.fr DNS : décision business — domaine actif ou à abandonner ?
+- Aucun autre blocker ; framework + sites prêts pour itérations futures.
+
+**Nom de branche recommandé pour s27** : `claude/versi-s27-property-photos-migration-<suffix>` (si P1 retenu) OU `claude/versi-s27-seo-indexation-<suffix>` (si P2 SEO retenu) OU `claude/versi-s27-<priorité-thomas>-<suffix>`.
+
+**Commande de reprise suggérée pour s27** :
+
+```
+@orchestrator session versi-s27. Lire project-context.md mémo reprise s26→s27.
+
+Gate de reprise obligatoire : auditer si Thomas a redéployé versi-immobilier
++ versi-invest-site (curl reality check post-deploy). Sinon proposer le check.
+
+Quelle priorité s27 parmi :
+- P1 Migration property_photos versi-immobilier (cohérence archi base64→statique)
+- P2 Soumission active Bing/Google indexation 3 sites prêts
+- P2 Audit UX /realisations versi-immobilier (3 colonnes + curation 9 fiches)
+- versi-studio.fr DNS (décision business)
+- Autre priorité Thomas
+
+Compteur Task initial : 0/15. Contraintes : anti-timeout cmd n°3, cap CLAUDE.md
+125 L (commandement n°8), tone factuel-éditorial Nanterre.
+```
 
 ### Mémo de reprise versi-s25 → s26
 

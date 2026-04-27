@@ -240,3 +240,28 @@ Tests auto 125/125, 151/151, 16/16 tous PASS en session s25, MAIS Thomas a rejet
 Session s25 a raffiné la règle s22/s23/s24 "reality check E2E obligatoire" : distinguer (3a) reality check E2E pipeline (mocks OK, valide flux données+UI) et (3b) reality check E2E qualité IA réelle (vraie API obligatoire).
 **Règle @moi** : pas de GO PRODUCTION avec seulement mocks sur tâches IA. Score GO 4/4 exige (3a) + (3b) tous deux PASS.
 
+
+### Compléter ≠ remplacer (s26)
+Quand Thomas dit "ajouter X mots", il veut X et SEULEMENT X — la phrase d'origine reste intacte. Toute amélioration "pour bien expliquer" est rejetée comme "bloc moche pas revu".
+Exemples s26 : (a) homepage step 03 simulation, demandé "ajouter Cashflow/TRI/CoC", livré 80 mots de hints longs → REJETÉ, (b) ProcessPage step 03 idem, restauration version originale + 2 mots ajoutés UNIQUEMENT.
+**Règle copywriter** : pour toute édition demandée avec mots précis, identifier le pattern source (ex. "Rendement brut, net, net-net") et compléter EN SUITE (ex. "Rendement brut, net, net-net, cashflow, TRI, CoC"), pas remplacer.
+
+### Solution propre et durable JAMAIS quick fix (s26)
+Quand on lui propose un patch cosmétique (lazy load + resize 1600px en bandage), Thomas répond textuellement : *"à l'équipe de travailler l'architecture, pas à moi. Solution propre et durable".*
+Exemple s26 : pages versi-immobilier lentes (262 Mo base64 DB) → quick win refusé, vraie solution = pré-compilation locale + commit JPEG + drop sharp runtime + manifest source de vérité (cf. commits `bfd864b` à `ffec913`).
+**Règle infrastructure + fullstack** : avant de proposer un quick fix, designer la vraie architecture cible. Si quick fix nécessaire (incident prod), le marquer explicitement "TEMPORAIRE — refactor durable au prochain sprint" + ticket de suivi.
+
+### Chiffres ronds en communication publique (s26)
+Thomas préfère les chiffres ronds pour la lisibilité commerciale : emprunt 660 639 € → 660 000 € sur fiche publique. Exception : chiffres exacts du PDF/acte notarié (frais notaire 60 639 € = chiffre officiel).
+**Règle copywriter + creative-strategy** : pour toute valeur €/m²/% sur livrable client-facing, arrondir à la dizaine ou centaine selon ordre de grandeur, sauf si chiffre = donnée officielle traçable (acte notarié, contrat). Noter dans le commit message la source de la valeur.
+
+### Anonymisation adresses fiches publiques (s26)
+Thomas exige que les fiches refs publiques NE JAMAIS afficher l'adresse complète. "Immeuble situé au 46 rue d'Arras à Lille" → "Immeuble situé à Lille (59)". Le nom de la SCI propriétaire (MMM/MMO/MLV) est acceptable car déjà sur le PDF descriptif partagé.
+Sécurité fondateur : protection du portfolio + éviter les visites non sollicitées.
+**Règle copywriter + reviewer** : grep adresse postale (numéro + rue) sur tout livrable client-facing avant push. 0 occurrence obligatoire pour fiches refs immobilières.
+
+### Hero photo = photo qui fait cliquer (s26)
+Pour Thomas, le hero d'une fiche immobilière publique doit donner envie au prospect. Hiérarchie qualité : (1) espace de vie meublé > (2) espace de vie vide propre > (3) cuisine équipée > (4) chambre meublée > (5) détail (SDB/cuisine vide). À éviter en hero : chambre vide parquet brut, fenêtre stores baissés, recoin avec foyer brut, vue technique.
+Verbatim s26 sur friedland-2eme-droite : *"regarde celle de friedland, c'est une catastrophe. On doit prendre la plus belle photo apres."*
+**Règle creative-strategy + design** : pour toute fiche refs avec galerie photos, sélectionner manuellement le hero = LA meilleure photo "après". Si une photo est médiocre dans le pool, la retirer même si on descend à 2 photos après (qualité > quantité). Pattern audit @moi via Read multimodal direct (copie /tmp/<slug>.jpg ASCII-only) validé s26.
+
