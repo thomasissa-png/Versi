@@ -283,16 +283,21 @@ async function callOpenAIImagesEdit(
  * et g4 alignés (pas de zone noire massive, traits fins présents).
  */
 const GATE_THRESHOLDS = {
-  /** G1 — fond blanc dominant (passe de 0.6 à 0.85, plus proche du 0.95 théorique). */
-  whiteRatioMin: 0.85,
-  /** G2 — borne basse blackRatio (passe de 0.005 à 0.02 = 2%, resserrement). */
+  /** G1 — fond blanc dominant. s27 R3 a posé 0.85 par hypothèse théorique
+   * (raison : audit @ia R1 "0.6 vs 0.95 théorique permissif"), mais Thomas a
+   * empiriquement constaté Étape 2 vide après le durcissement (rapport @ia
+   * `s27-vs-step2-empty-investigation.md` H1) → fallback PDF brut massif →
+   * GPT-4.1 v9 émet `unit_id = null` → 0 lot. Relaxe à 0.75 (compromis
+   * audit/empirique) en attendant calibration sur logs gpt-image-2 réels. */
+  whiteRatioMin: 0.75,
+  /** G2 — borne basse blackRatio. */
   blackRatioMin: 0.02,
-  /** G2 — borne haute blackRatio (passe de 0.35 à 0.25, resserrement). */
-  blackRatioMax: 0.25,
+  /** G2 — borne haute blackRatio. Relaxe à 0.32 (idem rationale ci-dessus). */
+  blackRatioMax: 0.32,
   /** G3 — proxy "au moins quelques traits fins" (alignement G2 min). */
   blackRatioMinTraits: 0.02,
-  /** G4 — pas de bloc noir massif (alignement G2 max). */
-  blackRatioMaxTextBlock: 0.25,
+  /** G4 — pas de bloc noir massif (alignement G2 max relaxé). */
+  blackRatioMaxTextBlock: 0.32,
 } as const;
 
 /**
