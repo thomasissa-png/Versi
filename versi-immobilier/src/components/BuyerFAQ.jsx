@@ -5,33 +5,33 @@ import './BuyerFAQ.css';
 const FAQ_ITEMS = [
   {
     id: 'faq-mdb',
-    question: 'Qu\'est-ce qu\'un bien vendu par un marchand de biens ?',
+    question: 'Qu'est-ce qu'un bien vendu par un marchand de biens ?',
     answer:
-      'Un marchand de biens achète des biens immobiliers, les rénove, puis les revend en direct. Pas d\'agence, pas d\'intermédiaire. Chez Versi Immobilier, les trois fondateurs sélectionnent, acquièrent et supervisent chaque chantier personnellement.',
+      'Un marchand de biens achète des biens immobiliers, les rénove, puis les revend en direct. Pas d'agence, pas d'intermédiaire. Chez Versi Immobilier, les trois fondateurs sélectionnent, acquièrent et supervisent chaque chantier personnellement.',
   },
   {
     id: 'faq-frais',
-    question: 'Y a-t-il des frais d\'agence ?',
+    question: 'Y a-t-il des frais d'agence ?',
     answer:
-      'Non. Versi Immobilier vend en direct du propriétaire à l\'acquéreur. Aucune commission d\'agence n\'est facturée à l\'acheteur. Le prix affiché est le prix de vente net.',
+      'Non. Versi Immobilier vend en direct du propriétaire à l'acquéreur. Aucune commission d'agence n'est facturée à l'acheteur. Le prix affiché est le prix de vente net.',
   },
   {
     id: 'faq-garanties',
     question: 'Quelles garanties ai-je sur un bien rénové ?',
     answer:
-      'Chaque bien est livré avec des diagnostics complets, l\'historique détaillé des travaux réalisés et une garantie décennale sur les parties structurelles. L\'assurance dommages-ouvrage est souscrite avant le démarrage du chantier. Le dossier complet est remis avant la visite.',
+      'Chaque bien est livré avec des diagnostics complets, l'historique détaillé des travaux réalisés et une garantie décennale sur les parties structurelles. L'assurance dommages-ouvrage est souscrite avant le démarrage du chantier. Le dossier complet est remis avant la visite.',
   },
   {
     id: 'faq-visite',
-    question: 'Comment se passe la visite et l\'achat ?',
+    question: 'Comment se passe la visite et l'achat ?',
     answer:
-      'Demande de présentation via le formulaire ou par email. Visite planifiée sous 48 heures avec un fondateur. Dossier technique remis sur place. Si le bien vous convient : offre d\'achat, puis signature chez le notaire.',
+      'Demande de présentation via le formulaire ou par email. Visite planifiée sous 48 heures avec un fondateur. Dossier technique remis sur place. Si le bien vous convient : offre d'achat, puis signature chez le notaire.',
   },
   {
     id: 'faq-pourquoi',
-    question: 'Pourquoi choisir Versi Immobilier plutôt qu\'une agence ?',
+    question: 'Pourquoi choisir Versi Immobilier plutôt qu'une agence ?',
     answer:
-      'Trois différences concrètes : pas de frais d\'agence à votre charge, un dossier technique complet fourni avant la visite (diagnostics, historique travaux, garantie décennale), et un interlocuteur unique — le fondateur qui a piloté la rénovation.',
+      'Trois différences concrètes : pas de frais d'agence à votre charge, un dossier technique complet fourni avant la visite (diagnostics, historique travaux, garantie décennale), et un interlocuteur unique — le fondateur qui a piloté la rénovation.',
   },
 ];
 
