@@ -18,6 +18,7 @@ import type {
   ApiResponse,
 } from "@/lib/vs/types";
 import { TYPE_BIEN_OPTIONS } from "@/lib/vs/types";
+import ConfirmModal from "@/components/vs/ConfirmModal";
 
 // ─── Filtres statut ────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Auto-dismiss toast après 4s
   useEffect(() => {
@@ -130,10 +132,15 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const handleDelete = useCallback(async (projectId: string) => {
-    if (!window.confirm("Supprimer définitivement cette opération ? Cette action est irréversible.")) {
-      return;
-    }
+  // Ouvre la modale de confirmation. La suppression effective est dans confirmDeleteAction.
+  const handleDelete = useCallback((projectId: string) => {
+    setConfirmDeleteId(projectId);
+  }, []);
+
+  const confirmDeleteAction = useCallback(async () => {
+    const projectId = confirmDeleteId;
+    if (!projectId) return;
+    setConfirmDeleteId(null);
     try {
       const res = await fetch(`/api/vs/projects/${projectId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(String(res.status));
@@ -141,7 +148,7 @@ export default function DashboardPage() {
     } catch {
       setError("Impossible de supprimer l'opération. Réessayez.");
     }
-  }, []);
+  }, [confirmDeleteId]);
 
   // Filtrage client-side : statut + recherche
   const filteredProjects = useMemo(() => {
@@ -391,6 +398,18 @@ export default function DashboardPage() {
           )}
         </>
       )}
+
+      {/* Modale de confirmation suppression — remplace window.confirm natif (s27) */}
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        title="Supprimer cette opération ?"
+        message="Cette action est définitive. L'opération et tous ses plans associés seront supprimés."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onConfirm={confirmDeleteAction}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }
