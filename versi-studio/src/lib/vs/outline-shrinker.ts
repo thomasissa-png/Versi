@@ -189,7 +189,7 @@ export function shrinkOutlinePolygonToRooms(
   opts: { margin_percent?: number; alpha?: number } = {}
 ): OutlinePolygon | null {
   const marginPct = opts.margin_percent ?? 0.5;
-  const alpha = opts.alpha ?? 0.3;
+  const alpha = opts.alpha ?? 1.5;
 
   const allPoints: HullPoint[] = [];
   for (const r of rooms) {

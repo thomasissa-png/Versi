@@ -205,7 +205,7 @@ function delaunayTriangles(points: Point[]): Array<[number, number, number]> {
  *   à droite, en haut ne suit rien". 0.3 → radiusMax = 3.33% (vs 2% à 0.5),
  *   resserre la triangulation Delaunay sur les vraies arêtes des rooms).
  */
-export function concaveHull(points: Point[], alpha = 0.3): Point[] | null {
+export function concaveHull(points: Point[], alpha = 1.5): Point[] | null {
   if (points.length < 3) return null;
   if (alpha <= 0) return null;
 
@@ -397,7 +397,7 @@ export function computeLotPolygonEnvelope(
   rooms: RoomForEnvelope[],
   minSnapRate = 0.3,
   paddingPct = 0,
-  alpha = 0.3,
+  alpha = 1.5,
 ): EnvelopePolygonResult {
   const totalCount = rooms.length;
   const snappedRooms = rooms.filter((r) => r.isSnapped && r.bounding_polygon && r.bounding_polygon.length >= 3);
