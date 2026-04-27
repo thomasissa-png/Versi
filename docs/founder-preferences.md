@@ -177,8 +177,6 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas refuse toute proposition de clôture de session à 50% du budget Task**. "Arrête de me proposer de clôturer une session à 50% de tasks consommées, c'est pas ok". Règle : ne PAS évoquer la clôture tant que Thomas ne l'a pas demandée OU que budget ROUGE (18 Task) atteint.
 
-- [PRÉFÉRENCE FONDATEUR] **Thomas refuse le jargon technique dans l'UI, même si cohérent avec le domaine technique source**. "Dessiner un polygone" rejeté, "Tracer un contour libre" rejeté aussi car substituait jargon par jargon. Ce qu'il veut : **"Dessiner un lot"**. Le mot pivot métier est **"lot"**, jamais "polygone", "contour", "zone". Test de recul obligatoire : "Un marchand de biens comprend-il en 2 secondes ?".
-
 - [PRÉFÉRENCE FONDATEUR] **Thomas veut qu'on lui POSE des questions quand le contexte est incertain**, pas qu'on devine. "Si quelque chose pas clair demande moi, mais stp ça fait 6 fois je remonte ce même souci". Règle : après 2 tentatives échouées sur le même bug, l'agent DOIT poser 3 questions ciblées avant de continuer.
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas exprime sa frustration de façon directe ET répétée**. Quand il remonte un bug 6 fois, c'est qu'il n'a pas été écouté/compris. Signal d'alarme : quand Thomas dit "je repete", "je te redis", "6 fois", l'agent DOIT immédiatement changer d'approche (test E2E réel, questions précises) plutôt que continuer sur la même piste.
@@ -201,10 +199,11 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 Thomas répète 2× en session : "pourquoi crois-tu que je veux quelque chose à moitié fait ?". Anti-pattern : livrer du code + feature flag OFF + demander à Thomas d'activer/tester sans avoir validé la feature downstream complète.
 **Règle** : si une feature nécessite activation runtime externe (OpenAI key, KYC), @orchestrator doit MOCKER cette activation en local pour valider pipeline entier, pas seulement code isolé. Pattern `VS_USE_MOCK_CANONICAL` + `VS_USE_MOCK_EXTRACTOR` validé s25.
 
-### Zéro jargon technique dans l'UI persona (extension règle s23)
-Thomas rejette violemment tout terme qu'un persona marchand n'utilise pas quotidiennement. Cette session : "reformatage", "canonicalisation", "polygone", "zone", "calque", "contour", "vectoriel" tous bannis.
-Verbatim : "quelqu'un a-t-il réfléchit à ce que voit et comprend nos personas ? En ont-il quelque chose à secouer qu'on refasse les plans ?"
-**Règle** : test "le persona l'utilise dans une conversation métier quotidienne ?". Si NON → remplacer par métier OU supprimer la section. Grep `<jargon-technique>` sur HTML rendu = 0 occurrence obligatoire dans chaque PR UI.
+### Zéro jargon technique dans l'UI persona — mot pivot métier (consolidé s23/s25)
+- **Mot pivot métier obligatoire** : "lot" (pas "polygone", "contour", "zone"), "Dessiner un lot" (pas "Tracer un contour libre"). Le mot pivot est celui que le persona utilise dans une conversation métier quotidienne.
+- **Termes bannis** : "polygone", "zone", "calque", "contour", "vectoriel", "reformatage", "canonicalisation". Aucun de ces mots ne doit apparaître dans l'UI client/persona.
+- **Test obligatoire** : "Un marchand de biens (ou le persona cible) comprend-il ce mot en 2 secondes sans googler ?". Si NON → remplacer par mot métier OU supprimer la section. Verbatim Thomas : "quelqu'un a-t-il réfléchit à ce que voit et comprend nos personas ?".
+- **Vérification** : `grep <jargon-technique>` sur HTML rendu = 0 occurrence obligatoire dans chaque PR UI.
 
 ### Préférence suppression radicale > patch sur patch
 Face à une solution tiède (renommage/reformulation) vs solution radicale (suppression/refonte), Thomas pénalise le "à moitié réformé". Exemples s25 : étape "Reformatage" → SUPPRIMER (pas renommer "Préparation"), prompt v6+v7 empilé → v8 RADICAL (pas ajouter v6.5), bannières techniques → SUPPRIMER (pas reformuler).
