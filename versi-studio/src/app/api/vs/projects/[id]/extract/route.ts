@@ -990,12 +990,14 @@ export async function POST(
               bounding_polygon: r.bounding_polygon ?? null,
               isSnapped: lockedByEarlySnap.has(r.temp_id || r.name_raw || `room_${idx}`),
             }));
-            // s24 — seuils configurables via env (0.5 / 2 par défaut en prod).
-            // Permet un reality check avec seuil permissif sur des plans
+            // s24 — seuils configurables via env (0.3 / 0 par défaut en prod).
+            // s28 P0 — paddingPct défaut 0 (était 2) pour fix débord polygone
+            // Étape 2. Permet un reality check avec seuil permissif sur des plans
             // faible-snap-rate sans modifier le code.
             const minSnapRateEnv = parseFloat(process.env.VS_ENVELOPE_MIN_SNAP_RATE || "0.3");
-            const paddingPctEnv = parseFloat(process.env.VS_ENVELOPE_PADDING_PCT || "2");
-            const envResult = computeLotPolygonEnvelope(roomsForEnv, minSnapRateEnv, paddingPctEnv);
+            const paddingPctEnv = parseFloat(process.env.VS_ENVELOPE_PADDING_PCT || "0");
+            const alphaEnv = parseFloat(process.env.VS_ENVELOPE_ALPHA || "0.3");
+            const envResult = computeLotPolygonEnvelope(roomsForEnv, minSnapRateEnv, paddingPctEnv, alphaEnv);
             if (envResult.polygon) {
               envelopePolygon = envResult.polygon;
               // Synchroniser zoneData rect = bbox du polygon final (point source unique)

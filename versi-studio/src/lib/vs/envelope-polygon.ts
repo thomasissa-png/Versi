@@ -200,9 +200,12 @@ function delaunayTriangles(points: Point[]): Array<[number, number, number]> {
  * n ~ 100, ~10^6 ops < 50ms côté Node — acceptable hors hot path.
  *
  * @param points Nuage de points (peut contenir doublons — dédoublonnés en interne).
- * @param alpha Paramètre alpha (0.1 = très concave, 1.0 = quasi-convex). Défaut 0.5.
+ * @param alpha Paramètre alpha (0.1 = très concave, 1.0 = quasi-convex). Défaut 0.3
+ *   (s28 P0 fix débord polygone Étape 2 — verbatim Thomas "ça dépasse à gauche,
+ *   à droite, en haut ne suit rien". 0.3 → radiusMax = 3.33% (vs 2% à 0.5),
+ *   resserre la triangulation Delaunay sur les vraies arêtes des rooms).
  */
-export function concaveHull(points: Point[], alpha = 0.5): Point[] | null {
+export function concaveHull(points: Point[], alpha = 0.3): Point[] | null {
   if (points.length < 3) return null;
   if (alpha <= 0) return null;
 
@@ -354,7 +357,7 @@ function centroid(points: Point[]): Point {
  * @param points Polygone convexe CCW.
  * @param paddingPct Pourcentage d'expansion (2 = +2%).
  */
-export function expandPolygonOutward(points: Point[], paddingPct: number): Point[] {
+export function expandPolygonOutward(points: Point[], paddingPct = 0): Point[] {
   if (points.length < 3 || paddingPct <= 0) return [...points];
 
   const c = centroid(points);
@@ -384,15 +387,17 @@ export function expandPolygonOutward(points: Point[], paddingPct: number): Point
  * dégénérée, topologie complexe) → fallback convex hull pour ne pas bloquer.
  *
  * @param rooms Rooms du lot avec drapeau isSnapped.
- * @param minSnapRate Taux minimal de snap requis (défaut 0.5).
- * @param paddingPct Padding outward depuis le centroïde (défaut 2%).
- * @param alpha Paramètre alpha-shape (défaut 0.5). Plus petit = plus concave.
+ * @param minSnapRate Taux minimal de snap requis (défaut 0.3).
+ * @param paddingPct Padding outward depuis le centroïde (défaut 0% — s28 P0 fix
+ *   débord polygone Étape 2. Anciennement 2%, retiré pour coller au plan).
+ * @param alpha Paramètre alpha-shape (défaut 0.3 — s28 P0 fix débord). Plus petit
+ *   = plus concave.
  */
 export function computeLotPolygonEnvelope(
   rooms: RoomForEnvelope[],
   minSnapRate = 0.3,
-  paddingPct = 2,
-  alpha = 0.5,
+  paddingPct = 0,
+  alpha = 0.3,
 ): EnvelopePolygonResult {
   const totalCount = rooms.length;
   const snappedRooms = rooms.filter((r) => r.isSnapped && r.bounding_polygon && r.bounding_polygon.length >= 3);
@@ -455,6 +460,11 @@ export function computeLotPolygonEnvelope(
   let hull = concaveHull(allPoints, alpha);
   if (!hull || hull.length < 3) {
     // Fallback sécurité : convex hull (cellule dégénérée, topologie complexe).
+    // s28 P0 — log explicite pour observabilité (Thomas saura si concave a
+    // réussi ou si on est en convex degraded). Sinon le fallback est silencieux.
+    console.warn(
+      `[concaveHull] fallback convex (alpha=${alpha}, points=${allPoints.length}, hull=${hull ? hull.length : 0})`,
+    );
     hull = convexHull(allPoints);
   }
   if (hull.length < 3) {

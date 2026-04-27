@@ -180,7 +180,8 @@ function pointsFromRoom(r: ExtractedRoom): Point[] {
  *
  * @param rooms Pièces du lot (déjà filtrées par unit_id).
  * @param opts.margin_percent Marge ajoutée (défaut 0.5).
- * @param opts.alpha Paramètre alpha-shape (défaut 0.5). Plus petit = plus concave.
+ * @param opts.alpha Paramètre alpha-shape (défaut 0.3 — s28 P0 fix débord
+ *   polygone Étape 2). Plus petit = plus concave.
  * @returns OutlinePolygon ou null si aucune géométrie exploitable.
  */
 export function shrinkOutlinePolygonToRooms(
@@ -188,7 +189,7 @@ export function shrinkOutlinePolygonToRooms(
   opts: { margin_percent?: number; alpha?: number } = {}
 ): OutlinePolygon | null {
   const marginPct = opts.margin_percent ?? 0.5;
-  const alpha = opts.alpha ?? 0.5;
+  const alpha = opts.alpha ?? 0.3;
 
   const allPoints: HullPoint[] = [];
   for (const r of rooms) {
