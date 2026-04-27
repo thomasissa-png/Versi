@@ -467,6 +467,79 @@
 
 ## Mémo de reprise — dernière session
 
+### Mémo de reprise versi-s27 → s28
+
+**Branche dernière clôturée** : `claude/session-recovery-setup-iDOWX` (HEAD `516e343`)
+**Date de clôture** : 2026-04-27
+**Numéro de session** : 27 (session 28 à venir)
+**Statut s27** : CLÔTURÉE — propagation P0/P1 + consolidation framework + 2 livrables agents (script IndexNow + doc architecture R2). 7 commits.
+
+**Résumé session s27 (7 commits, autonomie max après plan A validé)** :
+1. **Propagation P0/P1 s26** (`5a1d99c`) : 11 learnings → "propagé s27" dans `lessons-learned.md`. Section "Règles s26" ajoutée à `_base-agent-protocol.md` (sandbox DNS 503, compléter≠remplacer, audit visuel multimodal Read, archive-first net-zero, reality check visuel BLOQUANT pré-commit). Gate bloquante reprise levée.
+2. **Consolidation founder-preferences** (`d398089` + `30c4c5e` + `68583da`) : 267 → **241 L** (-26 L, -10%). Fusion sections Qualité 10/10 (s10/s13/s22/s23/s24), Délégation (s12/s24), Reality check visuel (s22/s23/s25/s26), Jargon banni (s23/s25). Trim section s10 datée. 5 préférences fondateur s26 préservées intactes. **Alerte 180 toujours active à 241 L** — dette résiduelle.
+3. **Historique s27** (`02f29ec`) : ligne ajoutée dans tableau "Historique des interventions agents".
+4. **@seo livré** (`7a60164`) : `scripts/seo/indexnow-submit.js` (151 L, 0 dep npm, fetch natif + regex sitemap parser). À exécuter chez Thomas — sandbox DNS Replit incompatible. Pré-requis : 3 fichiers `<KEY>.txt` à déployer sur chaque site avant lancement.
+5. **@fullstack livré** (`516e343`) : `docs/infra/property-photos-storage-options.md` (~150 L). Diagnostic correctif du faux du mémo s26→s27 ("même pattern project_photos, ~30 min" — invalide car uploads dynamiques admin). 3 stratégies évaluées (matrice 5 critères pondérés) : **B Cloudflare R2 = 4.7/5 retenue**, A Replit Object Storage = 3.6/5 fallback, C status quo base64 = 1.4/5 rejeté. 8 hypothèses à trancher Thomas avant implémentation.
+
+**Décisions clés s27** :
+- Plan A choisi face à exigence "aucun impact négatif" Thomas : consolidation net-zero plutôt que propagation pure (qui aurait aggravé alerte founder-preferences).
+- Pattern P0 sandbox DNS validé empiriquement (curl versi-immobilier.fr → 503 + 18B "DNS cache overflow") — confirme que les reality checks externes sont impossibles depuis sandbox.
+- @fullstack a corrigé le faux du mémo précédent : la migration property_photos ≠ project_photos. Recommandation R2 alignée sur learning P0 "solution propre durable".
+- Approche par Edits courts (anti-timeout) après 2 stream timeouts en début de session — pattern validé.
+
+**Travaux en cours** : AUCUN côté agents. Tous les livrables s27 sont complets.
+
+**Actions Thomas en attente (post-clôture s27)** :
+- ⏳ **Exécuter le script IndexNow** depuis machine locale (sandbox DNS Replit incompatible). Voir `scripts/seo/indexnow-submit.js` lignes 1-18 pour USAGE.
+  1. Générer clé : `python3 -c "import secrets; print(secrets.token_hex(16))"`
+  2. Déposer 3 fichiers `<KEY>.txt` dans `src/public/`, `versi-immobilier/public/`, `versi-invest-site/public/` puis redéployer
+  3. Lancer : `INDEXNOW_KEY=xxx node scripts/seo/indexnow-submit.js`
+- ⏳ **Trancher les 8 hypothèses property_photos** (cf. doc R2 section "Hypothèses à valider") :
+  - Volume cible 12/24 mois (10/50/500 biens ?)
+  - Budget mensuel acceptable
+  - Compte Cloudflare existant ou à créer
+  - Photos privées futures (signed URLs nécessaires ?)
+  - Domaine CDN custom (cdn.versi-immobilier.fr ?)
+  - Confirmer la stratégie B (R2) ou bascule vers A (Replit OS) si simplicité prime
+- 🔍 versi-studio.fr DNS — décision business toujours en attente (héritée s26)
+- 🔍 Reality checks post-deploy versi-immobilier + versi-invest-site (Thomas a redéployé en s27, validation visuelle prod chez lui)
+
+**Prochaines actions recommandées s28** (selon arbitrage Thomas) :
+1. **[P1] @fullstack** : Si Thomas valide stratégie B → implémenter migration `property_photos` base64 → Cloudflare R2 (3 étapes documentées). Estimé 2-3 Tasks.
+2. **[P2] @copywriter** : Audit + correction G32 typographie FR sur composants versi.fr (apostrophes droites détectées dans `components/Mission.jsx:23` et probablement ailleurs). Estimé 1 Task.
+3. **[P3] Audit UX `/realisations` versi-immobilier** post-redeploy — bloqué par sandbox DNS, à exécuter chez Thomas via Playwright local OU @design avec screenshots fournis.
+4. **[P3] Consolidation profonde `founder-preferences.md`** (241 L → cible 180 L sous l'alerte) si dette pèse — créer `founder-preferences-archive.md` pour sections datées s10/s12.
+
+**Blockers éventuels** :
+- 8 hypothèses property_photos non tranchées → @fullstack ne peut pas implémenter migration.
+- versi-studio.fr DNS toujours irrésolu (héritage s26).
+- Aucun blocker framework — caps respectés (CLAUDE.md 116/125, lessons-learned 58/80, _base-agent-protocol 485 sans cap, founder-preferences 241 hors cap dur).
+
+**Nom de branche recommandé pour s28** : `claude/versi-s28-r2-migration-<suffix>` (si P1 retenu) OU `claude/versi-s28-typo-g32-<suffix>` (si P2 retenu) OU `claude/versi-s28-<priorité>-<suffix>`.
+
+**Commande de reprise suggérée pour s28** :
+
+```
+@orchestrator session versi-s28. Lire project-context.md mémo reprise s27→s28.
+
+Gate de reprise obligatoire : (a) auditer si Thomas a exécuté le script
+IndexNow + déployé les 3 fichiers <KEY>.txt (curl reality check sur sa
+machine, pas sandbox), (b) auditer les 8 hypothèses property_photos
+tranchées par Thomas (lire dernier message ou commit Thomas).
+
+Quelle priorité s28 parmi :
+- P1 Migration property_photos vers stratégie B (Cloudflare R2) — 3 étapes documentées
+- P2 Audit + correction G32 typo FR composants versi.fr (apostrophes droites)
+- P3 Consolidation profonde founder-preferences (241 → 180 L) via archive
+- versi-studio.fr DNS (décision business)
+- Autre priorité Thomas
+
+Compteur Task initial : 0/15. Contraintes : anti-timeout cmd n°3, cap
+CLAUDE.md 125 L, propagation P0/P1 close (rien à propager).
+```
+
+---
+
 ### Mémo de reprise versi-s26 → s27
 
 **Branche dernière clôturée** : `claude/update-gradient-agents-Y0BKa` (HEAD `ffec913`)
