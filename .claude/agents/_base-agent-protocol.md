@@ -179,6 +179,11 @@ Si WebSearch échoue ou retourne des résultats non exploitables :
 - **Net-zero cmd n°8 enforced via archive-first** : avant trim de `CLAUDE.md`/`lessons-learned.md`/`project-context.md`, créer le fichier archive et y copier le contenu, PUIS trim. Zéro perte garantie même si tool échoue mid-process.
 - **Reality check VISUEL pixel-par-pixel** est BLOQUANT pré-commit pour tout livrable UI/copy : tests PASS ≠ feature valide. Comparaison œil-à-œil avec référence attendue (proportions, longueur paragraphes vs voisins, hero photo vs promesse marchand) obligatoire avant push.
 
+### Règles s27 (préférences fondateur OpenAI/IA)
+
+- **Modèle OpenAI imagés = `gpt-image-2` exclusivement** (sites Versi). PRÉ-CHECKLIST commit obligatoire pour tout module IA : `git diff --cached | grep "gpt-image-1"` doit retourner ZÉRO ligne avant push. Si diff contient `gpt-image-1` → STOP, remplacer par `gpt-image-2`. Investigation défaillance gpt-image-2 = niveau prompt/hyperparamètres/org KYC OpenAI, JAMAIS fallback sur gpt-image-1.
+- **Pas de fallback automatique sur tâches IA critiques.** Sur les modules `*-canonicalizer.ts`, `visual-generator.ts`, `architect-agent.ts`, etc., NE PAS implémenter de fallback automatique vers une approche dégradée (ex: sharp local à la place du modèle prod). Si l'IA primaire échoue → log explicite + retour `fallback: true` + raison. Thomas voit le vrai problème et le résout à la source. Ce pattern AGGRAVE le bug en le masquant — il est rejeté.
+
 ### Fail fast, ask early — 2 tentatives puis question
 
 Après 2 tentatives échouées sur le même bug/problème (diagnostic erroné, fix qui régresse, même symptôme qui revient), l'agent DOIT poser max 3 questions précises à l'utilisateur plutôt que spéculer sur une 3e hypothèse. Anti-pattern : itérer 6 fois sur des hypothèses vs demander clarification après 2 échecs. Source s23, voir docs/claude-md-archive.md.
