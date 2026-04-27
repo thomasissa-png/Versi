@@ -24,7 +24,8 @@
 import { useState, useEffect, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import DropZone from "@/components/vs/DropZone";
-import PlanThumbnail from "@/components/vs/PlanThumbnail";
+import PlanRow from "@/components/vs/PlanRow";
+import PlanLightbox from "@/components/vs/PlanLightbox";
 import Stepper from "@/components/vs/Stepper";
 import ConfirmModal from "@/components/vs/ConfirmModal";
 import type { VsPlan, VsProject, ApiResponse } from "@/lib/vs/types";
@@ -57,6 +58,11 @@ export default function UploadPage({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // s27 — drag-and-drop natif HTML5 (pas de dépendance npm)
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  // s27 — lightbox preview au clic icône type
+  const [previewPlanId, setPreviewPlanId] = useState<string | null>(null);
 
   // AbortController pour annuler les uploads en cours au démontage
   const uploadAbortRef = useRef<AbortController | null>(null);
@@ -340,6 +346,127 @@ export default function UploadPage({
     [plans]
   );
 
+  // ─── Renommage inline d'un plan ────────────────────────────────
+
+  const handleRename = useCallback(
+    async (planId: string, name: string) => {
+      const previousPlans = plans;
+
+      setPlans((prev) =>
+        prev.map((p) =>
+          p.id === planId ? { ...p, original_filename: name } : p
+        )
+      );
+
+      try {
+        const res = await fetch(`/api/vs/plans/${planId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ original_filename: name }),
+        });
+        const json = (await res.json()) as ApiResponse<{ id: string }>;
+        if (!json.success) {
+          setPlans(previousPlans);
+          setError(json.error);
+        }
+      } catch {
+        setPlans(previousPlans);
+        setError(
+          "Impossible de renommer le plan — la valeur précédente a été restaurée. Vérifiez votre connexion et réessayez."
+        );
+      }
+    },
+    [plans]
+  );
+
+  // ─── Réordonner — recalcul des floor_number par index ──────────
+  // L'ordre dans la liste = floor_number :
+  //   index 0 → RDC (0), index 1 → R+1, etc.
+  // Persistance : un PATCH par plan dont le floor_number a changé.
+
+  const reassignFloors = useCallback(
+    async (nextOrder: VsPlan[]) => {
+      const previousPlans = plans;
+      const reassigned = nextOrder.map((p, index) => ({
+        ...p,
+        floor_number: index,
+      }));
+      setPlans(reassigned);
+
+      const changed = reassigned.filter((p, index) => {
+        const prev = previousPlans.find((x) => x.id === p.id);
+        return !prev || prev.floor_number !== index;
+      });
+
+      try {
+        await Promise.all(
+          changed.map((p) =>
+            fetch(`/api/vs/plans/${p.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ floor_number: p.floor_number }),
+            })
+          )
+        );
+      } catch {
+        setPlans(previousPlans);
+        setError(
+          "Impossible de réordonner les plans — l'ordre précédent a été restauré. Vérifiez votre connexion et réessayez."
+        );
+      }
+    },
+    [plans]
+  );
+
+  const handleDragStart = useCallback((planId: string) => {
+    setDraggingId(planId);
+  }, []);
+
+  const handleDragOver = useCallback(
+    (planId: string) => {
+      if (planId !== dragOverId) setDragOverId(planId);
+    },
+    [dragOverId]
+  );
+
+  const handleDrop = useCallback(
+    (targetId: string) => {
+      const sourceId = draggingId;
+      setDraggingId(null);
+      setDragOverId(null);
+      if (!sourceId || sourceId === targetId) return;
+
+      const sourceIdx = plans.findIndex((p) => p.id === sourceId);
+      const targetIdx = plans.findIndex((p) => p.id === targetId);
+      if (sourceIdx < 0 || targetIdx < 0) return;
+
+      const next = [...plans];
+      const [moved] = next.splice(sourceIdx, 1);
+      next.splice(targetIdx, 0, moved);
+      void reassignFloors(next);
+    },
+    [draggingId, plans, reassignFloors]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDragOverId(null);
+  }, []);
+
+  const handleMove = useCallback(
+    (planId: string, direction: "up" | "down") => {
+      const idx = plans.findIndex((p) => p.id === planId);
+      if (idx < 0) return;
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= plans.length) return;
+
+      const next = [...plans];
+      [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+      void reassignFloors(next);
+    },
+    [plans, reassignFloors]
+  );
+
   // ─── Analyser les plans ────────────────────────────────────────
 
   const handleAnalyze = useCallback(async () => {
@@ -600,17 +727,34 @@ export default function UploadPage({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md">
-              {plans.map((plan) => (
-                <PlanThumbnail
+            {/* s27 — Liste compacte drag-and-drop (pattern recommandé audit @design 4/10 → 9/10).
+                Container scrollable si > 8 plans. Drag-and-drop natif HTML5 (zéro dépendance).
+                Étage auto-calculé par index, override via select au clic sur le badge. */}
+            <ul
+              className={`flex flex-col gap-2xs ${plans.length > 8 ? "max-h-96 overflow-y-auto pr-xs" : ""}`}
+              aria-label="Liste des plans déposés (glissez-déposez pour réordonner)"
+            >
+              {plans.map((plan, index) => (
+                <PlanRow
                   key={plan.id}
                   plan={plan}
+                  index={index}
+                  total={plans.length}
                   onDelete={askDeleteConfirm}
                   onFloorChange={handleFloorChange}
+                  onRename={handleRename}
+                  onMove={handleMove}
+                  onPreview={(id) => setPreviewPlanId(id)}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
+                  isDragging={draggingId === plan.id}
+                  isDragOver={dragOverId === plan.id && draggingId !== plan.id}
                   deleting={deletingId === plan.id}
                 />
               ))}
-            </div>
+            </ul>
 
             {/* s25 Round 2 — Comparateur "avant/après" retiré de l'UI client-facing.
                 Le composant PlanComparator reste disponible pour un futur écran
@@ -660,6 +804,12 @@ export default function UploadPage({
           variant="danger"
           onConfirm={confirmDelete}
           onCancel={() => setConfirmDeleteId(null)}
+        />
+
+        {/* Lightbox preview au clic icône type (s27) */}
+        <PlanLightbox
+          plan={plans.find((p) => p.id === previewPlanId) ?? null}
+          onClose={() => setPreviewPlanId(null)}
         />
       </div>
     </div>

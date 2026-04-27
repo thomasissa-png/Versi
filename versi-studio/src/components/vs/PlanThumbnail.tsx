@@ -1,6 +1,11 @@
 /**
  * PlanThumbnail — Miniature d'un plan uploadé
  *
+ * @deprecated s27 — Remplacé par `PlanRow` (pattern liste compacte drag-and-drop)
+ *   suite audit @design 4/10 NO-GO (s27-vs-step1-audit-design.md).
+ *   Conservé temporairement pour rétro-compat ; à supprimer une fois la nouvelle
+ *   UI validée en QA. Ne plus l'utiliser dans de nouveaux écrans.
+ *
  * Affiche le preview (image) ou une icône (PDF), le nom du fichier,
  * le numéro d'étage, et un bouton de suppression.
  */
