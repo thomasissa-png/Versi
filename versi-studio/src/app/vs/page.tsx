@@ -248,7 +248,7 @@ export default function DashboardPage() {
           {error}
           <button
             onClick={() => fetchProjects()}
-            className="ml-md underline hover:no-underline"
+            className="ml-md underline hover:no-underline py-[10px] min-h-[44px]"
           >
             Réessayer
           </button>
