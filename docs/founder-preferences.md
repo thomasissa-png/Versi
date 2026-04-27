@@ -26,9 +26,13 @@
 ### Analytics
 - **Umami Analytics uniquement.** Jamais Plausible, jamais GA4. Umami est cookieless, RGPD-exempt, hébergé EU. Toute mention de Plausible dans le code ou les docs client-facing doit être remplacée par Umami.
 
-### Qualité
-- **Objectif toujours 10/10.** Thomas exige l'itération des audits jusqu'à 10/10. Pas de "suffisant" ni de "GO conditionnel accepté". Citation : "fais itérer jusque 10/10" puis "Fixe même les petits points". Les agents doivent viser l'excellence dès la première passe.
-- Même les "petits points" cosmétiques doivent être corrigés. Pas de dette technique tolérée.
+### Qualité — 10/10 strict, non négociable (consolidé s10/s13/s22/s23/s24)
+- **Objectif toujours 10/10**, jamais 8/10 ni 9/10 "car plafond". Citation : "Inutile de me proposer 8/10 merci". Itérer jusqu'à atteinte OU documenter précisément le plafond technique avec recommandation de changement d'approche (passer à 2-pass, post-process OCR, etc.).
+- **Unanimité 10/10** : chaque agent auditeur note 10/10 avant étape suivante. Pas de moyenne pondérée. Tant qu'au moins 1 agent < 10/10 → itérer.
+- **Agents les plus sévères = `@moi` et testeurs-persona.** Leur verdict GO/NO-GO est bloquant. Un 8/10 chez `@moi` = NO-GO.
+- **Pixel-parfait sur TOUS les critères listés**, pas "ça marche globalement". 3/4 critères OK ≠ succès. Itérer jusqu'à conformité stricte sur chaque critère.
+- **Petits points cosmétiques** doivent être corrigés. Zéro dette technique tolérée.
+- **Honnêteté > sur-promesse** : rapport post-session = résultats empiriques + limites connues + voies non explorées, pas claim 10/10 non prouvé.
 
 ### Back office & Admin
 - **Nav + Footer du site public sur toutes les pages admin.** Thomas veut que le back office fasse partie du site, pas une app séparée. Citation : "garde le header et footer en permanence sur toutes les pages, pour qu'on ait l'impression d'être sur le site".
@@ -68,13 +72,10 @@
 - **Blog séparé** de versi-immobilier, dédié investissement locatif.
 - **Pas de back office V1.**
 
-### Délégation aux agents (session s12)
-- **Délégation = principe non négociable.** Thomas veut que les agents spécialisés fassent le travail, même si c'est plus lent. Il préfère relancer 3 fois un agent @ia plutôt que l'orchestrateur écrive le code lui-même. L'orchestrateur ne doit écrire du code que si 3+ tentatives d'agents ont échoué ET qu'un audit agent suit immédiatement. Citation : insistance 3 fois dans la même session.
-
-### Autopilote qualité (session s13)
-- **Unanimité 10/10 — pas de moyenne pondérée.** Thomas veut que CHAQUE agent auditeur note 10/10 avant de passer à l'étape suivante. Pas de "moyenne 8/10 acceptable". Citation : "Chaque agent doit noter chaque étape sur 10. Puis fais corriger et itère jusqu'a ce que chacun soit a 10/10. Une fois la cible atteinte, passe a l'étape suivante. Ne manque rien."
-- **Agents les plus sévères = @moi et testeurs-persona.** Leur verdict GO/NO-GO est bloquant. Un 8/10 chez @moi = NO-GO.
-- **Itérations tant qu'au moins 1 agent < 10/10.** Pas de "bon assez", pas de "on verra plus tard".
+### Délégation aux agents (consolidé s12/s24)
+- **Délégation = principe non négociable.** Thomas préfère relancer 3 fois un agent spécialisé plutôt que l'orchestrateur écrive le code lui-même. L'orchestrateur ne doit écrire du code que si 3+ tentatives d'agents ont échoué ET qu'un audit agent suit immédiatement.
+- **`@orchestrator` = interlocuteur principal de Thomas** pour toute demande, même technique. L'orchestrator décide ensuite qui déléguer (`@fullstack`, `@ia`, `@qa`...). Ne pas inviter Thomas à s'adresser directement à un sous-agent.
+- **Face à un plafond technique** (prompt qui plafonne, algo qui rate), déléguer `@ia` plutôt qu'itérer seul. Cible privilégiée : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API.
 
 ### Session s10 — 2026-04-15
 - **Bleu #1B3A5C rejeté** — palette unique pour l'écosystème Versi (charcoal + stone). Pas de couleur d'accent par entité.
@@ -143,11 +144,6 @@ Thomas a demandé 3+ fois la même feature (zoom Étape 2 avec boutons +/-) avan
 
 **Règle** : quand Thomas demande "je ne vois pas la feature X", vérifier la DÉCOUVRABILITÉ UI (boutons visibles en permanence, pas conditionnels), pas seulement l'existence du code. Une feature non-visible = feature inexistante pour l'utilisateur. Cible : toute fonctionnalité importante doit avoir un point d'entrée UI visible dès l'arrivée sur la page.
 
-### Pas de négociation sur la note cible
-Quand Thomas demande 10/10, c'est 10/10. Pas 8/10 "car c'est déjà bien", pas 9/10 "car on atteint le plafond technique". Refus explicite : "Inutile de me proposer 8/10 merci".
-
-**Règle** : accepter 10/10 comme objectif absolu. Itérer jusqu'à atteinte (ex: prompt v1→v2→v3 sur transformations structurelles) OU documenter précisément le plafond technique avec recommandation de changement d'approche (ex: passer à 2-pass extraction pour dépasser le plafond 1-passe).
-
 ### Minimum de clics par défaut
 Thomas a demandé 3 fois avant acceptation que le bouton "Valider tous les lots" et "Passer aux pièces" soient fusionnés en UN seul "Valider et passer aux pièces". Même si logiquement ce sont 2 actions distinctes.
 
@@ -168,10 +164,12 @@ Thomas veut comparer systématiquement la photo source au visuel généré. Patt
 
 **Règle** : pour toute feature "génération IA" où Thomas montrera le résultat à un tiers (client, prospect, architecte), afficher comparateur avant/après par défaut. Layout 2 colonnes desktop / stack mobile. Labels explicites "Avant" / "Après". Lightbox pour zoom + download par image.
 
-### Reality check visuel ≠ canvas non-vide
-Validation "10/10" superficielle possible si reality check n'inclut pas comparaison visuelle pixel-près avec référence attendue. Thomas a montré une capture où les rectangles IA ne collaient pas aux murs malgré une note 10/10 claudienne préalable (canvas affichait bien "quelque chose" mais pas "la bonne chose").
-
-**Règle** : un vrai reality check VISUEL exige (1) génération sur vraies données (pas mocks), (2) comparaison œil-à-œil avec la référence attendue (vrais murs, vrais lots, proportions correctes), (3) mesure quantitative si possible (coverage %, confidence score, etc.). Le constat "le canvas affiche quelque chose" n'est PAS un reality check suffisant.
+### Reality check visuel BLOQUANT (consolidé s22/s23/s25/s26)
+- **Tests PASS ≠ feature valide.** Validation "10/10" superficielle possible sans comparaison visuelle pixel-près. Exemple s25 : rectangles IA ne collaient pas aux murs malgré 125/125 tests PASS.
+- **Reality check VISUEL exige** : (1) génération sur vraies données (pas mocks), (2) comparaison œil-à-œil avec référence attendue (vrais murs, vrais lots, proportions correctes), (3) screenshot Playwright preuve obligatoire pour tout fix UI, (4) comparaison pixel-par-pixel vs référence terrain ou snapshot validé.
+- **Mocks OK pour pipeline, PAS pour GO PRODUCTION qualité IA.** Distinguer (3a) reality check E2E pipeline (mocks OK, valide flux données+UI) et (3b) reality check E2E qualité IA réelle (vraie API obligatoire). Score GO 4/4 exige (3a) + (3b) tous deux PASS.
+- **Ressources fournies = utilisation IMMÉDIATE, pas spéculation.** Quand Thomas fournit clé OpenAI + plan PDF, l'utiliser maintenant, pas spéculer.
+- **Pixel-parfait pré-commit** : longueurs paragraphes vs voisins, hero photo vs promesse marchand, ordre visuel des cartes, alignement chiffres. Voir `_base-agent-protocol.md` section "Règles s26" pour la règle BLOQUANTE.
 
 ### Pas de modification silencieuse du workflow métier
 Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS revalidation. Un retour en arrière pour consulter ne doit pas casser l'avancée.
@@ -184,13 +182,7 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas refuse le jargon technique dans l'UI, même si cohérent avec le domaine technique source**. "Dessiner un polygone" rejeté, "Tracer un contour libre" rejeté aussi car substituait jargon par jargon. Ce qu'il veut : **"Dessiner un lot"**. Le mot pivot métier est **"lot"**, jamais "polygone", "contour", "zone". Test de recul obligatoire : "Un marchand de biens comprend-il en 2 secondes ?".
 
-- [PRÉFÉRENCE FONDATEUR] **Thomas exige des tests VISUELS, pas des claims "tests PASS"**. "Peux-tu juste tester visuellement ? Ça se voit en 1s". Il fournit proactivement les ressources (clé OpenAI, plans PDF) pour qu'on teste côté agent. Règle : tout fix UI DOIT être accompagné d'un screenshot Playwright preuve.
-
 - [PRÉFÉRENCE FONDATEUR] **Thomas veut qu'on lui POSE des questions quand le contexte est incertain**, pas qu'on devine. "Si quelque chose pas clair demande moi, mais stp ça fait 6 fois je remonte ce même souci". Règle : après 2 tentatives échouées sur le même bug, l'agent DOIT poser 3 questions ciblées avant de continuer.
-
-- [PRÉFÉRENCE FONDATEUR] **10/10 = objectif strict, pas négociable**. "Va à 10/10 sur cette session". Si plafond prompt-only atteint (7/10 sur P00), chercher la voie code-level (post-processing OCR). Jamais "c'est déjà bien à 7/10, arrêtons".
-
-- [PRÉFÉRENCE FONDATEUR] **Thomas donne accès aux ressources réelles pour forcer le reality check**. "Je t'ai donné un plan et une clé pour tester. TU aurais dû voir le résultat dans le test". Règle : quand une ressource est fournie, l'utiliser IMMÉDIATEMENT, pas spéculer.
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas exprime sa frustration de façon directe ET répétée**. Quand il remonte un bug 6 fois, c'est qu'il n'a pas été écouté/compris. Signal d'alarme : quand Thomas dit "je repete", "je te redis", "6 fois", l'agent DOIT immédiatement changer d'approche (test E2E réel, questions précises) plutôt que continuer sur la même piste.
 
@@ -199,15 +191,10 @@ Thomas doit pouvoir naviguer librement entre étapes déjà complétées SANS re
 
 ## Session s24 (2026-04-21) — nouvelles préférences capturées
 
-- [PRÉFÉRENCE FONDATEUR] **Thomas exige pixel-parfait sur TOUS les critères listés, pas "ça marche globalement"**. "Je veux du parfait". Refuse 3/4 critères OK en prétendant succès. Quand Thomas liste N critères (ex : 4 critères Étape 2/3), objectif 10/10 sur TOUS. Itérer jusqu'à conformité stricte ou atteindre la limite technique empirique documentée (plafond prompt GPT-4.1, algo connu).
-
 - [PRÉFÉRENCE FONDATEUR] **Thomas refuse que l'orchestrator renvoie vers lui pour tester tant que le travail n'est pas fini**. "Arrête de me demander de tester tant que ce n'est pas fini". L'orchestrator teste lui-même (Postgres local + curl + Playwright) entre itérations, pas Thomas. Seule exception : quand Thomas a explicitement demandé une validation chez lui (ex : "redéploie et vérifie en prod").
 
 - [PRÉFÉRENCE FONDATEUR] **Thomas ne veut PAS de détails sur ce que l'orchestrator a fait**. "Ne me détaille pas ce que tu as fait, teste plutôt ce que je demande et confirme le à 100%". Réponses orientées résultat + preuve empirique (screenshots, metrics DB, tests E2E). PAS de récit étape-par-étape du process. Thomas valide sur visuel/metrics, pas sur discours.
 
-- [PRÉFÉRENCE FONDATEUR] **Thomas recommande délégation @ia face aux blocages techniques**. "Si tu es bloqué fais analyser les prompts aux agents les plus ingénieux, peut-être @ia. Décide l'approche la plus smart et continue". Face à un plafond (prompt qui plafonne, algo qui rate), déléguer @ia plutôt qu'itérer seul. @ia a les meilleures chances sur : prompts IA, algos géométriques (power diagram, convex hull), post-process, design API.
-
-- [PRÉFÉRENCE FONDATEUR] **Thomas utilise "@orchestrator" comme interlocuteur principal**. Il s'adresse à l'orchestrator pour toutes les demandes même techniques. L'orchestrator décide ensuite qui déléguer (fullstack, @ia, qa, etc.). Ne pas casser ce flow : ne pas l'inviter à s'adresser directement à un sous-agent.
 
 ---
 
@@ -230,14 +217,6 @@ Face à une solution tiède (renommage/reformulation) vs solution radicale (supp
 Contre-exemple du pattern découvrabilité s22 ("boutons permanents visibles") : si une étape UI ne permet PAS au persona de décider ou d'agir métier, elle doit être SUPPRIMÉE, pas renommée.
 s25 : étape "Reformatage" ajoutée avec comparateur avant/après → Thomas ne pouvait pas juger/rejeter → source de confusion ("Reformatage indisponible"). Solution : suppression complète, canonicalisation devient invisible backend.
 **Règle UX** : chaque étape UI doit permettre une DÉCISION ou ACTION métier du persona. Sinon SUPPRIMER. Préférer silence métier > message technique.
-
-### Validation à l'œil prime sur tests qui PASS
-Tests auto 125/125, 151/151, 16/16 tous PASS en session s25, MAIS Thomas a rejeté la solution parce que VISUELLEMENT sur son plan Muguets, le lot débordait. Verbatim : "quelque chose qui est ultra simple pour toi à vérifier" (en parlant de la comparaison visuelle lot manuel 44m² vs lot IA 47m²).
-**Règle orchestrator + @moi** : gate @moi critère #3 reality check E2E = preuve VISUELLE obligatoire (screenshot Playwright, comparaison pixel-par-pixel vs référence terrain). Tests PASS ≠ feature valide. Pour pipeline IA : screenshot + comparaison vs manuel/snapshot validé.
-
-### Mocks OK pour tests pipeline, mais PAS pour GO PRODUCTION qualité IA
-Session s25 a raffiné la règle s22/s23/s24 "reality check E2E obligatoire" : distinguer (3a) reality check E2E pipeline (mocks OK, valide flux données+UI) et (3b) reality check E2E qualité IA réelle (vraie API obligatoire).
-**Règle @moi** : pas de GO PRODUCTION avec seulement mocks sur tâches IA. Score GO 4/4 exige (3a) + (3b) tous deux PASS.
 
 
 ### Compléter ≠ remplacer (s26)
