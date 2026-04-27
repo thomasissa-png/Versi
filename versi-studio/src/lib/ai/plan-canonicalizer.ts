@@ -47,6 +47,26 @@ export type CanonicalizeFallbackReason =
   | "flag_off"
   | "empty_input";
 
+/**
+ * Détail typé d'un échec gate (s27 R3 — durcissement seuils).
+ *
+ * Permet aux logs structurés et au champ `fallbackReason` d'expliciter QUEL
+ * gate a fail et avec quel ratio mesuré, plutôt qu'un simple "gate_fail" opaque
+ * (audit s27 : "raison précise type whiteRatio_too_low: 0.72").
+ */
+export type GateFailureCode =
+  | "whiteRatio_too_low"
+  | "blackRatio_too_low"
+  | "blackRatio_too_high"
+  | "blackRatio_below_minimum_traits"
+  | "blackRatio_above_text_block_threshold";
+
+export interface GateFailureDetail {
+  code: GateFailureCode;
+  ratio: number;
+  threshold: number;
+}
+
 export interface CanonicalizeResult {
   /** PNG bufferisé. Si fallback=true, c'est le buffer original inchangé. */
   canonical: Buffer;
@@ -66,6 +86,8 @@ export interface CanonicalizeResult {
   outputHash: string;
   /** Résultats des 4 gates (absent si fallback avant API). */
   gates?: { g1: boolean; g2: boolean; g3: boolean; g4: boolean };
+  /** Détails typés des gates qui ont fail (s27 R3 — diagnostic précis). */
+  gateFailures?: GateFailureDetail[];
 }
 
 export interface CanonicalizeOptions {
@@ -250,30 +272,59 @@ async function callOpenAIImagesEdit(
 // ─── Gates G1-G4 (post-pipeline qualité) ───────────────────────────
 
 /**
+ * Seuils des gates G1-G4 (s27 R3 — durcissement post-audit 5.2/10).
+ *
+ * Avant : whiteRatio ≥ 0.6, blackRatio ∈ [0.005, 0.35], g3 ≥ 0.002, g4 ≤ 0.4.
+ * Audit s27 : "Gates G1-G4 conservateurs au point d'être inutiles
+ * (whiteRatio ≥ 0.6 vs 0.95 théorique, doute → PASS) — un canonical médiocre
+ * passe systématiquement, empoisonnement aval garanti."
+ *
+ * Maintenant : whiteRatio ≥ 0.85, blackRatio ∈ [0.02, 0.25] (resserré), g3
+ * et g4 alignés (pas de zone noire massive, traits fins présents).
+ */
+const GATE_THRESHOLDS = {
+  /** G1 — fond blanc dominant (passe de 0.6 à 0.85, plus proche du 0.95 théorique). */
+  whiteRatioMin: 0.85,
+  /** G2 — borne basse blackRatio (passe de 0.005 à 0.02 = 2%, resserrement). */
+  blackRatioMin: 0.02,
+  /** G2 — borne haute blackRatio (passe de 0.35 à 0.25, resserrement). */
+  blackRatioMax: 0.25,
+  /** G3 — proxy "au moins quelques traits fins" (alignement G2 min). */
+  blackRatioMinTraits: 0.02,
+  /** G4 — pas de bloc noir massif (alignement G2 max). */
+  blackRatioMaxTextBlock: 0.25,
+} as const;
+
+/**
  * Gates qualité appliqués sur l'output canonique.
  * Si ≥2 FAIL → fallback vers buffer original (règle prompt-library.md).
  *
  * Implémentation pragmatique v1 (quick-check pixels via sharp) :
- *  - G1 : fond >= 95% blanc pur (255,255,255) sur un échantillon downsamplé
+ *  - G1 : fond >= 85% blanc pur (255,255,255) sur un échantillon downsamplé
  *  - G2 : au moins 4 segments noirs rectilignes détectables (approximation par
- *         ratio pixels noirs entre 0.5% et 25% — ni vide ni saturé)
+ *         ratio pixels noirs entre 2% et 25% — ni vide ni saturé)
  *  - G3 : présence pixels gris 1-pixel (approximation ouvertures arcs/lignes fines)
  *  - G4 : pas de bloc texte massif (approximation : pas de concentration
  *         pixels noirs dense hors-zones périphériques)
  *
- * Implémentation conservatrice : en cas de doute → gate PASS (évite faux
- * fallbacks qui coûtent le bénéfice de la canonicalisation). Les métriques
- * précises sont laissées au reality check @qa + audit Yann.
+ * s27 R3 : seuils durcis (whiteRatio 0.6→0.85, blackRatio [0.5%,35%]→[2%,25%]).
+ * Chaque fail produit un GateFailureDetail typé pour diagnostic précis.
  */
 async function runQualityGates(
   canonicalBuf: Buffer,
-): Promise<{ g1: boolean; g2: boolean; g3: boolean; g4: boolean }> {
+): Promise<{
+  gates: { g1: boolean; g2: boolean; g3: boolean; g4: boolean };
+  failures: GateFailureDetail[];
+}> {
   try {
     const { default: sharp } = await import("sharp");
     const img = sharp(canonicalBuf);
     const meta = await img.metadata();
     if (!meta.width || !meta.height) {
-      return { g1: true, g2: true, g3: true, g4: true };
+      return {
+        gates: { g1: true, g2: true, g3: true, g4: true },
+        failures: [],
+      };
     }
 
     const { data, info } = await img
@@ -295,15 +346,61 @@ async function runQualityGates(
     const whiteRatio = whitePx / pxCount;
     const blackRatio = blackPx / pxCount;
 
-    const g1 = whiteRatio >= 0.6; // conservateur vs 0.95 théorique
-    const g2 = blackRatio >= 0.005 && blackRatio <= 0.35;
-    const g3 = blackRatio >= 0.002; // proxy "au moins quelques traits fins"
-    const g4 = blackRatio <= 0.4; // pas de bloc noir massif
+    const g1 = whiteRatio >= GATE_THRESHOLDS.whiteRatioMin;
+    const g2 =
+      blackRatio >= GATE_THRESHOLDS.blackRatioMin &&
+      blackRatio <= GATE_THRESHOLDS.blackRatioMax;
+    const g3 = blackRatio >= GATE_THRESHOLDS.blackRatioMinTraits;
+    const g4 = blackRatio <= GATE_THRESHOLDS.blackRatioMaxTextBlock;
 
-    return { g1, g2, g3, g4 };
+    const failures: GateFailureDetail[] = [];
+    if (!g1) {
+      failures.push({
+        code: "whiteRatio_too_low",
+        ratio: Number(whiteRatio.toFixed(4)),
+        threshold: GATE_THRESHOLDS.whiteRatioMin,
+      });
+    }
+    if (!g2) {
+      if (blackRatio < GATE_THRESHOLDS.blackRatioMin) {
+        failures.push({
+          code: "blackRatio_too_low",
+          ratio: Number(blackRatio.toFixed(4)),
+          threshold: GATE_THRESHOLDS.blackRatioMin,
+        });
+      } else {
+        failures.push({
+          code: "blackRatio_too_high",
+          ratio: Number(blackRatio.toFixed(4)),
+          threshold: GATE_THRESHOLDS.blackRatioMax,
+        });
+      }
+    }
+    if (!g3) {
+      failures.push({
+        code: "blackRatio_below_minimum_traits",
+        ratio: Number(blackRatio.toFixed(4)),
+        threshold: GATE_THRESHOLDS.blackRatioMinTraits,
+      });
+    }
+    if (!g4) {
+      failures.push({
+        code: "blackRatio_above_text_block_threshold",
+        ratio: Number(blackRatio.toFixed(4)),
+        threshold: GATE_THRESHOLDS.blackRatioMaxTextBlock,
+      });
+    }
+
+    return {
+      gates: { g1, g2, g3, g4 },
+      failures,
+    };
   } catch {
     // En cas d'erreur sharp → tous gates PASS (on ne bloque pas faute de mesure)
-    return { g1: true, g2: true, g3: true, g4: true };
+    return {
+      gates: { g1: true, g2: true, g3: true, g4: true },
+      failures: [],
+    };
   }
 }
 
@@ -400,7 +497,7 @@ export async function canonicalizePlan(
       throw new Error("canonicalizer: no buffer after retry loop");
     }
 
-    const gates = await runQualityGates(canonicalBuf);
+    const { gates, failures: gateFailures } = await runQualityGates(canonicalBuf);
     const failed = countFailedGates(gates);
 
     if (failed >= 2) {
@@ -408,6 +505,7 @@ export async function canonicalizePlan(
         reason: "gate_fail",
         input_hash: inputHash,
         gates,
+        gate_failures: gateFailures,
         duration_ms: Date.now() - started,
         timeout_ms: timeoutMs,
         input_bytes: inputBytes,
@@ -426,6 +524,7 @@ export async function canonicalizePlan(
         inputHash,
         outputHash,
         gates,
+        gateFailures,
       };
     }
 

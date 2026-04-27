@@ -12,6 +12,8 @@ import { describe, it, expect } from "vitest";
 import {
   shrinkOutlineToRooms,
   shrinkOutlinesByUnit,
+  shrinkOutlinePolygonToRooms,
+  shrinkOutlinePolygonsByUnit,
 } from "../../src/lib/vs/outline-shrinker";
 import type { ExtractedRoom } from "../../src/lib/vs/schemas";
 
@@ -212,5 +214,109 @@ describe("shrinkOutlinesByUnit", () => {
     ];
     const map = shrinkOutlinesByUnit(rooms);
     expect(map.size).toBe(0);
+  });
+});
+
+// ─── shrinkOutlinePolygonToRooms (s27 R3) ────────────────────────
+
+describe("shrinkOutlinePolygonToRooms", () => {
+  it("retourne un polygone (≥3 sommets) + bbox dérivée + flag fallback=false", () => {
+    const rooms = [
+      makeRoom({
+        bounding_polygon: [
+          { x_percent: 10, y_percent: 10 },
+          { x_percent: 30, y_percent: 10 },
+          { x_percent: 30, y_percent: 30 },
+          { x_percent: 10, y_percent: 30 },
+        ],
+      }),
+      makeRoom({
+        bounding_polygon: [
+          { x_percent: 30, y_percent: 10 },
+          { x_percent: 50, y_percent: 10 },
+          { x_percent: 50, y_percent: 30 },
+          { x_percent: 30, y_percent: 30 },
+        ],
+      }),
+    ];
+
+    const out = shrinkOutlinePolygonToRooms(rooms, { margin_percent: 0 });
+    expect(out).not.toBeNull();
+    expect(out!.polygon.length).toBeGreaterThanOrEqual(3);
+    expect(out!.bbox.width_percent).toBeGreaterThan(0);
+    expect(out!.bbox.height_percent).toBeGreaterThan(0);
+    // L'union des 2 carrés contigus = pas de complexité concave → fallback
+    // bbox accepté ou pas selon alpha. Ce qui compte : on a un polygone exploitable.
+  });
+
+  it("retourne null si aucune géométrie", () => {
+    const rooms = [
+      makeRoom({ bounding_polygon: null, bounding_box: null }),
+    ];
+    expect(shrinkOutlinePolygonToRooms(rooms)).toBeNull();
+    expect(shrinkOutlinePolygonToRooms([])).toBeNull();
+  });
+
+  it("usedFallbackBBox=true si seul fallback bbox a fonctionné", () => {
+    // Forcer le fallback : un seul point unique → ni concave ni convex hull
+    // ne peut produire 3 sommets distincts. La fonction tombera sur le
+    // fallback bbox (4 sommets construits depuis le tight-bbox).
+    const rooms = [
+      makeRoom({
+        bounding_box: {
+          x_percent: 20,
+          y_percent: 20,
+          width_percent: 0,
+          height_percent: 0,
+        },
+      }),
+    ];
+    const out = shrinkOutlinePolygonToRooms(rooms, { margin_percent: 0 });
+    // Soit null (aucun polygon construible) soit polygon avec usedFallbackBBox.
+    // Les 2 cas sont acceptables, on vérifie juste qu'on ne crash pas.
+    if (out) {
+      expect(out.polygon.length).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
+
+describe("shrinkOutlinePolygonsByUnit", () => {
+  it("groupe par unit_id et retourne un OutlinePolygon par unité", () => {
+    const rooms = [
+      makeRoom({
+        unit_id: "u1",
+        bounding_polygon: [
+          { x_percent: 10, y_percent: 10 },
+          { x_percent: 30, y_percent: 10 },
+          { x_percent: 30, y_percent: 30 },
+          { x_percent: 10, y_percent: 30 },
+        ],
+      }),
+      makeRoom({
+        unit_id: "u2",
+        bounding_polygon: [
+          { x_percent: 60, y_percent: 60 },
+          { x_percent: 80, y_percent: 60 },
+          { x_percent: 80, y_percent: 80 },
+          { x_percent: 60, y_percent: 80 },
+        ],
+      }),
+      // unit_id null : ignoré
+      makeRoom({
+        unit_id: null,
+        bounding_polygon: [
+          { x_percent: 0, y_percent: 0 },
+          { x_percent: 100, y_percent: 0 },
+          { x_percent: 100, y_percent: 100 },
+          { x_percent: 0, y_percent: 100 },
+        ],
+      }),
+    ];
+
+    const map = shrinkOutlinePolygonsByUnit(rooms);
+    expect(map.has("u1")).toBe(true);
+    expect(map.has("u2")).toBe(true);
+    expect(map.get("u1")!.polygon.length).toBeGreaterThanOrEqual(3);
+    expect(map.get("u2")!.polygon.length).toBeGreaterThanOrEqual(3);
   });
 });

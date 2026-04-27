@@ -40,8 +40,9 @@ vi.mock("sharp", () => {
             // Tout noir → G1 fail (whiteRatio=0), G2 fail (blackRatio=1), G4 fail
             data.fill(0);
           } else {
-            // 85% blanc + 15% noir → gates PASS (plan canonique plausible)
-            const blackPx = Math.round(pxCount * 0.15);
+            // 90% blanc + 10% noir → gates PASS sur seuils s27 R3 (durcis)
+            // (whiteRatio 0.90 ≥ 0.85, blackRatio 0.10 ∈ [0.02, 0.25])
+            const blackPx = Math.round(pxCount * 0.1);
             for (let i = 0; i < pxCount; i++) {
               const offset = i * channels;
               const isBlack = i < blackPx;
@@ -210,6 +211,24 @@ describe("canonicalizePlan — fallback (s27 : zéro pipeline sharp)", () => {
     expect(res.model).toBe("gpt-image-2");
     expect(res.gates).toBeDefined();
     expect(res.canonical).toEqual(input);
+  });
+
+  it("s27 R3 — gate_fail expose gateFailures typés (whiteRatio_too_low + blackRatio_too_high)", async () => {
+    sharpControl.forceGateFail = true; // tout noir : whiteRatio=0, blackRatio=1
+    const input = makeBuffer();
+    const res = await canonicalizePlan(input, { timeoutMs: 500 });
+    expect(res.fallback).toBe(true);
+    expect(res.fallbackReason).toBe("gate_fail");
+    expect(res.gateFailures).toBeDefined();
+    expect(res.gateFailures!.length).toBeGreaterThanOrEqual(2);
+    const codes = res.gateFailures!.map((f) => f.code);
+    expect(codes).toContain("whiteRatio_too_low");
+    expect(codes).toContain("blackRatio_too_high");
+    // Chaque détail expose ratio mesuré + threshold appliqué (diagnostic précis)
+    for (const f of res.gateFailures!) {
+      expect(typeof f.ratio).toBe("number");
+      expect(typeof f.threshold).toBe("number");
+    }
   });
 
   it("input vide → fallback immédiat avec reason=empty_input", async () => {
