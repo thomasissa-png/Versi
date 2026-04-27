@@ -15,11 +15,11 @@ import './SellPage.css';
 const ENGAGEMENTS = [
   {
     title: 'Une offre ferme, pas une estimation.',
-    description: 'Nous ne pratiquons pas l\'estimation gratuite pour générer des contacts. Notre retour est soit une offre ferme et définitive, soit un refus motivé par écrit. Aucune zone grise.',
+    description: 'Nous ne pratiquons pas l’estimation gratuite pour générer des contacts. Notre retour est soit une offre ferme et définitive, soit un refus motivé par écrit. Aucune zone grise.',
   },
   {
     title: 'Sans condition suspensive de financement.',
-    description: 'Versi Immobilier achète en fonds propres ou avec un financement déjà structuré en interne — Groupe Versi. Vous n\'attendez pas l\'accord d\'un banquier que vous ne connaissez pas. Quand nous signons, nous achetons.',
+    description: 'Versi Immobilier achète en fonds propres ou avec un financement déjà structuré en interne — Groupe Versi. Vous n’attendez pas l’accord d’un banquier que vous ne connaissez pas. Quand nous signons, nous achetons.',
   },
   {
     title: '7 jours, pas 7 semaines.',
@@ -37,20 +37,20 @@ const PROCESS_STEPS = [
   {
     number: '02',
     title: 'Nous instruisons le dossier.',
-    description: 'Visite physique planifiée sous 48 à 72h. Analyse comparative de marché. Modélisation financière. La décision est prise par l\'équipe Versi Immobilier — pas par un consultant externe.',
+    description: 'Visite physique planifiée sous 48 à 72h. Analyse comparative de marché. Modélisation financière. La décision est prise par l’équipe Versi Immobilier — pas par un consultant externe.',
     delay: 'Visite planifiée sous 48–72h.',
   },
   {
     number: '03',
     title: 'Offre ferme ou refus motivé.',
-    description: 'Nous vous remettons une offre d\'achat ferme et définitive par écrit, sous 7 jours calendaires à compter de la réception du dossier. Sans condition suspensive de financement. Si le dossier ne correspond pas à nos critères, nous vous en informons par écrit avec les raisons.',
+    description: 'Nous vous remettons une offre d’achat ferme et définitive par écrit, sous 7 jours calendaires à compter de la réception du dossier. Sans condition suspensive de financement. Si le dossier ne correspond pas à nos critères, nous vous en informons par écrit avec les raisons.',
     delay: 'Réponse écrite sous 7 jours calendaires.',
   },
 ];
 
 const FAQ_ITEMS = [
   {
-    question: 'Est-ce que Versi Immobilier va m\'acheter en dessous du prix du marché ?',
+    question: 'Est-ce que Versi Immobilier va m’acheter en dessous du prix du marché ?',
     answer: 'Notre offre est calculée sur la valeur de transformation du bien — pas sur votre méconnaissance du marché. Nous vous expliquons la logique de notre prix. Si nos chiffres ne vous conviennent pas, vous êtes libre de refuser. Aucune obligation.',
   },
   {
@@ -58,16 +58,16 @@ const FAQ_ITEMS = [
     answer: 'Notre due diligence — visite, analyse, modélisation — se fait avant la signature. Quand nous signons un compromis, nous achetons. Notre offre est ferme parce que nous avons fait le travail en amont.',
   },
   {
-    question: 'J\'ai des locataires en place. Est-ce un problème ?',
-    answer: 'Pas du tout. Nous rachetons des actifs avec locataires en place — c\'est notre métier. Vous n\'avez aucune démarche à effectuer vis-à-vis de vos locataires avant la signature.',
+    question: 'J’ai des locataires en place. Est-ce un problème ?',
+    answer: 'Pas du tout. Nous rachetons des actifs avec locataires en place — c’est notre métier. Vous n’avez aucune démarche à effectuer vis-à-vis de vos locataires avant la signature.',
   },
   {
     question: 'Pourquoi ne pas passer par une agence ? Je pourrais peut-être obtenir un meilleur prix.',
-    answer: 'Une agence peut vous promettre un prix plus élevé. Mais dans 12 mois, avec 5% de frais d\'agence, et sans certitude que l\'acheteur finalise. Versi Immobilier achète en direct, en 7 jours, sans frais à votre charge. La question n\'est pas le prix affiché — c\'est le prix réellement encaissé, au bout du compte.',
+    answer: 'Une agence peut vous promettre un prix plus élevé. Mais dans 12 mois, avec 5% de frais d’agence, et sans certitude que l’acheteur finalise. Versi Immobilier achète en direct, en 7 jours, sans frais à votre charge. La question n’est pas le prix affiché — c’est le prix réellement encaissé, au bout du compte.',
   },
   {
     question: 'Qui êtes-vous ? Comment savoir si Versi Immobilier est sérieux ?',
-    answer: 'Versi Immobilier est l\'entité marchand de biens du Groupe Versi — 3,2M€ de volume traité. Nos trois fondateurs sont identifiés avec leurs parcours complets, vérifiables sur LinkedIn. Les réalisations documentées sur ce site sont la preuve de ce que nous avons fait. Vérifiez.',
+    answer: 'Versi Immobilier est l’entité marchand de biens du Groupe Versi — 3,2M€ de volume traité. Nos trois fondateurs sont identifiés avec leurs parcours complets, vérifiables sur LinkedIn. Les réalisations documentées sur ce site sont la preuve de ce que nous avons fait. Vérifiez.',
   },
 ];
 
@@ -164,10 +164,10 @@ export default function SellPage() {
               Offre ferme en 7 jours.
             </h1>
             <p className="text-body-lg sell-hero__chapo">
-              Cette page s'adresse aux propriétaires souhaitant céder un
+              Cette page s’adresse aux propriétaires souhaitant céder un
               bien immobilier. Versi Immobilier achète en nom propre — pas
-              de mise en vente, pas de mandat d'agence, pas d'intermédiaire.
-              Vous recevez une offre d'achat ferme sous 7 jours calendaires,
+              de mise en vente, pas de mandat d’agence, pas d’intermédiaire.
+              Vous recevez une offre d’achat ferme sous 7 jours calendaires,
               ou un refus motivé par écrit.
             </p>
             <a href="#formulaire" className="sell-hero__cta text-cta">
@@ -247,8 +247,8 @@ export default function SellPage() {
                   <li>Immeubles de rapport — 3 à 15 logements</li>
                   <li>Maisons avec terrain ou dépendances</li>
                   <li>Actifs mixtes — rez-de-chaussée commercial et logements au-dessus</li>
-                  <li>Biens avec locataires en place — pas un obstacle à l'acquisition</li>
-                  <li>Biens à rénover ou à céder en l'état</li>
+                  <li>Biens avec locataires en place — pas un obstacle à l’acquisition</li>
+                  <li>Biens à rénover ou à céder en l’état</li>
                 </ul>
               </div>
               <div className="sell-criteria__geo">

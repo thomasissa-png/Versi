@@ -3,12 +3,12 @@ import { useFadeIn } from '../hooks/useFadeIn.js';
 
 const QUESTIONS = [
   {
-    q: "Qu'est-ce que Versi ?",
-    a: "Versi est une holding immobilière intégrée opérant en France. Elle regroupe quatre entités complémentaires couvrant l'ensemble du cycle d'une opération immobilière : Versi Immobilier (marchand de biens), Versi Invest (structuration d'investissement), Versi Capital (foncière) et Versi Finance (ingénierie financière). Fondée par Thomas Issa, Maxime Lemoine et Carl Standertskjold-Nordenstam.",
+    q: "Qu’est-ce que Versi ?",
+    a: "Versi est une holding immobilière intégrée opérant en France. Elle regroupe quatre entités complémentaires couvrant l’ensemble du cycle d’une opération immobilière : Versi Immobilier (marchand de biens), Versi Invest (structuration d’investissement), Versi Capital (foncière) et Versi Finance (ingénierie financière). Fondée par Thomas Issa, Maxime Lemoine et Carl Standertskjold-Nordenstam.",
   },
   {
-    q: "En quoi Versi se distingue d'un marchand de biens classique ?",
-    a: "Contrairement à un marchand de biens mono-activité, Versi intègre en interne l'ensemble du cycle : acquisition, transformation, détention longue durée via sa foncière (Versi Capital) et structuration financière via Versi Finance. Cette intégration évite la déperdition entre étapes et permet de traiter des opérations complexes sans externalisation des fonctions critiques.",
+    q: "En quoi Versi se distingue d’un marchand de biens classique ?",
+    a: "Contrairement à un marchand de biens mono-activité, Versi intègre en interne l’ensemble du cycle : acquisition, transformation, détention longue durée via sa foncière (Versi Capital) et structuration financière via Versi Finance. Cette intégration évite la déperdition entre étapes et permet de traiter des opérations complexes sans externalisation des fonctions critiques.",
   },
   {
     q: "Où Versi opère-t-elle en France ?",

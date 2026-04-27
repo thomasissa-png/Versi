@@ -5,17 +5,17 @@ const ARGUMENTS = [
   {
     title: 'Vous achetez à la source.',
     description:
-      'Pas d'intermédiaire entre vous et le bien. Les trois fondateurs ont acheté et piloté chaque appartement — ils en connaissent l'historique complet. Vous posez une question — vous obtenez une réponse directe.',
+      'Pas d’intermédiaire entre vous et le bien. Les trois fondateurs ont acheté et piloté chaque appartement — ils en connaissent l’historique complet. Vous posez une question — vous obtenez une réponse directe.',
   },
   {
-    title: 'Rien n'est caché.',
+    title: 'Rien n’est caché.',
     description:
       'Diagnostics complets. Historique des travaux. Garantie décennale sur les parties structurelles. Vous recevez le dossier complet avant la visite.',
   },
   {
     title: 'Le prix affiché est le prix.',
     description:
-      'Vente directe du propriétaire à l'acquéreur. Pas de commission d'agence à votre charge.',
+      'Vente directe du propriétaire à l’acquéreur. Pas de commission d’agence à votre charge.',
   },
 ];
 

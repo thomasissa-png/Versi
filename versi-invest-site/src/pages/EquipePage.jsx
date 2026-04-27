@@ -12,14 +12,14 @@ const FOUNDERS = [
     name: 'Maxime Lemoine',
     role: 'Co-fondateur',
     photo: maxImg,
-    bio: '13 ans en sales et stratégie commerciale. Ex-Head of Sales Europe, Sony. Avant Versi : 3 immeubles en portefeuille, 24 contrats locatifs actifs. Il connaît la négociation d\'actifs immobiliers comme il connaissait la négociation de comptes — par les chiffres et par le terrain.',
+    bio: '13 ans en sales et stratégie commerciale. Ex-Head of Sales Europe, Sony. Avant Versi : 3 immeubles en portefeuille, 24 contrats locatifs actifs. Il connaît la négociation d’actifs immobiliers comme il connaissait la négociation de comptes — par les chiffres et par le terrain.',
     linkedin: 'https://www.linkedin.com/in/maxime-lemoine-34550354/',
   },
   {
     name: 'Thomas Issa',
     role: 'Co-fondateur',
     photo: thomasImg,
-    bio: '15 ans en stratégie et opérations. Ex-Sony, co-fondateur de TEOS (déployé dans 8 pays). Avant Versi : 13 actifs locatifs à Paris. Deux entreprises créées de zéro — l\'une à 8M€ de chiffre d\'affaires, l\'autre à 4M€. Il pilote les opérations Versi Invest comme il a piloté des structures multi-pays : par les processus et par les résultats.',
+    bio: '15 ans en stratégie et opérations. Ex-Sony, co-fondateur de TEOS (déployé dans 8 pays). Avant Versi : 13 actifs locatifs à Paris. Deux entreprises créées de zéro — l’une à 8M€ de chiffre d’affaires, l’autre à 4M€. Il pilote les opérations Versi Invest comme il a piloté des structures multi-pays : par les processus et par les résultats.',
     linkedin: 'https://www.linkedin.com/in/thomasissa/',
   },
   {
@@ -77,7 +77,7 @@ export default function EquipePage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="founder__linkedin"
-                      aria-label={`Profil LinkedIn de ${founder.name} — s'ouvre dans un nouvel onglet`}
+                      aria-label={`Profil LinkedIn de ${founder.name} — s’ouvre dans un nouvel onglet`}
                     >
                       LinkedIn →
                     </a>
@@ -95,7 +95,7 @@ export default function EquipePage() {
               Versi Invest fait partie du Groupe Versi.
             </h2>
             <p className="groupe__text">
-              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (7 immeubles, 3,2M€ de volume opéré via Versi Immobilier) alimente le flux d'opportunités que Versi Invest propose à ses investisseurs. Ce n'est pas un argument marketing — c'est le flux opérationnel sur lequel repose notre modèle.
+              Versi Invest est la branche investissement locatif du Groupe Versi — une holding immobilière multi-entités fondée par Maxime, Thomas et Carl. Le track record du groupe (7 immeubles, 3,2M€ de volume opéré via Versi Immobilier) alimente le flux d’opportunités que Versi Invest propose à ses investisseurs. Ce n’est pas un argument marketing — c’est le flux opérationnel sur lequel repose notre modèle.
             </p>
             <a
               href="https://versi.fr"
@@ -119,7 +119,7 @@ export default function EquipePage() {
                 Voir les 8 étapes
               </Link>
               <Link to="/contact" className="page-cta__btn">
-                S'inscrire — réponse sous 48h
+                S’inscrire — réponse sous 48h
               </Link>
             </div>
           </div>

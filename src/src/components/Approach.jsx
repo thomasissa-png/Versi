@@ -15,12 +15,12 @@ const STEPS = [
   {
     num: '03',
     title: 'TRANSFORMER',
-    body: 'Maîtrise d'ouvrage en direct. Versi pilote les travaux sans intermédiaire — chaque arbitrage technique reste en interne.',
+    body: 'Maîtrise d’ouvrage en direct. Versi pilote les travaux sans intermédiaire — chaque arbitrage technique reste en interne.',
   },
   {
     num: '04',
     title: 'OPÉRER',
-    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l'acquisition. Chaque sortie est anticipée dès l'entrée.',
+    body: 'Gestion locative ou revente selon la stratégie de sortie définie dès l’acquisition. Chaque sortie est anticipée dès l’entrée.',
   },
 ];
 

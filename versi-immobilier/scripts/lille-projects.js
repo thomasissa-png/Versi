@@ -49,7 +49,7 @@ export const LILLE_PROJECTS = [
     duration: null,
     description: `T2 de 45 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, couloir. Immeuble de 280 m² acquis en septembre 2016 par la SCI MMM (IS), six lots au total — kinésithérapeute et restaurant au rez-de-chaussée, quatre appartements aux étages. Trois appartements sur quatre rénovés et loués à ce jour.
 
-Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comprises : 720 €. Rentabilité brute de l'immeuble : 14,4 % (prix d'acquisition 336 000 € + frais de notaire 24 443 €).`,
+Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comprises : 720 €. Rentabilité brute de l’immeuble : 14,4 % (prix d’acquisition 336 000 € + frais de notaire 24 443 €).`,
     featured: false,
     sort_order: 10,
     photos: {
@@ -81,7 +81,7 @@ Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comp
     duration: null,
     description: `T2 de 35 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, entrée. Immeuble de 280 m² acquis en septembre 2016 par la SCI MMM (IS), six lots au total — kinésithérapeute et restaurant au rez-de-chaussée, quatre appartements aux étages.
 
-Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comprises : 690 €. Rentabilité brute de l'immeuble : 14,4 % (prix d'acquisition 336 000 € + frais de notaire 24 443 €).`,
+Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comprises : 690 €. Rentabilité brute de l’immeuble : 14,4 % (prix d’acquisition 336 000 € + frais de notaire 24 443 €).`,
     featured: false,
     sort_order: 11,
     photos: {
@@ -115,9 +115,9 @@ Prix de revente estimé à la découpe : 110 000 €. Loyer mensuel charges comp
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T1 Bis de 27 m² au rez-de-chaussée du 23 rue du Prieuré à Lille, avec accès direct au jardin de l'immeuble. Rénovation intégrale : chambre, séjour-cuisine ouvert, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept appartements rénovés en totalité et loués à ce jour.
+    description: `T1 Bis de 27 m² au rez-de-chaussée du 23 rue du Prieuré à Lille, avec accès direct au jardin de l’immeuble. Rénovation intégrale : chambre, séjour-cuisine ouvert, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept appartements rénovés en totalité et loués à ce jour.
 
-Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges comprises : 630 €. Revenus locatifs annuels de l'immeuble : 52 440 €.`,
+Prix de revente estimé à la découpe : 87 000 €. Loyer mensuel charges comprises : 630 €. Revenus locatifs annuels de l’immeuble : 52 440 €.`,
     featured: false,
     sort_order: 20,
     photos: {
@@ -214,7 +214,7 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 27 m² au deuxième étage du 23 rue du Prieuré à Lille, orienté jardin. Rénovation intégrale : chambre, séjour, cuisine ouverte, salle de bain — même niveau de finition que l'étage inférieur, vue sur le jardin de l'immeuble. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
+    description: `T2 de 27 m² au deuxième étage du 23 rue du Prieuré à Lille, orienté jardin. Rénovation intégrale : chambre, séjour, cuisine ouverte, salle de bain — même niveau de finition que l’étage inférieur, vue sur le jardin de l’immeuble. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
 
 Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges comprises : 630 €.`,
     featured: false,
@@ -245,7 +245,7 @@ Prix de revente estimé à la découpe : 92 000 €. Loyer mensuel charges compr
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 27 m² au deuxième étage du 23 rue du Prieuré à Lille, orienté rue. Rénovation intégrale : chambre, séjour, cuisine, salle de bain — même niveau de finition que l'étage inférieur, exposition rue. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
+    description: `T2 de 27 m² au deuxième étage du 23 rue du Prieuré à Lille, orienté rue. Rénovation intégrale : chambre, séjour, cuisine, salle de bain — même niveau de finition que l’étage inférieur, exposition rue. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
 
 Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges comprises : 630 €.`,
     featured: false,
@@ -279,7 +279,7 @@ Prix de revente estimé à la découpe : 89 000 €. Loyer mensuel charges compr
     offer_delay: null,
     signature_delay: null,
     duration: null,
-    description: `T2 de 35 m² au troisième étage du 23 rue du Prieuré à Lille, sous combles aménagés. La surface la plus généreuse de l'immeuble, avec une hauteur sous plafond travaillée et une lumière zénithale. Rénovation intégrale : chambre, séjour, cuisine ouverte, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
+    description: `T2 de 35 m² au troisième étage du 23 rue du Prieuré à Lille, sous combles aménagés. La surface la plus généreuse de l’immeuble, avec une hauteur sous plafond travaillée et une lumière zénithale. Rénovation intégrale : chambre, séjour, cuisine ouverte, salle de bain. Immeuble de 210 m² acquis en octobre 2024 par la SCI MMO (IS), sept lots rénovés en totalité et loués.
 
 Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comprises : 730 €.`,
     featured: true,
@@ -301,50 +301,3 @@ Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comp
     },
   },
 ];
-
-// ────────────────────────────────────────────────────────────────────────────
-// Upsert projet + photos (idempotent — DELETE + INSERT à chaque boot)
-// Photos : lecture du manifest pré-compilé. Zéro I/O lourd au boot.
-// ────────────────────────────────────────────────────────────────────────────
-
-export async function upsertLilleProject(client, project, manifest) {
-  await client.query(
-    `INSERT INTO projects (
-      id, title, city, type, surface, units, status,
-      buy_price, works_amount, sell_price, offer_delay, signature_delay,
-      duration, description, featured, sort_order
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-    ON CONFLICT (id) DO UPDATE SET
-      title = EXCLUDED.title, city = EXCLUDED.city, type = EXCLUDED.type,
-      surface = EXCLUDED.surface, units = EXCLUDED.units, status = EXCLUDED.status,
-      buy_price = EXCLUDED.buy_price, works_amount = EXCLUDED.works_amount,
-      sell_price = EXCLUDED.sell_price, offer_delay = EXCLUDED.offer_delay,
-      signature_delay = EXCLUDED.signature_delay, duration = EXCLUDED.duration,
-      description = EXCLUDED.description, featured = EXCLUDED.featured,
-      sort_order = EXCLUDED.sort_order, updated_at = NOW()`,
-    [
-      project.id, project.title, project.city, project.type, project.surface,
-      project.units, project.status, project.buy_price, project.works_amount,
-      project.sell_price, project.offer_delay, project.signature_delay,
-      project.duration, project.description, project.featured, project.sort_order,
-    ]
-  );
-
-  const photos = manifest?.projects?.[project.id]?.photos || [];
-  await upsertProjectPhotosDb(client, project.id, photos);
-
-  const avantCount = photos.filter((p) => p.category === 'avant').length;
-  const apresCount = photos.filter((p) => p.category === 'apres').length;
-  console.log(`[lille-projects] "${project.id}" : ${avantCount} avant + ${apresCount} après (URL-only).`);
-  return { avantCount, apresCount };
-}
-
-export async function upsertLilleProjects(client) {
-  const manifest = readManifest();
-  let total = 0;
-  for (const project of LILLE_PROJECTS) {
-    await upsertLilleProject(client, project, manifest);
-    total++;
-  }
-  console.log(`[lille-projects] ${total} projets Lille upsertés (Friedland + Prieuré).`);
-}

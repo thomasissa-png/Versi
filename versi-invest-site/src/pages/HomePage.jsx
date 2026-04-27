@@ -11,13 +11,13 @@ import './HomePage.css';
 const PROCESS_STEPS = [
   {
     num: '01',
-    title: 'Détection d\'opportunité',
+    title: 'Détection d’opportunité',
     desc: 'On identifie les biens à fort potentiel via notre réseau terrain — avant ou en dehors des portails publics.',
   },
   {
     num: '02',
     title: 'Visite fondateur',
-    desc: 'Un fondateur visite seul. Il valide l\'état du bien, estime les travaux, confirme le prix.',
+    desc: 'Un fondateur visite seul. Il valide l’état du bien, estime les travaux, confirme le prix.',
   },
   {
     num: '03',
@@ -37,17 +37,17 @@ const PROCESS_STEPS = [
   {
     num: '06',
     title: 'Structuration et financement',
-    desc: 'Montage adapté à votre situation. Mise en relation courtier. Suivi jusqu\'à l\'offre de prêt.',
+    desc: 'Montage adapté à votre situation. Mise en relation courtier. Suivi jusqu’à l’offre de prêt.',
   },
   {
     num: '07',
     title: 'Acquisition',
-    desc: 'Offre, négociation, signature chez le notaire. On vous suit jusqu\'à la remise des clés.',
+    desc: 'Offre, négociation, signature chez le notaire. On vous suit jusqu’à la remise des clés.',
   },
   {
     num: '08',
     title: 'Travaux et mise en location',
-    desc: 'En option : pilotage chantier, sélection locataire, bail. On peut aller jusqu\'au bout — ou s\'arrêter à l\'acquisition.',
+    desc: 'En option : pilotage chantier, sélection locataire, bail. On peut aller jusqu’au bout — ou s’arrêter à l’acquisition.',
     optional: true,
   },
 ];
@@ -85,31 +85,31 @@ const FOUNDERS = [
 const FAQ_ITEMS = [
   {
     q: 'Combien coûte Versi Invest ?',
-    a: 'Nos honoraires sont de 5% du prix d\'acquisition, facturés uniquement à l\'investisseur. Zéro rémunération côté vendeur — c\'est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
+    a: 'Nos honoraires sont de 5% du prix d’acquisition, facturés uniquement à l’investisseur. Zéro rémunération côté vendeur — c’est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
   },
   {
-    q: 'Pourquoi y a-t-il une liste d\'attente ?',
-    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque dossier est analysé et visité par un fondateur en personne. La majorité des biens ne passent pas nos filtres : rendement insuffisant, cashflow fragile, montage trop risqué. On accueille peu d\'investisseurs pour rester en capacité de vraiment servir chacun. Quand un bien correspond à votre profil, on vous contacte.',
+    q: 'Pourquoi y a-t-il une liste d’attente ?',
+    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque dossier est analysé et visité par un fondateur en personne. La majorité des biens ne passent pas nos filtres : rendement insuffisant, cashflow fragile, montage trop risqué. On accueille peu d’investisseurs pour rester en capacité de vraiment servir chacun. Quand un bien correspond à votre profil, on vous contacte.',
   },
   {
-    q: 'Quel rendement attendre d\'un investissement locatif avec Versi Invest ?',
+    q: 'Quel rendement attendre d’un investissement locatif avec Versi Invest ?',
     a: 'On cible un rendement brut minimum de 8% sur les biens sourcés en Hauts-de-France et Île-de-France. Chaque simulation inclut rendement brut, net et net-net, avec un scénario prudent à +15% de charges. On ne présente un bien que si les chiffres tiennent en scénario dégradé.',
   },
   {
-    q: 'Quels sont les risques d\'un investissement locatif ?',
-    a: 'Vacance locative, travaux imprévus, baisse des loyers — les risques existent. C\'est pour ça qu\'on provisionne la vacance locative dans chaque simulation et qu\'on calcule un scénario dégradé à +15% de charges. On ne vous présente que les dossiers qui restent rentables même dans le pire cas raisonnable.',
+    q: 'Quels sont les risques d’un investissement locatif ?',
+    a: 'Vacance locative, travaux imprévus, baisse des loyers — les risques existent. C’est pour ça qu’on provisionne la vacance locative dans chaque simulation et qu’on calcule un scénario dégradé à +15% de charges. On ne vous présente que les dossiers qui restent rentables même dans le pire cas raisonnable.',
   },
   {
     q: 'Faut-il un apport minimum pour investir ?',
-    a: 'En général, les banques demandent 10 à 20% du prix du bien. Le montant exact dépend de votre profil emprunteur. On réalise une simulation financière complète avec différents niveaux d\'apport dès le premier échange — vous savez exactement où vous en êtes avant de vous engager.',
+    a: 'En général, les banques demandent 10 à 20% du prix du bien. Le montant exact dépend de votre profil emprunteur. On réalise une simulation financière complète avec différents niveaux d’apport dès le premier échange — vous savez exactement où vous en êtes avant de vous engager.',
   },
   {
     q: 'Où sont situés les biens proposés ?',
-    a: 'Principalement en Hauts-de-France — Lille, métropole lilloise, villes moyennes à fort rendement. Également en Île-de-France. Notre réseau terrain, alimenté par l\'activité de marchand de biens de Versi Immobilier, nous donne accès à des biens avant ou en dehors des portails publics.',
+    a: 'Principalement en Hauts-de-France — Lille, métropole lilloise, villes moyennes à fort rendement. Également en Île-de-France. Notre réseau terrain, alimenté par l’activité de marchand de biens de Versi Immobilier, nous donne accès à des biens avant ou en dehors des portails publics.',
   },
   {
-    q: 'Comment ça se passe après l\'inscription sur la liste d\'attente ?',
-    a: 'Un fondateur vous recontacte sous 48h pour un premier échange. On parle de votre situation, vos objectifs, votre capacité d\'investissement. Si un bien correspond à vos critères, on vous envoie le dossier complet avec simulation financière. Vous décidez — pas de pression, pas de relance.',
+    q: 'Comment ça se passe après l’inscription sur la liste d’attente ?',
+    a: 'Un fondateur vous recontacte sous 48h pour un premier échange. On parle de votre situation, vos objectifs, votre capacité d’investissement. Si un bien correspond à vos critères, on vous envoie le dossier complet avec simulation financière. Vous décidez — pas de pression, pas de relance.',
   },
 ];
 
@@ -153,7 +153,7 @@ export default function HomePage() {
     <>
       <PageHead
         title="Versi Invest — Investissement locatif rentable"
-        description="Des biens qui s'autofinancent. Cashflow positif. Une seule commission : 5%. Fondateurs en direct."
+        description="Des biens qui s’autofinancent. Cashflow positif. Une seule commission : 5%. Fondateurs en direct."
       />
       <a href="#main-content" className="skip-nav">
         Aller au contenu principal
@@ -173,10 +173,10 @@ export default function HomePage() {
             </h1>
             <div className="hero__accent" aria-hidden="true" />
             <p className="hero__subtitle">
-              Des biens qui s'autofinancent. Cashflow positif. Une seule commission : 5%.
+              Des biens qui s’autofinancent. Cashflow positif. Une seule commission : 5%.
             </p>
             <Link to="/contact" className="hero__cta">
-              S'inscrire sur la liste d'attente
+              S’inscrire sur la liste d’attente
             </Link>
           </div>
         </section>
@@ -246,7 +246,7 @@ export default function HomePage() {
               Pas à un commercial.
             </h2>
             <p className="text-body-lg team-teaser__subtitle">
-              Maxime, Thomas et Carl suivent chaque dossier du sourcing à l'acquisition. Ils visitent eux-mêmes. Ils répondent en direct.
+              Maxime, Thomas et Carl suivent chaque dossier du sourcing à l’acquisition. Ils visitent eux-mêmes. Ils répondent en direct.
             </p>
             <div className="team-teaser__grid">
               {FOUNDERS.map((f) => (
@@ -271,7 +271,7 @@ export default function HomePage() {
               ))}
             </div>
             <Link to="/equipe" className="text-cta team-teaser__link">
-              L'équipe en détail
+              L’équipe en détail
             </Link>
           </div>
         </section>
@@ -312,7 +312,7 @@ export default function HomePage() {
               Chaque bien est simulé charge par charge, scénario dégradé inclus. Les fondateurs suivent chaque dossier personnellement.
             </p>
             <Link to="/contact" className="page-cta__btn">
-              S'inscrire sur la liste d'attente
+              S’inscrire sur la liste d’attente
             </Link>
           </div>
         </section>

@@ -20,7 +20,7 @@ export default function Mission() {
             Nous décidons.
           </h2>
           <p className="text-body-lg mission__body">
-            Chaque opération est pilotée par les mêmes fondateurs du premier contact à la dernière signature. Pas d'apporteur d'affaires, pas de bureau d'études sous-traité — les mêmes mains de l'entrée à la sortie.
+            Chaque opération est pilotée par les mêmes fondateurs du premier contact à la dernière signature. Pas d’apporteur d’affaires, pas de bureau d’études sous-traité — les mêmes mains de l’entrée à la sortie.
           </p>
         </div>
         <div className="mission__stats">
