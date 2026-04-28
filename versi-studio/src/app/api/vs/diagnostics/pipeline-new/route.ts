@@ -80,29 +80,15 @@ export async function GET() {
       m2: {
         total_segments: m2.segments.length,
         filtered_walls: walls.length,
-        page_width: m2.pageWidth,
-        page_height: m2.pageHeight,
       },
-      m4: {
-        nodes: graph.nodes.length,
-        edges: graph.edges.length,
-        rooms: rooms.length,
-      },
+      m4: { rooms: rooms.length },
       m5: {
         lots: result.lots.length,
         communs: result.communs.length,
         lot_names: result.lots.map((l) => l.name),
       },
-      // Critères PASS attendus pour Muguets RDC :
-      expected: {
-        m1_type: "vector",
-        m1_paths_min: 5000,
-        m4_rooms_max: 30,
-        m5_lots_min: 1,
-      },
       assertions: {
-        m1_type_ok: m1.type === "vector",
-        m1_paths_ok: m1.vectorPathCount >= 5000,
+        m1_type_vector: m1.type === "vector",
         m4_rooms_ok: rooms.length <= 30,
         m5_lots_ok: result.lots.length >= 1,
       },

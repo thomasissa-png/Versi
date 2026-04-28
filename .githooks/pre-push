@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Pre-push hook s27 — Test pipeline NEW Versi Studio en SSR Next.js prod local
+# avant tout push. Reproduit les conditions Replit Autoscale (Turbopack +
+# bundle SSR) et bloque le push si pipeline-new ne tourne pas.
+#
+# Activation : git config core.hooksPath .githooks
+#
+# Skip : SKIP_VS_PROD_TEST=1 git push  (déconseillé)
+
+set -e
+
+# Skip si versi-studio n'est pas modifié sur ce push
+if ! git diff --name-only HEAD origin/HEAD 2>/dev/null | grep -q "^versi-studio/" \
+   && ! git diff --name-only HEAD@{u} HEAD 2>/dev/null | grep -q "^versi-studio/"; then
+  exit 0
+fi
+
+if [ "${SKIP_VS_PROD_TEST:-0}" = "1" ]; then
+  echo "⚠ Pre-push test SSR skippé (SKIP_VS_PROD_TEST=1) — push à tes risques"
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT="$REPO_ROOT/versi-studio/scripts/qa/test-prod-pipeline-new.sh"
+
+if [ ! -x "$SCRIPT" ]; then
+  echo "ℹ Pre-push : $SCRIPT absent ou non-exécutable, hook ignoré"
+  exit 0
+fi
+
+echo "▶ Pre-push : test pipeline-new en SSR Next.js prod (~90s)"
+if ! bash "$SCRIPT"; then
+  echo ""
+  echo "❌ PUSH BLOQUÉ — pipeline-new fail en SSR Next.js prod local"
+  echo "   Le bug serait apparu en prod Replit (préférence fondateur s27)."
+  echo "   Fix le code, retest, repush. Ou SKIP_VS_PROD_TEST=1 si urgence."
+  exit 1
+fi
+echo "✓ Pre-push OK — pipeline NEW fonctionnel en SSR"
