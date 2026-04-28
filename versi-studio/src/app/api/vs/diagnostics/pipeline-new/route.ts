@@ -1,16 +1,11 @@
 /**
- * Route diagnostic interne — exécute le pipeline NEW (M1→M5) en SSR Next.js
- * sur un PDF fixture Muguets et retourne les résultats. Permet de reproduire
- * en local + CI les conditions exactes de Replit Autoscale (Webpack bundle SSR)
- * pour détecter les bugs spécifiques à l'environnement de production.
+ * Route diagnostic interne — exécute le pipeline NEW v2 (color mask) en SSR
+ * Next.js sur un PDF fixture Muguets et retourne les résultats.
  *
  * Cas d'usage : pre-push hook + GitHub Actions CI.
  *
  * USAGE :
- *   curl http://localhost:3100/api/vs/diagnostics/pipeline-new
- *
- * Réponse 200 OK → pipeline NEW fonctionnel en SSR. Réponse 500 → bug
- * spécifique au build prod (typiquement bug 5102 path/cmaps).
+ *   curl http://localhost:3199/api/vs/diagnostics/pipeline-new
  *
  * Sécurité : route activée uniquement si NODE_ENV=development OU
  * VS_DIAGNOSTICS_ENABLED=true. Sinon → 404.
@@ -19,13 +14,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { detectPdfType } from "@/lib/vs/pdf-type-detector";
-import {
-  extractWallSegments,
-  filterWallsByLineWidth,
-} from "@/lib/vs/pdf-vector-parser";
-import { buildWallGraph, detectRooms } from "@/lib/vs/wall-graph";
-import { classifyRooms, type OcrLabelLite } from "@/lib/vs/lot-classifier";
+import { extractLotsByColorMask } from "@/lib/vs/color-mask-extractor";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,12 +25,6 @@ const FIXTURE_PATH = join(
   "plans-test",
   "P 00 - Pr2_plan RDC_ projet2.pdf",
 );
-
-const MOCK_OCR: OcrLabelLite[] = [
-  { text: "T3 RDC", x: 240, y: 265, confidence: 0.9 },
-  { text: "Escalier", x: 90, y: 215, confidence: 0.9 },
-  { text: "Palier", x: 75, y: 415, confidence: 0.9 },
-];
 
 export async function GET() {
   if (
@@ -54,57 +37,53 @@ export async function GET() {
   const t0 = Date.now();
   try {
     const buffer = await readFile(FIXTURE_PATH);
-    const m1 = await detectPdfType(buffer);
-    const m2 = await extractWallSegments(buffer);
-    const minLineWidth = parseFloat(
-      process.env.VS_WALL_MIN_LINEWIDTH ?? "1.13",
-    );
-    const walls = filterWallsByLineWidth(m2.segments, minLineWidth);
-    const graph = buildWallGraph(walls, 2);
-    const rooms = detectRooms(graph);
-    const result = await classifyRooms(rooms, Buffer.from("fake"), {
-      ocrFn: async () => MOCK_OCR,
+
+    // Pipeline NEW v2 : pdf-to-img → color mask → alpha-shape → polygone lot.
+    // Approche déterministe pixel-based, précision 0.1mm/pixel à scale=3.
+    const { pdf } = await import("pdf-to-img");
+    const pages = await pdf(buffer, { scale: 3 });
+    let pngBuffer: Buffer | null = null;
+    for await (const page of pages) {
+      pngBuffer = Buffer.from(page);
+      break;
+    }
+    if (!pngBuffer) throw new Error("pdf-to-img n'a produit aucune page");
+
+    const result = await extractLotsByColorMask(pngBuffer, {
+      alpha: 0.05,
+      sampleStride: 4,
+      simplifyTolerance: 8,
+      singleCluster: true,
     });
 
     const duration = Date.now() - t0;
+    const mainPolygon = result.polygons[0];
     return NextResponse.json({
       ok: true,
       duration_ms: duration,
       fixture: FIXTURE_PATH,
-      m1: {
-        type: m1.type,
-        vectorPathCount: m1.vectorPathCount,
-        imageCount: m1.imageCount,
-        confidence: m1.confidence,
+      image: {
+        width: result.imageWidth,
+        height: result.imageHeight,
       },
-      m2: {
-        total_segments: m2.segments.length,
-        filtered_walls: walls.length,
+      mask: {
+        total_pixels: result.totalMaskPixels,
+        cluster_count: result.clusterCount,
       },
-      m4: { rooms: rooms.length },
-      m5: {
-        lots: result.lots.length,
-        communs: result.communs.length,
-        lot_names: result.lots.map((l) => l.name),
+      polygon: {
+        vertices: mainPolygon?.length ?? 0,
+        sample_first_3: mainPolygon?.slice(0, 3),
       },
       assertions: {
-        m1_type_vector: m1.type === "vector",
-        m4_rooms_ok: rooms.length <= 30,
-        m5_lots_ok: result.lots.length >= 1,
+        has_polygon: !!mainPolygon && mainPolygon.length >= 3,
+        polygon_reasonable_size: mainPolygon
+          ? mainPolygon.length >= 3 && mainPolygon.length <= 50
+          : false,
+        has_mask_pixels: result.totalMaskPixels >= 1000,
       },
     });
   } catch (err) {
     const duration = Date.now() - t0;
-    // Walk the cause chain to surface the real underlying error
-    const chain: Array<{ name?: string; message?: string; code?: string }> = [];
-    let cur: unknown = err;
-    let depth = 0;
-    while (cur && depth < 5) {
-      const e = cur as { name?: string; message?: string; code?: string; cause?: unknown };
-      chain.push({ name: e.name, message: e.message, code: e.code });
-      cur = e.cause;
-      depth++;
-    }
     return NextResponse.json(
       {
         ok: false,
@@ -115,9 +94,8 @@ export async function GET() {
           message: err instanceof Error ? err.message : String(err),
           stack:
             err instanceof Error
-              ? err.stack?.split("\n").slice(0, 12).join("\n")
+              ? err.stack?.split("\n").slice(0, 8).join("\n")
               : null,
-          chain,
         },
       },
       { status: 500 },
