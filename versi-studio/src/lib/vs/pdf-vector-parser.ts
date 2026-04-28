@@ -91,33 +91,38 @@ export async function extractWallSegments(
     );
   }
 
-  // s27 fix prod Replit — résolution robuste des assets pdfjs (cmaps + fonts).
-  // Pattern aligné sur pdf-to-img mais avec fallback gracieux : si la résolution
-  // échoue (cas SSR Next.js bundlé), on omet les options et pdfjs tente quand
-  // même (peut throw sur certains PDF asiatiques mais marche sur PDF latins).
+  // s27 fix prod Replit — Turbopack remplace `createRequire().resolve(...)`
+  // par un chunk ID numérique au runtime bundlé (cause root du bug 5102).
+  // Solution : construire les paths via process.cwd() (cf. pdf-type-detector).
   let cMapUrl: string | undefined;
   let standardFontDataUrl: string | undefined;
   try {
-    const { createRequire } = await import("node:module");
     const fs = await import("node:fs");
-    const pdfjsPkg = createRequire(import.meta.url).resolve(
-      "pdfjs-dist/package.json",
-    );
-    // Remonte au dossier pdfjs-dist
-    const pdfjsRoot = pdfjsPkg.replace(/[\\/]package\.json$/, "");
-    const cmapDir = `${pdfjsRoot}/cmaps/`;
-    const fontDir = `${pdfjsRoot}/standard_fonts/`;
-    if (fs.existsSync(cmapDir)) cMapUrl = cmapDir;
-    if (fs.existsSync(fontDir)) standardFontDataUrl = fontDir;
+    const candidates = [
+      `${process.cwd()}/node_modules/pdfjs-dist`,
+      `${process.cwd()}/versi-studio/node_modules/pdfjs-dist`,
+    ];
+    for (const root of candidates) {
+      const cmapDir = `${root}/cmaps/`;
+      const fontDir = `${root}/standard_fonts/`;
+      if (fs.existsSync(cmapDir)) {
+        cMapUrl = cmapDir;
+        if (fs.existsSync(fontDir)) standardFontDataUrl = fontDir;
+        break;
+      }
+    }
   } catch {
-    // SSR Next.js peut casser createRequire ou import.meta.url — on continue
-    // sans cmaps/fonts, pdfjs gère gracieusement en interne sur PDF simples.
+    // SSR fs error — continuer sans cmaps.
   }
 
   let pdfDoc;
   try {
+    // s27 — copie indépendante (pdfjs consomme/transfere le buffer ; partager
+    // l'instance entre M1 et M2 corrompt la 2e lecture en SSR Turbopack).
+    const dataCopy = new Uint8Array(buffer.byteLength);
+    dataCopy.set(buffer);
     const docOptions: Record<string, unknown> = {
-      data: new Uint8Array(buffer),
+      data: dataCopy,
       isEvalSupported: false,
       useSystemFonts: false,
     };

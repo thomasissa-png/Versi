@@ -55,28 +55,39 @@ export async function detectPdfType(buffer: Buffer): Promise<PdfTypeVerdict> {
     throw new PdfTypeDetectorError("Échec import pdfjs-dist", err);
   }
 
-  // s27 fix prod Replit — résolution robuste avec fallback gracieux SSR.
+  // s27 fix prod Replit — Turbopack remplace `createRequire(import.meta.url)
+  // .resolve("pdfjs-dist/package.json")` par un chunk ID numérique au runtime
+  // bundlé (vérifié sur build prod : "62934.replace(...)" → "62934/cmaps/").
+  // Solution : construire le path via process.cwd() (Replit Autoscale + Next
+  // standalone garantissent que cwd contient node_modules/pdfjs-dist).
   let cMapUrl: string | undefined;
   let standardFontDataUrl: string | undefined;
   try {
-    const { createRequire } = await import("node:module");
     const fs = await import("node:fs");
-    const pdfjsPkg = createRequire(import.meta.url).resolve(
-      "pdfjs-dist/package.json",
-    );
-    const pdfjsRoot = pdfjsPkg.replace(/[\\/]package\.json$/, "");
-    const cmapDir = `${pdfjsRoot}/cmaps/`;
-    const fontDir = `${pdfjsRoot}/standard_fonts/`;
-    if (fs.existsSync(cmapDir)) cMapUrl = cmapDir;
-    if (fs.existsSync(fontDir)) standardFontDataUrl = fontDir;
+    const candidates = [
+      `${process.cwd()}/node_modules/pdfjs-dist`,
+      `${process.cwd()}/versi-studio/node_modules/pdfjs-dist`,
+    ];
+    for (const root of candidates) {
+      const cmapDir = `${root}/cmaps/`;
+      const fontDir = `${root}/standard_fonts/`;
+      if (fs.existsSync(cmapDir)) {
+        cMapUrl = cmapDir;
+        if (fs.existsSync(fontDir)) standardFontDataUrl = fontDir;
+        break;
+      }
+    }
   } catch {
-    // SSR Next.js peut casser ces résolutions — on continue sans.
+    // SSR Next.js peut casser fs — on continue sans cmaps.
   }
 
   let pdfDoc;
   try {
+    // s27 — copie indépendante (pdfjs consomme le buffer dans son worker).
+    const dataCopy = new Uint8Array(buffer.byteLength);
+    dataCopy.set(buffer);
     const docOptions: Record<string, unknown> = {
-      data: new Uint8Array(buffer),
+      data: dataCopy,
       isEvalSupported: false,
       useSystemFonts: false,
     };
@@ -88,7 +99,23 @@ export async function detectPdfType(buffer: Buffer): Promise<PdfTypeVerdict> {
     const loadingTask = pdfjs.getDocument(docOptions as Parameters<typeof pdfjs.getDocument>[0]);
     pdfDoc = await loadingTask.promise;
   } catch (err) {
-    throw new PdfTypeDetectorError("Échec parsing PDF (corrompu ou non-PDF)", err);
+    // s27 debug — log la cause originale pdfjs (perdue au bundle Turbopack)
+    const e = err as { name?: string; message?: string; code?: string; details?: unknown };
+    console.error(
+      "[pdf-type-detector] pdfjs throw:",
+      e?.name,
+      "|",
+      e?.message,
+      "| code=",
+      e?.code,
+      "| details=",
+      e?.details,
+    );
+    const detailMsg = `${e?.name ?? "Error"}: ${e?.message ?? "unknown"}${e?.code ? ` [${e.code}]` : ""}`;
+    throw new PdfTypeDetectorError(
+      `Échec parsing PDF — ${detailMsg}`,
+      err,
+    );
   }
 
   if (pdfDoc.numPages < 1) {
