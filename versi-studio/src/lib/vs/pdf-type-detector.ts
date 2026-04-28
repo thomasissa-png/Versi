@@ -55,12 +55,24 @@ export async function detectPdfType(buffer: Buffer): Promise<PdfTypeVerdict> {
     throw new PdfTypeDetectorError("Échec import pdfjs-dist", err);
   }
 
+  // s27 fix prod Replit — pattern pdf-to-img : pointer vers standard_fonts et
+  // cmaps embarqués dans pdfjs-dist. Sans ces refs, pdfjs throw "parse_failed"
+  // sur les PDF archi (Adobe/Helvetica fonts, encodings japonais...) en SSR.
+  const { createRequire } = await import("node:module");
+  const path = await import("node:path/posix");
+  const pdfjsPath = path.dirname(
+    createRequire(import.meta.url).resolve("pdfjs-dist/package.json"),
+  );
+
   let pdfDoc;
   try {
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(buffer),
       isEvalSupported: false,
       useSystemFonts: false,
+      standardFontDataUrl: path.join(pdfjsPath, `standard_fonts${path.sep}`),
+      cMapUrl: path.join(pdfjsPath, `cmaps${path.sep}`),
+      cMapPacked: true,
     });
     pdfDoc = await loadingTask.promise;
   } catch (err) {

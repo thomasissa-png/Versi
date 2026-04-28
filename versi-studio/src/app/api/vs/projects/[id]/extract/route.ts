@@ -69,6 +69,7 @@ import {
 } from "@/lib/vs/pdf-type-detector";
 import {
   extractWallSegments,
+  filterWallsByLineWidth,
   PdfVectorParserError,
 } from "@/lib/vs/pdf-vector-parser";
 import {
@@ -207,6 +208,21 @@ export async function POST(
 
           if (detection.type === "vector") {
             const vectorResult = await extractWallSegments(fileBuffer);
+            // s27 fix #2 — filtrage par lineWidth pour ne garder QUE les murs.
+            // Empirique sur 4 plans archi Muguets : seuil 1.13pt élimine
+            // mobilier/cotes (typ 0.24-0.85pt) et garde murs intérieurs+extérieurs
+            // (typ 1.13-2.13pt). Override via VS_WALL_MIN_LINEWIDTH env.
+            const minLineWidth = parseFloat(
+              process.env.VS_WALL_MIN_LINEWIDTH ?? "1.13"
+            );
+            const wallSegments = filterWallsByLineWidth(
+              vectorResult.segments,
+              minLineWidth
+            );
+            console.log(
+              `[extract/NEW] plan ${plan.id}: M2 vector → ${vectorResult.segments.length} ` +
+                `total segments → ${wallSegments.length} murs (lineWidth ≥ ${minLineWidth}pt)`
+            );
             // Reprojection user-space PDF → pixels raster (scale = imageWidth/pageWidth)
             const sx =
               vectorResult.pageWidth > 0
@@ -216,17 +232,12 @@ export async function POST(
               vectorResult.pageHeight > 0
                 ? imageHeight / vectorResult.pageHeight
                 : 1;
-            segments = vectorResult.segments.map((s) => ({
+            segments = wallSegments.map((s) => ({
               x1: s.x1 * sx,
               y1: s.y1 * sy,
               x2: s.x2 * sx,
               y2: s.y2 * sy,
             }));
-            console.log(
-              `[extract/NEW] plan ${plan.id}: M2 vector → ${segments.length} segments ` +
-                `(reprojected pdf ${vectorResult.pageWidth.toFixed(0)}×${vectorResult.pageHeight.toFixed(0)} ` +
-                `→ raster ${imageWidth}×${imageHeight})`
-            );
           } else {
             // bitmap | hybrid → M3 sur raster
             const bitmapResult = await extractWallSegmentsFromBitmap(pngBuffer);

@@ -20,6 +20,8 @@ export type WallSegment = {
   y1: number;
   x2: number;
   y2: number;
+  /** Épaisseur du trait en points PDF au moment du tracé (s27 fix #2 plan réel). */
+  lineWidth?: number;
 };
 
 export type PdfVectorParseResult = {
@@ -89,12 +91,24 @@ export async function extractWallSegments(
     );
   }
 
+  // s27 fix prod Replit — pattern pdf-to-img : pointer vers les standard_fonts
+  // et cmaps embarqués dans pdfjs-dist. Sans ces refs, pdfjs throw sur les PDF
+  // archi qui utilisent des fonts/encodings standards (Adobe, Helvetica, etc).
+  const { createRequire } = await import("node:module");
+  const path = await import("node:path/posix");
+  const pdfjsPath = path.dirname(
+    createRequire(import.meta.url).resolve("pdfjs-dist/package.json"),
+  );
+
   let pdfDoc;
   try {
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(buffer),
       isEvalSupported: false,
       useSystemFonts: false,
+      standardFontDataUrl: path.join(pdfjsPath, `standard_fonts${path.sep}`),
+      cMapUrl: path.join(pdfjsPath, `cmaps${path.sep}`),
+      cMapPacked: true,
     });
     pdfDoc = await loadingTask.promise;
   } catch (err) {
@@ -148,6 +162,10 @@ export async function extractWallSegments(
   // À chaque OPS.transform, on concatène. Sauvegardée/restaurée via save/restore.
   let ctm: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
   const ctmStack: typeof ctm[] = [];
+  // s27 fix #2 — tracking lineWidth pour filtrer murs vs mobilier/cotes
+  // (distribution typique plans archi : murs ≥ 1.0pt, mobilier 0.24-0.85pt).
+  let currentLineWidth = 1; // default PDF
+  const lineWidthStack: number[] = [];
 
   for (let i = 0; i < fns.length; i++) {
     const op = fns[i];
@@ -155,11 +173,16 @@ export async function extractWallSegments(
 
     if (op === OPS.save) {
       ctmStack.push([...ctm] as typeof ctm);
+      lineWidthStack.push(currentLineWidth);
     } else if (op === OPS.restore) {
       const popped = ctmStack.pop();
       if (popped) ctm = popped;
+      const lw = lineWidthStack.pop();
+      if (lw !== undefined) currentLineWidth = lw;
     } else if (op === OPS.transform && Array.isArray(a) && a.length >= 6) {
       ctm = multiplyCtm(ctm, [a[0], a[1], a[2], a[3], a[4], a[5]]);
+    } else if (op === OPS.setLineWidth && Array.isArray(a) && a.length >= 1) {
+      currentLineWidth = Number(a[0]) || currentLineWidth;
     } else if (op === OPS.constructPath && Array.isArray(a)) {
       // a[1] = tableau de "path objects" (objets à clés numériques).
       const paths = a[1];
@@ -183,7 +206,7 @@ export async function extractWallSegments(
           } else if (sub === DRAW_LINE_TO) {
             const nx = seq[k++];
             const ny = seq[k++];
-            pushSegmentCtm(segments, ctm, cx, cy, nx, ny);
+            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth);
             cx = nx;
             cy = ny;
           } else if (sub === DRAW_CURVE_TO) {
@@ -191,12 +214,12 @@ export async function extractWallSegments(
             k += 4;
             const nx = seq[k++];
             const ny = seq[k++];
-            pushSegmentCtm(segments, ctm, cx, cy, nx, ny);
+            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth);
             cx = nx;
             cy = ny;
           } else if (sub === DRAW_CLOSE_PATH) {
             if (cx !== startX || cy !== startY) {
-              pushSegmentCtm(segments, ctm, cx, cy, startX, startY);
+              pushSegmentCtm(segments, ctm, cx, cy, startX, startY, currentLineWidth);
               cx = startX;
               cy = startY;
             }
@@ -210,10 +233,10 @@ export async function extractWallSegments(
     } else if (op === OPS.rectangle && Array.isArray(a) && a.length >= 4) {
       // Compatibilité versions antérieures où re est top-level.
       const [x, y, w, h] = a;
-      pushSegmentCtm(segments, ctm, x, y, x + w, y);
-      pushSegmentCtm(segments, ctm, x + w, y, x + w, y + h);
-      pushSegmentCtm(segments, ctm, x + w, y + h, x, y + h);
-      pushSegmentCtm(segments, ctm, x, y + h, x, y);
+      pushSegmentCtm(segments, ctm, x, y, x + w, y, currentLineWidth);
+      pushSegmentCtm(segments, ctm, x + w, y, x + w, y + h, currentLineWidth);
+      pushSegmentCtm(segments, ctm, x + w, y + h, x, y + h, currentLineWidth);
+      pushSegmentCtm(segments, ctm, x, y + h, x, y, currentLineWidth);
     }
   }
 
@@ -249,6 +272,7 @@ function pushSegmentCtm(
   y1: number,
   x2: number,
   y2: number,
+  lineWidth?: number,
 ) {
   const [a, b, c, d, e, f] = ctm;
   const tx1 = a * x1 + c * y1 + e;
@@ -259,7 +283,25 @@ function pushSegmentCtm(
   const dy = ty2 - ty1;
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len < MIN_SEGMENT_LENGTH_USER_SPACE) return;
-  out.push({ x1: tx1, y1: ty1, x2: tx2, y2: ty2 });
+  out.push({ x1: tx1, y1: ty1, x2: tx2, y2: ty2, lineWidth });
+}
+
+/**
+ * Filtre les segments murs par épaisseur de trait minimale.
+ *
+ * Distribution typique d'un plan archi (mesurée empiriquement sur Muguets RDC
+ * P-03 le 2026-04-27) :
+ * - 0.24-0.85 pt : mobilier, cotes, hachures, pictos (~70-80% des segments)
+ * - 1.0+ pt      : murs intérieurs et extérieurs (~10-30%)
+ *
+ * Le seuil par défaut 1.0 pt est conservateur pour ne pas perdre des murs fins.
+ * Tunable via `VS_WALL_MIN_LINEWIDTH` côté caller.
+ */
+export function filterWallsByLineWidth(
+  segments: WallSegment[],
+  minLineWidth = 1.0,
+): WallSegment[] {
+  return segments.filter((s) => (s.lineWidth ?? 0) >= minLineWidth);
 }
 
 /**
