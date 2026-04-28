@@ -16,6 +16,19 @@
 
 import sharp from "sharp";
 
+// concaveman = lib Mapbox alpha-shape éprouvée en prod (Foursquare, OpenStreetMap)
+// Signature : concaveman(points: [x,y][], concavity?: number, lengthThreshold?: number)
+//   - concavity : plus petit = plus concave (default 2). ∞ = convex hull.
+//   - lengthThreshold : longueur min des segments du contour (px)
+// Module CJS exporte default pour interop ESM, on l'extrait explicitement.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const concavemanModule = require("concaveman");
+const concaveman: (
+  points: number[][],
+  concavity?: number,
+  lengthThreshold?: number,
+) => number[][] = concavemanModule.default ?? concavemanModule;
+
 export type Pt = { x: number; y: number };
 
 export type ColorMaskOptions = {
@@ -23,8 +36,10 @@ export type ColorMaskOptions = {
   targetColors?: ColorRange[];
   /** Stride d'échantillonnage des pixels (1 = tous, 4 = 1/16, 8 = 1/64). */
   sampleStride?: number;
-  /** Alpha-shape paramètre (radiusMax = 1/alpha en px). Plus grand = plus concave. */
+  /** Concavity (concaveman) : 1 = très concave, 2 = défaut, ∞ = convex hull. */
   alpha?: number;
+  /** Longueur min des segments du contour (px). Plus grand = polygone plus simple. */
+  lengthThreshold?: number;
   /** Tolérance Douglas-Peucker (px). 0 = pas de simplification. */
   simplifyTolerance?: number;
   /** Exclure une bande verticale en haut (cartouche). 0..1, fraction de l'image. */
@@ -87,7 +102,8 @@ export async function extractLotsByColorMask(
 ): Promise<ColorMaskResult> {
   const targetColors = options.targetColors ?? DEFAULT_COLORS;
   const sampleStride = options.sampleStride ?? 4;
-  const alpha = options.alpha ?? 0.05;
+  const alpha = options.alpha ?? 2; // concaveman concavity
+  const lengthThreshold = options.lengthThreshold ?? 100;
   const simplifyTolerance = options.simplifyTolerance ?? 8;
   const topF = options.excludeTopFraction ?? 0.12;
   const botF = options.excludeBottomFraction ?? 0.12;
@@ -162,10 +178,12 @@ export async function extractLotsByColorMask(
     );
   }
 
-  // 4. Pour chaque cluster, calculer alpha-shape puis simplifier
+  // 4. Pour chaque cluster, calculer concaveman puis simplifier
   const polygons: Pt[][] = [];
   for (const cluster of sortedClusters) {
-    const hull = alphaShape(cluster, alpha);
+    const flat = cluster.map((p) => [p.x, p.y]);
+    const hullFlat = concaveman(flat, alpha, lengthThreshold);
+    const hull: Pt[] = hullFlat.map(([x, y]) => ({ x, y }));
     if (hull.length < 3) continue;
     const simplified = simplifyTolerance > 0
       ? douglasPeucker(hull, simplifyTolerance)
