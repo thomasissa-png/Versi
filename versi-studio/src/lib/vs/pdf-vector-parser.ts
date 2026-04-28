@@ -91,25 +91,42 @@ export async function extractWallSegments(
     );
   }
 
-  // s27 fix prod Replit — pattern pdf-to-img : pointer vers les standard_fonts
-  // et cmaps embarqués dans pdfjs-dist. Sans ces refs, pdfjs throw sur les PDF
-  // archi qui utilisent des fonts/encodings standards (Adobe, Helvetica, etc).
-  const { createRequire } = await import("node:module");
-  const path = await import("node:path/posix");
-  const pdfjsPath = path.dirname(
-    createRequire(import.meta.url).resolve("pdfjs-dist/package.json"),
-  );
+  // s27 fix prod Replit — résolution robuste des assets pdfjs (cmaps + fonts).
+  // Pattern aligné sur pdf-to-img mais avec fallback gracieux : si la résolution
+  // échoue (cas SSR Next.js bundlé), on omet les options et pdfjs tente quand
+  // même (peut throw sur certains PDF asiatiques mais marche sur PDF latins).
+  let cMapUrl: string | undefined;
+  let standardFontDataUrl: string | undefined;
+  try {
+    const { createRequire } = await import("node:module");
+    const fs = await import("node:fs");
+    const pdfjsPkg = createRequire(import.meta.url).resolve(
+      "pdfjs-dist/package.json",
+    );
+    // Remonte au dossier pdfjs-dist
+    const pdfjsRoot = pdfjsPkg.replace(/[\\/]package\.json$/, "");
+    const cmapDir = `${pdfjsRoot}/cmaps/`;
+    const fontDir = `${pdfjsRoot}/standard_fonts/`;
+    if (fs.existsSync(cmapDir)) cMapUrl = cmapDir;
+    if (fs.existsSync(fontDir)) standardFontDataUrl = fontDir;
+  } catch {
+    // SSR Next.js peut casser createRequire ou import.meta.url — on continue
+    // sans cmaps/fonts, pdfjs gère gracieusement en interne sur PDF simples.
+  }
 
   let pdfDoc;
   try {
-    const loadingTask = pdfjs.getDocument({
+    const docOptions: Record<string, unknown> = {
       data: new Uint8Array(buffer),
       isEvalSupported: false,
       useSystemFonts: false,
-      standardFontDataUrl: path.join(pdfjsPath, `standard_fonts${path.sep}`),
-      cMapUrl: path.join(pdfjsPath, `cmaps${path.sep}`),
-      cMapPacked: true,
-    });
+    };
+    if (cMapUrl) {
+      docOptions.cMapUrl = cMapUrl;
+      docOptions.cMapPacked = true;
+    }
+    if (standardFontDataUrl) docOptions.standardFontDataUrl = standardFontDataUrl;
+    const loadingTask = pdfjs.getDocument(docOptions as Parameters<typeof pdfjs.getDocument>[0]);
     pdfDoc = await loadingTask.promise;
   } catch (err) {
     throw new PdfVectorParserError(
