@@ -22,6 +22,9 @@ export type WallSegment = {
   y2: number;
   /** Épaisseur du trait en points PDF au moment du tracé (s27 fix #2 plan réel). */
   lineWidth?: number;
+  /** drawType pdfjs v5 : 20=stroke, 22=fill, 24=fillStroke, 28=closeStroke.
+   *  Sur plans archi avec murs en bandes remplies orange, drawType 22/24 = murs. */
+  drawType?: number;
 };
 
 export type PdfVectorParseResult = {
@@ -206,6 +209,9 @@ export async function extractWallSegments(
     } else if (op === OPS.setLineWidth && Array.isArray(a) && a.length >= 1) {
       currentLineWidth = Number(a[0]) || currentLineWidth;
     } else if (op === OPS.constructPath && Array.isArray(a)) {
+      // pdfjs v5 : args = [drawType, paths, minMax]. drawType final paint :
+      //   20 = stroke seul, 22 = fill, 24 = fillStroke, 28 = closeStroke.
+      const drawType = typeof a[0] === "number" ? a[0] : undefined;
       // a[1] = tableau de "path objects" (objets à clés numériques).
       const paths = a[1];
       if (!Array.isArray(paths)) continue;
@@ -228,7 +234,7 @@ export async function extractWallSegments(
           } else if (sub === DRAW_LINE_TO) {
             const nx = seq[k++];
             const ny = seq[k++];
-            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth);
+            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth, drawType);
             cx = nx;
             cy = ny;
           } else if (sub === DRAW_CURVE_TO) {
@@ -236,12 +242,12 @@ export async function extractWallSegments(
             k += 4;
             const nx = seq[k++];
             const ny = seq[k++];
-            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth);
+            pushSegmentCtm(segments, ctm, cx, cy, nx, ny, currentLineWidth, drawType);
             cx = nx;
             cy = ny;
           } else if (sub === DRAW_CLOSE_PATH) {
             if (cx !== startX || cy !== startY) {
-              pushSegmentCtm(segments, ctm, cx, cy, startX, startY, currentLineWidth);
+              pushSegmentCtm(segments, ctm, cx, cy, startX, startY, currentLineWidth, drawType);
               cx = startX;
               cy = startY;
             }
@@ -255,10 +261,10 @@ export async function extractWallSegments(
     } else if (op === OPS.rectangle && Array.isArray(a) && a.length >= 4) {
       // Compatibilité versions antérieures où re est top-level.
       const [x, y, w, h] = a;
-      pushSegmentCtm(segments, ctm, x, y, x + w, y, currentLineWidth);
-      pushSegmentCtm(segments, ctm, x + w, y, x + w, y + h, currentLineWidth);
-      pushSegmentCtm(segments, ctm, x + w, y + h, x, y + h, currentLineWidth);
-      pushSegmentCtm(segments, ctm, x, y + h, x, y, currentLineWidth);
+      pushSegmentCtm(segments, ctm, x, y, x + w, y, currentLineWidth, undefined);
+      pushSegmentCtm(segments, ctm, x + w, y, x + w, y + h, currentLineWidth, undefined);
+      pushSegmentCtm(segments, ctm, x + w, y + h, x, y + h, currentLineWidth, undefined);
+      pushSegmentCtm(segments, ctm, x, y + h, x, y, currentLineWidth, undefined);
     }
   }
 
@@ -295,6 +301,7 @@ function pushSegmentCtm(
   x2: number,
   y2: number,
   lineWidth?: number,
+  drawType?: number,
 ) {
   const [a, b, c, d, e, f] = ctm;
   const tx1 = a * x1 + c * y1 + e;
@@ -305,7 +312,25 @@ function pushSegmentCtm(
   const dy = ty2 - ty1;
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len < MIN_SEGMENT_LENGTH_USER_SPACE) return;
-  out.push({ x1: tx1, y1: ty1, x2: tx2, y2: ty2, lineWidth });
+  out.push({ x1: tx1, y1: ty1, x2: tx2, y2: ty2, lineWidth, drawType });
+}
+
+/**
+ * Filtre les segments par drawType pdfjs (paint final du path).
+ *
+ * Mesuré empiriquement sur Muguets RDC : les murs sont des bandes orange
+ * remplies (drawType 22 = fill, ou 24 = fillStroke) — PAS des strokes.
+ * Le filtrage par lineWidth seul rate ces murs car la lineWidth d'un fill
+ * est typiquement basse ou non pertinente.
+ *
+ * Default : drawType 22 (fill) + 24 (fillStroke). Tunable via env.
+ */
+export function filterByDrawType(
+  segments: WallSegment[],
+  allowedDrawTypes: number[] = [22, 24],
+): WallSegment[] {
+  const set = new Set(allowedDrawTypes);
+  return segments.filter((s) => s.drawType !== undefined && set.has(s.drawType));
 }
 
 /**
