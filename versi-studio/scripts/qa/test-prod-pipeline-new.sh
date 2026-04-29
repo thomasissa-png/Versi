@@ -87,10 +87,9 @@ echo "$BODY" | node -e "
 let s=''; process.stdin.on('data',c=>s+=c);
 process.stdin.on('end',()=>{
   const r=JSON.parse(s);
-  console.log('  M1:', r.m1.type, 'paths='+r.m1.vectorPathCount);
-  console.log('  M2:', r.m2.total_segments, '→', r.m2.filtered_walls, 'murs');
-  console.log('  M4:', r.m4.rooms, 'espaces ('+r.m4.nodes+' nodes)');
-  console.log('  M5:', r.m5.lots, 'lots,', r.m5.communs, 'communs');
+  console.log('  Image:', r.image.width+'x'+r.image.height);
+  console.log('  Mask :', r.mask.total_pixels, 'px,', r.mask.cluster_count, 'cluster(s)');
+  console.log('  Polygon:', r.polygon.vertices, 'sommets');
   console.log('  Durée:', r.duration_ms+'ms');
 });
 "
