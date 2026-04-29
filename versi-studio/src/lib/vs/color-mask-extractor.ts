@@ -105,8 +105,8 @@ export async function extractLotsByColorMask(
   const alpha = options.alpha ?? 2; // concaveman concavity
   const lengthThreshold = options.lengthThreshold ?? 100;
   const simplifyTolerance = options.simplifyTolerance ?? 8;
-  const topF = options.excludeTopFraction ?? 0.12;
-  const botF = options.excludeBottomFraction ?? 0.12;
+  const topF = options.excludeTopFraction ?? 0.18;
+  const botF = options.excludeBottomFraction ?? 0.18;
   const minClusterSize = options.minClusterSize ?? 100;
   const singleCluster = options.singleCluster ?? true;
 
@@ -128,57 +128,119 @@ export async function extractLotsByColorMask(
   const W = info.width;
   const H = info.height;
 
-  // 2. Sample les pixels qui matchent une couleur cible
+  // 2. Construire mask binaire orange + integral image pour O(1) sum-in-rect
+  const orangeMask = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const r = raw[i * 4], g = raw[i * 4 + 1], b = raw[i * 4 + 2];
+    for (const c of targetColors) {
+      if (
+        Math.abs(r - c.rgb[0]) <= c.tolerance &&
+        Math.abs(g - c.rgb[1]) <= c.tolerance &&
+        Math.abs(b - c.rgb[2]) <= c.tolerance
+      ) {
+        orangeMask[i] = 1;
+        break;
+      }
+    }
+  }
+  const totalOrange = orangeMask.reduce((a, b) => a + b, 0);
+  if (totalOrange === 0) {
+    throw new ColorMaskExtractorError(
+      "no_mask",
+      "Aucun pixel ne correspond aux couleurs cibles",
+    );
+  }
+
+  // Integral image pour comptage O(1) des pixels orange dans n'importe quel rectangle
+  const integral = new Int32Array((W + 1) * (H + 1));
+  for (let y = 1; y <= H; y++) {
+    for (let x = 1; x <= W; x++) {
+      integral[y * (W + 1) + x] =
+        orangeMask[(y - 1) * W + (x - 1)] +
+        integral[(y - 1) * (W + 1) + x] +
+        integral[y * (W + 1) + (x - 1)] -
+        integral[(y - 1) * (W + 1) + (x - 1)];
+    }
+  }
+  const sumInRect = (x0: number, y0: number, x1: number, y1: number) => {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0);
+    x1 = Math.min(W, x1); y1 = Math.min(H, y1);
+    return (
+      integral[y1 * (W + 1) + x1] -
+      integral[y0 * (W + 1) + x1] -
+      integral[y1 * (W + 1) + x0] +
+      integral[y0 * (W + 1) + x0]
+    );
+  };
+
+  // 3. Détecter les pixels HABITABLES (= non-orange entourés de murs orange dans rayon R)
+  // Un pixel est habitable si dans un carré 2R×2R autour : 1% < ratio orange < 30%
+  // (ratio < 1% = trop loin de tout mur = extérieur ; ratio > 30% = dans/sur un mur)
   const yMin = Math.floor(H * topF);
   const yMax = Math.floor(H * (1 - botF));
-  const points: Pt[] = [];
-  for (let y = yMin; y < yMax; y += sampleStride) {
-    for (let x = 0; x < W; x += sampleStride) {
-      const i = (y * W + x) * 4;
-      const r = raw[i];
-      const g = raw[i + 1];
-      const b = raw[i + 2];
-      for (const c of targetColors) {
-        if (
-          Math.abs(r - c.rgb[0]) <= c.tolerance &&
-          Math.abs(g - c.rgb[1]) <= c.tolerance &&
-          Math.abs(b - c.rgb[2]) <= c.tolerance
-        ) {
-          points.push({ x, y });
-          break;
-        }
+  const R = sampleStride * 30; // ~240px à stride=8 = 80cm à scale=3 (compromis détection grande pièce vs débord cartouche)
+  const gridW = Math.ceil(W / sampleStride);
+  const gridH = Math.ceil(H / sampleStride);
+  const habitable = new Uint8Array(gridW * gridH);
+  for (let gy = 0; gy < gridH; gy++) {
+    const y = gy * sampleStride;
+    if (y < yMin || y > yMax) continue;
+    for (let gx = 0; gx < gridW; gx++) {
+      const x = gx * sampleStride;
+      if (orangeMask[y * W + x] === 1) continue;
+      const orangeCount = sumInRect(x - R, y - R, x + R, y + R);
+      const totalCount =
+        (Math.min(W, x + R) - Math.max(0, x - R)) *
+        (Math.min(H, y + R) - Math.max(0, y - R));
+      const ratio = orangeCount / totalCount;
+      if (ratio >= 0.005 && ratio <= 0.3) {
+        habitable[gy * gridW + gx] = 1;
       }
     }
   }
 
-  if (points.length === 0) {
-    throw new ColorMaskExtractorError(
-      "no_mask",
-      "Aucun pixel ne correspond aux couleurs cibles (mur peut-être autre teinte ?)",
-    );
+  // 4. Connected components sur la grille habitable (4-connectivity)
+  const labels = new Int32Array(gridW * gridH);
+  let nLabels = 0;
+  const compPoints: Pt[][] = [];
+  for (let gy = 0; gy < gridH; gy++) {
+    for (let gx = 0; gx < gridW; gx++) {
+      const idx = gy * gridW + gx;
+      if (habitable[idx] === 0 || labels[idx] !== 0) continue;
+      nLabels++;
+      const pts: Pt[] = [];
+      const stack = [idx];
+      while (stack.length > 0) {
+        const p = stack.pop()!;
+        if (labels[p] !== 0) continue;
+        labels[p] = nLabels;
+        const px = p % gridW, py = (p - px) / gridW;
+        pts.push({ x: px * sampleStride, y: py * sampleStride });
+        if (px > 0 && habitable[p - 1] === 1 && labels[p - 1] === 0) stack.push(p - 1);
+        if (px < gridW - 1 && habitable[p + 1] === 1 && labels[p + 1] === 0) stack.push(p + 1);
+        if (py > 0 && habitable[p - gridW] === 1 && labels[p - gridW] === 0) stack.push(p - gridW);
+        if (py < gridH - 1 && habitable[p + gridW] === 1 && labels[p + gridW] === 0) stack.push(p + gridW);
+      }
+      compPoints.push(pts);
+    }
   }
 
-  // 3. Clustering selon mode
-  let sortedClusters: Pt[][];
-  if (singleCluster) {
-    // Tous les pixels orange = un seul "cluster" → alpha-shape global
-    sortedClusters = [points];
-  } else {
-    // DBSCAN-like : un cluster par groupe de pixels connectés
-    const clusters = clusterPoints(points, sampleStride * 4, 3);
-    sortedClusters = clusters
-      .filter((c) => c.length >= minClusterSize)
-      .sort((a, b) => b.length - a.length);
-  }
-
-  if (sortedClusters.length === 0) {
+  // 5. Fusionner toutes les composantes significatives (≥ minClusterSize)
+  // → couvre les apparts dont les pièces sont séparées par cloisons internes
+  const sigComps = compPoints
+    .filter((c) => c.length >= minClusterSize)
+    .sort((a, b) => b.length - a.length);
+  if (sigComps.length === 0) {
     throw new ColorMaskExtractorError(
       "no_clusters",
-      `Pixels trouvés (${points.length}) mais aucun cluster ≥ ${minClusterSize}`,
+      `Mask orange trouvé (${totalOrange}px) mais aucune zone habitable ≥ ${minClusterSize}`,
     );
   }
+  const allHabitablePts =
+    singleCluster ? sigComps.flatMap((c) => c) : sigComps[0];
+  const sortedClusters: Pt[][] = singleCluster ? [allHabitablePts] : sigComps;
 
-  // 4. Pour chaque cluster, calculer concaveman puis simplifier
+  // 6. Pour chaque cluster habitable, concaveman puis Douglas-Peucker
   const polygons: Pt[][] = [];
   for (const cluster of sortedClusters) {
     const flat = cluster.map((p) => [p.x, p.y]);
@@ -195,7 +257,7 @@ export async function extractLotsByColorMask(
     polygons,
     imageWidth: W,
     imageHeight: H,
-    totalMaskPixels: points.length,
+    totalMaskPixels: totalOrange,
     clusterCount: sortedClusters.length,
   };
 }
