@@ -36,9 +36,9 @@ export type ColorMaskOptions = {
   targetColors?: ColorRange[];
   /** Stride d'échantillonnage des pixels (1 = tous, 4 = 1/16, 8 = 1/64). */
   sampleStride?: number;
-  /** Concavity (concaveman) : 1 = très concave, 2 = défaut, ∞ = convex hull. */
+  /** Concavity (concaveman) : 1 = très concave, 2 = défaut, ∞ = convex hull. Ignoré si useMarchingSquares. */
   alpha?: number;
-  /** Longueur min des segments du contour (px). Plus grand = polygone plus simple. */
+  /** Longueur min des segments du contour (px). Ignoré si useMarchingSquares. */
   lengthThreshold?: number;
   /** Tolérance Douglas-Peucker (px). 0 = pas de simplification. */
   simplifyTolerance?: number;
@@ -55,6 +55,28 @@ export type ColorMaskOptions = {
    * Mettre à false sur des plans avec plusieurs lots indépendants par étage.
    */
   singleCluster?: boolean;
+  /**
+   * Tracer le contour de la zone habitable via Moore boundary trace
+   * (au lieu de concaveman). Le polygone suit exactement le bord du
+   * masque habitable binaire à 1 cellule près. Default : true (s27).
+   */
+  useMarchingSquares?: boolean;
+  /**
+   * Snap final : pour chaque sommet du polygone, projeter sur le pixel
+   * orange le plus proche dans un rayon de `snapRadius` px. 0 = désactivé.
+   * Default : sampleStride * 8 (~32px à stride=4).
+   */
+  snapRadius?: number;
+  /**
+   * Ratio orange min/max dans rayon R pour qu'un pixel soit habitable.
+   * Default : [0.005, 0.3].
+   */
+  habitableRatioRange?: [number, number];
+  /**
+   * Rayon (px) de la fenêtre d'analyse pour le ratio habitable.
+   * Default : sampleStride * 30.
+   */
+  habitableRadius?: number;
 };
 
 export type ColorRange = {
@@ -109,6 +131,10 @@ export async function extractLotsByColorMask(
   const botF = options.excludeBottomFraction ?? 0.18;
   const minClusterSize = options.minClusterSize ?? 100;
   const singleCluster = options.singleCluster ?? true;
+  const useMarchingSquares = options.useMarchingSquares ?? true;
+  const snapRadius = options.snapRadius ?? sampleStride * 8;
+  const ratioMin = options.habitableRatioRange?.[0] ?? 0.005;
+  const ratioMax = options.habitableRatioRange?.[1] ?? 0.3;
 
   // 1. Décoder le PNG en raw RGBA
   let raw: Buffer;
@@ -178,7 +204,7 @@ export async function extractLotsByColorMask(
   // (ratio < 1% = trop loin de tout mur = extérieur ; ratio > 30% = dans/sur un mur)
   const yMin = Math.floor(H * topF);
   const yMax = Math.floor(H * (1 - botF));
-  const R = sampleStride * 30; // ~240px à stride=8 = 80cm à scale=3 (compromis détection grande pièce vs débord cartouche)
+  const R = options.habitableRadius ?? sampleStride * 30; // ~240px à stride=8 = 80cm à scale=3
   const gridW = Math.ceil(W / sampleStride);
   const gridH = Math.ceil(H / sampleStride);
   const habitable = new Uint8Array(gridW * gridH);
@@ -193,7 +219,7 @@ export async function extractLotsByColorMask(
         (Math.min(W, x + R) - Math.max(0, x - R)) *
         (Math.min(H, y + R) - Math.max(0, y - R));
       const ratio = orangeCount / totalCount;
-      if (ratio >= 0.005 && ratio <= 0.3) {
+      if (ratio >= ratioMin && ratio <= ratioMax) {
         habitable[gy * gridW + gx] = 1;
       }
     }
@@ -240,13 +266,51 @@ export async function extractLotsByColorMask(
     singleCluster ? sigComps.flatMap((c) => c) : sigComps[0];
   const sortedClusters: Pt[][] = singleCluster ? [allHabitablePts] : sigComps;
 
-  // 6. Pour chaque cluster habitable, concaveman puis Douglas-Peucker
+  // 6. Pour chaque cluster, tracer le polygone : Moore boundary trace
+  //    sur le masque habitable binaire (suit exactement le bord à 1 cellule),
+  //    PUIS snap-to-wall (chaque sommet projeté sur le pixel orange le plus
+  //    proche dans rayon snapRadius), PUIS Douglas-Peucker.
   const polygons: Pt[][] = [];
-  for (const cluster of sortedClusters) {
-    const flat = cluster.map((p) => [p.x, p.y]);
-    const hullFlat = concaveman(flat, alpha, lengthThreshold);
-    const hull: Pt[] = hullFlat.map(([x, y]) => ({ x, y }));
-    if (hull.length < 3) continue;
+  for (let cIdx = 0; cIdx < sortedClusters.length; cIdx++) {
+    const cluster = sortedClusters[cIdx];
+
+    let hull: Pt[];
+    if (useMarchingSquares) {
+      // Construire un masque binaire dédié à ce cluster
+      const clusterMask = new Uint8Array(gridW * gridH);
+      if (singleCluster) {
+        // toutes les composantes significatives
+        for (const c of sigComps) {
+          for (const p of c) {
+            const gx = (p.x / sampleStride) | 0;
+            const gy = (p.y / sampleStride) | 0;
+            if (gx >= 0 && gx < gridW && gy >= 0 && gy < gridH)
+              clusterMask[gy * gridW + gx] = 1;
+          }
+        }
+      } else {
+        for (const p of cluster) {
+          const gx = (p.x / sampleStride) | 0;
+          const gy = (p.y / sampleStride) | 0;
+          if (gx >= 0 && gx < gridW && gy >= 0 && gy < gridH)
+            clusterMask[gy * gridW + gx] = 1;
+        }
+      }
+      hull = mooreBoundaryTrace(clusterMask, gridW, gridH, sampleStride);
+      if (hull.length < 3) continue;
+    } else {
+      const flat = cluster.map((p) => [p.x, p.y]);
+      const hullFlat = concaveman(flat, alpha, lengthThreshold);
+      hull = hullFlat.map(([x, y]) => ({ x, y }));
+      if (hull.length < 3) continue;
+    }
+
+    // Snap-to-wall : pour chaque sommet, projeter sur le pixel orange
+    // le plus proche dans un rayon snapRadius. Précision finale au pixel.
+    if (snapRadius > 0) {
+      hull = hull.map((p) => snapToOrangePixel(p, orangeMask, W, H, snapRadius));
+    }
+
     const simplified = simplifyTolerance > 0
       ? douglasPeucker(hull, simplifyTolerance)
       : hull;
@@ -260,6 +324,140 @@ export async function extractLotsByColorMask(
     totalMaskPixels: totalOrange,
     clusterCount: sortedClusters.length,
   };
+}
+
+/**
+ * Moore boundary trace : suit le contour d'un masque binaire en sens horaire.
+ * Retourne le polygone fermé du plus grand composant connecté.
+ *
+ * Algo de Moore : depuis un pixel de bord, on cherche le voisin "1" suivant
+ * en tournant autour du pixel courant. Garantit un contour fermé exact.
+ */
+function mooreBoundaryTrace(
+  mask: Uint8Array,
+  W: number,
+  H: number,
+  scale: number,
+): Pt[] {
+  // 1. Trouver tous les pixels frontière (= 1 mais avec ≥1 voisin 0 ou bord)
+  // 2. BFS depuis le composant le + grand pour identifier les pixels du composant
+  // 3. Tracer son contour avec Moore
+  const labels = new Int32Array(W * H);
+  const sizes: number[] = [0];
+  let nLabels = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const idx = y * W + x;
+      if (mask[idx] === 0 || labels[idx] !== 0) continue;
+      nLabels++;
+      sizes.push(0);
+      const stack = [idx];
+      while (stack.length > 0) {
+        const p = stack.pop()!;
+        if (labels[p] !== 0) continue;
+        labels[p] = nLabels;
+        sizes[nLabels]++;
+        const px = p % W, py = (p - px) / W;
+        if (px > 0 && mask[p - 1] && !labels[p - 1]) stack.push(p - 1);
+        if (px < W - 1 && mask[p + 1] && !labels[p + 1]) stack.push(p + 1);
+        if (py > 0 && mask[p - W] && !labels[p - W]) stack.push(p - W);
+        if (py < H - 1 && mask[p + W] && !labels[p + W]) stack.push(p + W);
+      }
+    }
+  }
+  if (nLabels === 0) return [];
+  let bestL = 1;
+  for (let i = 2; i <= nLabels; i++) if (sizes[i] > sizes[bestL]) bestL = i;
+
+  // Cherche le pixel le plus haut-gauche du composant
+  let startX = -1, startY = -1;
+  outer: for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (labels[y * W + x] === bestL) {
+        startX = x; startY = y;
+        break outer;
+      }
+    }
+  }
+  if (startX < 0) return [];
+
+  // Moore's algorithm — on suit le bord en sens horaire.
+  // Voisins en ordre clockwise depuis "ouest" : W, NW, N, NE, E, SE, S, SW
+  const N8 = [
+    [-1,  0], [-1, -1], [ 0, -1], [ 1, -1],
+    [ 1,  0], [ 1,  1], [ 0,  1], [-1,  1],
+  ];
+  const isOn = (x: number, y: number) =>
+    x >= 0 && x < W && y >= 0 && y < H && labels[y * W + x] === bestL;
+
+  const contour: Pt[] = [];
+  let cx = startX, cy = startY;
+  // direction d'où on vient = ouest (index 0)
+  let backDir = 0;
+  const startDir0 = 0;
+  contour.push({ x: cx * scale, y: cy * scale });
+
+  let iter = 0;
+  const maxIter = W * H * 4;
+  while (iter++ < maxIter) {
+    // checked direction = (backDir + 1) mod 8 (= rotation 45° horaire depuis le "back")
+    let found = false;
+    let nx = cx, ny = cy;
+    for (let k = 1; k <= 8; k++) {
+      const dir = (backDir + k) % 8;
+      const tx = cx + N8[dir][0];
+      const ty = cy + N8[dir][1];
+      if (isOn(tx, ty)) {
+        nx = tx; ny = ty;
+        // Le nouveau "back" = direction opposée de notre déplacement
+        backDir = (dir + 4) % 8;
+        found = true;
+        break;
+      }
+    }
+    if (!found) break; // pixel isolé
+    cx = nx; cy = ny;
+    if (cx === startX && cy === startY && backDir === startDir0) break;
+    contour.push({ x: cx * scale, y: cy * scale });
+    // Critère d'arrêt classique : on revient au pixel de départ avec le même back
+    if (contour.length > 4 && cx === startX && cy === startY) break;
+  }
+  return contour;
+}
+
+/**
+ * Snap d'un sommet vers le pixel orange le plus proche dans un rayon.
+ * Si aucun pixel orange dans le rayon, retourne le point inchangé.
+ */
+function snapToOrangePixel(
+  p: Pt,
+  orangeMask: Uint8Array,
+  W: number,
+  H: number,
+  radius: number,
+): Pt {
+  const px = Math.round(p.x);
+  const py = Math.round(p.y);
+  let bestDist = Infinity;
+  let bestX = p.x, bestY = p.y;
+  const x0 = Math.max(0, px - radius);
+  const y0 = Math.max(0, py - radius);
+  const x1 = Math.min(W - 1, px + radius);
+  const y1 = Math.min(H - 1, py + radius);
+  const r2 = radius * radius;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      if (orangeMask[y * W + x] !== 1) continue;
+      const dx = x - px, dy = y - py;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestDist && d2 <= r2) {
+        bestDist = d2;
+        bestX = x;
+        bestY = y;
+      }
+    }
+  }
+  return { x: bestX, y: bestY };
 }
 
 /**
