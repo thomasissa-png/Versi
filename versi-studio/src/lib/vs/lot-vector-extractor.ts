@@ -322,14 +322,91 @@ export async function extractLotVector(
   // Filtre longueur : les hachures (terrasse, escalier ext.) sont des
   // segments courts (< 50px). Les murs sont longs.
   const minSegLen = 50;
-  const wallSegs = orangeSegs.filter((s) => {
+  const longSegs = orangeSegs.filter((s) => {
     const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
     return Math.hypot(dx, dy) >= minSegLen;
   });
 
-  // Stratégie : 1) rasterise les segments en binary mask épais (scelle gaps).
-  // 2) Floodfill depuis centroide → zone INTÉRIEUR appartement.
-  // 3) Moore boundary trace → polygone précis aligné sur murs vectoriels PDF.
+  // Clustering spatial des segments via DBSCAN simplifié sur le centroide
+  // de chaque segment. Le plus grand cluster = les murs du lot. Élimine les
+  // segments orange isolés (cartouches, cotes, légendes hors-apparte).
+  const segCenters = longSegs.map((s) => ({
+    cx: (s.x1 + s.x2) / 2,
+    cy: (s.y1 + s.y2) / 2,
+    seg: s,
+  }));
+  const eps = 500; // 500px ≈ 17cm — cohésion lot, sépare cartouches lointains
+  const N = segCenters.length;
+  const clusterId = new Int32Array(N).fill(-1);
+  let nextCluster = 0;
+  // Grille spatiale pour requêtes voisins en O(1) amorti.
+  const cell = eps;
+  const grid = new Map<string, number[]>();
+  for (let i = 0; i < N; i++) {
+    const k = `${Math.floor(segCenters[i].cx / cell)}|${Math.floor(segCenters[i].cy / cell)}`;
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k)!.push(i);
+  }
+  const neighbors = (idx: number): number[] => {
+    const c = segCenters[idx];
+    const cx = Math.floor(c.cx / cell), cy = Math.floor(c.cy / cell);
+    const out: number[] = [];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const arr = grid.get(`${cx + dx}|${cy + dy}`);
+        if (!arr) continue;
+        for (const j of arr) {
+          if (j === idx) continue;
+          const dxx = segCenters[j].cx - c.cx;
+          const dyy = segCenters[j].cy - c.cy;
+          if (dxx * dxx + dyy * dyy <= eps * eps) out.push(j);
+        }
+      }
+    }
+    return out;
+  };
+  for (let i = 0; i < N; i++) {
+    if (clusterId[i] !== -1) continue;
+    const cId = nextCluster++;
+    const queue = [i];
+    while (queue.length > 0) {
+      const j = queue.pop()!;
+      if (clusterId[j] !== -1) continue;
+      clusterId[j] = cId;
+      const nbrs = neighbors(j);
+      for (const k of nbrs) if (clusterId[k] === -1) queue.push(k);
+    }
+  }
+  // Plus gros cluster = murs du lot
+  const clusterSizes: number[] = new Array(nextCluster).fill(0);
+  for (let i = 0; i < N; i++) clusterSizes[clusterId[i]]++;
+  let bestCluster = 0;
+  for (let c = 1; c < nextCluster; c++) {
+    if (clusterSizes[c] > clusterSizes[bestCluster]) bestCluster = c;
+  }
+  const wallSegs = longSegs.filter((_, i) => clusterId[i] === bestCluster);
+
+  // Bbox des segments murs avec percentiles 1-99 sur les endpoints.
+  // Le min/max naïf inclut des outliers (segments orange isolés sur cartouche
+  // ou cotes éloignées). Les percentiles 1-99 capturent la masse principale
+  // (= les vrais murs du lot) sans rejeter trop de murs périphériques.
+  // Pour chaque endpoint des segments, on collecte x et y, on trie, on prend
+  // les bornes au percentile.
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const s of wallSegs) {
+    xs.push(s.x1, s.x2);
+    ys.push(s.y1, s.y2);
+  }
+  xs.sort((a, b) => a - b);
+  ys.sort((a, b) => a - b);
+  const percentile = (arr: number[], p: number) =>
+    arr[Math.min(arr.length - 1, Math.max(0, Math.floor(arr.length * p)))];
+  const wbx0p = percentile(xs, 0.02);
+  const wbx1p = percentile(xs, 0.98);
+  const wby0p = percentile(ys, 0.02);
+  const wby1p = percentile(ys, 0.98);
+
   const W = Math.ceil(pageW * scale);
   const H = Math.ceil(pageH * scale);
   const wallMask = new Uint8Array(W * H);
@@ -452,16 +529,16 @@ export async function extractLotVector(
     if (wallMask[i] === 1) restoredFlood[i] = 0;
   }
 
-  // Stratégie finale : polygone = bbox du nuage de segments orange (= les
-  // murs du lot). Précision pixel-level par construction puisque les coords
-  // viennent directement du PDF vectoriel.
-  void restoredFlood; // garde la flood pour debug, mais on n'utilise pas
+  // Stratégie finale : polygone = bbox PERCENTILE du nuage de segments murs.
+  // Précision pixel-level car coords directes du PDF vectoriel + outliers exclus.
+  void restoredFlood;
+  void wbx0; void wbx1; void wby0; void wby1;
   const polygon: Pt[] = wallSegs.length > 0
     ? [
-        { x: wbx0, y: wby0 },
-        { x: wbx1, y: wby0 },
-        { x: wbx1, y: wby1 },
-        { x: wbx0, y: wby1 },
+        { x: wbx0p, y: wby0p },
+        { x: wbx1p, y: wby0p },
+        { x: wbx1p, y: wby1p },
+        { x: wbx0p, y: wby1p },
       ]
     : [];
 
