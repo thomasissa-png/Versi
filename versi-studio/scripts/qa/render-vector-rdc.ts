@@ -4,7 +4,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
-import { extractLotVector, type Pt } from "../../src/lib/vs/lot-vector-extractor";
+import { extractLotVector, simplifyPolygon, type Pt } from "../../src/lib/vs/lot-vector-extractor";
 
 async function main() {
   const buf = await readFile(
@@ -24,12 +24,12 @@ async function main() {
   });
   console.log(`page ${result.pageWidth}x${result.pageHeight} → image ${result.imageWidth}x${result.imageHeight}`);
   console.log(`paths orange fill: ${result.rawPaths.length}`);
-  console.log(`wall stroke segments (lw≥0.8pt): ${result.wallSegments.length}`);
-  console.log(`polygon (bbox of walls): ${result.polygon.length} sommets`);
-  if (result.polygon.length === 4) {
-    const p = result.polygon;
-    console.log(`  bbox = [${p[0].x.toFixed(0)},${p[0].y.toFixed(0)}] - [${p[2].x.toFixed(0)},${p[2].y.toFixed(0)}]`);
-  }
+  console.log(`wall stroke segments: ${result.wallSegments.length}`);
+  console.log(`polygon raw: ${result.polygon.length} sommets`);
+  const simplified = simplifyPolygon(result.polygon, 8);
+  console.log(`polygon simplified (tol=8): ${simplified.length} sommets`);
+  for (const p of simplified) console.log(`  (${p.x.toFixed(0)}, ${p.y.toFixed(0)})`);
+  result.polygon = simplified;
   // Stats par path
   for (let i = 0; i < Math.min(8, result.rawPaths.length); i++) {
     const p = result.rawPaths[i];

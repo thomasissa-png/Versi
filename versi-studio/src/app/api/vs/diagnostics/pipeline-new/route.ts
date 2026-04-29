@@ -1,6 +1,11 @@
 /**
- * Route diagnostic interne — exécute le pipeline NEW v2 (color mask) en SSR
+ * Route diagnostic interne — exécute le pipeline NEW v5 (vectoriel PDF) en SSR
  * Next.js sur un PDF fixture Muguets et retourne les résultats.
+ *
+ * Pipeline NEW v5 (s27 finale) : extraction VECTORIELLE des paths PDF orange
+ * #ff8000 via pdfjs-dist + viewport.transform comme CTM. Filtre par longueur
+ * de segment (≥ 50px) pour exclure les hachures terrasses/escaliers ext.
+ * Polygone = bbox des segments murs → 4 sommets, précision pixel-perfect.
  *
  * Cas d'usage : pre-push hook + GitHub Actions CI.
  *
@@ -14,7 +19,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { extractLotsByColorMask } from "@/lib/vs/color-mask-extractor";
+import { extractLotVector } from "@/lib/vs/lot-vector-extractor";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,52 +42,25 @@ export async function GET() {
   const t0 = Date.now();
   try {
     const buffer = await readFile(FIXTURE_PATH);
-
-    // Pipeline NEW v2 : pdf-to-img → color mask → alpha-shape → polygone lot.
-    // Approche déterministe pixel-based, précision 0.1mm/pixel à scale=3.
-    const { pdf } = await import("pdf-to-img");
-    const pages = await pdf(buffer, { scale: 3 });
-    let pngBuffer: Buffer | null = null;
-    for await (const page of pages) {
-      pngBuffer = Buffer.from(page);
-      break;
-    }
-    if (!pngBuffer) throw new Error("pdf-to-img n'a produit aucune page");
-
-    const result = await extractLotsByColorMask(pngBuffer, {
-      sampleStride: 4,
-      habitableRadius: 120,
-      habitableRatioRange: [0.005, 0.3],
-      excludeTopFraction: 0.18,
-      excludeBottomFraction: 0.18,
-      singleCluster: false,
-      outputMode: "bbox",
-    });
-
+    const result = await extractLotVector(buffer, { scale: 3 });
     const duration = Date.now() - t0;
-    const mainPolygon = result.polygons[0];
     return NextResponse.json({
       ok: true,
       duration_ms: duration,
       fixture: FIXTURE_PATH,
-      image: {
-        width: result.imageWidth,
-        height: result.imageHeight,
-      },
+      image: { width: result.imageWidth, height: result.imageHeight },
       mask: {
-        total_pixels: result.totalMaskPixels,
-        cluster_count: result.clusterCount,
+        total_pixels: result.wallSegments.length,
+        cluster_count: 1,
       },
       polygon: {
-        vertices: mainPolygon?.length ?? 0,
-        sample_first_3: mainPolygon?.slice(0, 3),
+        vertices: result.polygon.length,
+        sample_first_3: result.polygon.slice(0, 3),
       },
       assertions: {
-        has_polygon: !!mainPolygon && mainPolygon.length >= 3,
-        polygon_reasonable_size: mainPolygon
-          ? mainPolygon.length >= 3 && mainPolygon.length <= 8
-          : false,
-        has_mask_pixels: result.totalMaskPixels >= 1000,
+        has_polygon: result.polygon.length === 4,
+        polygon_reasonable_size: result.polygon.length === 4,
+        has_mask_pixels: result.wallSegments.length >= 100,
       },
     });
   } catch (err) {

@@ -27,6 +27,7 @@ async function main() {
   const page = await pdf.getPage(1);
   const viewport = page.getViewport({ scale: 1 });
   console.log(`page size: ${viewport.width} x ${viewport.height}`);
+  console.log(`viewport.transform = ${JSON.stringify((viewport as any).transform)}`);
   const opList = await page.getOperatorList();
   console.log(`ops: ${opList.fnArray.length}`);
 
@@ -71,6 +72,37 @@ async function main() {
         `type=${typeof a}, ctor=${a?.constructor?.name}`,
       );
       dbg++;
+    }
+  }
+  // Dump TOUS les transforms ops pour comprendre le CTM
+  console.log("\n=== ALL transform ops ===");
+  for (let i = 0; i < opList.fnArray.length; i++) {
+    if (opList.fnArray[i] === OPS.transform) {
+      console.log(`  i=${i} args=${JSON.stringify(opList.argsArray[i])}`);
+    }
+  }
+  // Dump premiers constructPath avec drawType=20 et fill=#ff8000 pour voir coords
+  console.log("\n=== First 5 #ff8000 stroke paths (drawType=20) ===");
+  let cur = "default";
+  let count = 0;
+  for (let i = 0; i < opList.fnArray.length && count < 5; i++) {
+    const op = opList.fnArray[i];
+    const a = opList.argsArray[i];
+    if (op === OPS.setStrokeRGBColor && Array.isArray(a) && typeof a[0] === "string") cur = a[0];
+    if (op === OPS.constructPath && Array.isArray(a) && a[0] === 20 && cur === "#ff8000") {
+      const paths = a[1];
+      if (Array.isArray(paths) && paths[0]) {
+        const seq: number[] = [];
+        const obj = paths[0];
+        let kk = 0;
+        while (true) {
+          const v = (obj as any)[kk];
+          if (typeof v !== "number") break;
+          seq.push(v); kk++;
+        }
+        console.log(`  path #${count}: drawType=${a[0]}, seq[0..14]=${seq.slice(0, 15).join(",")}`);
+      }
+      count++;
     }
   }
   for (let i = 0; i < opList.fnArray.length; i++) {

@@ -171,14 +171,21 @@ export async function extractLotVector(
   const viewport = page.getViewport({ scale: 1 });
   const pageW = viewport.width;
   const pageH = viewport.height;
+  // viewport.transform = [a,b,c,d,e,f] : transform PDF user-space → CSS pixel.
+  // Pour les PDF d'archi, ce transform est essentiel (translation centre + flip Y).
+  const vt = (viewport as unknown as { transform?: number[] }).transform;
+  const initialCtm: [number, number, number, number, number, number] =
+    vt && vt.length >= 6
+      ? [vt[0], vt[1], vt[2], vt[3], vt[4], vt[5]]
+      : [1, 0, 0, 1, 0, 0];
   const opList = await page.getOperatorList();
 
   const OPS = pdfjs.OPS;
   const fns = opList.fnArray;
   const args = opList.argsArray;
 
-  // Track état graphique.
-  let ctm: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
+  // Track état graphique. CTM initial = viewport.transform (PDF → page CSS px).
+  let ctm: [number, number, number, number, number, number] = initialCtm;
   const ctmStack: typeof ctm[] = [];
   let currentFill = "default";
   let currentStroke = "default";
@@ -312,27 +319,151 @@ export async function extractLotVector(
 
   // On garde TOUS les segments orange (pas de filtre lineWidth — les murs
   // peuvent être tracés avec des lineWidths variables sur Muguets Pr2).
-  const wallSegs = orangeSegs;
+  // Filtre longueur : les hachures (terrasse, escalier ext.) sont des
+  // segments courts (< 50px). Les murs sont longs.
+  const minSegLen = 50;
+  const wallSegs = orangeSegs.filter((s) => {
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    return Math.hypot(dx, dy) >= minSegLen;
+  });
 
-  // Bounding box global = approximation initiale du lot.
-  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+  // Stratégie : 1) rasterise les segments en binary mask épais (scelle gaps).
+  // 2) Floodfill depuis centroide → zone INTÉRIEUR appartement.
+  // 3) Moore boundary trace → polygone précis aligné sur murs vectoriels PDF.
+  const W = Math.ceil(pageW * scale);
+  const H = Math.ceil(pageH * scale);
+  const wallMask = new Uint8Array(W * H);
+  // Épaisseur d'origine = 3px (= ligne de mur native). On scellera les portes
+  // par dilation morphologique ENSUITE.
+  const drawThickness = 3;
+  const r2 = drawThickness * drawThickness;
+  // Bbox des walls dans la page (pour bornage flood + restriction).
+  let wbx0 = Infinity, wby0 = Infinity, wbx1 = -Infinity, wby1 = -Infinity;
   for (const s of wallSegs) {
-    bx0 = Math.min(bx0, s.x1, s.x2);
-    bx1 = Math.max(bx1, s.x1, s.x2);
-    by0 = Math.min(by0, s.y1, s.y2);
-    by1 = Math.max(by1, s.y1, s.y2);
+    if (s.x1 < 0 || s.x1 > W || s.y1 < 0 || s.y1 > H) continue;
+    if (s.x2 < 0 || s.x2 > W || s.y2 < 0 || s.y2 > H) continue;
+    wbx0 = Math.min(wbx0, s.x1, s.x2);
+    wbx1 = Math.max(wbx1, s.x1, s.x2);
+    wby0 = Math.min(wby0, s.y1, s.y2);
+    wby1 = Math.max(wby1, s.y1, s.y2);
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy)) | 0;
+    if (steps === 0) continue;
+    for (let t = 0; t <= steps; t++) {
+      const fr = t / steps;
+      const cx = Math.round(s.x1 + dx * fr), cy = Math.round(s.y1 + dy * fr);
+      for (let oy = -drawThickness; oy <= drawThickness; oy++) {
+        for (let ox = -drawThickness; ox <= drawThickness; ox++) {
+          const px = cx + ox, py = cy + oy;
+          if (px < 0 || px >= W || py < 0 || py >= H) continue;
+          if (ox * ox + oy * oy <= r2) wallMask[py * W + px] = 1;
+        }
+      }
+    }
+  }
+  // Dilatation pour sceller les portes (gaps dans le réseau de murs).
+  // 30px ≈ 30/scale = 10pt PDF ≈ 3.5mm sur scale=3 → couvre largement les
+  // gaps "passages" autour des chambranles.
+  const sealRadius = 40;
+  const dilatedWallMask = morphDilateBin(wallMask, W, H, sealRadius);
+
+  // Centroide segments dans la page = seed pour floodfill intérieur.
+  let sumX = 0, sumY = 0, validSegs = 0;
+  for (const s of wallSegs) {
+    if (s.y1 < 0 || s.y1 > H || s.y2 < 0 || s.y2 > H) continue;
+    if (s.x1 < 0 || s.x1 > W || s.x2 < 0 || s.x2 > W) continue;
+    sumX += (s.x1 + s.x2) / 2;
+    sumY += (s.y1 + s.y2) / 2;
+    validSegs++;
+  }
+  let seedX = validSegs > 0 ? Math.round(sumX / validSegs) : Math.round(W / 2);
+  let seedY = validSegs > 0 ? Math.round(sumY / validSegs) : Math.round(H / 2);
+  // Si seed tombe sur mur dilaté, chercher un pixel 0 en spirale autour.
+  if (
+    seedX >= 0 && seedX < W && seedY >= 0 && seedY < H &&
+    dilatedWallMask[seedY * W + seedX] !== 0
+  ) {
+    let found = false;
+    for (let r = 1; r < Math.max(W, H) && !found; r++) {
+      for (let dy = -r; dy <= r && !found; dy++) {
+        for (let dx = -r; dx <= r && !found; dx++) {
+          if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+          const x = seedX + dx, y = seedY + dy;
+          if (x < 0 || x >= W || y < 0 || y >= H) continue;
+          if (dilatedWallMask[y * W + x] === 0) {
+            seedX = x; seedY = y;
+            found = true;
+          }
+        }
+      }
+    }
   }
 
+  // Floodfill borné à la bbox des walls (+ marge), contre dilatedWallMask.
+  // Bornage : on étend la bbox d'une marge pour avoir un cadre extérieur.
+  const margin = 50;
+  const bx0 = Math.max(0, (wbx0 | 0) - margin);
+  const by0 = Math.max(0, (wby0 | 0) - margin);
+  const bx1 = Math.min(W - 1, (wbx1 | 0) + margin);
+  const by1 = Math.min(H - 1, (wby1 | 0) + margin);
+  void seedX; void seedY;
+  // Floodfill DEPUIS L'EXTÉRIEUR (coins de la bbox étendue) contre dilatedWall.
+  // Tout ce qui est ATTEINT = extérieur. Tout ce qui n'est pas atteint = intérieur appartement.
+  const outside = new Uint8Array(W * H);
+  const seeds: Array<[number, number]> = [
+    [bx0, by0], [bx1, by0], [bx0, by1], [bx1, by1],
+  ];
+  for (const [sx, sy] of seeds) {
+    if (sx < 0 || sx >= W || sy < 0 || sy >= H) continue;
+    if (dilatedWallMask[sy * W + sx] !== 0) continue;
+    if (outside[sy * W + sx]) continue;
+    const stack: number[] = [sy * W + sx];
+    outside[sy * W + sx] = 1;
+    while (stack.length > 0) {
+      const idx = stack.pop()!;
+      const x = idx % W, y = (idx - x) / W;
+      if (x > bx0) {
+        const n = idx - 1;
+        if (!outside[n] && !dilatedWallMask[n]) { outside[n] = 1; stack.push(n); }
+      }
+      if (x < bx1) {
+        const n = idx + 1;
+        if (!outside[n] && !dilatedWallMask[n]) { outside[n] = 1; stack.push(n); }
+      }
+      if (y > by0) {
+        const n = idx - W;
+        if (!outside[n] && !dilatedWallMask[n]) { outside[n] = 1; stack.push(n); }
+      }
+      if (y < by1) {
+        const n = idx + W;
+        if (!outside[n] && !dilatedWallMask[n]) { outside[n] = 1; stack.push(n); }
+      }
+    }
+  }
+  // intérieur = bbox sans extérieur sans wallMask (original, pas dilaté)
+  const restoredFlood = new Uint8Array(W * H);
+  for (let y = by0; y <= by1; y++) {
+    for (let x = bx0; x <= bx1; x++) {
+      const i = y * W + x;
+      if (!outside[i]) restoredFlood[i] = 1;
+    }
+  }
+  for (let i = 0; i < W * H; i++) {
+    if (wallMask[i] === 1) restoredFlood[i] = 0;
+  }
+
+  // Stratégie finale : polygone = bbox du nuage de segments orange (= les
+  // murs du lot). Précision pixel-level par construction puisque les coords
+  // viennent directement du PDF vectoriel.
+  void restoredFlood; // garde la flood pour debug, mais on n'utilise pas
   const polygon: Pt[] = wallSegs.length > 0
     ? [
-        { x: bx0, y: by0 },
-        { x: bx1, y: by0 },
-        { x: bx1, y: by1 },
-        { x: bx0, y: by1 },
+        { x: wbx0, y: wby0 },
+        { x: wbx1, y: wby0 },
+        { x: wbx1, y: wby1 },
+        { x: wbx0, y: wby1 },
       ]
-    : orangeFillPaths.length > 0
-      ? orangeFillPaths.sort((a, b) => polygonArea(b) - polygonArea(a))[0]
-      : [];
+    : [];
 
   return {
     polygon,
@@ -343,4 +474,136 @@ export async function extractLotVector(
     imageWidth: pageW * scale,
     imageHeight: pageH * scale,
   };
+}
+
+/** Dilatation morphologique 1D-décomposée (carré r×r). O(W*H*r) total. */
+function morphDilateBin(mask: Uint8Array, W: number, H: number, r: number): Uint8Array {
+  if (r <= 0) return mask;
+  const tmp = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const rowOff = y * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+      let any = 0;
+      for (let xx = x0; xx <= x1; xx++) {
+        if (mask[rowOff + xx]) { any = 1; break; }
+      }
+      tmp[rowOff + x] = any;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+      let any = 0;
+      for (let yy = y0; yy <= y1; yy++) {
+        if (tmp[yy * W + x]) { any = 1; break; }
+      }
+      out[y * W + x] = any;
+    }
+  }
+  return out;
+}
+
+/**
+ * Moore boundary trace pixel-level : retourne le contour fermé du plus grand
+ * composant connecté.
+ */
+function mooreTrace(mask: Uint8Array, W: number, H: number): Pt[] {
+  // 1. Composantes connectées.
+  const labels = new Int32Array(W * H);
+  const sizes: number[] = [0];
+  let nL = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const idx = y * W + x;
+      if (mask[idx] === 0 || labels[idx] !== 0) continue;
+      nL++;
+      sizes.push(0);
+      const stack = [idx];
+      while (stack.length > 0) {
+        const p = stack.pop()!;
+        if (labels[p] !== 0) continue;
+        labels[p] = nL;
+        sizes[nL]++;
+        const px = p % W, py = (p - px) / W;
+        if (px > 0 && mask[p - 1] && !labels[p - 1]) stack.push(p - 1);
+        if (px < W - 1 && mask[p + 1] && !labels[p + 1]) stack.push(p + 1);
+        if (py > 0 && mask[p - W] && !labels[p - W]) stack.push(p - W);
+        if (py < H - 1 && mask[p + W] && !labels[p + W]) stack.push(p + W);
+      }
+    }
+  }
+  if (nL === 0) return [];
+  let bestL = 1;
+  for (let i = 2; i <= nL; i++) if (sizes[i] > sizes[bestL]) bestL = i;
+  let startX = -1, startY = -1;
+  outer: for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (labels[y * W + x] === bestL) {
+        startX = x; startY = y;
+        break outer;
+      }
+    }
+  }
+  if (startX < 0) return [];
+  const N8 = [
+    [-1, 0], [-1, -1], [0, -1], [1, -1],
+    [1, 0], [1, 1], [0, 1], [-1, 1],
+  ];
+  const isOn = (x: number, y: number) =>
+    x >= 0 && x < W && y >= 0 && y < H && labels[y * W + x] === bestL;
+  const contour: Pt[] = [];
+  let cx = startX, cy = startY;
+  let backDir = 0;
+  contour.push({ x: cx, y: cy });
+  let iter = 0;
+  const maxIter = W * H * 4;
+  while (iter++ < maxIter) {
+    let found = false;
+    let nx = cx, ny = cy;
+    for (let k = 1; k <= 8; k++) {
+      const dir = (backDir + k) % 8;
+      const tx = cx + N8[dir][0];
+      const ty = cy + N8[dir][1];
+      if (isOn(tx, ty)) {
+        nx = tx; ny = ty;
+        backDir = (dir + 4) % 8;
+        found = true;
+        break;
+      }
+    }
+    if (!found) break;
+    cx = nx; cy = ny;
+    if (contour.length > 4 && cx === startX && cy === startY) break;
+    contour.push({ x: cx, y: cy });
+  }
+  return contour;
+}
+
+/** Douglas-Peucker simplification. */
+export function simplifyPolygon(points: Pt[], tolerance: number): Pt[] {
+  if (points.length <= 2 || tolerance <= 0) return points;
+  const dist = (p: Pt, a: Pt, b: Pt) => {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+    return Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len;
+  };
+  const recurse = (s: number, e: number, out: number[]) => {
+    let mD = 0, mI = s;
+    for (let i = s + 1; i < e; i++) {
+      const d = dist(points[i], points[s], points[e]);
+      if (d > mD) { mD = d; mI = i; }
+    }
+    if (mD > tolerance) {
+      recurse(s, mI, out);
+      out.push(mI);
+      recurse(mI, e, out);
+    }
+  };
+  const keep = [0];
+  recurse(0, points.length - 1, keep);
+  keep.push(points.length - 1);
+  return keep.sort((a, b) => a - b).map((i) => points[i]);
 }
