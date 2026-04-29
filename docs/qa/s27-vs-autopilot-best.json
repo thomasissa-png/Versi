@@ -1,0 +1,48 @@
+{
+  "opts": {
+    "sampleStride": 4,
+    "habitableRadius": 120,
+    "habitableRatioRange": [
+      0.005,
+      0.3
+    ],
+    "simplifyTolerance": 10,
+    "snapRadius": 16,
+    "useMarchingSquares": true,
+    "excludeTopFraction": 0.18,
+    "excludeBottomFraction": 0.18,
+    "singleCluster": true,
+    "outputMode": "trace",
+    "morphOpenRadius": 2,
+    "morphCloseRadius": 4,
+    "orthogonalToleranceDeg": 15
+  },
+  "geomean": 0.7695322299528893,
+  "meanIoU": 0.7945274471902328,
+  "perPlan": [
+    {
+      "name": "rdc",
+      "iou": 0.6987023901657016,
+      "score": 0.6767152772310498,
+      "vertices": 66
+    },
+    {
+      "name": "r1",
+      "iou": 0.9074767343676828,
+      "score": 0.8720006780584988,
+      "vertices": 128
+    },
+    {
+      "name": "r2",
+      "iou": 0.830780255089374,
+      "score": 0.8033373777793094,
+      "vertices": 109
+    },
+    {
+      "name": "r3",
+      "iou": 0.7411504091381727,
+      "score": 0.7397525613897908,
+      "vertices": 24
+    }
+  ]
+}

@@ -81,9 +81,17 @@ export type ColorMaskOptions = {
    * Mode de sortie polygone :
    *  - 'bbox' : axis-aligned bounding box (4 sommets, simple rectangle)
    *  - 'trace' : Moore boundary trace + snap-to-wall (polygone détaillé qui suit chaque coude)
+   *  - 'flood' : floodfill depuis l'intérieur de l'appartement contre les murs
+   *    orange morphologiquement fermés. Polygone = bord de la zone floodée.
+   *    Le plus précis sur PDF d'archi avec contours orange continus.
    * Default : 'bbox'.
    */
-  outputMode?: "bbox" | "trace";
+  outputMode?: "bbox" | "trace" | "flood";
+  /**
+   * Pour mode 'flood' : rayon du morphClose appliqué sur le masque orange
+   * pour fermer les ouvertures (portes) avant floodfill. Default : 8.
+   */
+  floodSealRadius?: number;
   /**
    * Rayon d'ouverture morphologique sur le masque orange (px).
    * Élimine les fines lignes de hachures (terrasses, escaliers extérieurs)
@@ -164,6 +172,7 @@ export async function extractLotsByColorMask(
   const useMarchingSquares = options.useMarchingSquares ?? true;
   const snapRadius = options.snapRadius ?? sampleStride * 8;
   const outputMode = options.outputMode ?? "bbox";
+  const floodSealRadius = options.floodSealRadius ?? 8;
   const morphOpenRadius = options.morphOpenRadius ?? 2;
   const morphCloseRadius = options.morphCloseRadius ?? 6;
   const orthogonalToleranceDeg = options.orthogonalToleranceDeg ?? 12;
@@ -386,6 +395,73 @@ export async function extractLotsByColorMask(
   const polygons: Pt[][] = [];
   for (let cIdx = 0; cIdx < sortedClusters.length; cIdx++) {
     const cluster = sortedClusters[cIdx];
+
+    if (outputMode === "flood") {
+      // Floodfill borné au bbox du cluster habitable (+ marge), contre une
+      // version morphologiquement fermée du masque orange. Le bornage évite
+      // que le flood ne fuit par une porte ouverte vers l'extérieur.
+      const seal = floodSealRadius;
+      const sealedOrange =
+        seal > 0
+          ? morphErode(morphDilate(orangeMask, W, H, seal), W, H, seal)
+          : new Uint8Array(orangeMask);
+      let cMinX = Infinity, cMinY = Infinity, cMaxX = -Infinity, cMaxY = -Infinity;
+      let sumX = 0, sumY = 0;
+      for (const p of cluster) {
+        if (p.x < cMinX) cMinX = p.x;
+        if (p.x > cMaxX) cMaxX = p.x;
+        if (p.y < cMinY) cMinY = p.y;
+        if (p.y > cMaxY) cMaxY = p.y;
+        sumX += p.x;
+        sumY += p.y;
+      }
+      const margin = 30;
+      const bx0 = Math.max(0, (cMinX | 0) - margin);
+      const by0 = Math.max(0, (cMinY | 0) - margin);
+      const bx1 = Math.min(W - 1, (cMaxX | 0) + margin);
+      const by1 = Math.min(H - 1, (cMaxY | 0) + margin);
+      const seedX = Math.round(sumX / cluster.length);
+      const seedY = Math.round(sumY / cluster.length);
+      const flooded = new Uint8Array(W * H);
+      if (
+        seedX >= bx0 && seedX <= bx1 && seedY >= by0 && seedY <= by1 &&
+        sealedOrange[seedY * W + seedX] === 0
+      ) {
+        const stack: number[] = [seedY * W + seedX];
+        flooded[seedY * W + seedX] = 1;
+        while (stack.length > 0) {
+          const idx = stack.pop()!;
+          const x = idx % W, y = (idx - x) / W;
+          if (x > bx0) {
+            const n = idx - 1;
+            if (!flooded[n] && !sealedOrange[n]) { flooded[n] = 1; stack.push(n); }
+          }
+          if (x < bx1) {
+            const n = idx + 1;
+            if (!flooded[n] && !sealedOrange[n]) { flooded[n] = 1; stack.push(n); }
+          }
+          if (y > by0) {
+            const n = idx - W;
+            if (!flooded[n] && !sealedOrange[n]) { flooded[n] = 1; stack.push(n); }
+          }
+          if (y < by1) {
+            const n = idx + W;
+            if (!flooded[n] && !sealedOrange[n]) { flooded[n] = 1; stack.push(n); }
+          }
+        }
+      }
+      // Boundary trace de la zone floodée — au pixel près
+      const hull = mooreBoundaryTrace(flooded, W, H, 1);
+      if (hull.length < 3) continue;
+      const simplified = simplifyTolerance > 0
+        ? douglasPeucker(hull, simplifyTolerance)
+        : hull;
+      const finalPoly = orthogonalToleranceDeg > 0
+        ? orthogonalize(simplified, orthogonalToleranceDeg)
+        : simplified;
+      polygons.push(finalPoly);
+      continue;
+    }
 
     if (outputMode === "bbox") {
       // Axis-aligned bounding box du cluster habitable. Pas de snap large

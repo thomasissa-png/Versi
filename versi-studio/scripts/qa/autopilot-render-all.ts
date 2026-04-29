@@ -22,16 +22,17 @@ const OPTS: ColorMaskOptions = {
   sampleStride: 4,
   habitableRadius: 120,
   habitableRatioRange: [0.005, 0.3],
-  simplifyTolerance: 14,
-  snapRadius: 20,
+  simplifyTolerance: 8,
+  snapRadius: 0,
   useMarchingSquares: true,
   excludeTopFraction: 0.18,
   excludeBottomFraction: 0.18,
-  singleCluster: true,
-  outputMode: "trace",
-  morphOpenRadius: 2,
+  singleCluster: false,
+  outputMode: "flood",
+  morphOpenRadius: 0,
   morphCloseRadius: 6,
-  orthogonalToleranceDeg: 25,
+  orthogonalToleranceDeg: 15,
+  floodSealRadius: 25,
 };
 
 async function renderRaw(png: Buffer, poly: Pt[]): Promise<Buffer> {
@@ -103,7 +104,7 @@ async function processOne(file: string, name: string) {
   const poly = r.polygons[0] ?? [];
   console.log(`  ${name}: ${poly.length} sommets, ${r.totalMaskPixels} px orange`);
   const overlay = await renderRaw(png, poly);
-  const outPath = join(OUT, `s27-vs-trace-${name}.png`);
+  const outPath = join(OUT, `s27-vs-flood-${name}.png`);
   await readFile("/dev/null").catch(() => null);
   await sharp(overlay).toFile(outPath);
   console.log(`  → ${outPath}`);
