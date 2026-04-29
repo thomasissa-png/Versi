@@ -27,8 +27,8 @@ const OPTS: ColorMaskOptions = {
   useMarchingSquares: true,
   excludeTopFraction: 0.18,
   excludeBottomFraction: 0.18,
-  singleCluster: false,
-  outputMode: "bbox",
+  singleCluster: true,
+  outputMode: "trace",
 };
 
 async function renderRaw(png: Buffer, poly: Pt[]): Promise<Buffer> {
@@ -100,7 +100,7 @@ async function processOne(file: string, name: string) {
   const poly = r.polygons[0] ?? [];
   console.log(`  ${name}: ${poly.length} sommets, ${r.totalMaskPixels} px orange`);
   const overlay = await renderRaw(png, poly);
-  const outPath = join(OUT, `s27-vs-autopilot-${name}.png`);
+  const outPath = join(OUT, `s27-vs-trace-${name}.png`);
   await readFile("/dev/null").catch(() => null);
   await sharp(overlay).toFile(outPath);
   console.log(`  → ${outPath}`);
