@@ -27,7 +27,8 @@ const OPTS: ColorMaskOptions = {
   useMarchingSquares: true,
   excludeTopFraction: 0.18,
   excludeBottomFraction: 0.18,
-  singleCluster: true,
+  singleCluster: false,
+  outputMode: "bbox",
 };
 
 async function renderRaw(png: Buffer, poly: Pt[]): Promise<Buffer> {

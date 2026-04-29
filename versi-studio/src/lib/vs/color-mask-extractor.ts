@@ -77,6 +77,13 @@ export type ColorMaskOptions = {
    * Default : sampleStride * 30.
    */
   habitableRadius?: number;
+  /**
+   * Mode de sortie polygone :
+   *  - 'bbox' : axis-aligned bounding box (4 sommets, simple rectangle)
+   *  - 'trace' : Moore boundary trace + snap-to-wall (polygone détaillé qui suit chaque coude)
+   * Default : 'bbox'.
+   */
+  outputMode?: "bbox" | "trace";
 };
 
 export type ColorRange = {
@@ -133,6 +140,7 @@ export async function extractLotsByColorMask(
   const singleCluster = options.singleCluster ?? true;
   const useMarchingSquares = options.useMarchingSquares ?? true;
   const snapRadius = options.snapRadius ?? sampleStride * 8;
+  const outputMode = options.outputMode ?? "bbox";
   const ratioMin = options.habitableRatioRange?.[0] ?? 0.005;
   const ratioMax = options.habitableRatioRange?.[1] ?? 0.3;
 
@@ -266,13 +274,59 @@ export async function extractLotsByColorMask(
     singleCluster ? sigComps.flatMap((c) => c) : sigComps[0];
   const sortedClusters: Pt[][] = singleCluster ? [allHabitablePts] : sigComps;
 
-  // 6. Pour chaque cluster, tracer le polygone : Moore boundary trace
-  //    sur le masque habitable binaire (suit exactement le bord à 1 cellule),
-  //    PUIS snap-to-wall (chaque sommet projeté sur le pixel orange le plus
-  //    proche dans rayon snapRadius), PUIS Douglas-Peucker.
+  // 6. Pour chaque cluster, soit bbox simple (mode 'bbox' = 4 sommets),
+  //    soit Moore boundary trace + snap-to-wall (mode 'trace' = polygone détaillé).
   const polygons: Pt[][] = [];
   for (let cIdx = 0; cIdx < sortedClusters.length; cIdx++) {
     const cluster = sortedClusters[cIdx];
+
+    if (outputMode === "bbox") {
+      // Axis-aligned bounding box du cluster habitable. Pas de snap large
+      // (qui irait chercher les murs de la terrasse). On élargit juste de
+      // sampleStride pour englober le mur orange périphérique le plus proche.
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const p of cluster) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      // Snap court (≤ sampleStride * 2) vers l'extérieur pour aligner sur
+      // le mur orange périphérique le plus proche, sans déborder.
+      const search = sampleStride * 2;
+      const snapBorder = (val: number, axis: "x" | "y", min: number, max: number, dir: -1 | 1) => {
+        let best = val;
+        if (axis === "x") {
+          for (let dx = 0; dx <= search; dx++) {
+            const x = val + dx * dir;
+            if (x < 0 || x >= W) break;
+            for (let y = Math.floor(min); y <= Math.ceil(max); y += 4) {
+              if (orangeMask[y * W + x] === 1) { best = x; return best; }
+            }
+          }
+        } else {
+          for (let dy = 0; dy <= search; dy++) {
+            const y = val + dy * dir;
+            if (y < 0 || y >= H) break;
+            for (let x = Math.floor(min); x <= Math.ceil(max); x += 4) {
+              if (orangeMask[y * W + x] === 1) { best = y; return best; }
+            }
+          }
+        }
+        return best;
+      };
+      const left = snapBorder(minX, "x", minY, maxY, -1);
+      const right = snapBorder(maxX, "x", minY, maxY, 1);
+      const top = snapBorder(minY, "y", minX, maxX, -1);
+      const bottom = snapBorder(maxY, "y", minX, maxX, 1);
+      polygons.push([
+        { x: left, y: top },
+        { x: right, y: top },
+        { x: right, y: bottom },
+        { x: left, y: bottom },
+      ]);
+      continue;
+    }
 
     let hull: Pt[];
     if (useMarchingSquares) {

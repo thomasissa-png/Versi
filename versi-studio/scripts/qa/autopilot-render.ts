@@ -39,7 +39,8 @@ async function main() {
     useMarchingSquares: true,
     excludeTopFraction: 0.18,
     excludeBottomFraction: 0.18,
-    singleCluster: true,
+    singleCluster: false,
+    outputMode: "bbox",
   };
 
   const result = await extractLotsByColorMask(png, opts);

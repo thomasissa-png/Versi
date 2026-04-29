@@ -53,12 +53,10 @@ export async function GET() {
       sampleStride: 4,
       habitableRadius: 120,
       habitableRatioRange: [0.005, 0.3],
-      simplifyTolerance: 3,
-      snapRadius: 16,
-      useMarchingSquares: true,
       excludeTopFraction: 0.18,
       excludeBottomFraction: 0.18,
-      singleCluster: true,
+      singleCluster: false,
+      outputMode: "bbox",
     });
 
     const duration = Date.now() - t0;
@@ -82,7 +80,7 @@ export async function GET() {
       assertions: {
         has_polygon: !!mainPolygon && mainPolygon.length >= 3,
         polygon_reasonable_size: mainPolygon
-          ? mainPolygon.length >= 3 && mainPolygon.length <= 500
+          ? mainPolygon.length >= 3 && mainPolygon.length <= 8
           : false,
         has_mask_pixels: result.totalMaskPixels >= 1000,
       },
