@@ -22,13 +22,16 @@ const OPTS: ColorMaskOptions = {
   sampleStride: 4,
   habitableRadius: 120,
   habitableRatioRange: [0.005, 0.3],
-  simplifyTolerance: 3,
-  snapRadius: 16,
+  simplifyTolerance: 14,
+  snapRadius: 20,
   useMarchingSquares: true,
   excludeTopFraction: 0.18,
   excludeBottomFraction: 0.18,
   singleCluster: true,
   outputMode: "trace",
+  morphOpenRadius: 2,
+  morphCloseRadius: 6,
+  orthogonalToleranceDeg: 25,
 };
 
 async function renderRaw(png: Buffer, poly: Pt[]): Promise<Buffer> {

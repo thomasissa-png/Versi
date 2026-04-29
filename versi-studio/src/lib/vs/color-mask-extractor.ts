@@ -84,6 +84,29 @@ export type ColorMaskOptions = {
    * Default : 'bbox'.
    */
   outputMode?: "bbox" | "trace";
+  /**
+   * Rayon d'ouverture morphologique sur le masque orange (px).
+   * Élimine les fines lignes de hachures (terrasses, escaliers extérieurs)
+   * tout en préservant les murs structurels épais. 0 = désactivé.
+   * Default : 2.
+   */
+  morphOpenRadius?: number;
+  /**
+   * Rayon de fermeture morphologique sur le masque orange (px).
+   * Comble les pointillés (murs en lignes interrompues, ex Chambre 01 R+2)
+   * pour qu'ils soient traités comme des murs continus dans la détection
+   * habitable. 0 = désactivé.
+   * Default : 6.
+   */
+  morphCloseRadius?: number;
+  /**
+   * Snap orthogonal sur les segments du polygone (mode trace) : chaque
+   * segment dont l'angle est ≤ orthogonalToleranceDeg de l'horizontale
+   * ou la verticale est aligné sur cette direction. Élimine les "festons"
+   * sur les murs droits. 0 = désactivé.
+   * Default : 12 (degrés).
+   */
+  orthogonalToleranceDeg?: number;
 };
 
 export type ColorRange = {
@@ -141,6 +164,9 @@ export async function extractLotsByColorMask(
   const useMarchingSquares = options.useMarchingSquares ?? true;
   const snapRadius = options.snapRadius ?? sampleStride * 8;
   const outputMode = options.outputMode ?? "bbox";
+  const morphOpenRadius = options.morphOpenRadius ?? 2;
+  const morphCloseRadius = options.morphCloseRadius ?? 6;
+  const orthogonalToleranceDeg = options.orthogonalToleranceDeg ?? 12;
   const ratioMin = options.habitableRatioRange?.[0] ?? 0.005;
   const ratioMax = options.habitableRatioRange?.[1] ?? 0.3;
 
@@ -177,25 +203,100 @@ export async function extractLotsByColorMask(
       }
     }
   }
-  const totalOrange = orangeMask.reduce((a, b) => a + b, 0);
-  if (totalOrange === 0) {
+  const totalOrangeRaw = orangeMask.reduce((a, b) => a + b, 0);
+  if (totalOrangeRaw === 0) {
     throw new ColorMaskExtractorError(
       "no_mask",
       "Aucun pixel ne correspond aux couleurs cibles",
     );
   }
 
-  // Integral image pour comptage O(1) des pixels orange dans n'importe quel rectangle
+  // Pré-traitement morphologique :
+  //  - structuralMask : open(orange, openR) PUIS retire les zones de hachures
+  //    denses (densité orange > 50% dans 30px = pattern hachuré, pas mur isolé).
+  //    Sert pour le snap-to-wall final + intégral image (ratio habitable).
+  //  - habitableInputMask : close(orange, closeR) → comble les pointillés.
+  //    Sert pour le test "est-ce que ce pixel est un mur" (skip dans l'analyse).
+  let structuralMask =
+    morphOpenRadius > 0
+      ? morphDilate(morphErode(orangeMask, W, H, morphOpenRadius), W, H, morphOpenRadius)
+      : new Uint8Array(orangeMask);
+  // Détection des zones de hachures : pixels orange dans une fenêtre où la
+  // densité orange dépasse un seuil élevé (= pattern hachuré uniforme, pas mur
+  // isolé). Calcul via integral image temporaire.
+  // hachureMask = 1 si pixel orange ET dans zone dense (patio/escalier ext.)
+  const denseFilterRadius = 25;
+  const denseFilterThreshold = 0.5;
+  const hachureMask = new Uint8Array(W * H);
+  {
+    const tmpInt = new Int32Array((W + 1) * (H + 1));
+    for (let y = 1; y <= H; y++) {
+      for (let x = 1; x <= W; x++) {
+        tmpInt[y * (W + 1) + x] =
+          orangeMask[(y - 1) * W + (x - 1)] +
+          tmpInt[(y - 1) * (W + 1) + x] +
+          tmpInt[y * (W + 1) + (x - 1)] -
+          tmpInt[(y - 1) * (W + 1) + (x - 1)];
+      }
+    }
+    const dr = denseFilterRadius;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (orangeMask[y * W + x] === 0) continue;
+        const x0 = Math.max(0, x - dr), y0 = Math.max(0, y - dr);
+        const x1 = Math.min(W, x + dr), y1 = Math.min(H, y + dr);
+        const sum =
+          tmpInt[y1 * (W + 1) + x1] -
+          tmpInt[y0 * (W + 1) + x1] -
+          tmpInt[y1 * (W + 1) + x0] +
+          tmpInt[y0 * (W + 1) + x0];
+        const area = (x1 - x0) * (y1 - y0);
+        if (sum / area >= denseFilterThreshold) {
+          hachureMask[y * W + x] = 1;
+          structuralMask[y * W + x] = 0; // retire de structural aussi
+        }
+      }
+    }
+  }
+  const habitableInputMask =
+    morphCloseRadius > 0
+      ? morphErode(morphDilate(orangeMask, W, H, morphCloseRadius), W, H, morphCloseRadius)
+      : orangeMask;
+  const totalOrange = structuralMask.reduce((a, b) => a + b, 0);
+
+  // Integral image sur habitableInputMask (= orangeMask close, pointillés comblés).
+  // Le ratio habitable mesure la densité de murs dans le voisinage.
   const integral = new Int32Array((W + 1) * (H + 1));
   for (let y = 1; y <= H; y++) {
     for (let x = 1; x <= W; x++) {
       integral[y * (W + 1) + x] =
-        orangeMask[(y - 1) * W + (x - 1)] +
+        habitableInputMask[(y - 1) * W + (x - 1)] +
         integral[(y - 1) * (W + 1) + x] +
         integral[y * (W + 1) + (x - 1)] -
         integral[(y - 1) * (W + 1) + (x - 1)];
     }
   }
+  // Integral image sur hachureMask (vraies zones hachurées denses).
+  const hatchInt = new Int32Array((W + 1) * (H + 1));
+  for (let y = 1; y <= H; y++) {
+    for (let x = 1; x <= W; x++) {
+      hatchInt[y * (W + 1) + x] =
+        hachureMask[(y - 1) * W + (x - 1)] +
+        hatchInt[(y - 1) * (W + 1) + x] +
+        hatchInt[y * (W + 1) + (x - 1)] -
+        hatchInt[(y - 1) * (W + 1) + (x - 1)];
+    }
+  }
+  const sumHatchInRect = (x0: number, y0: number, x1: number, y1: number) => {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0);
+    x1 = Math.min(W, x1); y1 = Math.min(H, y1);
+    return (
+      hatchInt[y1 * (W + 1) + x1] -
+      hatchInt[y0 * (W + 1) + x1] -
+      hatchInt[y1 * (W + 1) + x0] +
+      hatchInt[y0 * (W + 1) + x0]
+    );
+  };
   const sumInRect = (x0: number, y0: number, x1: number, y1: number) => {
     x0 = Math.max(0, x0); y0 = Math.max(0, y0);
     x1 = Math.min(W, x1); y1 = Math.min(H, y1);
@@ -221,12 +322,18 @@ export async function extractLotsByColorMask(
     if (y < yMin || y > yMax) continue;
     for (let gx = 0; gx < gridW; gx++) {
       const x = gx * sampleStride;
-      if (orangeMask[y * W + x] === 1) continue;
+      if (habitableInputMask[y * W + x] === 1) continue;
       const orangeCount = sumInRect(x - R, y - R, x + R, y + R);
+      const hatchCount = sumHatchInRect(x - R, y - R, x + R, y + R);
       const totalCount =
         (Math.min(W, x + R) - Math.max(0, x - R)) *
         (Math.min(H, y + R) - Math.max(0, y - R));
       const ratio = orangeCount / totalCount;
+      const hatchRatio = hatchCount / totalCount;
+      // Rejette si trop de hachures dans le voisinage (= adjacent à terrasse,
+      // escalier ext., etc.) — la cellule habitable doit être bordée de murs
+      // structurels, pas d'éléments hachurés extérieurs.
+      if (hatchRatio > 0.04) continue;
       if (ratio >= ratioMin && ratio <= ratioMax) {
         habitable[gy * gridW + gx] = 1;
       }
@@ -301,7 +408,7 @@ export async function extractLotsByColorMask(
             const x = val + dx * dir;
             if (x < 0 || x >= W) break;
             for (let y = Math.floor(min); y <= Math.ceil(max); y += 4) {
-              if (orangeMask[y * W + x] === 1) { best = x; return best; }
+              if (structuralMask[y * W + x] === 1) { best = x; return best; }
             }
           }
         } else {
@@ -309,7 +416,7 @@ export async function extractLotsByColorMask(
             const y = val + dy * dir;
             if (y < 0 || y >= H) break;
             for (let x = Math.floor(min); x <= Math.ceil(max); x += 4) {
-              if (orangeMask[y * W + x] === 1) { best = y; return best; }
+              if (structuralMask[y * W + x] === 1) { best = y; return best; }
             }
           }
         }
@@ -359,15 +466,18 @@ export async function extractLotsByColorMask(
       if (hull.length < 3) continue;
     }
 
-    // Snap-to-wall : pour chaque sommet, projeter sur le pixel orange
-    // le plus proche dans un rayon snapRadius. Précision finale au pixel.
+    // Snap-to-wall : pour chaque sommet, projeter sur le pixel STRUCTURAL
+    // (mur épais, hachures déjà éliminées) le plus proche dans rayon snapRadius.
     if (snapRadius > 0) {
-      hull = hull.map((p) => snapToOrangePixel(p, orangeMask, W, H, snapRadius));
+      hull = hull.map((p) => snapToOrangePixel(p, structuralMask, W, H, snapRadius));
     }
 
-    const simplified = simplifyTolerance > 0
+    let simplified = simplifyTolerance > 0
       ? douglasPeucker(hull, simplifyTolerance)
       : hull;
+    if (orthogonalToleranceDeg > 0) {
+      simplified = orthogonalize(simplified, orthogonalToleranceDeg);
+    }
     polygons.push(simplified);
   }
 
@@ -694,4 +804,134 @@ function douglasPeucker(points: Pt[], tolerance: number): Pt[] {
   recurse(0, points.length - 1, keep);
   keep.push(points.length - 1);
   return keep.sort((a, b) => a - b).map((i) => points[i]);
+}
+
+/**
+ * Dilation morphologique 1D-décomposée (carré r×r). O(W*H) au lieu de
+ * O(W*H*r²). Utilise un buffer temporaire pour le passage horizontal.
+ */
+function morphDilate(mask: Uint8Array, W: number, H: number, r: number): Uint8Array {
+  if (r <= 0) return mask;
+  const tmp = new Uint8Array(W * H);
+  // Horizontal
+  for (let y = 0; y < H; y++) {
+    const rowOff = y * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+      let any = 0;
+      for (let xx = x0; xx <= x1; xx++) {
+        if (mask[rowOff + xx]) { any = 1; break; }
+      }
+      tmp[rowOff + x] = any;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  // Vertical
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+      let any = 0;
+      for (let yy = y0; yy <= y1; yy++) {
+        if (tmp[yy * W + x]) { any = 1; break; }
+      }
+      out[y * W + x] = any;
+    }
+  }
+  return out;
+}
+
+/**
+ * Erosion morphologique 1D-décomposée (carré r×r).
+ */
+function morphErode(mask: Uint8Array, W: number, H: number, r: number): Uint8Array {
+  if (r <= 0) return mask;
+  const tmp = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const rowOff = y * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+      let all = 1;
+      for (let xx = x0; xx <= x1; xx++) {
+        if (!mask[rowOff + xx]) { all = 0; break; }
+      }
+      tmp[rowOff + x] = all;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+      let all = 1;
+      for (let yy = y0; yy <= y1; yy++) {
+        if (!tmp[yy * W + x]) { all = 0; break; }
+      }
+      out[y * W + x] = all;
+    }
+  }
+  return out;
+}
+
+/**
+ * Snap orthogonal : pour chaque segment du polygone, si son angle est
+ * ≤ tolDeg de l'horizontale ou la verticale, redresser. Élimine les
+ * "festons" sur des murs droits sans toucher aux vrais coudes obliques.
+ *
+ * Implémentation : pour chaque sommet, on regarde le segment précédent et
+ * suivant. Si tous deux sont quasi-horizontaux, le sommet aligne son y sur
+ * la moyenne des y voisins. Pareil pour verticaux. Itération 2 passes.
+ */
+function orthogonalize(points: Pt[], tolDeg: number): Pt[] {
+  if (points.length < 3) return points;
+  const tolRad = (tolDeg * Math.PI) / 180;
+  let pts = points.slice();
+  for (let pass = 0; pass < 2; pass++) {
+    // Classifie chaque segment : 'H' (≤tol horizontal), 'V' (≤tol vertical), 'O' (oblique)
+    const segDir: ("H" | "V" | "O")[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len === 0) { segDir.push("O"); continue; }
+      const angle = Math.atan2(Math.abs(dy), Math.abs(dx)); // 0..π/2
+      if (angle <= tolRad) segDir.push("H");
+      else if (Math.PI / 2 - angle <= tolRad) segDir.push("V");
+      else segDir.push("O");
+    }
+    // Pour chaque sommet, si segPrev='H' et segNext='H' → aligner y sur la moyenne.
+    // Si segPrev='V' et segNext='V' → aligner x.
+    const next = pts.map((p) => ({ x: p.x, y: p.y }));
+    for (let i = 0; i < pts.length; i++) {
+      const prevSeg = segDir[(i - 1 + pts.length) % pts.length];
+      const nextSeg = segDir[i];
+      const a = pts[(i - 1 + pts.length) % pts.length];
+      const b = pts[(i + 1) % pts.length];
+      if (prevSeg === "H" && nextSeg === "H") {
+        next[i].y = Math.round((a.y + b.y) / 2);
+      } else if (prevSeg === "V" && nextSeg === "V") {
+        next[i].x = Math.round((a.x + b.x) / 2);
+      } else if (prevSeg === "H" && nextSeg === "V") {
+        // Coin propre : aligner x sur b.x et y sur a.y
+        next[i].x = b.x;
+        next[i].y = a.y;
+      } else if (prevSeg === "V" && nextSeg === "H") {
+        next[i].x = a.x;
+        next[i].y = b.y;
+      }
+    }
+    pts = next;
+  }
+  // Supprime sommets colinéaires consécutifs (3 points alignés → 2 sommets)
+  const out: Pt[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[(i - 1 + pts.length) % pts.length];
+    const b = pts[i];
+    const c = pts[(i + 1) % pts.length];
+    const dx1 = b.x - a.x, dy1 = b.y - a.y;
+    const dx2 = c.x - b.x, dy2 = c.y - b.y;
+    const cross = dx1 * dy2 - dy1 * dx2;
+    const dotSign = dx1 * dx2 + dy1 * dy2;
+    if (Math.abs(cross) < 1 && dotSign > 0) continue; // colinéaire même sens → omettre b
+    out.push(b);
+  }
+  return out;
 }
