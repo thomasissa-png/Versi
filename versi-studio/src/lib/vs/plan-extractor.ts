@@ -855,6 +855,214 @@ export async function extractMultiplePlans(
   };
 }
 
+// ─── s28.5 — Labels only extraction (NEW pivot full-vectorial) ──────
+// Pour le pipeline s28.5, l'IA ne fournit QUE les labels textuels visibles
+// sur le plan + leur position approximative. La géométrie vient des faces du
+// graphe planaire des murs (wall-graph-faces.ts).
+//
+// Pourquoi ce pivot : les tours s27→s28.4 ont prouvé que demander des polygones
+// à l'IA produit des hallucinations (TGBT, ECS inventés, polygones qui couvrent
+// 2 pièces). Les labels seuls sont fiables car ce sont des données factuelles
+// présentes sur le plan.
+
+export type PlanLabel = {
+  /** Texte EXACT lu sur le plan (avec espaces, slash, numéros). */
+  text: string;
+  /** Position approximative en % du plan (centroide du label). */
+  x_percent: number;
+  y_percent: number;
+  /** Surface en m² lue à proximité du label (si visible). */
+  surface_m2: number | null;
+};
+
+const LABELS_ONLY_JSON_SCHEMA = {
+  name: "plan_room_labels",
+  strict: true,
+  schema: {
+    type: "object" as const,
+    properties: {
+      labels: {
+        type: "array" as const,
+        items: {
+          type: "object" as const,
+          properties: {
+            text: { type: "string" as const },
+            x_percent: { type: "number" as const },
+            y_percent: { type: "number" as const },
+            surface_m2: {
+              type: ["number", "null"] as const,
+            },
+          },
+          required: ["text", "x_percent", "y_percent", "surface_m2"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["labels"],
+    additionalProperties: false,
+  },
+};
+
+const LABELS_ONLY_SYSTEM_PROMPT = `You are an OCR assistant for architectural floor plans. Your ONLY task is to read the room labels visible on the plan.
+
+WHAT TO RETURN:
+For each room label clearly visible on the plan, return:
+- text: the EXACT label text as written (preserve case, spaces, slashes, numbers)
+- x_percent / y_percent: position of the label center on the image (0-100, where 0 is top-left)
+- surface_m2: the surface number printed near the label (e.g., "12.5 m²" → 12.5), or null if no surface is shown next to that label
+
+WHAT IS A ROOM LABEL:
+A label is a TEXT written on the plan that names a room. Examples of valid labels:
+- "Séjour", "Séjour / cuisine", "Cuisine", "Salon"
+- "Chambre", "Chambre 01", "Chambre 02"
+- "SdB", "Salle de bains", "WC"
+- "Entrée", "Couloir", "Palier", "Hall"
+- "Cellier", "Placard", "Rangement"
+- "Bureau", "Buanderie"
+
+ABSOLUTE RULES (read carefully — violations = total failure):
+
+1. **NEVER INVENT A LABEL THAT IS NOT VISUALLY PRESENT ON THE PLAN.**
+   If you don't see "TGBT" written on the plan, do NOT add a "TGBT" label.
+   If you don't see "ECS" written on the plan, do NOT add a "ECS" label.
+   Only return labels you can literally read with your eyes.
+
+2. **DO NOT RETURN GEOMETRY** (no polygons, no bounding boxes, no walls).
+   Just labels with their position. The geometry is computed elsewhere.
+
+3. **DO NOT RETURN CARTOUCHE TEXT.**
+   The title block at the bottom (project name, "DOSSIER", "MUGUETS", "INDICE", dates) is NOT a room.
+   Skip it entirely.
+
+4. **DO NOT RETURN STAIRCASE / LEGEND / ARROW LABELS.**
+   "Escalier", "N", "PLAN RDC" — not rooms.
+
+5. **DO NOT RETURN ROOMS WITHOUT A VISIBLE LABEL.**
+   If you see an enclosed space with no name written inside it, skip it.
+   The wall-face matcher will mark it as "Pièce inconnue" downstream.
+
+6. **EXACT TEXT** — preserve "Séjour / cuisine" with its slash. Don't rewrite as "sejour cuisine".
+   Preserve "Chambre 01" with its number, don't merge multiple "Chambre" labels.
+
+OUTPUT JSON shape (strict):
+{
+  "labels": [
+    { "text": "Séjour / cuisine", "x_percent": 65.2, "y_percent": 50.1, "surface_m2": 25.3 },
+    { "text": "Chambre", "x_percent": 35.0, "y_percent": 40.5, "surface_m2": 11.2 },
+    { "text": "SdB", "x_percent": 20.0, "y_percent": 60.0, "surface_m2": 4.1 }
+  ]
+}
+
+If the plan has zero readable labels, return {"labels": []}. NEVER fabricate labels to fill the array.
+`;
+
+/**
+ * Extract ONLY the room labels (text + position + surface) from a plan image.
+ * No geometry. No bounding boxes. Pure OCR.
+ */
+export async function extractRoomLabelsOnly(
+  planBase64: string,
+  mimeType: string,
+): Promise<PlanLabel[]> {
+  const openai = getOpenAI();
+
+  // PDF → PNG conversion if needed
+  let imageBase64 = planBase64;
+  let imageMimeType = mimeType;
+  if (isPdf(mimeType, planBase64)) {
+    try {
+      const { pdf } = await import("pdf-to-img");
+      const pdfBuffer = Buffer.from(planBase64, "base64");
+      const pages = await pdf(pdfBuffer, { scale: 3 });
+      for await (const page of pages) {
+        imageBase64 = Buffer.from(page).toString("base64");
+        imageMimeType = "image/png";
+        break;
+      }
+    } catch (err) {
+      throw new PlanExtractionError(
+        "API_ERROR",
+        `PDF conversion failed for labels-only: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  const imageDataUrl = buildImageDataUrl(imageMimeType, imageBase64);
+
+  let rawJson: string;
+  try {
+    const response = await openai.responses.create({
+      model: "gpt-4.1",
+      input: [
+        { role: "system", content: LABELS_ONLY_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
+            {
+              type: "input_text",
+              text:
+                "Read the room labels visible on this floor plan. Return ONLY the labels you can literally see written. Do not invent any label. Do not return cartouche or staircase text.",
+            },
+          ],
+        },
+      ],
+      text: {
+        format: { type: "json_schema", ...LABELS_ONLY_JSON_SCHEMA },
+      },
+    });
+    rawJson = extractTextFromResponse(response);
+  } catch (err) {
+    // Retry once after 5s
+    await sleep(5000);
+    const retry = await openai.responses.create({
+      model: "gpt-4.1",
+      input: [
+        { role: "system", content: LABELS_ONLY_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            { type: "input_image", image_url: imageDataUrl, detail: "auto" as const },
+            { type: "input_text", text: "Read the room labels visible on this floor plan." },
+          ],
+        },
+      ],
+      text: { format: { type: "json_schema", ...LABELS_ONLY_JSON_SCHEMA } },
+    });
+    rawJson = extractTextFromResponse(retry);
+    void err;
+  }
+
+  let parsed: { labels: PlanLabel[] };
+  try {
+    parsed = JSON.parse(rawJson) as { labels: PlanLabel[] };
+  } catch {
+    throw new PlanExtractionError(
+      "PARSING_FAILED",
+      "Labels-only extractor returned invalid JSON",
+    );
+  }
+  if (!parsed || !Array.isArray(parsed.labels)) {
+    throw new PlanExtractionError(
+      "PARSING_FAILED",
+      "Labels-only extractor returned malformed shape",
+    );
+  }
+
+  // Light sanitization: clamp coordinates, normalize whitespace
+  return parsed.labels
+    .filter((l) => typeof l.text === "string" && l.text.trim().length > 0)
+    .map((l) => ({
+      text: l.text.trim(),
+      x_percent: Math.max(0, Math.min(100, Number(l.x_percent) || 0)),
+      y_percent: Math.max(0, Math.min(100, Number(l.y_percent) || 0)),
+      surface_m2:
+        l.surface_m2 != null && Number.isFinite(Number(l.surface_m2))
+          ? Number(l.surface_m2)
+          : null,
+    }));
+}
+
 // ─── Room type inference ───────────────────────────────────────────
 
 export function inferRoomTypeFromName(nameRaw: string): string {

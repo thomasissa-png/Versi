@@ -27,14 +27,12 @@ const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:543
 interface Pt { x_percent: number; y_percent: number }
 interface PtPx { x: number; y: number }
 
-// Vérité terrain confirmée visuellement sur PDFs Muguets (s28-pdf-floor-*.png) :
-// - RDC : 7 (Entrée, TGBT, SdB, ECS, Chambre, Couloir, Séjour/cuisine)
-// - R+1 : 8 (Chambre 01, Chambre 02, Séjour/cuisine, WC, Cellier, ECS, SDB, Entrée)
-// - R+2 : 6 (Chambre 01, SDB, Séjour cuisine, WC, Cellier, Entrée)
-// - R+3 : 5 (Chambre 03, Chambre 02, ECS, Palier, SDE)
-// Le brief Thomas s28 affirmait RDC=5, mais les pièces TGBT et ECS sont
-// clairement étiquetées sur le plan PDF original — l'IA a raison.
-const EXPECTED_COUNTS: Record<number, number> = { 0: 7, 1: 8, 2: 6, 3: 5 };
+// Vérité terrain s28.5 confirmée par lecture orchestrator des PDF originaux :
+// - RDC : 5 (SdB, Chambre, Entrée, Couloir, Séjour/cuisine) — TGBT/ECS étaient des hallucinations IA
+// - R+1 : 8 (T2+T3 — Cellier, SDB, Entrée, Chambre 01, Chambre 02, ECS, Séjour/cuisine, WC)
+// - R+2 : 6 (WC, Cellier, SDB, Entrée, Chambre 01, Séjour/cuisine)
+// - R+3 : 5 (ECS, Palier, Chambre 02, Chambre 03, SDE)
+const EXPECTED_COUNTS: Record<number, number> = { 0: 5, 1: 8, 2: 6, 3: 5 };
 
 function polygonAreaPercent(points: Pt[]): number {
   if (points.length < 3) return 0;

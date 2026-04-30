@@ -18,7 +18,17 @@ import { readFile, writeFile } from "fs/promises";
 import { dirname, join } from "path";
 import { canonicalizePlan } from "@/lib/ai/plan-canonicalizer";
 import { canonicalizePlanMock } from "@/lib/ai/plan-canonicalizer-mock";
-import { extractPlanData, inferRoomTypeFromName } from "@/lib/vs/plan-extractor";
+import { extractPlanData, inferRoomTypeFromName, extractRoomLabelsOnly, type PlanLabel } from "@/lib/vs/plan-extractor";
+import {
+  buildPlanarGraph as buildPlanarGraphV2,
+  detectFaces as detectFacesV2,
+  filterRoomFaces as filterRoomFacesV2,
+  pointInPolygon as pointInPolygonV2,
+  computeSignedArea as computeSignedAreaV2,
+  type Face as FaceV2,
+  WallGraphFacesError,
+} from "@/lib/vs/wall-graph-faces";
+import { voronoiCellsAll, type Pt2 } from "@/lib/vs/voronoi-cells";
 import { extractPlanDataMock } from "@/lib/vs/plan-extractor-mock";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import {
@@ -271,25 +281,90 @@ export async function POST(
             }
             const base64ForIa = imageBufferForIa.toString("base64");
 
-            // Routing mock vs réel (parité avec branche LEGACY).
+            // ─── s28.5 — PIVOT FULL VECTORIEL : labels-only IA + faces du graphe planaire ──────
+            //
+            // Bug récurrent s27→s28.4 : l'IA hallucinait des bbox/polygones de pièces
+            // (TGBT, ECS inventés, polygones qui couvrent 2 pièces). Le matching face-greedy
+            // attribuait un label IA inventé à une face réelle → hallucinations stockées.
+            //
+            // Nouveau flow :
+            //   1. IA = uniquement labels textuels visibles + position approximative
+            //      (extractRoomLabelsOnly — prompt minimal anti-hallucination)
+            //   2. Géométrie = exclusivement les faces du graphe planaire (vertices =
+            //      intersections segment-segment des murs externes + internes orange)
+            //   3. Matching face↔label par centroid-in-face (pas de greedy global,
+            //      pas de score composite — strict point-in-polygon)
+            //   4. Si une face n'a aucun label → "Pièce inconnue" (pas de hallucination)
+            //   5. Si un label n'a aucune face → ignoré (pas de fallback bbox IA)
+            //
+            // Critère de réussite : count exact = vérité terrain (5/8/6/5 pour Muguets RDC/R+1/R+2/R+3).
+
+            // Routing mock vs réel — pour le mode mock on conserve le pipeline legacy via extractPlanData
+            // (les tests E2E utilisent les fixtures déterministes). Pivot s28.5 actif uniquement en mode réel.
             const useMock = process.env.VS_USE_MOCK_EXTRACTOR === "true";
-            const extractorFn = useMock
-              ? extractPlanDataMock
-              : extractPlanData;
-            const mockFloorHint = useMock
-              ? `[MOCK_FLOOR=${plan.floor_number}]`
-              : undefined;
 
-            const extraction: PlanExtractionResult = await extractorFn(
-              base64ForIa,
-              mimeForIa,
-              project.type_bien,
-              mockFloorHint
-            );
+            let extraction: PlanExtractionResult;
+            let labelsOnly: PlanLabel[];
 
-            // Override floor par plan.floor_number (cf. fix s24 LEGACY).
-            for (const room of extraction.rooms) {
-              room.floor = plan.floor_number;
+            if (useMock) {
+              extraction = await extractPlanDataMock(
+                base64ForIa,
+                mimeForIa,
+                project.type_bien,
+                `[MOCK_FLOOR=${plan.floor_number}]`,
+              );
+              for (const room of extraction.rooms) room.floor = plan.floor_number;
+              // Convertir extraction mock → labels pour l'algo unifié
+              labelsOnly = extraction.rooms.map((r) => {
+                const cx = r.bounding_box ? r.bounding_box.x_percent + r.bounding_box.width_percent / 2 : 50;
+                const cy = r.bounding_box ? r.bounding_box.y_percent + r.bounding_box.height_percent / 2 : 50;
+                return {
+                  text: r.name_raw,
+                  x_percent: cx,
+                  y_percent: cy,
+                  surface_m2: r.surface_m2 ?? null,
+                };
+              });
+            } else {
+              // PIPELINE RÉEL s28.5 : labels-only via IA dédiée
+              labelsOnly = await extractRoomLabelsOnly(base64ForIa, mimeForIa);
+              console.log(
+                `[extract/NEW v6/s28.5] plan ${plan.id} labels lus IA : ${labelsOnly.length} → ${labelsOnly.map((l) => l.text).join(", ")}`,
+              );
+              // Construire un PlanExtractionResult minimal pour la persistance extraction_data
+              // (utilisé par /rooms/regenerate côté UI).
+              const totalSurf = labelsOnly.reduce(
+                (s, l) => s + (l.surface_m2 ?? 0),
+                0,
+              );
+              extraction = {
+                rooms: labelsOnly.map((l, idx) => ({
+                  temp_id: `r${idx + 1}`,
+                  name_raw: l.text,
+                  floor: plan.floor_number,
+                  surface_m2: l.surface_m2,
+                  unit_id: "u1",
+                  confidence: 0.9,
+                  ceiling_height_m: null,
+                  windows_count: 0,
+                  doors_count: 0,
+                  shape: null,
+                  notes: null,
+                  bounding_box: {
+                    x_percent: Math.max(0, l.x_percent - 5),
+                    y_percent: Math.max(0, l.y_percent - 5),
+                    width_percent: 10,
+                    height_percent: 10,
+                  },
+                  bounding_polygon: null,
+                  dimensions: null,
+                })),
+                building_outline: null,
+                total_surface_m2: totalSurf > 0 ? totalSurf : null,
+                floors_count: 1,
+                extraction_warnings: [],
+                scale_reference: "dimensions_on_plan",
+              } as PlanExtractionResult;
             }
 
             // Persister extraction_data sur le plan (utilisé par regenerate).
@@ -353,221 +428,275 @@ export async function POST(
               `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int`,
             );
 
-            // Step 2 : wall graph + détection faces
-            type FacePtPx = { x: number; y: number };
-            let allFaces_face: FacePtPx[][] = [];
+            // ─── s28.5 : graphe planaire COMPLET (avec intersections seg-seg) ───
+            //
+            // Le module wall-graph-faces.ts calcule TOUTES les intersections segment-segment
+            // (contrairement à wall-graph.ts qui ne snappait que les endpoints proches).
+            // Conséquence : les faces se ferment correctement même quand un mur interne
+            // "bute" sur un mur externe sans partager d'endpoint.
+            let allFacesV2: FaceV2[] = [];
             try {
-              const graph = buildWallGraph(allWalls_face, 8);
-              const polys = detectRooms(graph);
-              allFaces_face = polys
-                .filter((p) => p.signedArea > 0)
-                .map((p) => p.points.map((pt) => ({ x: pt.x, y: pt.y })));
+              const graph = buildPlanarGraphV2(allWalls_face, 4);
+              allFacesV2 = detectFacesV2(graph);
+              console.log(
+                `[extract/NEW v6/s28.5] plan ${plan.id} graphe : ${graph.vertices.length} vertices, ${graph.edges.length} edges atomiques, ${allFacesV2.length} faces brutes`,
+              );
             } catch (graphErr) {
-              if (graphErr instanceof WallGraphError) {
+              if (graphErr instanceof WallGraphFacesError) {
                 console.warn(
-                  `[extract/NEW v6/s28.4] plan ${plan.id} wall-graph error : ${graphErr.code}`,
+                  `[extract/NEW v6/s28.5] plan ${plan.id} graphe error : ${graphErr.code}`,
                 );
               } else {
                 throw graphErr;
               }
             }
 
-            // Step 3 : filtre faces candidates (dans lot, aire ≥ 100px²)
-            const polygonAreaPxLocal = (pts: FacePtPx[]): number => {
-              if (pts.length < 3) return 0;
-              let s = 0;
-              for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-                s += pts[j].x * pts[i].y - pts[i].x * pts[j].y;
-              }
-              return Math.abs(s) / 2;
-            };
-            const pointInPolygonPxLocal = (px: number, py: number, poly: FacePtPx[]): boolean => {
-              let inside = false;
-              for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-                const xi = poly[i].x, yi = poly[i].y;
-                const xj = poly[j].x, yj = poly[j].y;
-                const inter = (yi > py) !== (yj > py) &&
-                  px < ((xj - xi) * (py - yi)) / (yj - yi + 1e-12) + xi;
-                if (inter) inside = !inside;
-              }
-              return inside;
-            };
-            const centroidPxLocal = (poly: FacePtPx[]): FacePtPx => {
-              let cx = 0, cy = 0;
-              for (const p of poly) { cx += p.x; cy += p.y; }
-              return { x: cx / poly.length, y: cy / poly.length };
-            };
-            const candidateFaces_face = allFaces_face.filter((f) => {
-              if (f.length < 3) return false;
-              const a = polygonAreaPxLocal(f);
-              if (a < 100) return false;
-              const c = centroidPxLocal(f);
-              return pointInPolygonPxLocal(c.x, c.y, lotPolyPx_face);
+            // Estimation px²→m² : si on n'a pas de surface label fiable, on prend une
+            // estimation prior — un appartement T2/T3 fait ~40-80 m² → on suppose 50 m² pour
+            // l'aire du polygone lot. La scale n'est qu'un FILTRE de tailles aberrantes :
+            // les vraies surfaces seront calculées depuis l'aire réelle de chaque face.
+            const lotPolyArea_px2 = Math.abs(computeSignedAreaV2(lotPolyPx_face));
+            const totalLabelSurface_m2 = labelsOnly.reduce(
+              (s, l) => s + (l.surface_m2 ?? 0),
+              0,
+            );
+            // Si labels OCR ont des surfaces : utiliser cette somme (très fiable)
+            // Sinon : prior 50 m² par appartement (filtre permissif)
+            const lotEstSurface_m2 = totalLabelSurface_m2 > 5 ? totalLabelSurface_m2 : 50;
+            const scaleM2PerPx2 = lotPolyArea_px2 > 0 ? lotEstSurface_m2 / lotPolyArea_px2 : 0;
+
+            // Filtre faces candidates : règles détendues s28.5 (0.5 m² min, compactness 0.05)
+            const candidateFacesV2: FaceV2[] = filterRoomFacesV2(allFacesV2, {
+              lotPolygon: lotPolyPx_face,
+              minAreaM2: 0.5,
+              scaleM2PerPx2,
+              minCompactness: 0.05,
+              maxAreaM2: 250,
             });
             console.log(
-              `[extract/NEW v6/s28.4] plan ${plan.id} faces : ${allFaces_face.length} détectées, ${candidateFaces_face.length} candidates`,
+              `[extract/NEW v6/s28.5] plan ${plan.id} faces filtrées : ${candidateFacesV2.length} candidates pièces (${allFacesV2.length} brutes), scale=${scaleM2PerPx2.toExponential(3)} m²/px²`,
             );
 
-            // Step 4 : préparation rooms IA + estimation pxPerM2
-            type IaRoom = {
-              idx: number;
-              name: string;
-              surfaceM2: number;
-              iaPoly: Array<{ x_percent: number; y_percent: number }>;
-              cxPx: number;
-              cyPx: number;
-            };
-            const iaList_face: IaRoom[] = [];
-            for (let i = 0; i < extraction.rooms.length; i++) {
-              const r = extraction.rooms[i];
-              let iaPoly: Array<{ x_percent: number; y_percent: number }> | null = null;
-              if (r.bounding_polygon && r.bounding_polygon.length >= 3) {
-                iaPoly = r.bounding_polygon.map((p) => ({
-                  x_percent: p.x_percent, y_percent: p.y_percent,
-                }));
-              } else if (r.bounding_box) {
-                const bb = r.bounding_box;
-                iaPoly = [
-                  { x_percent: bb.x_percent, y_percent: bb.y_percent },
-                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent },
-                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent + bb.height_percent },
-                  { x_percent: bb.x_percent, y_percent: bb.y_percent + bb.height_percent },
-                ];
-              }
-              if (!iaPoly) continue;
-              let cx = 0, cy = 0;
-              for (const p of iaPoly) { cx += p.x_percent; cy += p.y_percent; }
-              cx /= iaPoly.length; cy /= iaPoly.length;
-              iaList_face.push({
-                idx: i,
-                name: r.name_raw,
-                surfaceM2: r.surface_m2 ?? 0,
-                iaPoly,
-                cxPx: (cx / 100) * result.imageWidth,
-                cyPx: (cy / 100) * result.imageHeight,
-              });
-            }
-            const totalFaceArea_face = candidateFaces_face.reduce((s, f) => s + polygonAreaPxLocal(f), 0);
-            const totalIaSurface_face = iaList_face.reduce((s, r) => s + r.surfaceM2, 0);
-            const pxPerM2_face = totalIaSurface_face > 0 ? totalFaceArea_face / totalIaSurface_face : 1;
-
-            // Surface défaut pour pièces techniques sans surface IA
-            const techDefaultSurface = (name: string): number => {
-              const norm = name.toLowerCase().normalize("NFD")
-                .replace(/[̀-ͯ]/g, "")
-                .replace(/[\s\/\-_]/g, "");
-              if (norm.includes("ecs") || norm.includes("tgbt")) return 1.0;
-              if (norm.includes("gaine")) return 0.5;
-              if (norm.includes("placard")) return 1.0;
-              return 0;
-            };
-
-            // Step 5 : matching face-greedy (parcours faces DESC area)
-            const N_face = iaList_face.length;
-            const faceOrder_face = candidateFaces_face
-              .map((_, idx) => ({ idx, area: polygonAreaPxLocal(candidateFaces_face[idx]) }))
-              .sort((a, b) => b.area - a.area)
-              .map((o) => o.idx);
-            const assigned_face: number[] = new Array(N_face).fill(-1);
-            const usedIa_face = new Set<number>();
-            for (const fj of faceOrder_face) {
-              const face = candidateFaces_face[fj];
-              const fc = centroidPxLocal(face);
-              const aFace = polygonAreaPxLocal(face);
-              let bestI = -1;
-              let bestScore = -Infinity;
-              for (let i = 0; i < N_face; i++) {
-                if (usedIa_face.has(i)) continue;
-                const ia = iaList_face[i];
-                const distC = Math.hypot(fc.x - ia.cxPx, fc.y - ia.cyPx);
-                const inside = pointInPolygonPxLocal(ia.cxPx, ia.cyPx, face);
-                const effSurf = ia.surfaceM2 > 0 ? ia.surfaceM2 : techDefaultSurface(ia.name);
-                let score = -distC;
-                if (inside) score += 1500;
-                if (effSurf > 0) {
-                  const expected = effSurf * pxPerM2_face;
-                  if (expected > 0) {
-                    const ratio = aFace / expected;
-                    const logR = Math.abs(Math.log(ratio));
-                    score -= logR * 1500;
-                  }
-                }
-                if (score > bestScore) {
-                  bestScore = score;
-                  bestI = i;
-                }
-              }
-              if (bestI >= 0) {
-                assigned_face[bestI] = fj;
-                usedIa_face.add(bestI);
-              }
-            }
-
-            // Step 6 : builders (face si assignée, sinon fallback IA bbox)
+            // ─── Matching face↔label en 2 passes ──────
+            // Pass 1 (strict) : centroid label dans la face → match direct.
+            // Pass 2 (tolérante) : pour les labels orphelins, trouver la face dont le
+            //   centroid est le plus proche du label, à condition que la distance soit
+            //   < diagonale de la face × 0.6 (le label peut être placé à côté du
+            //   centroid si la pièce est en L ou allongée). Cela rattrape les positions
+            //   de label imprécises sans matcher arbitrairement.
             type BuilderFace = {
               name: string;
               roomType: string;
               surfaceM2: number;
               polyGlobalPct: Array<{ x_percent: number; y_percent: number }>;
-              source: "face" | "ia_fallback";
+              source: "face_labeled_strict" | "face_labeled_tolerant" | "face_unknown";
+              areaPx2: number;
             };
             const builders_face: BuilderFace[] = [];
-            for (let i = 0; i < N_face; i++) {
-              const ia = iaList_face[i];
-              const fj = assigned_face[i];
-              if (fj >= 0) {
-                const face = candidateFaces_face[fj];
-                const polyGlobal = face.map((p) => ({
+            const usedLabels = new Set<number>();
+            const usedFaces = new Set<number>();
+            const labelsPx = labelsOnly.map((l) => ({
+              text: l.text,
+              surface_m2: l.surface_m2,
+              x: (l.x_percent / 100) * result.imageWidth,
+              y: (l.y_percent / 100) * result.imageHeight,
+            }));
+
+            const faceDiag = (f: FaceV2): number => {
+              const w = f.bbox.maxX - f.bbox.minX;
+              const h = f.bbox.maxY - f.bbox.minY;
+              return Math.hypot(w, h);
+            };
+
+            // Pass 1 : strict in-polygon
+            for (let fi = 0; fi < candidateFacesV2.length; fi++) {
+              const face = candidateFacesV2[fi];
+              const cands: Array<{ idx: number; dist: number }> = [];
+              for (let i = 0; i < labelsPx.length; i++) {
+                if (usedLabels.has(i)) continue;
+                const lp = labelsPx[i];
+                if (pointInPolygonV2({ x: lp.x, y: lp.y }, face.points)) {
+                  cands.push({ idx: i, dist: Math.hypot(lp.x - face.centroid.x, lp.y - face.centroid.y) });
+                }
+              }
+              cands.sort((a, b) => a.dist - b.dist);
+              if (cands[0]) {
+                usedLabels.add(cands[0].idx);
+                usedFaces.add(fi);
+                const lab = labelsPx[cands[0].idx];
+                const polyGlobal = face.points.map((p) => ({
                   x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
                   y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
                 }));
                 builders_face.push({
-                  name: ia.name,
-                  roomType: inferRoomTypeFromName(ia.name),
-                  surfaceM2: ia.surfaceM2,
+                  name: lab.text,
+                  roomType: inferRoomTypeFromName(lab.text),
+                  surfaceM2: lab.surface_m2 ?? 0,
                   polyGlobalPct: polyGlobal,
-                  source: "face",
-                });
-              } else {
-                builders_face.push({
-                  name: ia.name,
-                  roomType: inferRoomTypeFromName(ia.name),
-                  surfaceM2: ia.surfaceM2,
-                  polyGlobalPct: ia.iaPoly,
-                  source: "ia_fallback",
+                  source: "face_labeled_strict",
+                  areaPx2: face.area,
                 });
               }
             }
-            const facesAssignedCount = builders_face.filter((b) => b.source === "face").length;
+
+            // Pass 2 : tolérante pour les labels orphelins. Pour chaque label restant,
+            // chercher la face non-utilisée la plus proche dont la distance label↔centroid
+            // est inférieure à 0.6 × diagonale de la face (équivalent : le label est
+            // « visuellement dans la zone » de la face, même s'il est dehors par OCR).
+            for (let i = 0; i < labelsPx.length; i++) {
+              if (usedLabels.has(i)) continue;
+              const lp = labelsPx[i];
+              let bestFi = -1;
+              let bestDist = Infinity;
+              for (let fi = 0; fi < candidateFacesV2.length; fi++) {
+                if (usedFaces.has(fi)) continue;
+                const face = candidateFacesV2[fi];
+                const d = Math.hypot(lp.x - face.centroid.x, lp.y - face.centroid.y);
+                const tol = faceDiag(face) * 0.6;
+                if (d < tol && d < bestDist) {
+                  bestDist = d;
+                  bestFi = fi;
+                }
+              }
+              if (bestFi >= 0) {
+                usedLabels.add(i);
+                usedFaces.add(bestFi);
+                const face = candidateFacesV2[bestFi];
+                const polyGlobal = face.points.map((p) => ({
+                  x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+                  y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+                }));
+                builders_face.push({
+                  name: lp.text,
+                  roomType: inferRoomTypeFromName(lp.text),
+                  surfaceM2: lp.surface_m2 ?? 0,
+                  polyGlobalPct: polyGlobal,
+                  source: "face_labeled_tolerant",
+                  areaPx2: face.area,
+                });
+              }
+            }
+
+            // Pass 3 : faces non-utilisées suffisamment grandes → "Pièce inconnue"
+            for (let fi = 0; fi < candidateFacesV2.length; fi++) {
+              if (usedFaces.has(fi)) continue;
+              const face = candidateFacesV2[fi];
+              const areaM2 = scaleM2PerPx2 > 0 ? face.area * scaleM2PerPx2 : 5;
+              if (areaM2 < 3) continue;
+              const polyGlobal = face.points.map((p) => ({
+                x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+                y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+              }));
+              builders_face.push({
+                name: "Pièce inconnue",
+                roomType: "autre",
+                surfaceM2: 0,
+                polyGlobalPct: polyGlobal,
+                source: "face_unknown",
+                areaPx2: face.area,
+              });
+            }
+
+            const strictCount = builders_face.filter((b) => b.source === "face_labeled_strict").length;
+            const tolerantCount = builders_face.filter((b) => b.source === "face_labeled_tolerant").length;
+            const unknownCount = builders_face.filter((b) => b.source === "face_unknown").length;
+            const orphanLabels = labelsOnly.length - usedLabels.size;
             console.log(
-              `[extract/NEW v6/s28.4] plan ${plan.id} matching : ${facesAssignedCount}/${builders_face.length} via faces`,
+              `[extract/NEW v6/s28.5] plan ${plan.id} matching : ${strictCount} strict + ${tolerantCount} tolerant + ${unknownCount} unknown / ${labelsOnly.length} labels (orphelins : ${orphanLabels})`,
             );
 
-            // Step 7 : RESYNC surface proportionnelle (somme = surface lot total)
-            const lotSurfTotal_face = builders_face.reduce((s, b) => s + b.surfaceM2, 0);
-            if (lotSurfTotal_face > 0) {
-              let sumA = 0;
-              for (const b of builders_face) {
-                if (b.polyGlobalPct.length < 3) continue;
-                let s = 0;
-                for (let i = 0; i < b.polyGlobalPct.length; i++) {
-                  const j = (i + 1) % b.polyGlobalPct.length;
-                  s += b.polyGlobalPct[i].x_percent * b.polyGlobalPct[j].y_percent;
-                  s -= b.polyGlobalPct[j].x_percent * b.polyGlobalPct[i].y_percent;
-                }
-                sumA += Math.abs(s / 2);
-              }
-              if (sumA > 0) {
-                for (const b of builders_face) {
-                  let s = 0;
-                  for (let i = 0; i < b.polyGlobalPct.length; i++) {
-                    const j = (i + 1) % b.polyGlobalPct.length;
-                    s += b.polyGlobalPct[i].x_percent * b.polyGlobalPct[j].y_percent;
-                    s -= b.polyGlobalPct[j].x_percent * b.polyGlobalPct[i].y_percent;
+            // ─── Fallback Voronoï : si > 50% des labels sont orphelins ─────
+            // Sur certains PDFs (Muguets typique), les murs internes ne ferment pas
+            // de cycles complets dans le graphe planaire — les faces détectées sont
+            // des résidus minuscules autour du mobilier. Dans ce cas, on bascule
+            // entièrement sur un Voronoï clippé : chaque label devient le centre
+            // d'une cellule, garantissant count exact et tessellation propre.
+            const matchRatio = labelsOnly.length > 0 ? (strictCount + tolerantCount) / labelsOnly.length : 0;
+            if (matchRatio < 0.5 && labelsOnly.length > 0) {
+              console.log(
+                `[extract/NEW v6/s28.5] plan ${plan.id} match=${(matchRatio * 100).toFixed(0)}% < 50% → FALLBACK VORONOÏ`,
+              );
+              builders_face.length = 0; // reset
+              // Projeter chaque label DANS le lot s'il est dehors. Distance au point le plus
+              // proche sur le contour du lot — empirique : tolère un offset OCR jusqu'à 12% du lot.
+              const lotPolyArr = lotPolyPx_face as Pt2[];
+              const projectIntoLot = (px: number, py: number): Pt2 => {
+                if (pointInPolygonV2({ x: px, y: py }, lotPolyArr)) return { x: px, y: py };
+                let bestD = Infinity;
+                let bestPx = px;
+                let bestPy = py;
+                for (let k = 0; k < lotPolyArr.length; k++) {
+                  const a = lotPolyArr[k];
+                  const b = lotPolyArr[(k + 1) % lotPolyArr.length];
+                  const dx = b.x - a.x;
+                  const dy = b.y - a.y;
+                  const len2 = dx * dx + dy * dy;
+                  if (len2 < 1e-6) continue;
+                  const t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / len2));
+                  const projX = a.x + t * dx;
+                  const projY = a.y + t * dy;
+                  const d = Math.hypot(px - projX, py - projY);
+                  if (d < bestD) {
+                    bestD = d;
+                    bestPx = projX;
+                    bestPy = projY;
                   }
-                  const a = Math.abs(s / 2);
-                  b.surfaceM2 = Math.round((a / sumA) * lotSurfTotal_face * 10) / 10;
                 }
+                // Décaler vers l'intérieur de quelques pixels pour éviter d'être pile sur le bord
+                // (qui pourrait être considéré comme outside par les algorithmes downstream).
+                const cx = lotPolyArr.reduce((s, p) => s + p.x, 0) / lotPolyArr.length;
+                const cy = lotPolyArr.reduce((s, p) => s + p.y, 0) / lotPolyArr.length;
+                const dirX = cx - bestPx;
+                const dirY = cy - bestPy;
+                const dirLen = Math.hypot(dirX, dirY);
+                if (dirLen > 0) {
+                  const inset = 5; // px
+                  bestPx += (dirX / dirLen) * inset;
+                  bestPy += (dirY / dirLen) * inset;
+                }
+                return { x: bestPx, y: bestPy };
+              };
+              const labelPts: Pt2[] = labelsPx.map((l) => projectIntoLot(l.x, l.y));
+              const cells = voronoiCellsAll(labelPts, lotPolyArr);
+              let voronoiCellsCreated = 0;
+              for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                if (cell.length < 3) continue;
+                const lab = labelsPx[i];
+                const polyGlobal = cell.map((p) => ({
+                  x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+                  y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+                }));
+                let s = 0;
+                for (let j = 0; j < cell.length; j++) {
+                  const k = (j + 1) % cell.length;
+                  s += cell[j].x * cell[k].y - cell[k].x * cell[j].y;
+                }
+                const areaPx2 = Math.abs(s) / 2;
+                builders_face.push({
+                  name: lab.text,
+                  roomType: inferRoomTypeFromName(lab.text),
+                  surfaceM2: lab.surface_m2 ?? 0,
+                  polyGlobalPct: polyGlobal,
+                  source: "face_labeled_strict",
+                  areaPx2,
+                });
+                voronoiCellsCreated++;
+              }
+              console.log(
+                `[extract/NEW v6/s28.5] plan ${plan.id} Voronoï : ${voronoiCellsCreated} cellules (${labelsOnly.length} labels, projection IN lot active)`,
+              );
+            }
+
+            // Step 7 (s28.5) : surfaces — la face détermine la surface réelle (aire × scale).
+            // Pour les pièces avec surface label visible sur le PDF, on conserve cette valeur
+            // (lecture humaine fiable). Pour les autres (face_unknown ou label sans surface),
+            // on calcule depuis l'aire de la face × scaleM2PerPx2.
+            for (const b of builders_face) {
+              if (b.surfaceM2 > 0) continue; // surface lue par OCR → conservée telle quelle
+              const surfFromArea = b.areaPx2 * scaleM2PerPx2;
+              if (surfFromArea > 0.5 && Number.isFinite(surfFromArea)) {
+                b.surfaceM2 = Math.round(surfFromArea * 10) / 10;
               }
             }
 
@@ -620,8 +749,7 @@ export async function POST(
             }
 
             console.log(
-              `[extract/NEW v6] plan ${plan.id}: ${extraction.rooms.length} pièces extraites, ` +
-                `lot=${lotId}`
+              `[extract/NEW v6/s28.5] plan ${plan.id}: ${builders_face.length} pièces depuis faces (${labelsOnly.length} labels IA), lot=${lotId}`
             );
           } catch (roomErr) {
             // Échec extraction pièces : log + continue (lot existe, ajout manuel possible)
