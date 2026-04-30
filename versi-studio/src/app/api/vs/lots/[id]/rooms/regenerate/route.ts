@@ -201,6 +201,28 @@ export async function POST(
       }
     }
 
+    // s28 fix Bug 2 — Si aucune pièce ne match par overlap MAIS qu'il n'y a
+    // qu'UN seul lot pour cet étage dans le projet, prendre TOUTES les pièces
+    // du/des plan(s) (mapping 1:1 plan→lot du pipeline NEW v6 vectoriel s27).
+    // Sans ce fallback : régénération impossible quand l'IA produit des coords
+    // plan-global incohérentes avec le polygone vectoriel pixel-perfect.
+    if (matchedRooms.length === 0) {
+      const otherLotsResult = await query<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM vs_lots WHERE project_id = $1 AND floor_number = $2",
+        [lot.project_id, lot.floor_number ?? 0]
+      );
+      const lotsOnFloor = parseInt(otherLotsResult.rows[0]?.count ?? "0", 10);
+      if (lotsOnFloor === 1) {
+        console.log(
+          `[regenerate] lot ${lotId}: 1 seul lot sur cet étage (pipeline NEW v6 ?), ` +
+            `fallback : prendre toutes les ${allRooms.length} pièces du/des plan(s)`
+        );
+        for (const r of allRooms) {
+          matchedRooms.push(r);
+        }
+      }
+    }
+
     if (matchedRooms.length === 0) {
       return NextResponse.json(
         {

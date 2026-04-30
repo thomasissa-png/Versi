@@ -211,8 +211,14 @@ export default function RoomsPage({
   const currentRooms = selectedLotId ? roomsByLot[selectedLotId] ?? [] : [];
   const currentLotValidated = currentLot?.status === "validated";
 
+  // s28 fix Bug 2 — N'afficher "tous lots validés" que si chaque lot a au moins
+  // 1 pièce. Sinon le message s'affiche au-dessus d'écrans vides post-extraction
+  // ratée et trompe l'utilisateur (verbatim Thomas s28 : "j'ai le message
+  // 'Tous les lots sont validés' alors que je clique sur Régénérer").
   const allLotsValidated =
-    lots.length > 0 && lots.every((l) => l.status === "validated");
+    lots.length > 0 &&
+    lots.every((l) => l.status === "validated") &&
+    lots.every((l) => (roomsByLot[l.id]?.length ?? 0) > 0);
 
   // Trouver le premier plan (pour le canvas background)
   // s25 — affiche le plan canonicalisé (backend) si disponible,

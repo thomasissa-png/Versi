@@ -168,11 +168,13 @@ export async function POST(
       );
       try {
         const newPipelineLots: Array<{ name: string; floor: number }> = [];
+        let totalRoomsCreated = 0;
 
         for (const plan of plansResult.rows) {
           const fileBuffer = await readFile(plan.file_path);
 
-          // Extraction vectorielle directe : 1 polygone bbox par plan.
+          // ─── Étape 1 : extraction VECTORIELLE du polygone du lot ───
+          // Pixel-perfect via paths PDF orange. Préserve la précision s27.
           const result = await extractLotVector(fileBuffer, { scale: 3 });
           const poly = result.polygon;
           if (poly.length < 3) {
@@ -197,11 +199,23 @@ export async function POST(
           }));
           const zoneData = { type: "polygon", points: polyPct };
 
+          // Bbox du polygone vectoriel (utilisée pour conversion lot-local).
+          let lotMinX = 100, lotMinY = 100, lotMaxX = 0, lotMaxY = 0;
+          for (const pt of polyPct) {
+            if (pt.x_percent < lotMinX) lotMinX = pt.x_percent;
+            if (pt.y_percent < lotMinY) lotMinY = pt.y_percent;
+            if (pt.x_percent > lotMaxX) lotMaxX = pt.x_percent;
+            if (pt.y_percent > lotMaxY) lotMaxY = pt.y_percent;
+          }
+          const lotBboxW = lotMaxX - lotMinX;
+          const lotBboxH = lotMaxY - lotMinY;
+
           // Nom lot par défaut basé sur étage. UI permettra renommage.
           const lotName = `Lot étage ${plan.floor_number ?? 0}`;
-          await query(
+          const lotInsertResult = await query<{ id: string }>(
             `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
-             VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
+             VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)
+             RETURNING id`,
             [
               projectId,
               lotName,
@@ -211,13 +225,185 @@ export async function POST(
               0.95, // vector extraction = haute confiance par construction
             ]
           );
+          const lotId = lotInsertResult.rows[0].id;
           newPipelineLots.push({ name: lotName, floor: plan.floor_number });
+
+          // ─── Étape 2 : extraction SÉMANTIQUE des pièces (s28 fix Bug 1) ───
+          // Le pipeline vectoriel s27 n'extrait QUE l'enveloppe du lot. Les
+          // pièces (chambre, cuisine, sdb...) requièrent identification IA
+          // sémantique. On appelle extractPlanData (ou son mock) pour peupler
+          // vs_rooms ET extraction_data (utilisé par /rooms/regenerate).
+          //
+          // VS_USE_MOCK_EXTRACTOR=true → données fixes (tests E2E sans clé OpenAI).
+          // VS_DISABLE_ROOM_EXTRACTION=true → skip (lot vide, ajout manuel).
+          if (process.env.VS_DISABLE_ROOM_EXTRACTION === "true") {
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: extraction pièces désactivée (VS_DISABLE_ROOM_EXTRACTION)`
+            );
+            await query(
+              "UPDATE vs_plans SET extraction_status = 'done' WHERE id = $1",
+              [plan.id]
+            );
+            continue;
+          }
+
+          try {
+            // Conversion PDF → PNG si besoin (pour passe-1 IA vision)
+            let imageBufferForIa: Buffer = fileBuffer;
+            let mimeForIa: string = plan.mime_type;
+            if (plan.mime_type === "application/pdf") {
+              const { pdf } = await import("pdf-to-img");
+              const pages = await pdf(fileBuffer, { scale: 3 });
+              for await (const page of pages) {
+                imageBufferForIa = Buffer.from(page);
+                mimeForIa = "image/png";
+                break;
+              }
+            }
+            const base64ForIa = imageBufferForIa.toString("base64");
+
+            // Routing mock vs réel (parité avec branche LEGACY).
+            const useMock = process.env.VS_USE_MOCK_EXTRACTOR === "true";
+            const extractorFn = useMock
+              ? extractPlanDataMock
+              : extractPlanData;
+            const mockFloorHint = useMock
+              ? `[MOCK_FLOOR=${plan.floor_number}]`
+              : undefined;
+
+            const extraction: PlanExtractionResult = await extractorFn(
+              base64ForIa,
+              mimeForIa,
+              project.type_bien,
+              mockFloorHint
+            );
+
+            // Override floor par plan.floor_number (cf. fix s24 LEGACY).
+            for (const room of extraction.rooms) {
+              room.floor = plan.floor_number;
+            }
+
+            // Persister extraction_data sur le plan (utilisé par regenerate).
+            await query(
+              "UPDATE vs_plans SET extraction_data = $1 WHERE id = $2",
+              [JSON.stringify(extraction), plan.id]
+            );
+
+            // Insertion des vs_rooms : 1 plan = 1 lot vectoriel (s27 v6).
+            // Pas de filtrage spatial requis : toutes les pièces extraites du
+            // plan appartiennent au lot du plan (mapping 1:1). C'est la branche
+            // LEGACY (multi-lots/plan) qui filtre par overlap.
+            for (const room of extraction.rooms) {
+              const bb = room.bounding_box;
+              if (!bb) continue;
+
+              const roomType = inferRoomTypeFromName(room.name_raw);
+
+              // Conversion polygon plan-global → lot-local
+              let polygonLocal:
+                | Array<{ x_percent: number; y_percent: number }>
+                | null = null;
+              if (
+                room.bounding_polygon &&
+                room.bounding_polygon.length >= 3 &&
+                lotBboxW > 0 &&
+                lotBboxH > 0
+              ) {
+                polygonLocal = room.bounding_polygon.map((pt) => ({
+                  x_percent: Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      ((pt.x_percent - lotMinX) / lotBboxW) * 100
+                    )
+                  ),
+                  y_percent: Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      ((pt.y_percent - lotMinY) / lotBboxH) * 100
+                    )
+                  ),
+                }));
+              }
+
+              // Position = bbox(polygonLocal) si dispo, sinon re-norm bbox IA
+              let position: Record<string, number> | null = null;
+              if (polygonLocal && polygonLocal.length >= 3) {
+                let pMinX = 100, pMinY = 100, pMaxX = 0, pMaxY = 0;
+                for (const p of polygonLocal) {
+                  if (p.x_percent < pMinX) pMinX = p.x_percent;
+                  if (p.y_percent < pMinY) pMinY = p.y_percent;
+                  if (p.x_percent > pMaxX) pMaxX = p.x_percent;
+                  if (p.y_percent > pMaxY) pMaxY = p.y_percent;
+                }
+                const w = pMaxX - pMinX;
+                const h = pMaxY - pMinY;
+                if (w > 0 && h > 0) {
+                  position = {
+                    x_percent: Math.max(0, Math.min(100, pMinX)),
+                    y_percent: Math.max(0, Math.min(100, pMinY)),
+                    width_percent: Math.max(1, Math.min(100, w)),
+                    height_percent: Math.max(1, Math.min(100, h)),
+                  };
+                }
+              }
+              if (!position && lotBboxW > 0 && lotBboxH > 0) {
+                const x = ((bb.x_percent - lotMinX) / lotBboxW) * 100;
+                const y = ((bb.y_percent - lotMinY) / lotBboxH) * 100;
+                const w = (bb.width_percent / lotBboxW) * 100;
+                const h = (bb.height_percent / lotBboxH) * 100;
+                position = {
+                  x_percent: Math.max(0, Math.min(100, x)),
+                  y_percent: Math.max(0, Math.min(100, y)),
+                  width_percent: Math.max(
+                    1,
+                    Math.min(100 - Math.max(0, x), w)
+                  ),
+                  height_percent: Math.max(
+                    1,
+                    Math.min(100 - Math.max(0, y), h)
+                  ),
+                };
+              }
+
+              await query(
+                `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, polygon, source, status)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, 'ai', 'suggested')`,
+                [
+                  lotId,
+                  plan.id,
+                  room.name_raw,
+                  roomType,
+                  room.surface_m2 ?? null,
+                  position ? JSON.stringify(position) : null,
+                  polygonLocal ? JSON.stringify(polygonLocal) : null,
+                ]
+              );
+              totalRoomsCreated++;
+            }
+
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: ${extraction.rooms.length} pièces extraites, ` +
+                `lot=${lotId}`
+            );
+          } catch (roomErr) {
+            // Échec extraction pièces : log + continue (lot existe, ajout manuel possible)
+            console.error(
+              `[extract/NEW v6] plan ${plan.id}: extraction pièces échouée :`,
+              roomErr instanceof Error ? roomErr.message : roomErr
+            );
+          }
 
           await query(
             "UPDATE vs_plans SET extraction_status = 'done' WHERE id = $1",
             [plan.id]
           );
         }
+
+        console.log(
+          `[extract/NEW v6] terminé : ${newPipelineLots.length} lots, ${totalRoomsCreated} pièces`
+        );
 
         return NextResponse.json({
           success: true,
