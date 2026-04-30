@@ -437,7 +437,7 @@ export default function LotPanel({
         <button
           onClick={onAddLot}
           disabled={drawingPolygon}
-          title="Pose un rectangle au centre — déplacez et ajustez ensuite"
+          title="Ajoute un rectangle au centre du plan, à redimensionner ensuite"
           className="
             w-full flex items-center justify-center gap-sm
             px-md py-sm rounded-md text-sm font-medium
@@ -463,7 +463,7 @@ export default function LotPanel({
               d="M12 4.5v15m7.5-7.5h-15"
             />
           </svg>
-          Lot rapide
+          Ajouter un lot (forme rectangulaire)
         </button>
 
         {/* Bouton dessiner un polygone — pour formes complexes (L, T, retraits)
@@ -472,7 +472,7 @@ export default function LotPanel({
           <button
             onClick={onStartDrawingPolygon}
             disabled={drawingPolygon}
-            title="Cliquez chaque angle du lot, double-clic pour terminer"
+            title="Tracez le contour du lot point par point, double-clic pour terminer"
             className="
               w-full flex items-center justify-center gap-sm
               px-md py-sm rounded-md text-sm font-medium
@@ -499,7 +499,7 @@ export default function LotPanel({
                 d="M5 4l7 5 7-5-3 9-4 7-4-7-3-9z"
               />
             </svg>
-            Lot sur mesure
+            Ajouter un lot (forme libre)
           </button>
         )}
 
