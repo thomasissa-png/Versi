@@ -75,6 +75,8 @@ interface PlanCanvasProps {
   selectedLotId: string | null;
   onSelectLot: (lotId: string | null) => void;
   onUpdateLotZone: (lotId: string, zone: Zone) => void;
+  /** Appelé une seule fois en fin de drag avec la zone finale (pour undo). */
+  onCommitLotZone?: (lotId: string, zone: Zone) => void;
   onDeleteLot?: (lotId: string) => void;
   lotIndexMap: Map<string, number>;
   m2PerPixel: number | null;
@@ -245,6 +247,7 @@ export default function PlanCanvas({
   selectedLotId,
   onSelectLot,
   onUpdateLotZone,
+  onCommitLotZone,
   onDeleteLot,
   lotIndexMap,
   m2PerPixel,
@@ -1355,6 +1358,14 @@ export default function PlanCanvas({
   };
 
   const handleMouseUp = useCallback(() => {
+    // Commit final zone à la fin du drag → 1 seul undo entry pour tout le drag.
+    if (dragRef.current && onCommitLotZone) {
+      const { lotId } = dragRef.current;
+      const finalLot = lots.find((l) => l.id === lotId);
+      if (finalLot) {
+        onCommitLotZone(lotId, finalLot.zone_data as unknown as Zone);
+      }
+    }
     dragRef.current = null;
     setSurfaceOverlay(null);
     if (panRef.current) {
@@ -1362,7 +1373,7 @@ export default function PlanCanvas({
       const canvas = canvasRef.current;
       if (canvas) canvas.style.cursor = "default";
     }
-  }, []);
+  }, [onCommitLotZone, lots]);
 
   const handleMouseLeave = useCallback(() => {
     dragRef.current = null;

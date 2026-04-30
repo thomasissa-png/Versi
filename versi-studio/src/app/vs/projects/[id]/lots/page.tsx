@@ -306,19 +306,17 @@ export default function LotsPage({
       const lot = lots.find((l) => l.id === lotId);
       const lotSource = lot?.source ?? "manual";
 
-      // Optimistic update
-      setLots((prev) => {
-        const updated = prev.map((l) =>
+      // Optimistic update SANS snapshot (le snapshot est fait par
+      // handleCommitLotZone à la fin du drag → 1 seul undo entry par drag).
+      setLots((prev) =>
+        prev.map((l) =>
           l.id === lotId
             ? { ...l, zone_data: zone as unknown as Record<string, unknown> }
             : l
-        );
-        // versi-s22 P3 : snapshot pour undo (debounced par le parent)
-        pushLotsSnapshot(updated, "zone_update");
-        return updated;
-      });
+        )
+      );
 
-      // Debounce la sauvegarde
+      // Debounce la sauvegarde serveur
       const existing = saveTimersRef.current.get(lotId);
       if (existing) clearTimeout(existing);
 
@@ -329,7 +327,19 @@ export default function LotsPage({
 
       saveTimersRef.current.set(lotId, timer);
     },
-    [saveLotZone, lots, pushLotsSnapshot]
+    [saveLotZone, lots]
+  );
+
+  // Snapshot historique appelé une seule fois en fin de drag (mouseup).
+  // Ctrl+Z annule le drag complet en un seul step au lieu de N micro-steps.
+  const handleCommitLotZone = useCallback(
+    (_lotId: string, _zone: Zone) => {
+      setLots((prev) => {
+        pushLotsSnapshot(prev, "zone_update");
+        return prev;
+      });
+    },
+    [pushLotsSnapshot]
   );
 
   // ─── Renommer un lot ──────────────────────────────────────────
@@ -776,6 +786,24 @@ export default function LotsPage({
     }
   }, [loading, lots, history]);
 
+  // Préselectionne le 1er lot de l'étage courant au chargement → contour
+  // visible par défaut (Thomas s27 : "lot pas assez visible de base").
+  const initialLotSelectDoneRef = useRef(false);
+  useEffect(() => {
+    if (loading || initialLotSelectDoneRef.current) return;
+    if (selectedLotId !== null) {
+      initialLotSelectDoneRef.current = true;
+      return;
+    }
+    const firstLotOnFloor = lots.find(
+      (l) => (l.floor_number ?? 0) === selectedFloor,
+    );
+    if (firstLotOnFloor) {
+      setSelectedLotId(firstLotOnFloor.id);
+      initialLotSelectDoneRef.current = true;
+    }
+  }, [loading, lots, selectedFloor, selectedLotId]);
+
   // ─── Raccourci clavier Ctrl+Z / Ctrl+Shift+Z (versi-s22 P3) ─
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1075,6 +1103,7 @@ export default function LotsPage({
               selectedLotId={selectedLotId}
               onSelectLot={setSelectedLotId}
               onUpdateLotZone={handleUpdateLotZone}
+              onCommitLotZone={handleCommitLotZone}
               onDeleteLot={handleDeleteLot}
               lotIndexMap={lotIndexMap}
               m2PerPixel={m2PerPixel}
