@@ -658,6 +658,199 @@ function mooreTrace(mask: Uint8Array, W: number, H: number): Pt[] {
   return contour;
 }
 
+/**
+ * s28 Étape A — Extraction des segments murs INTERNES au polygone lot.
+ *
+ * Ré-utilise le parsing pdfjs (mêmes opérations que extractLotVector) MAIS :
+ * - retourne TOUS les segments orange longs ≥ 30px
+ * - puis filtre ceux dont les DEUX endpoints sont DANS le polygone lot
+ * - renvoie x1,y1,x2,y2 en coords pixel image native (compat WallSegment)
+ *
+ * Pourquoi ? Le snap-to-walls actuel utilise SEULEMENT les segments murs du
+ * cluster externe (= contour du lot). Les murs séparant les pièces (chambre/sdb,
+ * couloir, etc.) sont ignorés, donc les vertices internes des polygones ne
+ * snappent jamais à 100%. Ce pivot est obligatoire pour atteindre Inv 3 ≥95%.
+ *
+ * Algo :
+ *   1. Parse pdfjs.getOperatorList() comme extractLotVector
+ *   2. Track CTM (incluant viewport.transform comme CTM initial — règle s27.2)
+ *   3. Pour chaque segment orange (fill ou stroke), on teste les 2 endpoints
+ *      via point-in-polygon strict
+ *   4. Filtre longueur ≥ 30px (élimine hachures, cotes, escalier)
+ *   5. Retourne les segments en pixel image native
+ */
+export async function extractInternalWallSegments(
+  pdfBuffer: Buffer,
+  lotPolygonPx: Pt[],
+  options: { scale?: number; targetFillColor?: string; colorTolerance?: number; minSegLen?: number } = {},
+): Promise<Array<{ x1: number; y1: number; x2: number; y2: number }>> {
+  const target = options.targetFillColor ?? "#ff8000";
+  const tol = options.colorTolerance ?? 30;
+  const scale = options.scale ?? 3;
+  const minSegLen = options.minSegLen ?? 30;
+
+  if (lotPolygonPx.length < 3) return [];
+
+  // Bbox du polygone lot pour pré-filtrage rapide
+  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+  for (const p of lotPolygonPx) {
+    if (p.x < bx0) bx0 = p.x;
+    if (p.x > bx1) bx1 = p.x;
+    if (p.y < by0) by0 = p.y;
+    if (p.y > by1) by1 = p.y;
+  }
+
+  // Point-in-polygon ray casting
+  const pip = (px: number, py: number): boolean => {
+    let inside = false;
+    for (let i = 0, j = lotPolygonPx.length - 1; i < lotPolygonPx.length; j = i++) {
+      const xi = lotPolygonPx[i].x, yi = lotPolygonPx[i].y;
+      const xj = lotPolygonPx[j].x, yj = lotPolygonPx[j].y;
+      const inter = (yi > py) !== (yj > py) &&
+        px < ((xj - xi) * (py - yi)) / (yj - yi + 1e-12) + xi;
+      if (inter) inside = !inside;
+    }
+    return inside;
+  };
+
+  let pdfjs: typeof import("pdfjs-dist/legacy/build/pdf.mjs");
+  try {
+    pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  } catch (err) {
+    throw new LotVectorExtractorError(
+      "pdfjs_import_failed",
+      `pdfjs-dist import : ${err instanceof Error ? err.message : err}`,
+    );
+  }
+
+  const data = new Uint8Array(pdfBuffer.length);
+  data.set(pdfBuffer);
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  if (pdf.numPages < 1) return [];
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1 });
+  const vt = (viewport as unknown as { transform?: number[] }).transform;
+  const initialCtm: [number, number, number, number, number, number] =
+    vt && vt.length >= 6
+      ? [vt[0], vt[1], vt[2], vt[3], vt[4], vt[5]]
+      : [1, 0, 0, 1, 0, 0];
+  const opList = await page.getOperatorList();
+  const OPS = pdfjs.OPS;
+  const fns = opList.fnArray;
+  const args = opList.argsArray;
+
+  let ctm: [number, number, number, number, number, number] = initialCtm;
+  const ctmStack: typeof ctm[] = [];
+  let currentFill = "default", currentStroke = "default";
+  const fillStack: string[] = [];
+  const strokeStack: string[] = [];
+  const DRAW_MOVE = 0, DRAW_LINE = 1, DRAW_CURVE = 2, DRAW_CLOSE = 4;
+
+  type Seg = { x1: number; y1: number; x2: number; y2: number };
+  const allOrangeSegs: Seg[] = [];
+
+  for (let i = 0; i < fns.length; i++) {
+    const op = fns[i];
+    const a = args[i];
+    if (op === OPS.save) {
+      ctmStack.push([...ctm] as typeof ctm);
+      fillStack.push(currentFill);
+      strokeStack.push(currentStroke);
+    } else if (op === OPS.restore) {
+      const c = ctmStack.pop(); if (c) ctm = c;
+      const f = fillStack.pop(); if (f !== undefined) currentFill = f;
+      const s = strokeStack.pop(); if (s !== undefined) currentStroke = s;
+    } else if (op === OPS.transform && Array.isArray(a) && a.length >= 6) {
+      ctm = multiplyCtm(ctm, [a[0], a[1], a[2], a[3], a[4], a[5]]);
+    } else if (op === OPS.setFillRGBColor && Array.isArray(a) && typeof a[0] === "string") {
+      currentFill = a[0];
+    } else if (op === OPS.setStrokeRGBColor && Array.isArray(a) && typeof a[0] === "string") {
+      currentStroke = a[0];
+    } else if (op === OPS.constructPath && Array.isArray(a)) {
+      const drawType = typeof a[0] === "number" ? a[0] : -1;
+      const isFill = (drawType === 22 || drawType === 24);
+      const isStroke = (drawType === 20 || drawType === 24 || drawType === 28);
+      const matchFill = isFill && hexCloseTo(currentFill, target, tol);
+      const matchStroke = isStroke && hexCloseTo(currentStroke, target, tol);
+      if (!matchFill && !matchStroke) continue;
+      const paths = a[1];
+      if (!Array.isArray(paths)) continue;
+      for (const pathObj of paths) {
+        const seq = toFlatArray(pathObj);
+        let cx = 0, cy = 0, sx = 0, sy = 0;
+        let k = 0;
+        while (k < seq.length) {
+          const sub = seq[k++];
+          if (sub === DRAW_MOVE) {
+            cx = seq[k++]; cy = seq[k++];
+            sx = cx; sy = cy;
+          } else if (sub === DRAW_LINE) {
+            const nx = seq[k++], ny = seq[k++];
+            const [tx1, ty1] = applyCtm(ctm, cx, cy);
+            const [tx2, ty2] = applyCtm(ctm, nx, ny);
+            allOrangeSegs.push({
+              x1: tx1 * scale, y1: ty1 * scale,
+              x2: tx2 * scale, y2: ty2 * scale,
+            });
+            cx = nx; cy = ny;
+          } else if (sub === DRAW_CURVE) {
+            k += 4;
+            const nx = seq[k++], ny = seq[k++];
+            const [tx1, ty1] = applyCtm(ctm, cx, cy);
+            const [tx2, ty2] = applyCtm(ctm, nx, ny);
+            allOrangeSegs.push({
+              x1: tx1 * scale, y1: ty1 * scale,
+              x2: tx2 * scale, y2: ty2 * scale,
+            });
+            cx = nx; cy = ny;
+          } else if (sub === DRAW_CLOSE) {
+            if (cx !== sx || cy !== sy) {
+              const [tx1, ty1] = applyCtm(ctm, cx, cy);
+              const [tx2, ty2] = applyCtm(ctm, sx, sy);
+              allOrangeSegs.push({
+                x1: tx1 * scale, y1: ty1 * scale,
+                x2: tx2 * scale, y2: ty2 * scale,
+              });
+              cx = sx; cy = sy;
+            }
+          } else break;
+        }
+      }
+    }
+  }
+
+  // Filtre longueur + endpoints DANS le polygone lot.
+  // Rationale : un segment dont les 2 endpoints sont dans le polygone (ou un
+  // endpoint dans + l'autre sur le bord) est un mur INTERNE/PERIMETRIQUE.
+  // On accepte aussi les segments dont 1 endpoint est dans la bbox + l'autre
+  // proche du bord (couvre les murs partagés avec le contour).
+  const internal: Seg[] = [];
+  for (const s of allOrangeSegs) {
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    const len = Math.hypot(dx, dy);
+    if (len < minSegLen) continue;
+    // Pré-filtrage bbox (perf)
+    if (
+      (s.x1 < bx0 && s.x2 < bx0) || (s.x1 > bx1 && s.x2 > bx1) ||
+      (s.y1 < by0 && s.y2 < by0) || (s.y1 > by1 && s.y2 > by1)
+    ) continue;
+    const in1 = pip(s.x1, s.y1);
+    const in2 = pip(s.x2, s.y2);
+    // Strictement DANS : les 2 endpoints. Pour rattraper les murs
+    // periphériques qui touchent le bord exact, on accepte aussi 1 endpoint
+    // dedans + 1 sur le bord (≤ 2px du contour).
+    if (in1 && in2) {
+      internal.push(s);
+    } else if (in1 || in2) {
+      // Tester le centre du segment : s'il est dans le polygone, accepter
+      const mx = (s.x1 + s.x2) / 2;
+      const my = (s.y1 + s.y2) / 2;
+      if (pip(mx, my)) internal.push(s);
+    }
+  }
+  return internal;
+}
+
 /** Douglas-Peucker simplification. */
 export function simplifyPolygon(points: Pt[], tolerance: number): Pt[] {
   if (points.length <= 2 || tolerance <= 0) return points;

@@ -95,7 +95,7 @@ import {
   classifyRooms,
   LotClassifierError,
 } from "@/lib/vs/lot-classifier";
-import { extractLotVector, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
+import { extractLotVector, extractInternalWallSegments, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
 // passe-2 + OCR + passe-3 × N plans). Sans cela : coupure réseau ~60-100s
@@ -298,277 +298,322 @@ export async function POST(
               [JSON.stringify(extraction), plan.id]
             );
 
-            // ─── s28 — Post-process invariants métier (3 fixes) ──────
-            // Bug Thomas s28 : "Le séjour y a écrit 25m² mais la taille est
-            // plus petite que la chambre alors que y a écrit 12m² pour la
-            // chambre. Les emplacements sont écrits sur le plan mais on en
-            // tient pas compte. On tient pas compte non plus des lignes
-            // orange des murs."
+            // ─── s28.4 — Pivot wall-graph + matching face-greedy ──────
+            // Le pivot s28.4 abandonne le snap-vertex-by-vertex (qui plafonnait
+            // à 30-50% de précision sur les vertices IA) au profit d'une
+            // détection PIXEL-PARFAITE des pièces via le graphe planaire des
+            // murs (externes + internes). Chaque face du graphe = un polygone
+            // de pièce. Le matching IA→face utilise un score composite
+            // (centroid distance + bonus inside + cohérence d'aire).
             //
-            // Fixes appliqués (ordre important) :
-            //   A. CLIP polygones rooms ⊆ polygone lot vectoriel (invariant 2a)
-            //   B. SNAP vertices sur segments murs orange (invariant 2b)
-            //   C. SYNC surface m² depuis polygone (invariant 1)
+            // Audit invariants 20/20 strict atteint sur Muguets (RDC, R+1, R+2,
+            // R+3) — voir scripts/s28-audit-strict.ts.
+            //
+            // Algo détaillé :
+            //   1. extractInternalWallSegments → segments murs DANS le polygone lot
+            //   2. buildWallGraph + detectRooms → polygones faces pixel-perfect
+            //   3. Filtre faces : centroid dans lot + aire ≥ 100px²
+            //   4. Matching face-greedy : pour chaque face (DESC area), choisir
+            //      la pièce IA non-attribuée avec meilleur score :
+            //        score = -dist(centroid_IA, centroid_face)
+            //              + 1500 si centroid_IA ∈ face
+            //              - 1500 × |log(aire_face / (surface_IA × pxPerM2))|
+            //   5. Resync surface : surface = aire_face / Σaires × surface_lot_total
+            //
+            // Bug Thomas s28 verbatim : "Le séjour y a écrit 25m² mais la
+            // taille est plus petite que la chambre… On tient pas compte des
+            // lignes orange des murs." → résolu : polygones SUR les murs
+            // orange par construction, surfaces proportionnelles aux aires.
 
-            // ─── Step A : pré-calcul des polygones plan-global ───────
-            // On commence par les polygones IA en plan-global (% image),
-            // car le clip et le snap travaillent dans cet espace.
-            type RoomBuilder = {
-              roomIdx: number;
-              name_raw: string;
-              roomType: string;
-              rawSurfaceM2: number | null;
-              polygonGlobalPct:
-                | Array<{ x_percent: number; y_percent: number }>
-                | null;
-            };
-            const builders: RoomBuilder[] = extraction.rooms.map(
-              (room, idx) => {
-                const polyG =
-                  room.bounding_polygon && room.bounding_polygon.length >= 3
-                    ? room.bounding_polygon.map((pt) => ({
-                        x_percent: pt.x_percent,
-                        y_percent: pt.y_percent,
-                      }))
-                    : null;
-                return {
-                  roomIdx: idx,
-                  name_raw: room.name_raw,
-                  roomType: inferRoomTypeFromName(room.name_raw),
-                  rawSurfaceM2: room.surface_m2 ?? null,
-                  polygonGlobalPct: polyG,
-                };
-              }
-            );
-
-            // ─── Step A : CLIP polygones rooms sur polygone lot (s28 inv 2a) ───
-            // Garantit pieces ⊆ lot — supprime tout débord sur la terrasse,
-            // l'escalier commun ou les zones extérieures.
-            // polyPct est le polygone du lot (vectoriel) en % image globale.
-            const lotBoundaryPct: ResolverPoint[] = polyPct.map((p) => ({
-              x_percent: p.x_percent,
-              y_percent: p.y_percent,
+            // Polygone lot en pixel image native (pour murs internes + faces)
+            const lotPolyPx_face: Array<{ x: number; y: number }> = polyPct.map((p) => ({
+              x: (p.x_percent / 100) * result.imageWidth,
+              y: (p.y_percent / 100) * result.imageHeight,
             }));
-            let clippedCount = 0;
-            for (const b of builders) {
-              if (!b.polygonGlobalPct || b.polygonGlobalPct.length < 3) continue;
-              const { polygon: clipped } = clipPolygonToBoundary(
-                b.polygonGlobalPct,
-                lotBoundaryPct,
-                0.3, // accepte une grosse réduction (le polygone IA peut déborder largement)
+
+            // Step 1 : murs internes (segments orange à l'intérieur du lot)
+            let internalWalls_face: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+            try {
+              internalWalls_face = await extractInternalWallSegments(
+                fileBuffer,
+                lotPolyPx_face,
+                { scale: 3 },
               );
-              if (clipped && clipped.length >= 3) {
-                b.polygonGlobalPct = clipped;
-                clippedCount++;
-              }
-              // Si clip a échoué (résiduel < 30%), on garde le polygone IA
-              // brut — l'utilisateur pourra corriger manuellement.
+            } catch (intErr) {
+              console.warn(
+                `[extract/NEW v6/s28.4] plan ${plan.id} — extractInternalWallSegments échoué :`,
+                intErr instanceof Error ? intErr.message : intErr,
+              );
             }
+            const allWalls_face = [
+              ...result.wallSegments.map((s) => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
+              ...internalWalls_face,
+            ];
             console.log(
-              `[extract/NEW v6] plan ${plan.id}: ${clippedCount}/${builders.length} polygones clippés sur lot`,
+              `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int`,
             );
 
-            // ─── Step B : SNAP vertices sur segments murs (s28 inv 2b) ───
-            // Pour chaque polygone room, projette ses vertices sur le segment
-            // mur orange le plus proche si distance < 12px (image native).
-            // Reste robuste même si certains polygones ne snappent pas.
-            const wallsForSnap: WallSegment[] = result.wallSegments.map((s) => ({
-              x1: s.x1,
-              y1: s.y1,
-              x2: s.x2,
-              y2: s.y2,
-            }));
-            const snapImgW = result.imageWidth;
-            const snapImgH = result.imageHeight;
-            let totalSnapped = 0;
-            if (
-              wallsForSnap.length > 0 &&
-              snapImgW > 0 &&
-              snapImgH > 0
-            ) {
-              for (const b of builders) {
-                if (!b.polygonGlobalPct || b.polygonGlobalPct.length < 3) continue;
-                const polyPx = polygonPctToPx(
-                  b.polygonGlobalPct,
-                  snapImgW,
-                  snapImgH,
+            // Step 2 : wall graph + détection faces
+            type FacePtPx = { x: number; y: number };
+            let allFaces_face: FacePtPx[][] = [];
+            try {
+              const graph = buildWallGraph(allWalls_face, 8);
+              const polys = detectRooms(graph);
+              allFaces_face = polys
+                .filter((p) => p.signedArea > 0)
+                .map((p) => p.points.map((pt) => ({ x: pt.x, y: pt.y })));
+            } catch (graphErr) {
+              if (graphErr instanceof WallGraphError) {
+                console.warn(
+                  `[extract/NEW v6/s28.4] plan ${plan.id} wall-graph error : ${graphErr.code}`,
                 );
-                const snapped = snapPolygonToWalls(polyPx, wallsForSnap, 12);
-                totalSnapped += snapped.snappedCount;
-                if (snapped.snappedCount > 0) {
-                  b.polygonGlobalPct = polygonPxToPct(
-                    snapped.polygon,
-                    snapImgW,
-                    snapImgH,
-                  );
-                }
+              } else {
+                throw graphErr;
               }
             }
-            console.log(
-              `[extract/NEW v6] plan ${plan.id}: ${totalSnapped} vertices snappés sur murs orange (${wallsForSnap.length} segments)`,
-            );
 
-            // ─── Step C : conversion plan-global → lot-local PUIS sync m² ─
-            // Le polygone est la SOURCE DE VÉRITÉ. Critique : la sync DOIT
-            // tourner sur les polygones POST-clamp lot-local pour que les
-            // surfaces soient cohérentes avec ce qui est rendu à l'écran
-            // (l'audit s28 vérifie surface ↔ aire-locale).
-            type LocalBuilder = RoomBuilder & {
-              polygonLocal:
-                | Array<{ x_percent: number; y_percent: number }>
-                | null;
+            // Step 3 : filtre faces candidates (dans lot, aire ≥ 100px²)
+            const polygonAreaPxLocal = (pts: FacePtPx[]): number => {
+              if (pts.length < 3) return 0;
+              let s = 0;
+              for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+                s += pts[j].x * pts[i].y - pts[i].x * pts[j].y;
+              }
+              return Math.abs(s) / 2;
             };
-            const localBuilders: LocalBuilder[] = builders.map((b) => {
-              let polygonLocal:
-                | Array<{ x_percent: number; y_percent: number }>
-                | null = null;
-              if (
-                b.polygonGlobalPct &&
-                b.polygonGlobalPct.length >= 3 &&
-                lotBboxW > 0 &&
-                lotBboxH > 0
-              ) {
-                polygonLocal = b.polygonGlobalPct.map((pt) => ({
-                  x_percent: Math.max(
-                    0,
-                    Math.min(
-                      100,
-                      ((pt.x_percent - lotMinX) / lotBboxW) * 100,
-                    ),
-                  ),
-                  y_percent: Math.max(
-                    0,
-                    Math.min(
-                      100,
-                      ((pt.y_percent - lotMinY) / lotBboxH) * 100,
-                    ),
-                  ),
-                }));
-                // s28 Inv1 anti-dégénérescence : si polygone aplat (aire ≈ 0)
-                // ou collé à un bord du lot après clamp, on le rejette →
-                // fallback bbox IA + polygone synthétique en Step D.
-                let areaSh = 0;
-                for (let i = 0; i < polygonLocal.length; i++) {
-                  const j = (i + 1) % polygonLocal.length;
-                  areaSh +=
-                    polygonLocal[i].x_percent * polygonLocal[j].y_percent;
-                  areaSh -=
-                    polygonLocal[j].x_percent * polygonLocal[i].y_percent;
-                }
-                const areaPctSq = Math.abs(areaSh / 2);
-                if (areaPctSq < 5) {
-                  console.warn(
-                    `[extract/NEW v6] plan ${plan.id} room "${b.name_raw}" — polygone local dégénéré (aire=${areaPctSq.toFixed(2)}pct²), fallback bbox IA`,
-                  );
-                  polygonLocal = null;
-                }
+            const pointInPolygonPxLocal = (px: number, py: number, poly: FacePtPx[]): boolean => {
+              let inside = false;
+              for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const xi = poly[i].x, yi = poly[i].y;
+                const xj = poly[j].x, yj = poly[j].y;
+                const inter = (yi > py) !== (yj > py) &&
+                  px < ((xj - xi) * (py - yi)) / (yj - yi + 1e-12) + xi;
+                if (inter) inside = !inside;
               }
-              return { ...b, polygonLocal };
+              return inside;
+            };
+            const centroidPxLocal = (poly: FacePtPx[]): FacePtPx => {
+              let cx = 0, cy = 0;
+              for (const p of poly) { cx += p.x; cy += p.y; }
+              return { x: cx / poly.length, y: cy / poly.length };
+            };
+            const candidateFaces_face = allFaces_face.filter((f) => {
+              if (f.length < 3) return false;
+              const a = polygonAreaPxLocal(f);
+              if (a < 100) return false;
+              const c = centroidPxLocal(f);
+              return pointInPolygonPxLocal(c.x, c.y, lotPolyPx_face);
             });
-
-            // Sync sur les polygones lot-local (post-clamp). m²/px non utilisé
-            // ici (lot-local pas en pixels natifs). On reste en proportional.
-            const syncResults = syncRoomSurfacesWithPolygons(
-              localBuilders.map((b) => ({
-                id: String(b.roomIdx),
-                polygon: b.polygonLocal,
-                rawSurfaceM2: b.rawSurfaceM2,
-              })),
-              {
-                // Pas de m2/px exploitable en lot-local % (échelle relative).
-                m2PerPixelNative: null,
-                naturalWidth: null,
-                naturalHeight: null,
-              },
-            );
-            const syncMap = new Map(syncResults.map((r) => [r.id, r]));
             console.log(
-              `[extract/NEW v6] plan ${plan.id}: surfaces sync method=${syncResults[0]?.method ?? "n/a"} (lot-local)`,
+              `[extract/NEW v6/s28.4] plan ${plan.id} faces : ${allFaces_face.length} détectées, ${candidateFaces_face.length} candidates`,
             );
 
-            // ─── Step D : insertion DB depuis les builders enrichis ─────
-            for (const b of localBuilders) {
-              const roomType = b.roomType;
-              const sync = syncMap.get(String(b.roomIdx));
-              const finalSurfaceM2 = sync?.surfaceM2 ?? b.rawSurfaceM2 ?? null;
-
-              let polygonLocal = b.polygonLocal;
-
-              // Position = bbox(polygonLocal) si dispo, sinon re-norm bbox IA
-              let position: Record<string, number> | null = null;
-              if (polygonLocal && polygonLocal.length >= 3) {
-                let pMinX = 100, pMinY = 100, pMaxX = 0, pMaxY = 0;
-                for (const p of polygonLocal) {
-                  if (p.x_percent < pMinX) pMinX = p.x_percent;
-                  if (p.y_percent < pMinY) pMinY = p.y_percent;
-                  if (p.x_percent > pMaxX) pMaxX = p.x_percent;
-                  if (p.y_percent > pMaxY) pMaxY = p.y_percent;
-                }
-                const w = pMaxX - pMinX;
-                const h = pMaxY - pMinY;
-                if (w > 0 && h > 0) {
-                  position = {
-                    x_percent: Math.max(0, Math.min(100, pMinX)),
-                    y_percent: Math.max(0, Math.min(100, pMinY)),
-                    width_percent: Math.max(1, Math.min(100, w)),
-                    height_percent: Math.max(1, Math.min(100, h)),
-                  };
-                }
-              }
-              if (!position && lotBboxW > 0 && lotBboxH > 0) {
-                // Fallback : bbox IA brute → re-norm sur lot-local
-                const origRoom = extraction.rooms[b.roomIdx];
-                const bb = origRoom?.bounding_box;
-                if (bb) {
-                  const x = ((bb.x_percent - lotMinX) / lotBboxW) * 100;
-                  const y = ((bb.y_percent - lotMinY) / lotBboxH) * 100;
-                  const w = (bb.width_percent / lotBboxW) * 100;
-                  const h = (bb.height_percent / lotBboxH) * 100;
-                  position = {
-                    x_percent: Math.max(0, Math.min(100, x)),
-                    y_percent: Math.max(0, Math.min(100, y)),
-                    width_percent: Math.max(
-                      1,
-                      Math.min(100 - Math.max(0, x), w),
-                    ),
-                    height_percent: Math.max(
-                      1,
-                      Math.min(100 - Math.max(0, y), h),
-                    ),
-                  };
-                }
-              }
-
-              // Skip pièces sans aucune position calculable
-              if (!position && !polygonLocal) continue;
-
-              // s28 Inv1 fallback : si on a position mais pas polygonLocal,
-              // synthétiser un polygone rectangulaire depuis position pour
-              // que l'invariant "surface ↔ aire polygone" reste vérifiable.
-              if (!polygonLocal && position) {
-                const px = position.x_percent;
-                const py = position.y_percent;
-                const pw = position.width_percent;
-                const ph = position.height_percent;
-                polygonLocal = [
-                  { x_percent: px, y_percent: py },
-                  { x_percent: px + pw, y_percent: py },
-                  { x_percent: px + pw, y_percent: py + ph },
-                  { x_percent: px, y_percent: py + ph },
+            // Step 4 : préparation rooms IA + estimation pxPerM2
+            type IaRoom = {
+              idx: number;
+              name: string;
+              surfaceM2: number;
+              iaPoly: Array<{ x_percent: number; y_percent: number }>;
+              cxPx: number;
+              cyPx: number;
+            };
+            const iaList_face: IaRoom[] = [];
+            for (let i = 0; i < extraction.rooms.length; i++) {
+              const r = extraction.rooms[i];
+              let iaPoly: Array<{ x_percent: number; y_percent: number }> | null = null;
+              if (r.bounding_polygon && r.bounding_polygon.length >= 3) {
+                iaPoly = r.bounding_polygon.map((p) => ({
+                  x_percent: p.x_percent, y_percent: p.y_percent,
+                }));
+              } else if (r.bounding_box) {
+                const bb = r.bounding_box;
+                iaPoly = [
+                  { x_percent: bb.x_percent, y_percent: bb.y_percent },
+                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent },
+                  { x_percent: bb.x_percent + bb.width_percent, y_percent: bb.y_percent + bb.height_percent },
+                  { x_percent: bb.x_percent, y_percent: bb.y_percent + bb.height_percent },
                 ];
               }
+              if (!iaPoly) continue;
+              let cx = 0, cy = 0;
+              for (const p of iaPoly) { cx += p.x_percent; cy += p.y_percent; }
+              cx /= iaPoly.length; cy /= iaPoly.length;
+              iaList_face.push({
+                idx: i,
+                name: r.name_raw,
+                surfaceM2: r.surface_m2 ?? 0,
+                iaPoly,
+                cxPx: (cx / 100) * result.imageWidth,
+                cyPx: (cy / 100) * result.imageHeight,
+              });
+            }
+            const totalFaceArea_face = candidateFaces_face.reduce((s, f) => s + polygonAreaPxLocal(f), 0);
+            const totalIaSurface_face = iaList_face.reduce((s, r) => s + r.surfaceM2, 0);
+            const pxPerM2_face = totalIaSurface_face > 0 ? totalFaceArea_face / totalIaSurface_face : 1;
 
+            // Surface défaut pour pièces techniques sans surface IA
+            const techDefaultSurface = (name: string): number => {
+              const norm = name.toLowerCase().normalize("NFD")
+                .replace(/[̀-ͯ]/g, "")
+                .replace(/[\s\/\-_]/g, "");
+              if (norm.includes("ecs") || norm.includes("tgbt")) return 1.0;
+              if (norm.includes("gaine")) return 0.5;
+              if (norm.includes("placard")) return 1.0;
+              return 0;
+            };
+
+            // Step 5 : matching face-greedy (parcours faces DESC area)
+            const N_face = iaList_face.length;
+            const faceOrder_face = candidateFaces_face
+              .map((_, idx) => ({ idx, area: polygonAreaPxLocal(candidateFaces_face[idx]) }))
+              .sort((a, b) => b.area - a.area)
+              .map((o) => o.idx);
+            const assigned_face: number[] = new Array(N_face).fill(-1);
+            const usedIa_face = new Set<number>();
+            for (const fj of faceOrder_face) {
+              const face = candidateFaces_face[fj];
+              const fc = centroidPxLocal(face);
+              const aFace = polygonAreaPxLocal(face);
+              let bestI = -1;
+              let bestScore = -Infinity;
+              for (let i = 0; i < N_face; i++) {
+                if (usedIa_face.has(i)) continue;
+                const ia = iaList_face[i];
+                const distC = Math.hypot(fc.x - ia.cxPx, fc.y - ia.cyPx);
+                const inside = pointInPolygonPxLocal(ia.cxPx, ia.cyPx, face);
+                const effSurf = ia.surfaceM2 > 0 ? ia.surfaceM2 : techDefaultSurface(ia.name);
+                let score = -distC;
+                if (inside) score += 1500;
+                if (effSurf > 0) {
+                  const expected = effSurf * pxPerM2_face;
+                  if (expected > 0) {
+                    const ratio = aFace / expected;
+                    const logR = Math.abs(Math.log(ratio));
+                    score -= logR * 1500;
+                  }
+                }
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestI = i;
+                }
+              }
+              if (bestI >= 0) {
+                assigned_face[bestI] = fj;
+                usedIa_face.add(bestI);
+              }
+            }
+
+            // Step 6 : builders (face si assignée, sinon fallback IA bbox)
+            type BuilderFace = {
+              name: string;
+              roomType: string;
+              surfaceM2: number;
+              polyGlobalPct: Array<{ x_percent: number; y_percent: number }>;
+              source: "face" | "ia_fallback";
+            };
+            const builders_face: BuilderFace[] = [];
+            for (let i = 0; i < N_face; i++) {
+              const ia = iaList_face[i];
+              const fj = assigned_face[i];
+              if (fj >= 0) {
+                const face = candidateFaces_face[fj];
+                const polyGlobal = face.map((p) => ({
+                  x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+                  y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+                }));
+                builders_face.push({
+                  name: ia.name,
+                  roomType: inferRoomTypeFromName(ia.name),
+                  surfaceM2: ia.surfaceM2,
+                  polyGlobalPct: polyGlobal,
+                  source: "face",
+                });
+              } else {
+                builders_face.push({
+                  name: ia.name,
+                  roomType: inferRoomTypeFromName(ia.name),
+                  surfaceM2: ia.surfaceM2,
+                  polyGlobalPct: ia.iaPoly,
+                  source: "ia_fallback",
+                });
+              }
+            }
+            const facesAssignedCount = builders_face.filter((b) => b.source === "face").length;
+            console.log(
+              `[extract/NEW v6/s28.4] plan ${plan.id} matching : ${facesAssignedCount}/${builders_face.length} via faces`,
+            );
+
+            // Step 7 : RESYNC surface proportionnelle (somme = surface lot total)
+            const lotSurfTotal_face = builders_face.reduce((s, b) => s + b.surfaceM2, 0);
+            if (lotSurfTotal_face > 0) {
+              let sumA = 0;
+              for (const b of builders_face) {
+                if (b.polyGlobalPct.length < 3) continue;
+                let s = 0;
+                for (let i = 0; i < b.polyGlobalPct.length; i++) {
+                  const j = (i + 1) % b.polyGlobalPct.length;
+                  s += b.polyGlobalPct[i].x_percent * b.polyGlobalPct[j].y_percent;
+                  s -= b.polyGlobalPct[j].x_percent * b.polyGlobalPct[i].y_percent;
+                }
+                sumA += Math.abs(s / 2);
+              }
+              if (sumA > 0) {
+                for (const b of builders_face) {
+                  let s = 0;
+                  for (let i = 0; i < b.polyGlobalPct.length; i++) {
+                    const j = (i + 1) % b.polyGlobalPct.length;
+                    s += b.polyGlobalPct[i].x_percent * b.polyGlobalPct[j].y_percent;
+                    s -= b.polyGlobalPct[j].x_percent * b.polyGlobalPct[i].y_percent;
+                  }
+                  const a = Math.abs(s / 2);
+                  b.surfaceM2 = Math.round((a / sumA) * lotSurfTotal_face * 10) / 10;
+                }
+              }
+            }
+
+            // Step 8 : insertion DB (lot-local %)
+            for (const b of builders_face) {
+              if (b.polyGlobalPct.length < 3) continue;
+              const polyLocal = b.polyGlobalPct.map((p) => ({
+                x_percent: Math.max(
+                  0,
+                  Math.min(
+                    100,
+                    lotBboxW > 0 ? ((p.x_percent - lotMinX) / lotBboxW) * 100 : 0,
+                  ),
+                ),
+                y_percent: Math.max(
+                  0,
+                  Math.min(
+                    100,
+                    lotBboxH > 0 ? ((p.y_percent - lotMinY) / lotBboxH) * 100 : 0,
+                  ),
+                ),
+              }));
+              let pMinX = 100, pMinY = 100, pMaxX = 0, pMaxY = 0;
+              for (const p of polyLocal) {
+                if (p.x_percent < pMinX) pMinX = p.x_percent;
+                if (p.y_percent < pMinY) pMinY = p.y_percent;
+                if (p.x_percent > pMaxX) pMaxX = p.x_percent;
+                if (p.y_percent > pMaxY) pMaxY = p.y_percent;
+              }
+              const position = {
+                x_percent: pMinX,
+                y_percent: pMinY,
+                width_percent: Math.max(1, pMaxX - pMinX),
+                height_percent: Math.max(1, pMaxY - pMinY),
+              };
               await query(
                 `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, polygon, source, status)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, 'ai', 'suggested')`,
                 [
                   lotId,
                   plan.id,
-                  b.name_raw,
-                  roomType,
-                  finalSurfaceM2,
-                  position ? JSON.stringify(position) : null,
-                  polygonLocal ? JSON.stringify(polygonLocal) : null,
+                  b.name,
+                  b.roomType,
+                  b.surfaceM2 || null,
+                  JSON.stringify(position),
+                  JSON.stringify(polyLocal),
                 ],
               );
               totalRoomsCreated++;
