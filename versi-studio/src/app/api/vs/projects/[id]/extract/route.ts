@@ -86,6 +86,7 @@ import {
   classifyRooms,
   LotClassifierError,
 } from "@/lib/vs/lot-classifier";
+import { extractLotVector, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
 // passe-2 + OCR + passe-3 × N plans). Sans cela : coupure réseau ~60-100s
@@ -157,13 +158,13 @@ export async function POST(
       [projectId]
     );
 
-    // ─── s27 — Branchement nouveau pipeline (M1→M5) ──────────────────
-    // Activé uniquement si VS_NEW_PIPELINE=true. Fail-fast (P0 s27) :
-    // les erreurs typées des modules sont mappées en 422 visible UI,
-    // jamais de fallback silencieux vers le pipeline legacy.
+    // ─── s27 — Pipeline NEW v6 vectoriel (extracteur PDF direct) ─────
+    // Activé si VS_NEW_PIPELINE=true. UN polygone bbox-percentile par plan,
+    // précision pixel-level (coords PDF vectoriel → CTM viewport.transform).
+    // Fail-fast P0 : erreurs mappées en 422, jamais de fallback silencieux.
     if (process.env.VS_NEW_PIPELINE === "true") {
       console.log(
-        `[extract] pipeline=NEW (VS_NEW_PIPELINE=true), plans=${plansResult.rows.length}`
+        `[extract] pipeline=NEW v6 vector (VS_NEW_PIPELINE=true), plans=${plansResult.rows.length}`
       );
       try {
         const newPipelineLots: Array<{ name: string; floor: number }> = [];
@@ -171,122 +172,47 @@ export async function POST(
         for (const plan of plansResult.rows) {
           const fileBuffer = await readFile(plan.file_path);
 
-          // M1 — Détection type PDF
-          const detection = await detectPdfType(fileBuffer);
-          console.log(
-            `[extract/NEW] plan ${plan.id} (floor=${plan.floor_number}) ` +
-              `type=${detection.type} (paths=${detection.vectorPathCount}, ` +
-              `images=${detection.imageCount}, conf=${detection.confidence.toFixed(2)})`
-          );
-
-          // M2/M3 — Extraction segments selon type + raster page pour OCR
-          let segments: WallSegmentInput[];
-          let pngBuffer: Buffer;
-          let imageWidth: number;
-          let imageHeight: number;
-
-          // Toujours rasteriser la page 1 en PNG (utilisé par M5 pour OCR)
-          // Pattern existant ligne 213-220 (pdf-to-img scale=3).
-          {
-            const { pdf } = await import("pdf-to-img");
-            const pages = await pdf(fileBuffer, { scale: 3 });
-            let firstPage: Buffer | null = null;
-            for await (const page of pages) {
-              firstPage = Buffer.from(page);
-              break;
-            }
-            if (!firstPage) {
-              throw new Error(
-                `Rasterisation page 1 échouée pour plan ${plan.id}`
-              );
-            }
-            pngBuffer = firstPage;
-            const meta = await sharp(pngBuffer).metadata();
-            imageWidth = meta.width ?? 0;
-            imageHeight = meta.height ?? 0;
-          }
-
-          if (detection.type === "vector") {
-            const vectorResult = await extractWallSegments(fileBuffer);
-            // s27 fix #2 — filtrage par lineWidth pour ne garder QUE les murs.
-            // Empirique sur 4 plans archi Muguets : seuil 1.13pt élimine
-            // mobilier/cotes (typ 0.24-0.85pt) et garde murs intérieurs+extérieurs
-            // (typ 1.13-2.13pt). Override via VS_WALL_MIN_LINEWIDTH env.
-            const minLineWidth = parseFloat(
-              process.env.VS_WALL_MIN_LINEWIDTH ?? "1.13"
+          // Extraction vectorielle directe : 1 polygone bbox par plan.
+          const result = await extractLotVector(fileBuffer, { scale: 3 });
+          const poly = result.polygon;
+          if (poly.length < 3) {
+            console.warn(
+              `[extract/NEW v6] plan ${plan.id}: polygone vide → skip`
             );
-            const wallSegments = filterWallsByLineWidth(
-              vectorResult.segments,
-              minLineWidth
-            );
-            console.log(
-              `[extract/NEW] plan ${plan.id}: M2 vector → ${vectorResult.segments.length} ` +
-                `total segments → ${wallSegments.length} murs (lineWidth ≥ ${minLineWidth}pt)`
-            );
-            // Reprojection user-space PDF → pixels raster (scale = imageWidth/pageWidth)
-            const sx =
-              vectorResult.pageWidth > 0
-                ? imageWidth / vectorResult.pageWidth
-                : 1;
-            const sy =
-              vectorResult.pageHeight > 0
-                ? imageHeight / vectorResult.pageHeight
-                : 1;
-            segments = wallSegments.map((s) => ({
-              x1: s.x1 * sx,
-              y1: s.y1 * sy,
-              x2: s.x2 * sx,
-              y2: s.y2 * sy,
-            }));
-          } else {
-            // bitmap | hybrid → M3 sur raster
-            const bitmapResult = await extractWallSegmentsFromBitmap(pngBuffer);
-            segments = bitmapResult.segments;
-            console.log(
-              `[extract/NEW] plan ${plan.id}: M3 bitmap → ${segments.length} segments ` +
-                `(raster ${bitmapResult.imageWidth}×${bitmapResult.imageHeight})`
-            );
-          }
-
-          // M4 — Graphe + détection pièces (faces planaires)
-          const graph = buildWallGraph(segments);
-          const rooms = detectRooms(graph);
-          console.log(
-            `[extract/NEW] plan ${plan.id}: M4 → ${graph.nodes.length} nodes, ` +
-              `${graph.edges.length} edges, ${rooms.length} rooms`
-          );
-
-          // M5 — Classification lots vs communs (OCR + adjacence)
-          const { lots, communs } = await classifyRooms(rooms, pngBuffer);
-          console.log(
-            `[extract/NEW] plan ${plan.id}: M5 → ${lots.length} lots, ${communs.length} communs`
-          );
-
-          // Persistance : convertir polygones pixels → % plan-global, écrire vs_lots
-          for (const lot of lots) {
-            // Polygone enveloppe en % (point source unique pour bbox dérivée)
-            const polyPct = lot.envelope.points.map((p) => ({
-              x_percent: imageWidth > 0 ? (p.x / imageWidth) * 100 : 0,
-              y_percent: imageHeight > 0 ? (p.y / imageHeight) * 100 : 0,
-            }));
-            const zoneData = { type: "polygon", points: polyPct };
-
             await query(
-              `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
-               VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
-              [
-                projectId,
-                lot.name,
-                plan.floor_number,
-                null,
-                JSON.stringify(zoneData),
-                detection.confidence,
-              ]
+              "UPDATE vs_plans SET extraction_status = 'done' WHERE id = $1",
+              [plan.id]
             );
-            newPipelineLots.push({ name: lot.name, floor: plan.floor_number });
+            continue;
           }
+          console.log(
+            `[extract/NEW v6] plan ${plan.id} (floor=${plan.floor_number}): ` +
+              `${result.wallSegments.length} segments murs → polygone ${poly.length} sommets`
+          );
 
-          // Marquer le plan en done (pipeline NEW ne stocke pas extraction_data)
+          // Conversion coords pixel → % plan-global pour persistance.
+          const polyPct = poly.map((p) => ({
+            x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+            y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+          }));
+          const zoneData = { type: "polygon", points: polyPct };
+
+          // Nom lot par défaut basé sur étage. UI permettra renommage.
+          const lotName = `Lot étage ${plan.floor_number ?? 0}`;
+          await query(
+            `INSERT INTO vs_lots (project_id, name, floor_number, surface_m2, zone_data, source, status, confidence_avg)
+             VALUES ($1, $2, $3, $4, $5, 'ai', 'suggested', $6)`,
+            [
+              projectId,
+              lotName,
+              plan.floor_number,
+              null,
+              JSON.stringify(zoneData),
+              0.95, // vector extraction = haute confiance par construction
+            ]
+          );
+          newPipelineLots.push({ name: lotName, floor: plan.floor_number });
+
           await query(
             "UPDATE vs_plans SET extraction_status = 'done' WHERE id = $1",
             [plan.id]
@@ -303,15 +229,16 @@ export async function POST(
           },
         });
       } catch (newPipelineErr) {
-        // Erreurs typées M1→M5 : mapper en 422 avec message clair, pas de fallback.
-        // Marquer tous les plans en failed pour cohérence UI.
+        // Erreurs typées : mapper en 422 avec message clair, pas de fallback.
         await query(
           "UPDATE vs_plans SET extraction_status = 'failed' WHERE project_id = $1",
           [projectId]
         );
 
         let errorMessage = "Échec du nouveau pipeline d'extraction.";
-        if (newPipelineErr instanceof PdfTypeDetectorError) {
+        if (newPipelineErr instanceof LotVectorExtractorError) {
+          errorMessage = `Extraction vectorielle échouée [${newPipelineErr.code}] : ${newPipelineErr.message}`;
+        } else if (newPipelineErr instanceof PdfTypeDetectorError) {
           errorMessage = `Détection type PDF échouée : ${newPipelineErr.message}`;
         } else if (newPipelineErr instanceof PdfVectorParserError) {
           errorMessage = `Extraction vectorielle échouée [${newPipelineErr.code}] : ${newPipelineErr.message}`;
@@ -325,7 +252,7 @@ export async function POST(
           errorMessage = `Pipeline NEW : ${newPipelineErr.message}`;
         }
 
-        console.error("[extract/NEW] échec :", newPipelineErr);
+        console.error("[extract/NEW v6] échec :", newPipelineErr);
         return NextResponse.json(
           { success: false, error: errorMessage },
           { status: 422 }
