@@ -250,6 +250,11 @@ Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT test
 
 `scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Source s24, voir docs/claude-md-archive.md.
 
+### Règles s27.2 — autopilot + vérification rigoureuse (propagées s28)
+
+- **Autopilot grid params = time-box strict 5 min.** Pour tout test grid (Playwright matrix, mutation testing, eval prompt grid), commencer par 12-18 configs ciblées. Si > 5 min projeté → kill et réduire la grille avant relance. Validé s27.2 : grid 108 configs autopilot extracteur = 36+ min projeté, killed après 4 itérations en 5 min ; grid 24 configs = 12 min, encore killed.
+- **Vérification rigoureuse pre-claim (anti « as-tu seulement vérifié ? »).** Avant tout claim PASS « final / parfait » sur un livrable visuel ou un fix UI, faire un compte-rendu de vérification bord par bord / point par point / cas par cas. Format obligatoire : tableau ou liste avec verdict (✓/✗) sur chaque sous-élément. Si rien n'a été vérifié → écrire « LIVRÉ NON-VÉRIFIÉ — à valider par Thomas ». Trigger Thomas s27.2 : « as-tu seulement vérifié ? » → on n'a pas comparé rigoureusement avec la référence. Source s27.2.
+
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system

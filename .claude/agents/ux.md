@@ -33,6 +33,11 @@ Quand l'utilisateur demande "je ne vois pas la feature X", vérifier la DÉCOUVR
 
 Pour chaque texte UI, test "persona en 2s". INTERDIT de substituer un jargon par un autre jargon du même domaine ("polygone" → "contour libre" rejeté). Mot pivot métier obligatoire dans glossaire (ex : "lot" pour un plan immobilier). Coordonner avec @copywriter. Source s23, voir docs/claude-md-archive.md.
 
+### Règles s27.2 — UX canvas + visibilité par défaut (propagées s28)
+
+- **Drag UX = commit séparé du visuel (pattern Figma/Sketch/Excalidraw).** Pendant un drag, mise à jour visuelle continue mais UN seul snapshot historique au mouseup. Si on fait l'erreur de snapshoter à chaque move event → Ctrl+Z décompose le déplacement en N micro-undos par pixel = UX cassée. Spec UX obligatoire pour tout canvas éditable : 2 callbacks séparés (`onZoneChange` visuel temps réel / `onZoneCommit` snapshot final). Coordonner avec @fullstack pour l'implémentation dual-callback. Source s27.2 (Versi Studio RoomCanvas).
+- **Présélection au chargement = visibilité par défaut.** Quand l'utilisateur dit « le X n'est pas assez visible de base », fix le plus efficace = sélectionner automatiquement le 1er élément au load (pas changer le styling de l'élément non-sélectionné). Pattern : `useEffect` + `ref` pour ne pas réécraser une sélection user existante. Le contour vert/highlight de l'élément sélectionné devient le feedback visuel par défaut. Source s27.2 (lot présélectionné Versi Studio).
+
 ### Leviers IA
 
 - Analyse heuristique automatisée des parcours existants (détection de frictions par patterns)

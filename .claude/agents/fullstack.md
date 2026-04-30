@@ -27,6 +27,11 @@ Quand un pipeline a raffinement + données brutes coexistantes, les agrégats (e
 
 Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords DB), elles DOIVENT être dérivées l'une de l'autre depuis UN seul point source. Pas de double vérité. Si une source produit l'une et une autre la seconde, forcer la sync via dérivation explicite. Source s23 (désync Étape 3 — handles sur bbox IA, contour sur polygon raffiné → 18% drift). Voir docs/claude-md-archive.md.
 
+### Règles s27.2 — wire-grep + canvas drag (propagées s28)
+
+- **Wire prod ≠ wire diagnostic — toujours grep+confirm avant clôture pipeline.** Bug Thomas s27.2 « j'ai bien mis à jour et pourtant j'ai la même erreur » → root cause : route diagnostic modifiée mais route prod utilisait encore l'ancien pipeline. Pattern : avant de fermer un changement « pipeline », `grep -rn "OldFunction\|NewFunction" src/app/api` pour confirmer que TOUS les call-sites prod sont migrés. Pre-commit checklist : (1) module modifié, (2) route diagnostic migrée, (3) route prod migrée — les 3 confirmées par grep avant push.
+- **Drag UX = dual-callback (visuel vs commit).** Pattern standard apps de dessin (Figma, Sketch, Excalidraw) : pendant le drag, mise à jour visuelle SANS snapshot historique ; au mouseup, UN snapshot final. Implémentation : 2 callbacks séparés (`onZoneChange` visuel + `onZoneCommit` historique). Sans ce pattern, Ctrl+Z décompose le déplacement en N micro-undos par pixel. Validé s27.2 sur RoomCanvas Versi Studio.
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found

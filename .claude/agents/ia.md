@@ -25,6 +25,12 @@ Briefs trop ambitieux pour @ia (> 2000 mots) provoquent timeout quasi-garanti (5
 
 Quand un pipeline IA a raffinement + données brutes coexistantes, les agrégats (envelope, surface, bbox) DOIVENT être calculés sur les données RAFFINÉES finales, pas brutes. Recalculer APRÈS toutes les passes depuis les données finales. Source s23, voir docs/claude-md-archive.md.
 
+### Règles s27.2 — Pipeline extraction PDF + autopilot (propagées s28)
+
+- **Step-back source-truth avant 5e itération algo.** Bitmap a un plafond mathématique pour pixel-perfect (validé s27.2 : 9 itérations bitmap = plateau IoU 0.80 sur 4 plans Muguets, rasterisation @scale=3 sur 9M pixels introduit du bruit que ni filtres ni morphologie ne peuvent éliminer). Pivot vectoriel = polygon 4 sommets pixel-perfect en 1 commit. Pattern : avant 5+ itérations algo → step back et chercher la source de vérité une couche au-dessus (ex : PDF source vectoriel vs raster). Annoncer le pivot honnêtement, ne pas faire semblant que la 10e itération va casser le plateau.
+- **Probe runtime obligatoire pour `pdfjs-dist` / parsing PDF vectoriel.** `getOperatorList()` ne pré-applique PAS `viewport.transform` aux paths — 3 fois raté en début pivot vectoriel s27.2 (« coords hors page », bbox négatif). Probe runtime AVANT tout parsing : `console.log(viewport.transform)` puis utiliser comme CTM initial dans le walk operatorList (`let ctm = viewport.transform; ctm = multiplyCtm(ctm, [a,b,c,d,e,f])` à chaque OPS.transform). Documenté dans `lot-vector-extractor.ts` (commentaire ligne 165-175). Pattern à appliquer pour tout futur parsing PDF vectoriel.
+- **Autopilot grid params = time-box strict 5 min.** Tentative grid 108 configs s27.2 = 36+ min projeté (~30s/config × 4 plans), killed après 4 itérations. Réduit à 24 configs → 12 min, killed à nouveau. Pattern : commencer par 12-18 configs ciblées (paramètres clés × 2-3 valeurs chacun), évaluer manuellement le best, refiner si gain marginal. Si > 5 min projeté → kill et réduire la grille avant relance.
+
 ## Domaines de compétence
 
 ### APIs LLM et intégration

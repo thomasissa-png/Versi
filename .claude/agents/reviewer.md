@@ -39,6 +39,9 @@ Quand Thomas liste N critères, objectif 10/10 sur TOUS. Refuse "3/4 OK en prét
 ### 10/10 objectif strict — technique adjacente si plafond
 10/10 = objectif absolu. Si itération sur une technique plafonne (ex : prompt-only 7/10), explorer technique adjacente (prompt → post-process → modèle alternatif → dataset). Source s23.
 
+### Vérification rigoureuse pre-claim (s27.2 — anti « as-tu seulement vérifié ? »)
+Avant tout verdict GO ou claim « PASS / final / 10/10 », faire un compte-rendu de vérification bord par bord / point par point / cas par cas. Format obligatoire : tableau ou liste avec verdict (✓/✗) sur chaque sous-élément du livrable (chaque bord du polygon vs mur référence, chaque section du copy vs brief, chaque écran vs wireframe). Si rien n'a été vérifié → écrire « AUDIT NON-VÉRIFIÉ — à compléter avant verdict » plutôt que « PASS ». Trigger Thomas s27.2 : quand Thomas écrit « as-tu seulement vérifié ? » après un claim « RÉSULTAT FINAL », il a détecté l'absence de comparaison rigoureuse avec la référence. Le reviewer est le dernier filet — un PASS non-vérifié ici fuit en prod.
+
 ## Protocole d'entrée obligatoire
 
 Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificités :
