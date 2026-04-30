@@ -28,6 +28,15 @@ import {
   type Point as ResolverPoint,
 } from "@/lib/vs/polygon-resolver";
 import {
+  syncRoomSurfacesWithPolygons,
+} from "@/lib/vs/room-surface-sync";
+import {
+  snapPolygonToWalls,
+  polygonPctToPx,
+  polygonPxToPct,
+  type WallSegment,
+} from "@/lib/vs/wall-snap";
+import {
   verifyAndCorrectPolygons,
   applyCorrections,
   type RoomForVerify,
@@ -289,40 +298,174 @@ export async function POST(
               [JSON.stringify(extraction), plan.id]
             );
 
-            // Insertion des vs_rooms : 1 plan = 1 lot vectoriel (s27 v6).
-            // Pas de filtrage spatial requis : toutes les pièces extraites du
-            // plan appartiennent au lot du plan (mapping 1:1). C'est la branche
-            // LEGACY (multi-lots/plan) qui filtre par overlap.
-            for (const room of extraction.rooms) {
-              const bb = room.bounding_box;
-              if (!bb) continue;
+            // ─── s28 — Post-process invariants métier (3 fixes) ──────
+            // Bug Thomas s28 : "Le séjour y a écrit 25m² mais la taille est
+            // plus petite que la chambre alors que y a écrit 12m² pour la
+            // chambre. Les emplacements sont écrits sur le plan mais on en
+            // tient pas compte. On tient pas compte non plus des lignes
+            // orange des murs."
+            //
+            // Fixes appliqués (ordre important) :
+            //   A. CLIP polygones rooms ⊆ polygone lot vectoriel (invariant 2a)
+            //   B. SNAP vertices sur segments murs orange (invariant 2b)
+            //   C. SYNC surface m² depuis polygone (invariant 1)
 
-              const roomType = inferRoomTypeFromName(room.name_raw);
+            // ─── Step A : pré-calcul des polygones plan-global ───────
+            // On commence par les polygones IA en plan-global (% image),
+            // car le clip et le snap travaillent dans cet espace.
+            type RoomBuilder = {
+              roomIdx: number;
+              name_raw: string;
+              roomType: string;
+              rawSurfaceM2: number | null;
+              polygonGlobalPct:
+                | Array<{ x_percent: number; y_percent: number }>
+                | null;
+            };
+            const builders: RoomBuilder[] = extraction.rooms.map(
+              (room, idx) => {
+                const polyG =
+                  room.bounding_polygon && room.bounding_polygon.length >= 3
+                    ? room.bounding_polygon.map((pt) => ({
+                        x_percent: pt.x_percent,
+                        y_percent: pt.y_percent,
+                      }))
+                    : null;
+                return {
+                  roomIdx: idx,
+                  name_raw: room.name_raw,
+                  roomType: inferRoomTypeFromName(room.name_raw),
+                  rawSurfaceM2: room.surface_m2 ?? null,
+                  polygonGlobalPct: polyG,
+                };
+              }
+            );
+
+            // ─── Step A : CLIP polygones rooms sur polygone lot (s28 inv 2a) ───
+            // Garantit pieces ⊆ lot — supprime tout débord sur la terrasse,
+            // l'escalier commun ou les zones extérieures.
+            // polyPct est le polygone du lot (vectoriel) en % image globale.
+            const lotBoundaryPct: ResolverPoint[] = polyPct.map((p) => ({
+              x_percent: p.x_percent,
+              y_percent: p.y_percent,
+            }));
+            let clippedCount = 0;
+            for (const b of builders) {
+              if (!b.polygonGlobalPct || b.polygonGlobalPct.length < 3) continue;
+              const { polygon: clipped } = clipPolygonToBoundary(
+                b.polygonGlobalPct,
+                lotBoundaryPct,
+                0.3, // accepte une grosse réduction (le polygone IA peut déborder largement)
+              );
+              if (clipped && clipped.length >= 3) {
+                b.polygonGlobalPct = clipped;
+                clippedCount++;
+              }
+              // Si clip a échoué (résiduel < 30%), on garde le polygone IA
+              // brut — l'utilisateur pourra corriger manuellement.
+            }
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: ${clippedCount}/${builders.length} polygones clippés sur lot`,
+            );
+
+            // ─── Step B : SNAP vertices sur segments murs (s28 inv 2b) ───
+            // Pour chaque polygone room, projette ses vertices sur le segment
+            // mur orange le plus proche si distance < 12px (image native).
+            // Reste robuste même si certains polygones ne snappent pas.
+            const wallsForSnap: WallSegment[] = result.wallSegments.map((s) => ({
+              x1: s.x1,
+              y1: s.y1,
+              x2: s.x2,
+              y2: s.y2,
+            }));
+            const snapImgW = result.imageWidth;
+            const snapImgH = result.imageHeight;
+            let totalSnapped = 0;
+            if (
+              wallsForSnap.length > 0 &&
+              snapImgW > 0 &&
+              snapImgH > 0
+            ) {
+              for (const b of builders) {
+                if (!b.polygonGlobalPct || b.polygonGlobalPct.length < 3) continue;
+                const polyPx = polygonPctToPx(
+                  b.polygonGlobalPct,
+                  snapImgW,
+                  snapImgH,
+                );
+                const snapped = snapPolygonToWalls(polyPx, wallsForSnap, 12);
+                totalSnapped += snapped.snappedCount;
+                if (snapped.snappedCount > 0) {
+                  b.polygonGlobalPct = polygonPxToPct(
+                    snapped.polygon,
+                    snapImgW,
+                    snapImgH,
+                  );
+                }
+              }
+            }
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: ${totalSnapped} vertices snappés sur murs orange (${wallsForSnap.length} segments)`,
+            );
+
+            // ─── Step C : SYNC surfaces m² depuis polygones (s28 inv 1) ───
+            // Le polygone est la SOURCE DE VÉRITÉ. Surface IA brute → réallouée
+            // proportionnellement aux aires polygones POST-clip+snap, ancrée
+            // sur le total IA. Garantit Σ(surfaces_après) = Σ(surfaces_avant)
+            // mais avec ratios cohérents avec les polygones rendus.
+            const m2pp =
+              typeof plan.m2_per_pixel === "number" && plan.m2_per_pixel > 0
+                ? plan.m2_per_pixel
+                : null;
+            const syncResults = syncRoomSurfacesWithPolygons(
+              builders.map((b) => ({
+                id: String(b.roomIdx),
+                polygon: b.polygonGlobalPct,
+                rawSurfaceM2: b.rawSurfaceM2,
+              })),
+              {
+                m2PerPixelNative: m2pp,
+                naturalWidth: m2pp ? snapImgW : null,
+                naturalHeight: m2pp ? snapImgH : null,
+              },
+            );
+            const syncMap = new Map(syncResults.map((r) => [r.id, r]));
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: surfaces sync method=${syncResults[0]?.method ?? "n/a"}`,
+            );
+
+            // ─── Step D : conversion plan-global → lot-local + insertion DB ─
+            // Pas de filtrage spatial requis : toutes les pièces extraites du
+            // plan appartiennent au lot du plan (mapping 1:1).
+            for (const b of builders) {
+              const roomType = b.roomType;
+              const sync = syncMap.get(String(b.roomIdx));
+              const finalSurfaceM2 = sync?.surfaceM2 ?? b.rawSurfaceM2 ?? null;
 
               // Conversion polygon plan-global → lot-local
               let polygonLocal:
                 | Array<{ x_percent: number; y_percent: number }>
                 | null = null;
               if (
-                room.bounding_polygon &&
-                room.bounding_polygon.length >= 3 &&
+                b.polygonGlobalPct &&
+                b.polygonGlobalPct.length >= 3 &&
                 lotBboxW > 0 &&
                 lotBboxH > 0
               ) {
-                polygonLocal = room.bounding_polygon.map((pt) => ({
+                polygonLocal = b.polygonGlobalPct.map((pt) => ({
                   x_percent: Math.max(
                     0,
                     Math.min(
                       100,
-                      ((pt.x_percent - lotMinX) / lotBboxW) * 100
-                    )
+                      ((pt.x_percent - lotMinX) / lotBboxW) * 100,
+                    ),
                   ),
                   y_percent: Math.max(
                     0,
                     Math.min(
                       100,
-                      ((pt.y_percent - lotMinY) / lotBboxH) * 100
-                    )
+                      ((pt.y_percent - lotMinY) / lotBboxH) * 100,
+                    ),
                   ),
                 }));
               }
@@ -349,23 +492,31 @@ export async function POST(
                 }
               }
               if (!position && lotBboxW > 0 && lotBboxH > 0) {
-                const x = ((bb.x_percent - lotMinX) / lotBboxW) * 100;
-                const y = ((bb.y_percent - lotMinY) / lotBboxH) * 100;
-                const w = (bb.width_percent / lotBboxW) * 100;
-                const h = (bb.height_percent / lotBboxH) * 100;
-                position = {
-                  x_percent: Math.max(0, Math.min(100, x)),
-                  y_percent: Math.max(0, Math.min(100, y)),
-                  width_percent: Math.max(
-                    1,
-                    Math.min(100 - Math.max(0, x), w)
-                  ),
-                  height_percent: Math.max(
-                    1,
-                    Math.min(100 - Math.max(0, y), h)
-                  ),
-                };
+                // Fallback : bbox IA brute → re-norm sur lot-local
+                const origRoom = extraction.rooms[b.roomIdx];
+                const bb = origRoom?.bounding_box;
+                if (bb) {
+                  const x = ((bb.x_percent - lotMinX) / lotBboxW) * 100;
+                  const y = ((bb.y_percent - lotMinY) / lotBboxH) * 100;
+                  const w = (bb.width_percent / lotBboxW) * 100;
+                  const h = (bb.height_percent / lotBboxH) * 100;
+                  position = {
+                    x_percent: Math.max(0, Math.min(100, x)),
+                    y_percent: Math.max(0, Math.min(100, y)),
+                    width_percent: Math.max(
+                      1,
+                      Math.min(100 - Math.max(0, x), w),
+                    ),
+                    height_percent: Math.max(
+                      1,
+                      Math.min(100 - Math.max(0, y), h),
+                    ),
+                  };
+                }
               }
+
+              // Skip pièces sans aucune position calculable
+              if (!position && !polygonLocal) continue;
 
               await query(
                 `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, polygon, source, status)
@@ -373,12 +524,12 @@ export async function POST(
                 [
                   lotId,
                   plan.id,
-                  room.name_raw,
+                  b.name_raw,
                   roomType,
-                  room.surface_m2 ?? null,
+                  finalSurfaceM2,
                   position ? JSON.stringify(position) : null,
                   polygonLocal ? JSON.stringify(polygonLocal) : null,
-                ]
+                ],
               );
               totalRoomsCreated++;
             }
