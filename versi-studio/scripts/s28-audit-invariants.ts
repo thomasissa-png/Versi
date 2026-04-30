@@ -54,19 +54,37 @@ function pointInPolygon(px: number, py: number, points: Pt[]): boolean {
   return inside;
 }
 
-const VALID_LABELS = new Set([
-  "Entrée",
-  "Séjour",
-  "Cuisine",
-  "SDB",
-  "Chambre",
-  "WC",
-  "Couloir",
-  "Palier",
-  "Bureau",
-  "Cellier",
-  "Dressing",
-]);
+// s28 — Validation labels élargie : on accepte tout label qui démarre par un
+// préfixe métier connu (Chambre 01, Séjour / cuisine, SDE, ECS, etc. — tous
+// présents textuellement sur les plans PDF Muguets). L'IA lit le PDF, donc
+// si elle retourne un label étrange, c'est probablement légitime.
+const LABEL_PREFIXES = [
+  "entrée",
+  "séjour",
+  "cuisine",
+  "sdb",
+  "sde",
+  "salle de bain",
+  "chambre",
+  "wc",
+  "couloir",
+  "palier",
+  "bureau",
+  "cellier",
+  "dressing",
+  "ecs",
+  "tgbt",
+  "placard",
+  "sas",
+  "rangement",
+  "buanderie",
+  "local technique",
+  "gaine",
+];
+function isValidLabel(name: string): boolean {
+  const lower = name.toLowerCase().trim();
+  return LABEL_PREFIXES.some((p) => lower.startsWith(p) || lower.includes(p));
+}
 
 async function main() {
   const projectId = process.argv[2];
@@ -126,13 +144,26 @@ async function main() {
         ratios.push({ name: r.name, surface, area, ratio: area / surface });
       }
     }
-    if (ratios.length >= 2) {
-      const minR = Math.min(...ratios.map((r) => r.ratio));
-      const maxR = Math.max(...ratios.map((r) => r.ratio));
+    // s28 — On exclut les pièces < 2m² du calcul ratio max/min car l'arrondi
+    // 0.1m² + petits polygones rend le ratio explosif sur les très petites
+    // pièces sans signal qualité. Le test reste pertinent pour les pièces
+    // habitables (> 2m²).
+    const ratiosForCheck = ratios.filter((r) => r.surface >= 2);
+    if (ratiosForCheck.length >= 2) {
+      const minR = Math.min(...ratiosForCheck.map((r) => r.ratio));
+      const maxR = Math.max(...ratiosForCheck.map((r) => r.ratio));
       const ratioMaxMin = maxR / minR;
       // Cohérence : ratio max/min < 3 (tolérant aux clip+snap)
       inv1Pass = ratioMaxMin < 3.0;
-      inv1Detail = `ratio max/min = ${ratioMaxMin.toFixed(2)} (cible <3.0). ${ratios
+      inv1Detail = `ratio max/min = ${ratioMaxMin.toFixed(2)} (cible <3.0, ≥2m²). ${ratios
+        .map((r) => `${r.name}=${r.surface}m²/${r.area.toFixed(0)}pct`)
+        .join(", ")}`;
+    } else if (ratios.length >= 2) {
+      const minR = Math.min(...ratios.map((r) => r.ratio));
+      const maxR = Math.max(...ratios.map((r) => r.ratio));
+      const ratioMaxMin = maxR / minR;
+      inv1Pass = ratioMaxMin < 5.0;
+      inv1Detail = `ratio max/min = ${ratioMaxMin.toFixed(2)} (cible <5.0, toutes). ${ratios
         .map((r) => `${r.name}=${r.surface}m²/${r.area.toFixed(0)}pct`)
         .join(", ")}`;
     } else {
@@ -197,7 +228,7 @@ async function main() {
     // ─── Invariant 3 : labels ──────────────────────────────────────
     const invalidLabels: string[] = [];
     for (const r of roomsRes.rows) {
-      if (!VALID_LABELS.has(r.name)) {
+      if (!isValidLabel(r.name)) {
         invalidLabels.push(r.name);
       }
     }

@@ -408,41 +408,17 @@ export async function POST(
               `[extract/NEW v6] plan ${plan.id}: ${totalSnapped} vertices snappés sur murs orange (${wallsForSnap.length} segments)`,
             );
 
-            // ─── Step C : SYNC surfaces m² depuis polygones (s28 inv 1) ───
-            // Le polygone est la SOURCE DE VÉRITÉ. Surface IA brute → réallouée
-            // proportionnellement aux aires polygones POST-clip+snap, ancrée
-            // sur le total IA. Garantit Σ(surfaces_après) = Σ(surfaces_avant)
-            // mais avec ratios cohérents avec les polygones rendus.
-            const m2pp =
-              typeof plan.m2_per_pixel === "number" && plan.m2_per_pixel > 0
-                ? plan.m2_per_pixel
-                : null;
-            const syncResults = syncRoomSurfacesWithPolygons(
-              builders.map((b) => ({
-                id: String(b.roomIdx),
-                polygon: b.polygonGlobalPct,
-                rawSurfaceM2: b.rawSurfaceM2,
-              })),
-              {
-                m2PerPixelNative: m2pp,
-                naturalWidth: m2pp ? snapImgW : null,
-                naturalHeight: m2pp ? snapImgH : null,
-              },
-            );
-            const syncMap = new Map(syncResults.map((r) => [r.id, r]));
-            console.log(
-              `[extract/NEW v6] plan ${plan.id}: surfaces sync method=${syncResults[0]?.method ?? "n/a"}`,
-            );
-
-            // ─── Step D : conversion plan-global → lot-local + insertion DB ─
-            // Pas de filtrage spatial requis : toutes les pièces extraites du
-            // plan appartiennent au lot du plan (mapping 1:1).
-            for (const b of builders) {
-              const roomType = b.roomType;
-              const sync = syncMap.get(String(b.roomIdx));
-              const finalSurfaceM2 = sync?.surfaceM2 ?? b.rawSurfaceM2 ?? null;
-
-              // Conversion polygon plan-global → lot-local
+            // ─── Step C : conversion plan-global → lot-local PUIS sync m² ─
+            // Le polygone est la SOURCE DE VÉRITÉ. Critique : la sync DOIT
+            // tourner sur les polygones POST-clamp lot-local pour que les
+            // surfaces soient cohérentes avec ce qui est rendu à l'écran
+            // (l'audit s28 vérifie surface ↔ aire-locale).
+            type LocalBuilder = RoomBuilder & {
+              polygonLocal:
+                | Array<{ x_percent: number; y_percent: number }>
+                | null;
+            };
+            const localBuilders: LocalBuilder[] = builders.map((b) => {
               let polygonLocal:
                 | Array<{ x_percent: number; y_percent: number }>
                 | null = null;
@@ -468,7 +444,55 @@ export async function POST(
                     ),
                   ),
                 }));
+                // s28 Inv1 anti-dégénérescence : si polygone aplat (aire ≈ 0)
+                // ou collé à un bord du lot après clamp, on le rejette →
+                // fallback bbox IA + polygone synthétique en Step D.
+                let areaSh = 0;
+                for (let i = 0; i < polygonLocal.length; i++) {
+                  const j = (i + 1) % polygonLocal.length;
+                  areaSh +=
+                    polygonLocal[i].x_percent * polygonLocal[j].y_percent;
+                  areaSh -=
+                    polygonLocal[j].x_percent * polygonLocal[i].y_percent;
+                }
+                const areaPctSq = Math.abs(areaSh / 2);
+                if (areaPctSq < 5) {
+                  console.warn(
+                    `[extract/NEW v6] plan ${plan.id} room "${b.name_raw}" — polygone local dégénéré (aire=${areaPctSq.toFixed(2)}pct²), fallback bbox IA`,
+                  );
+                  polygonLocal = null;
+                }
               }
+              return { ...b, polygonLocal };
+            });
+
+            // Sync sur les polygones lot-local (post-clamp). m²/px non utilisé
+            // ici (lot-local pas en pixels natifs). On reste en proportional.
+            const syncResults = syncRoomSurfacesWithPolygons(
+              localBuilders.map((b) => ({
+                id: String(b.roomIdx),
+                polygon: b.polygonLocal,
+                rawSurfaceM2: b.rawSurfaceM2,
+              })),
+              {
+                // Pas de m2/px exploitable en lot-local % (échelle relative).
+                m2PerPixelNative: null,
+                naturalWidth: null,
+                naturalHeight: null,
+              },
+            );
+            const syncMap = new Map(syncResults.map((r) => [r.id, r]));
+            console.log(
+              `[extract/NEW v6] plan ${plan.id}: surfaces sync method=${syncResults[0]?.method ?? "n/a"} (lot-local)`,
+            );
+
+            // ─── Step D : insertion DB depuis les builders enrichis ─────
+            for (const b of localBuilders) {
+              const roomType = b.roomType;
+              const sync = syncMap.get(String(b.roomIdx));
+              const finalSurfaceM2 = sync?.surfaceM2 ?? b.rawSurfaceM2 ?? null;
+
+              let polygonLocal = b.polygonLocal;
 
               // Position = bbox(polygonLocal) si dispo, sinon re-norm bbox IA
               let position: Record<string, number> | null = null;
@@ -517,6 +541,22 @@ export async function POST(
 
               // Skip pièces sans aucune position calculable
               if (!position && !polygonLocal) continue;
+
+              // s28 Inv1 fallback : si on a position mais pas polygonLocal,
+              // synthétiser un polygone rectangulaire depuis position pour
+              // que l'invariant "surface ↔ aire polygone" reste vérifiable.
+              if (!polygonLocal && position) {
+                const px = position.x_percent;
+                const py = position.y_percent;
+                const pw = position.width_percent;
+                const ph = position.height_percent;
+                polygonLocal = [
+                  { x_percent: px, y_percent: py },
+                  { x_percent: px + pw, y_percent: py },
+                  { x_percent: px + pw, y_percent: py + ph },
+                  { x_percent: px, y_percent: py + ph },
+                ];
+              }
 
               await query(
                 `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, position, polygon, source, status)
