@@ -30,6 +30,7 @@
  */
 
 import sharp from "sharp";
+import { smartLineSnap } from "./smart-line-snap";
 
 export type LabelSeed = {
   text: string;
@@ -665,15 +666,18 @@ export async function extractRoomsByFloodFill(
     if (contourRaw.length < 4) continue;
     let polygon = simplifyDP(contourRaw, simplifyTolerancePx);
     if (polygon.length < 4) continue;
-    // Snap final : pour chaque vertex, chercher le mur vectoriel le plus proche
-    // dans une fenêtre de 12px et y projeter. Garantit que les vertices du
-    // polygone sont sur les murs réels du PDF (essentiel pour l'audit C).
+    // s28 tour 11 — smart line snap (cohérence avec la fonction quota).
     if (vectorWalls.length > 0) {
-      // Tolérance 30px ≈ épaisseur d'un mur PDF (10cm × scale=3 = 30px).
-      // Les vertices flood-fill décalés par doorSealRadius (~6px) + l'épaisseur
-      // du tracé (~3px) sont absorbés. Au-delà de 30, risque de "coller" à
-      // un mur d'une pièce voisine.
-      polygon = snapPolygonToWalls(polygon, vectorWalls, 40);
+      polygon = smartLineSnap(polygon, vectorWalls, {
+        angleTolDeg: 18,
+        dragTolPx: 15,
+        parallelTolDeg: 22,
+        finalSnapTolPx: 5,
+        maxAreaDriftRatio: 0.08,
+      });
+      polygon = simplifyDP(polygon, 3);
+      if (polygon.length < 4) continue;
+      polygon = snapPolygonToWalls(polygon, vectorWalls, 5);
     }
 
     // Centroïde (moyenne)
@@ -1287,24 +1291,44 @@ export async function extractRoomsByQuotaFloodFill(
     }
     const contourRaw = traceContour(regionForContour, W, H, bboxForContour);
     if (contourRaw.length < 4) continue;
-    // s28 tour 9 — Douglas-Peucker conservateur (5px tour 8) pour préserver
-    // proximité au mur. DP > 5px crée des vertices à >5px du contour →
-    // Inv C fail. On garde la simplification fine pour toutes les pièces.
-    const dpTol = Math.max(simplifyTolerancePx, 3);
-    let polygon = simplifyDP(contourRaw, dpTol);
+    // s28 tour 11 — pivot SMART LINE SNAP.
+    // Avant : snap vertex-par-vertex casse Inv A (aire dérive) ↔ Inv C plateau.
+    // Maintenant : Douglas-Peucker AGRESSIF (épsilon 6px) pour casser
+    // l'escalier-pixel en lignes propres, puis smartLineSnap qui translate
+    // les LIGNES ENTIÈRES sur les murs (préserve l'aire de chaque ligne).
+    const dpTolFirst = Math.max(simplifyTolerancePx, 6);
+    let polygon = simplifyDP(contourRaw, dpTolFirst);
     if (polygon.length < 4) continue;
     if (vectorWalls.length > 0) {
-      // s28 tour 9 — Premier snap large (40px) : capture le mur réel quel
-      // que soit le décalage doorSeal/dilatation/DP. Indispensable pour les
-      // grandes pièces dont le BFS est borné en interne loin du mur.
-      polygon = snapPolygonToWalls(polygon, vectorWalls, 40);
-      // 2e passe DP fine (3px) après snap : élimine vertices co-linéaires
-      // sans réintroduire d'écart au mur.
+      // SMART LINE SNAP : ligne entière → mur entier (préserve l'aire ligne).
+      // L'expansion à un mur "vrai" est HOMOGÈNE entre toutes les pièces
+      // (toutes les pièces extendent de ~door-seal-radius). Le calibrage
+      // médian du scale post-extraction compense cette expansion homogène
+      // → Inv A reste OK.
+      polygon = smartLineSnap(polygon, vectorWalls, {
+        angleTolDeg: 18,
+        dragTolPx: 12,
+        parallelTolDeg: 22,
+        finalSnapTolPx: 5,
+        maxAreaDriftRatio: 0.20, // 20% car door-seal-radius=6px sur 100px = 12% expansion
+      });
+      // 2e passe DP fine (3px) post-snap : élimine vertices co-linéaires
+      // après que les lignes ont été alignées sur les murs.
       polygon = simplifyDP(polygon, 3);
-      // 3e passe re-snap STRICT (5px) : ramène tout vertex restant à ≤5px
-      // d'un mur connu. Indispensable pour Inv C ≥ 95%.
+      if (polygon.length < 4) continue;
+      // 3e passe smartLineSnap fine : capture les petits segments résiduels
+      polygon = smartLineSnap(polygon, vectorWalls, {
+        angleTolDeg: 12,
+        dragTolPx: 6,
+        parallelTolDeg: 15,
+        finalSnapTolPx: 5,
+        maxAreaDriftRatio: 0.05,
+      });
+      // 4e passe : snap RÉSIDUEL vertex-par-vertex à très faible tolérance
+      // (4px) — pour ramener à <=5px les vertices que smart-line n'a pas
+      // pu déplacer (cas isolés type coin entre 2 lignes non snapées).
       if (polygon.length >= 4) {
-        polygon = snapPolygonToWalls(polygon, vectorWalls, 5);
+        polygon = snapPolygonToWalls(polygon, vectorWalls, 4);
       }
     }
 
