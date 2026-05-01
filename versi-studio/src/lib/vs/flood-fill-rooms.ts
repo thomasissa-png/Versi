@@ -1300,35 +1300,29 @@ export async function extractRoomsByQuotaFloodFill(
     let polygon = simplifyDP(contourRaw, dpTolFirst);
     if (polygon.length < 4) continue;
     if (vectorWalls.length > 0) {
-      // SMART LINE SNAP : ligne entière → mur entier (préserve l'aire ligne).
-      // L'expansion à un mur "vrai" est HOMOGÈNE entre toutes les pièces
-      // (toutes les pièces extendent de ~door-seal-radius). Le calibrage
-      // médian du scale post-extraction compense cette expansion homogène
-      // → Inv A reste OK.
+      // SMART LINE SNAP — passe 1 : tolérance MOYENNE (15px) — capture les
+      // décalages doorSealRadius (6-12px) sans fusionner avec murs voisins.
       polygon = smartLineSnap(polygon, vectorWalls, {
         angleTolDeg: 18,
-        dragTolPx: 12,
+        dragTolPx: 15,
         parallelTolDeg: 22,
         finalSnapTolPx: 5,
-        maxAreaDriftRatio: 0.20, // 20% car door-seal-radius=6px sur 100px = 12% expansion
+        maxAreaDriftRatio: 0.18,
       });
-      // 2e passe DP fine (3px) post-snap : élimine vertices co-linéaires
-      // après que les lignes ont été alignées sur les murs.
       polygon = simplifyDP(polygon, 3);
       if (polygon.length < 4) continue;
-      // 3e passe smartLineSnap fine : capture les petits segments résiduels
+      // Passe 2 : tolérance fine (7px) — affine les segments résiduels.
       polygon = smartLineSnap(polygon, vectorWalls, {
-        angleTolDeg: 12,
-        dragTolPx: 6,
-        parallelTolDeg: 15,
+        angleTolDeg: 14,
+        dragTolPx: 7,
+        parallelTolDeg: 18,
         finalSnapTolPx: 5,
         maxAreaDriftRatio: 0.05,
       });
-      // 4e passe : snap RÉSIDUEL vertex-par-vertex à très faible tolérance
-      // (4px) — pour ramener à <=5px les vertices que smart-line n'a pas
-      // pu déplacer (cas isolés type coin entre 2 lignes non snapées).
+      // Passe 3 : snap vertex final 5px (limite Inv C). Tolérance étroite
+      // pour ne pas casser l'aire localement.
       if (polygon.length >= 4) {
-        polygon = snapPolygonToWalls(polygon, vectorWalls, 4);
+        polygon = snapPolygonToWalls(polygon, vectorWalls, 5);
       }
     }
 
