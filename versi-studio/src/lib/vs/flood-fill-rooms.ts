@@ -159,6 +159,11 @@ async function buildWallMask(
 /**
  * Cherche un seed non-wall en spirale depuis (cx, cy) dans la mask.
  * Retourne null si rien trouvé dans le rayon.
+ *
+ * s28 tour 8 — Évite les "bons-mais-mauvais" seeds : si on accepte le 1er
+ * pixel libre venu, on tombe parfois dans un placard de 30px collé à un mur
+ * (le flood-fill se limite au placard). On préfère un seed dont le
+ * VOISINAGE 11x11 est majoritairement libre (= grande pièce, pas un coin).
  */
 function findNonWallSeed(
   mask: Uint8Array,
@@ -169,7 +174,52 @@ function findNonWallSeed(
   radius: number,
 ): { x: number; y: number } | null {
   if (cx < 0 || cx >= W || cy < 0 || cy >= H) return null;
-  if (mask[cy * W + cx] === 0) return { x: cx, y: cy };
+  // Mesure de "qualité" d'un seed : nombre de pixels libres dans un voisinage
+  // 11×11 (rayon 5). Un seed "bien centré" dans une pièce ouverte aura ~121
+  // pixels libres ; un seed dans un placard étroit aura ~30.
+  const qualityRadius = 5;
+  const seedQuality = (x: number, y: number): number => {
+    let count = 0;
+    for (let oy = -qualityRadius; oy <= qualityRadius; oy++) {
+      const yy = y + oy;
+      if (yy < 0 || yy >= H) continue;
+      const row = yy * W;
+      for (let ox = -qualityRadius; ox <= qualityRadius; ox++) {
+        const xx = x + ox;
+        if (xx < 0 || xx >= W) continue;
+        if (mask[row + xx] === 0) count++;
+      }
+    }
+    return count;
+  };
+  // Si la position originale est libre ET d'excellente qualité, on la garde.
+  if (mask[cy * W + cx] === 0) {
+    const q0 = seedQuality(cx, cy);
+    // Voisinage 11×11 = 121 pixels max ; "très bon" = 95% libre = 115+
+    if (q0 >= 115) return { x: cx, y: cy };
+    // Sinon, on cherche un meilleur seed dans le rayon, en gardant la
+    // position originale comme fallback.
+    let bestX = cx, bestY = cy, bestQ = q0;
+    for (let r = 1; r <= Math.min(radius, 30); r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+          const x = cx + dx;
+          const y = cy + dy;
+          if (x < 0 || x >= W || y < 0 || y >= H) continue;
+          if (mask[y * W + x] !== 0) continue;
+          const q = seedQuality(x, y);
+          if (q > bestQ) { bestQ = q; bestX = x; bestY = y; }
+        }
+      }
+      // Si on a trouvé un seed de qualité parfaite, stop
+      if (bestQ >= 120) break;
+    }
+    return { x: bestX, y: bestY };
+  }
+  // Position originale sur un mur → spirale stricte avec préférence pour
+  // les seeds de meilleure qualité.
+  let bestX = -1, bestY = -1, bestQ = -1;
   for (let r = 1; r <= radius; r++) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
@@ -177,10 +227,16 @@ function findNonWallSeed(
         const x = cx + dx;
         const y = cy + dy;
         if (x < 0 || x >= W || y < 0 || y >= H) continue;
-        if (mask[y * W + x] === 0) return { x, y };
+        if (mask[y * W + x] !== 0) continue;
+        const q = seedQuality(x, y);
+        if (q > bestQ) { bestQ = q; bestX = x; bestY = y; }
       }
     }
+    // Une fois qu'on a trouvé un seed de très bonne qualité (≥80%), arrêter
+    // pour éviter de chercher trop loin (sortir de la pièce attendue).
+    if (bestQ >= 96) return { x: bestX, y: bestY };
   }
+  if (bestX >= 0) return { x: bestX, y: bestY };
   return null;
 }
 
@@ -635,5 +691,295 @@ export async function extractRoomsByFloodFill(
     });
   }
 
+  return results;
+}
+
+/**
+ * s28 tour 8 — Multi-source BFS contraint par quotas PDF.
+ *
+ * Chaque seed grandit en BFS simultané (round-robin), avec un quota = surface
+ * cible en pixels² lu sur le PDF. Lorsqu'un seed atteint son quota, il s'arrête.
+ * Lorsqu'un seed est bloqué (mur ou pixel claimed par un autre seed), il s'arrête.
+ *
+ * Garanties vs flood-fill séquentiel :
+ *   - Pas de "1er seed mange tout" : tous les seeds grandissent en parallèle
+ *   - Pas de fuite par porte ouverte : un seed ne peut pas devenir > quota PDF
+ *   - Conservation totale : la somme des aires = somme des quotas (modulo
+ *     pixels libres restants attribués au seed le plus proche en post-process)
+ *
+ * Hyp : tous les seeds ont un quota (= pdfSurfaceM2 connu). Si un seed n'a
+ * pas de quota, il reçoit un quota provisoire de 1.0× la médiane des quotas
+ * connus.
+ *
+ * @param pngBuffer PNG du plan (mêmes specs que extractRoomsByFloodFill)
+ * @param labels Seeds avec surface_m2 PDF (obligatoire pour quota strict)
+ * @param scaleM2PerPx2 Échelle m²/px² pré-calibrée (médiane labels PDF / aires)
+ * @param options Options héritées de FloodFillOptions + walls vectoriels
+ */
+export async function extractRoomsByQuotaFloodFill(
+  pngBuffer: Buffer,
+  labels: LabelSeed[],
+  scaleM2PerPx2: number,
+  options: FloodFillOptions,
+): Promise<RoomPolygonPx[]> {
+  const wallLumThreshold = options.wallLumThreshold ?? 210;
+  const wallSaturationThreshold = options.wallSaturationThreshold ?? 0.25;
+  const simplifyTolerancePx = options.simplifyTolerancePx ?? 5;
+  const minAreaPx2 = options.minAreaPx2 ?? 500;
+  const seedSearchRadius = options.seedSearchRadius ?? 100;
+  const doorSealRadius = options.doorSealRadius ?? 6;
+  const vectorWallThickness = options.vectorWallThickness ?? 4;
+  const vectorWalls = options.vectorWallSegments ?? [];
+  const aptSeparators = options.aptSeparatorSegments ?? [];
+  const aptSeparatorThickness = options.aptSeparatorThickness ?? 8;
+  const lotPolyPx = options.lotPolygonPx;
+
+  if (scaleM2PerPx2 <= 0 || !Number.isFinite(scaleM2PerPx2)) {
+    throw new Error("extractRoomsByQuotaFloodFill: scaleM2PerPx2 invalide");
+  }
+
+  const { mask: rawMask, W, H } = await buildWallMask(pngBuffer, {
+    wallLumThreshold, wallSaturationThreshold,
+  });
+  const wallMask = rawMask;
+
+  // Tracé du contour du lot
+  const drawSegment = (mask: Uint8Array, x1: number, y1: number, x2: number, y2: number, thickness: number) => {
+    const dx = x2 - x1, dy = y2 - y1;
+    const steps = Math.max(Math.abs(dx), Math.abs(dy)) | 0;
+    if (steps === 0) return;
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const cx = Math.round(x1 + dx * t);
+      const cy = Math.round(y1 + dy * t);
+      const t2 = thickness * thickness;
+      for (let oy = -thickness; oy <= thickness; oy++) {
+        for (let ox = -thickness; ox <= thickness; ox++) {
+          const px = cx + ox, py = cy + oy;
+          if (px < 0 || px >= W || py < 0 || py >= H) continue;
+          if (ox * ox + oy * oy <= t2) mask[py * W + px] = 1;
+        }
+      }
+    }
+  };
+  if (lotPolyPx.length >= 3) {
+    for (let k = 0; k < lotPolyPx.length; k++) {
+      const a = lotPolyPx[k];
+      const b = lotPolyPx[(k + 1) % lotPolyPx.length];
+      drawSegment(wallMask, a.x, a.y, b.x, b.y, 4);
+    }
+  }
+  for (const seg of vectorWalls) {
+    drawSegment(wallMask, seg.x1, seg.y1, seg.x2, seg.y2, vectorWallThickness);
+  }
+  for (const seg of aptSeparators) {
+    drawSegment(wallMask, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
+  }
+  const sealedMask = doorSealRadius > 0 ? morphDilate1D(wallMask, W, H, doorSealRadius) : wallMask;
+  // Masque permissive (sans doorSeal) : utilisée en phase 2 pour permettre
+  // aux seeds bloqués AVANT leur quota de traverser des portes étroites.
+  const permissiveMask = wallMask;
+
+  // Calcul des quotas en pixels²
+  const knownQuotas = labels
+    .filter((l) => l.surface_m2 != null && l.surface_m2 > 0)
+    .map((l) => l.surface_m2! / scaleM2PerPx2);
+  const medianQuotaPx2 = knownQuotas.length > 0
+    ? [...knownQuotas].sort((a, b) => a - b)[Math.floor(knownQuotas.length / 2)]
+    : 50000; // fallback ~5m² si aucun connu (ne devrait pas arriver)
+
+  // Init seeds + assignment d'un index
+  type SeedState = {
+    idx: number;
+    text: string;
+    surface_m2: number | null;
+    quotaPx2: number;
+    seedX: number;
+    seedY: number;
+    /** Frontière BFS (pixels à explorer ensuite). */
+    frontier: number[];
+    /** Aire courante en pixels (= nb pixels claimed). */
+    area: number;
+    /** Bornée ? */
+    blocked: boolean;
+    /** Bbox courante */
+    bbox: { minX: number; minY: number; maxX: number; maxY: number };
+  };
+  const ownership = new Int16Array(W * H); // -1 = libre/mur, 0..N = seed idx
+  ownership.fill(-1);
+  const seeds: SeedState[] = [];
+  const projectIntoLotLocal = (px: number, py: number): { x: number; y: number } => projectIntoLot(px, py, lotPolyPx);
+  for (let li = 0; li < labels.length; li++) {
+    const lab = labels[li];
+    const sx = (lab.x_percent / 100) * W;
+    const sy = (lab.y_percent / 100) * H;
+    const proj = projectIntoLotLocal(sx, sy);
+    const seedSearchPos = findNonWallSeed(sealedMask, W, H, Math.round(proj.x), Math.round(proj.y), seedSearchRadius);
+    if (!seedSearchPos) continue;
+    // Si un autre seed claim déjà cette position : skip
+    if (ownership[seedSearchPos.y * W + seedSearchPos.x] !== -1) continue;
+    const quotaPx2 = lab.surface_m2 != null && lab.surface_m2 > 0
+      ? lab.surface_m2 / scaleM2PerPx2
+      : medianQuotaPx2;
+    seeds.push({
+      idx: seeds.length,
+      text: lab.text,
+      surface_m2: lab.surface_m2,
+      quotaPx2,
+      seedX: seedSearchPos.x,
+      seedY: seedSearchPos.y,
+      frontier: [seedSearchPos.y * W + seedSearchPos.x],
+      area: 1,
+      blocked: false,
+      bbox: { minX: seedSearchPos.x, minY: seedSearchPos.y, maxX: seedSearchPos.x, maxY: seedSearchPos.y },
+    });
+    ownership[seedSearchPos.y * W + seedSearchPos.x] = seeds.length - 1;
+  }
+  if (seeds.length === 0) return [];
+
+  // BFS round-robin par couches : à chaque tour, chaque seed avance d'UN pas
+  // (= toute sa frontière courante devient claimed, et la nouvelle frontière =
+  // les voisins libres). Stop seed si quota atteint ou frontière vide.
+  // O((W*H) / nb_seeds) tours en pire cas.
+  //
+  // PHASE 1 : masque sealed (doors fermées) — sépare les pièces strictement
+  const runBFS = (mask: Uint8Array): void => {
+    let activeCount = seeds.length;
+    while (activeCount > 0) {
+      activeCount = 0;
+      for (const s of seeds) {
+        if (s.blocked) continue;
+        if (s.area >= s.quotaPx2) {
+          s.blocked = true;
+          continue;
+        }
+        activeCount++;
+        const newFrontier: number[] = [];
+        for (const idx of s.frontier) {
+          const x = idx % W;
+          const y = (idx - x) / W;
+          const neighbors = [
+            y > 0 ? idx - W : -1,
+            y < H - 1 ? idx + W : -1,
+            x > 0 ? idx - 1 : -1,
+            x < W - 1 ? idx + 1 : -1,
+          ];
+          for (const nIdx of neighbors) {
+            if (nIdx < 0) continue;
+            if (mask[nIdx]) continue; // mur
+            if (ownership[nIdx] !== -1) continue; // claimed
+            ownership[nIdx] = s.idx;
+            s.area++;
+            const nx = nIdx % W, ny = (nIdx - nx) / W;
+            if (nx < s.bbox.minX) s.bbox.minX = nx;
+            if (ny < s.bbox.minY) s.bbox.minY = ny;
+            if (nx > s.bbox.maxX) s.bbox.maxX = nx;
+            if (ny > s.bbox.maxY) s.bbox.maxY = ny;
+            newFrontier.push(nIdx);
+            if (s.area >= s.quotaPx2) break;
+          }
+          if (s.area >= s.quotaPx2) break;
+        }
+        s.frontier = newFrontier;
+        if (newFrontier.length === 0) s.blocked = true;
+      }
+    }
+  };
+  runBFS(sealedMask);
+
+  // PHASE 2 : pour chaque seed BLOQUÉ AVANT son quota (cellule fermée par
+  // doorSeal mais le quota PDF dit qu'il y a plus de pièce), réessayer avec
+  // masque permissive (wall PNG + vector + apt-sep, mais sans doorSeal).
+  // La frontière est régénérée depuis tous les pixels claim du seed (= tous
+  // les pixels où ownership[i] === s.idx).
+  const seedsToRetry = seeds.filter((s) => s.area < s.quotaPx2 * 0.85);
+  if (seedsToRetry.length > 0) {
+    for (const s of seedsToRetry) {
+      // Régénérer la frontière depuis tous les pixels claim
+      const newFrontier: number[] = [];
+      // Parcours efficace : juste le bbox du seed
+      for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+        for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+          const idx = y * W + x;
+          if (ownership[idx] !== s.idx) continue;
+          // Au moins un voisin libre ?
+          const ne = [
+            y > 0 ? idx - W : -1,
+            y < H - 1 ? idx + W : -1,
+            x > 0 ? idx - 1 : -1,
+            x < W - 1 ? idx + 1 : -1,
+          ];
+          for (const nIdx of ne) {
+            if (nIdx >= 0 && permissiveMask[nIdx] === 0 && ownership[nIdx] === -1) {
+              newFrontier.push(idx);
+              break;
+            }
+          }
+        }
+      }
+      s.frontier = newFrontier;
+      s.blocked = newFrontier.length === 0;
+    }
+    runBFS(permissiveMask);
+  }
+
+  // Construction des polygones via traceContour sur la masque ownership
+  const results: RoomPolygonPx[] = [];
+  for (const s of seeds) {
+    if (s.area < minAreaPx2) continue;
+    // Construire region binaire
+    const region = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      if (ownership[i] === s.idx) region[i] = 1;
+    }
+    // Dilatation pour aller jusqu'aux murs réels (sans envahir les voisins).
+    // s28 tour 8 — radius minimal (2px) : suffisant pour absorber l'épaisseur
+    // d'un mur PDF sans gonfler l'aire de plus de 5% pour une petite pièce.
+    let regionForContour: Uint8Array = region;
+    let bboxForContour = s.bbox;
+    const postDilateRadius = Math.min(doorSealRadius, 2);
+    if (postDilateRadius > 0) {
+      const expanded = morphDilate1D(region, W, H, postDilateRadius);
+      const out = new Uint8Array(W * H);
+      let ebx0 = Infinity, eby0 = Infinity, ebx1 = -Infinity, eby1 = -Infinity;
+      for (let i = 0; i < W * H; i++) {
+        if (!expanded[i]) continue;
+        // Refus si pixel claimed par un autre seed (pas mur, pas région courante)
+        const own = ownership[i];
+        if (own !== -1 && own !== s.idx) continue;
+        // Garder uniquement les pixels où expanded = 1 ET (région ou mur ou libre proche)
+        const isOriginal = region[i] === 1;
+        if (!isOriginal && wallMask[i] === 0 && ownership[i] === -1) continue;
+        out[i] = 1;
+        const x = i % W, y = (i - x) / W;
+        if (x < ebx0) ebx0 = x;
+        if (y < eby0) eby0 = y;
+        if (x > ebx1) ebx1 = x;
+        if (y > eby1) eby1 = y;
+      }
+      if (ebx0 < ebx1) {
+        regionForContour = out;
+        bboxForContour = { minX: ebx0, minY: eby0, maxX: ebx1, maxY: eby1 };
+      }
+    }
+    const contourRaw = traceContour(regionForContour, W, H, bboxForContour);
+    if (contourRaw.length < 4) continue;
+    let polygon = simplifyDP(contourRaw, simplifyTolerancePx);
+    if (polygon.length < 4) continue;
+    if (vectorWalls.length > 0) {
+      polygon = snapPolygonToWalls(polygon, vectorWalls, 40);
+    }
+    let cx = 0, cy = 0;
+    for (const p of polygon) { cx += p.x; cy += p.y; }
+    cx /= polygon.length;
+    cy /= polygon.length;
+    results.push({
+      text: s.text,
+      surface_m2: s.surface_m2,
+      polygon,
+      areaPx2: s.area,
+      centroid: { x: cx, y: cy },
+    });
+  }
   return results;
 }
