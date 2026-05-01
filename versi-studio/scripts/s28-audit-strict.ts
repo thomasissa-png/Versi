@@ -26,6 +26,7 @@ import { extractLotVector, type WallSegPx } from "../src/lib/vs/lot-vector-extra
 import { extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor";
 import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels, type PdfTextItem } from "../src/lib/vs/pdf-text-extractor";
+import { WALL_EXTRACTION_CONFIG } from "../src/lib/vs/wall-extraction-config";
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
 
@@ -36,6 +37,8 @@ const EXPECTED_COUNTS: Record<number, number> = { 0: 5, 1: 8, 2: 6, 3: 5 };
 // Tolérances absolues
 const RATIO_MIN = 0.85;
 const RATIO_MAX = 1.15;
+// s28 tour 10 — tolérance Inv C lue depuis la config partagée (≤5px audit + extract)
+const SNAP_TOL_PX = WALL_EXTRACTION_CONFIG.snapTolerancePx;
 
 function polygonAreaPercent(points: Pt[]): number {
   if (points.length < 3) return 0;
@@ -211,7 +214,7 @@ async function main() {
     if (planPath) {
       try {
         const buffer = await readFile(planPath);
-        const lvr = await extractLotVector(buffer, { scale: 3 });
+        const lvr = await extractLotVector(buffer, { scale: WALL_EXTRACTION_CONFIG.scale });
         externalWalls = lvr.wallSegments;
         imageW = lvr.imageWidth;
         imageH = lvr.imageHeight;
@@ -219,15 +222,23 @@ async function main() {
           x: (p.x_percent / 100) * imageW,
           y: (p.y_percent / 100) * imageH,
         }));
+        // s28 tour 10 — params extraction murs lus depuis config partagée.
+        // Les mêmes valeurs sont utilisées par extract/route.ts → murs identiques.
         const rawInternal = await extractInternalWallSegments(buffer, lotPolyPx, {
-          scale: 3, multiColor: true, minSegLen: 5,
+          scale: WALL_EXTRACTION_CONFIG.scale,
+          multiColor: WALL_EXTRACTION_CONFIG.multiColor,
+          minSegLen: WALL_EXTRACTION_CONFIG.minSegLenExtraction,
         });
         const chained = chainCollinearSegments(rawInternal, {
-          gapPx: 15, angleTolDeg: 3, lateralTolPx: 3,
+          gapPx: WALL_EXTRACTION_CONFIG.chainGapPx,
+          angleTolDeg: WALL_EXTRACTION_CONFIG.chainAngleTolDeg,
+          lateralTolPx: WALL_EXTRACTION_CONFIG.chainLateralTolPx,
         });
-        internalWalls = chained.filter((w) => Math.hypot(w.x2 - w.x1, w.y2 - w.y1) >= 10);
+        internalWalls = chained.filter(
+          (w) => Math.hypot(w.x2 - w.x1, w.y2 - w.y1) >= WALL_EXTRACTION_CONFIG.minSegLenFinal,
+        );
         // Lire les labels PDF avec leur surface (source de vérité absolue)
-        const allTextItems = await extractTextItems(buffer, lotPolyPx, 3);
+        const allTextItems = await extractTextItems(buffer, lotPolyPx, WALL_EXTRACTION_CONFIG.scale);
         pdfLabels = filterRoomLabels(allTextItems);
       } catch (err) {
         console.warn(`[${lot.name}] extraction PDF échouée :`, err instanceof Error ? err.message : err);
@@ -389,16 +400,16 @@ async function main() {
           for (const w of allWalls) {
             const d = distPointToSegment(px, py, w.x1, w.y1, w.x2, w.y2);
             if (d < bestDist) bestDist = d;
-            if (bestDist <= 5) break;
+            if (bestDist <= SNAP_TOL_PX) break;
           }
           snapTotal++;
-          if (bestDist <= 5) snapPassed++;
+          if (bestDist <= SNAP_TOL_PX) snapPassed++;
         }
       }
     }
     const snapRatio = snapTotal > 0 ? snapPassed / snapTotal : 0;
     const invCPass = snapRatio >= 0.95;
-    const invCDetail = `${snapPassed}/${snapTotal} (${(snapRatio * 100).toFixed(1)}%) à <=5px${
+    const invCDetail = `${snapPassed}/${snapTotal} (${(snapRatio * 100).toFixed(1)}%) à <=${SNAP_TOL_PX}px${
       allWalls.length === 0 ? " — pas de murs" : ` — ${externalWalls.length} ext + ${internalWalls.length} int`
     }`;
 

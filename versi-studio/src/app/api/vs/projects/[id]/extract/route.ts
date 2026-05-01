@@ -115,6 +115,7 @@ import {
 import { regularizeOrthogonal, chainCollinearSegments, dragOutliersToWalls } from "@/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
+import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
 import { pdf as pdfToImg } from "pdf-to-img";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
@@ -462,10 +463,16 @@ export async function POST(
             // → graphe planaire ferme correctement les pièces.
             let internalWalls_face: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
             try {
+              // s28 tour 10 — params lus depuis config partagée
+              // (audit + extract = mêmes murs vus, fin du trade-off Inv A↔C)
               internalWalls_face = await extractInternalWallSegments(
                 fileBuffer,
                 lotPolyPx_face,
-                { scale: 3, multiColor: true, minSegLen: 10 },
+                {
+                  scale: WALL_EXTRACTION_CONFIG.scale,
+                  multiColor: WALL_EXTRACTION_CONFIG.multiColor,
+                  minSegLen: WALL_EXTRACTION_CONFIG.minSegLenExtraction,
+                },
               );
             } catch (intErr) {
               console.warn(
@@ -485,15 +492,16 @@ export async function POST(
             // Critique : sans chaînage, les murs Chambre RDC sont des dashes
             // de 11px chacun, exclus par minSegLen=15 → polygones non snappés.
             // Avec chaînage : 5 dashes 11px → 1 mur de 55px → audit voit le mur.
+            // s28 tour 10 — params chaînage lus depuis config partagée.
+            // Cohérence avec audit : mêmes seuils → mêmes murs après filter.
             const chainedWalls = chainCollinearSegments(allWalls_face, {
-              gapPx: 15,
-              angleTolDeg: 3,
-              lateralTolPx: 3,
+              gapPx: WALL_EXTRACTION_CONFIG.chainGapPx,
+              angleTolDeg: WALL_EXTRACTION_CONFIG.chainAngleTolDeg,
+              lateralTolPx: WALL_EXTRACTION_CONFIG.chainLateralTolPx,
             });
-            const minSegLenSnap = 10;
             const allWalls_snap = chainedWalls.filter((w) => {
               const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-              return len >= minSegLenSnap;
+              return len >= WALL_EXTRACTION_CONFIG.minSegLenFinal;
             });
             console.log(
               `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int → chaînés ${chainedWalls.length} → snap target ${allWalls_snap.length}`,
@@ -911,10 +919,37 @@ export async function POST(
                   // d'une pièce voisine, gonflant l'aire de 30%+).
                   if (r.surface_m2 != null && r.surface_m2 > 0) {
                     const target = r.surface_m2; // m²
+                    // s28 tour 10 — FIX STRUCTUREL trade-off Inv A↔Inv C.
+                    //
+                    // Tour 9 : light drag appliqué APRÈS SWITCH seulement.
+                    // Mais si SWITCH choisit "flood" (pour Inv A), les vertices
+                    // restent en escalier pixel → Inv C fail (vertices à >5px
+                    // du mur le plus proche).
+                    //
+                    // Tour 10 : light drag appliqué SUR CHAQUE candidat AVANT
+                    // le SWITCH. Tous les 3 candidats (drag/reg/flood) ont
+                    // alors leurs vertices snappés sur les murs (≤5px), et le
+                    // SWITCH choisit celui le plus proche du PDF en aire.
+                    // → Inv A ET Inv C simultanément satisfaits.
+                    //
+                    // Le drag léger utilise un seuil 8px (vs 5px Inv C) pour
+                    // capturer les vertices "presque snappés" sans tirer ceux
+                    // qui sont volontairement loin (escalier interne).
+                    const lightDrag = (poly: VoronoiVertex[]): { poly: VoronoiVertex[]; area: number } => {
+                      const dr = dragOutliersToWalls(poly, allWalls_snap, {
+                        thresholdPx: 8,
+                        dragMaxPx: 12, // léger : juste pour snapper, pas pour gonfler
+                        maxAreaChangeRatio: 0.05,
+                      });
+                      return { poly: dr, area: polygonAreaPx2_pre(dr) * scaleM2PerPx2 };
+                    };
+                    const draggedLight = lightDrag(dragged);
+                    const step1Light = lightDrag(step1);
+                    const floodLight = lightDrag(r.polygon);
                     const candidates = [
-                      { name: "drag", poly: dragged, area: draggedAreaLog },
-                      { name: "reg", poly: step1, area: step1Area },
-                      { name: "flood", poly: r.polygon, area: origAreaM2_log },
+                      { name: "drag", poly: draggedLight.poly, area: draggedLight.area },
+                      { name: "reg", poly: step1Light.poly, area: step1Light.area },
+                      { name: "flood", poly: floodLight.poly, area: floodLight.area },
                     ];
                     // s28 tour 9 — Stratégie : choisir le polygone le plus
                     // proche du PDF (Inv A primordial).
@@ -926,31 +961,13 @@ export async function POST(
                     const best = candidates[0];
                     const bestRatio = best.area / target;
                     if (bestRatio < 0.85 || bestRatio > 1.15) {
-                      console.log(`[s28-tour9-pipe] ${r.label} NO_CANDIDATE_IN_RANGE — choosing ${best.name}=${best.area.toFixed(2)} (ratio ${bestRatio.toFixed(2)})`);
+                      console.log(`[s28-tour10-pipe] ${r.label} NO_CANDIDATE_IN_RANGE — choosing ${best.name}=${best.area.toFixed(2)} (ratio ${bestRatio.toFixed(2)})`);
                     } else if (best.name !== "drag") {
-                      console.log(`[s28-tour9-pipe] ${r.label} SWITCH ${best.name}=${best.area.toFixed(2)} drag was ${draggedAreaLog.toFixed(2)} (target ${target}m²)`);
-                    }
-                    // s28 tour 9 — Si on a switché vers flood ou reg (= polygone
-                    // pré-drag), appliquer un drag léger pour snapper les vertices
-                    // proches des murs (Inv C) sans déformer (areaMax 0.05).
-                    if (best.name !== "drag") {
-                      const lightDragged = dragOutliersToWalls(best.poly, allWalls_snap, {
-                        thresholdPx: 5,
-                        dragMaxPx: 30,
-                        maxAreaChangeRatio: 0.05,
-                      });
-                      // Vérifier que le drag léger n'a pas dérivé l'aire
-                      const lightArea = polygonAreaPx2_pre(lightDragged) * scaleM2PerPx2;
-                      const lightRatio = lightArea / target;
-                      if (lightRatio >= 0.85 && lightRatio <= 1.15) {
-                        dragged = lightDragged;
-                        console.log(`[s28-tour9-pipe] ${r.label} LIGHT_DRAG applied : ${best.area.toFixed(2)} → ${lightArea.toFixed(2)}`);
-                      } else {
-                        dragged = best.poly;
-                      }
+                      console.log(`[s28-tour10-pipe] ${r.label} SWITCH ${best.name}=${best.area.toFixed(2)} drag was ${draggedAreaLog.toFixed(2)} (target ${target}m²)`);
                     } else {
-                      dragged = best.poly;
+                      console.log(`[s28-tour10-pipe] ${r.label} KEEP drag=${best.area.toFixed(2)} (target ${target}m²)`);
                     }
+                    dragged = best.poly;
                   }
                   // s28 tour 9 — SNAP FINAL aux murs en 2 passes (strict puis
                   // large) pour garantir Inv C : la majorité des vertices à
