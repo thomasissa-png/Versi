@@ -746,6 +746,18 @@ export async function extractRoomsByQuotaFloodFill(
     wallLumThreshold, wallSaturationThreshold,
   });
   const wallMask = rawMask;
+  // s28 tour 13 — Capturer la masque PNG BRUTE (avant tout drawSegment).
+  // Utilisée par l'expansion finale BFS-contrainte pour que les contours
+  // s'arrêtent SUR les vrais pixels noirs PNG (= bords des murs réels), pas
+  // sur la version gonflée par drawSegment(vectorWalls + aptSep + doorSeal).
+  // C'est CE qui élimine le décalage 30-200px (cf diag tour 12 : 96-100% des
+  // outliers à >5px de tout élément géométrique).
+  const rawPngMask = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) rawPngMask[i] = rawMask[i];
+  // s28 tour 13 — Masque "fines lignes vectorWalls + aptSep" : trace 1px exact
+  // (pas de dilatation). Sert de barrière FINE pour l'expansion : si on touche
+  // ces pixels, on est SUR un mur vectoriel → arrêter le BFS là.
+  const thinVectorWallsMask = new Uint8Array(W * H);
   // s28 tour 9 — masque ULTRA-permissive : seulement luminance brute du PNG
   // + apt-separators (= cloisons entre apts à NE PAS franchir). Pas de
   // vector-walls (cloisons internes) ni de doorSeal. Utilisée en phase 3 pour
@@ -789,6 +801,24 @@ export async function extractRoomsByQuotaFloodFill(
     // empêchent une fuite vers l'apt voisin (ce qui serait bien pire que
     // sous-quota).
     drawSegment(ultraPermissiveMask, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
+  }
+  // s28 tour 13 — Tracer les vector walls + aptSep + lot edges en thickness 1
+  // dans thinVectorWallsMask : c'est la cible "snap fin" pour l'expansion BFS.
+  // Chaque pixel de cette masque = pixel SUR un mur géométrique exact (PDF
+  // vectoriel). L'expansion BFS contrainte s'arrêtera dessus → vertex à <2px
+  // du mur → Inv C PASS.
+  if (lotPolyPx.length >= 3) {
+    for (let k = 0; k < lotPolyPx.length; k++) {
+      const a = lotPolyPx[k];
+      const b = lotPolyPx[(k + 1) % lotPolyPx.length];
+      drawSegment(thinVectorWallsMask, a.x, a.y, b.x, b.y, 1);
+    }
+  }
+  for (const seg of vectorWalls) {
+    drawSegment(thinVectorWallsMask, seg.x1, seg.y1, seg.x2, seg.y2, 1);
+  }
+  for (const seg of aptSeparators) {
+    drawSegment(thinVectorWallsMask, seg.x1, seg.y1, seg.x2, seg.y2, 1);
   }
   const sealedMask = doorSealRadius > 0 ? morphDilate1D(wallMask, W, H, doorSealRadius) : wallMask;
   // s28 tour 9 — Fix 1 : door-seal RÉDUIT pour petites pièces.
@@ -1229,54 +1259,108 @@ export async function extractRoomsByQuotaFloodFill(
     for (let i = 0; i < W * H; i++) {
       if (ownership[i] === s.idx) region[i] = 1;
     }
-    // Dilatation pour aller jusqu'aux murs réels (sans envahir les voisins).
-    // s28 tour 9 — Fix 3 : dilatation adaptative à l'aire ATTEINTE vs quota.
+    // s28 tour 13 — EXPANSION BFS-CONTRAINTE PAR VRAIS MURS.
+    // Au lieu d'une dilatation (carré N×N qui dépasse les vrais murs), on
+    // fait une expansion BFS depuis ownership[i]===s.idx en S'ARRÊTANT sur
+    // les vrais pixels mur :
+    //   - rawPngMask = pixels noirs PNG (peinture native)
+    //   - thinVectorWallsMask = pixels SUR les segments vectoriels PDF (1px)
+    // Conditions d'arrêt par voisin :
+    //   STOP si rawPngMask[n]=1 OU thinVectorWallsMask[n]=1 → on a atteint
+    //          un VRAI mur géométrique.
+    //   STOP si ownership[n]=autre seed → on touche une pièce voisine.
+    //   GO sinon, mais limité à `expandMaxPx` pixels distance (anti-runaway).
+    // Résultat : la frontière finale PASSE par les vrais murs PDF/PNG, pas
+    // par la version dilatée. Vertex à <2px du mur → Inv C PASS.
     //
-    // La dilatation 2px gonfle l'aire d'environ +2*périmètre. Pour une pièce
-    // carrée de N×N pixels, +2px sur 4 côtés = (N+4)² - N² = 8N+16. À 1.3 m²
-    // (≈ N=110 pixels), c'est +880 pixels = +7%. Mais à 2 m² (≈ N=140), c'est
-    // +5%. Et à 5 m² (≈ N=222), c'est +3%.
-    //
-    // Si le BFS a déjà DÉPASSÉ le quota (area > quotaPx2), on n'a pas besoin
-    // de dilater. La dilatation ne doit pas pousser au-delà de quota ×1.10.
-    // Stratégie : choisir le radius qui respecte cette borne.
-    //   delta_pct ≈ 8R*sqrt(area)/area = 8R/sqrt(area)
-    //   ratio_post = (area + delta) / quota
-    //   On veut ratio_post <= 1.10 (mid-range cible)
+    // Garde-fou Inv A : on borne l'expansion par `expandMaxPx` pour éviter
+    // qu'un seed sur-quota gonfle au-delà des limites. expandMaxPx=8 garantit
+    // un gain max de ~8px*périmètre = ~5% pour une pièce moyenne.
     let regionForContour: Uint8Array = region;
     let bboxForContour = s.bbox;
-    let postDilateRadius: number;
+    // expandMaxPx adapté au quota :
+    //   - sur-quota (>1.05x) : 0 (pas d'expansion, on est déjà au-dessus)
+    //   - proche quota : 4px (assez pour atteindre les vrais murs PNG)
+    //   - sous-quota   : 8px (compense le doorSealRadius)
+    //   - sans quota   : 6px (compromis prudent)
+    let expandMaxPx: number;
     if (s.quotaKnown) {
       const baseRatio = s.area / s.quotaPx2;
-      // Si déjà au-dessus du quota, pas de dilatation (anti-overshoot).
-      if (baseRatio >= 1.05) {
-        postDilateRadius = 0;
-      } else if (baseRatio >= 0.97) {
-        // Légèrement sous quota : +1px pour atteindre le mur (~3-5% gain)
-        postDilateRadius = 1;
-      } else {
-        // Bien sous quota : 2px standard pour absorber l'épaisseur mur
-        postDilateRadius = Math.min(doorSealRadius, 2);
-      }
+      if (baseRatio >= 1.05) expandMaxPx = 0;
+      else if (baseRatio >= 0.97) expandMaxPx = 3;
+      else expandMaxPx = Math.min(doorSealRadius + 2, 8);
     } else {
-      // Sans quota fiable, dilatation standard 2px : les pièces sans quota
-      // sont typiquement des ECS/TGBT (1-2m² réels) qui ont besoin d'absorber
-      // l'épaisseur du mur. 1px est insuffisant et les fait passer sous le
-      // seuil min 0.55m² → suppression à tort.
-      postDilateRadius = Math.min(doorSealRadius, 2);
+      expandMaxPx = Math.min(doorSealRadius, 6);
     }
-    if (postDilateRadius > 0) {
-      const expanded = morphDilate1D(region, W, H, postDilateRadius);
+    if (expandMaxPx > 0) {
+      // BFS multi-source : tous les pixels frontière du seed comme sources
+      // initiales, distance 0. Étendre jusqu'à distance expandMaxPx.
+      // Distance map : 255 = non-visité, 0..expandMaxPx = distance au seed.
+      const dist = new Uint8Array(W * H);
+      dist.fill(255);
+      const queue: number[] = [];
+      // Seed pixels = pixels du seed (région) qui ont au moins un voisin
+      // libre/mur (= pixels frontière de la région pour le BFS d'expansion).
+      // Optimisation : on prend tous les pixels de région ; ceux à l'intérieur
+      // ne contribuent rien (leurs voisins sont déjà dans région avec dist 0).
+      for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+        const rowOff = y * W;
+        for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+          const idx = rowOff + x;
+          if (region[idx] === 1) {
+            dist[idx] = 0;
+            queue.push(idx);
+          }
+        }
+      }
+      // BFS distance : pour chaque pixel de la queue, regarder ses 4 voisins.
+      // Si voisin pas encore visité (dist=255), on calcule sa nouvelle dist.
+      // STOP par voisin :
+      //   - hors image
+      //   - rawPngMask[n] === 1 → vrai mur PNG (peinture sombre native)
+      //   - thinVectorWallsMask[n] === 1 → mur vectoriel PDF
+      //   - ownership[n] !== -1 ET !== s.idx → autre seed
+      //   - dist > expandMaxPx → trop loin
+      let qi = 0;
+      while (qi < queue.length) {
+        const idx = queue[qi++];
+        const d = dist[idx];
+        if (d >= expandMaxPx) continue;
+        const x = idx % W;
+        const y = (idx - x) / W;
+        const nd = d + 1;
+        const trySpread = (n: number) => {
+          if (dist[n] !== 255) return; // déjà visité (court-circuit)
+          // STOP : autre seed
+          const own = ownership[n];
+          if (own !== -1 && own !== s.idx) return;
+          // STOP : vrai mur PNG (peinture sombre native)
+          if (rawPngMask[n] === 1) {
+            // On INCLUT le pixel mur dans la région finale (le contour passe
+            // dessus → vertex à <1px du mur). Mais on n'étend pas plus loin
+            // depuis lui (dist set à expandMaxPx pour bloquer next iter).
+            dist[n] = expandMaxPx;
+            return;
+          }
+          // STOP : mur vectoriel
+          if (thinVectorWallsMask[n] === 1) {
+            dist[n] = expandMaxPx;
+            return;
+          }
+          // OK : continuer
+          dist[n] = nd;
+          if (nd < expandMaxPx) queue.push(n);
+        };
+        if (x > 0) trySpread(idx - 1);
+        if (x < W - 1) trySpread(idx + 1);
+        if (y > 0) trySpread(idx - W);
+        if (y < H - 1) trySpread(idx + W);
+      }
+      // Construire la région étendue : tous les pixels avec dist < 255
       const out = new Uint8Array(W * H);
       let ebx0 = Infinity, eby0 = Infinity, ebx1 = -Infinity, eby1 = -Infinity;
       for (let i = 0; i < W * H; i++) {
-        if (!expanded[i]) continue;
-        // Refus si pixel claimed par un autre seed (pas mur, pas région courante)
-        const own = ownership[i];
-        if (own !== -1 && own !== s.idx) continue;
-        // Garder uniquement les pixels où expanded = 1 ET (région ou mur ou libre proche)
-        const isOriginal = region[i] === 1;
-        if (!isOriginal && wallMask[i] === 0 && ownership[i] === -1) continue;
+        if (dist[i] === 255) continue;
         out[i] = 1;
         const x = i % W, y = (i - x) / W;
         if (x < ebx0) ebx0 = x;
