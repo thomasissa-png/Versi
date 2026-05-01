@@ -1278,9 +1278,9 @@ export async function extractRoomsByQuotaFloodFill(
     // un gain max de ~8px*périmètre = ~5% pour une pièce moyenne.
     let regionForContour: Uint8Array = region;
     let bboxForContour = s.bbox;
-    // expandMaxPx adapté au quota :
+    // s28 tour 13 fix1 — expandMaxPx adapté au quota :
     //   - sur-quota (>1.05x) : 0 (pas d'expansion, on est déjà au-dessus)
-    //   - proche quota : 4px (assez pour atteindre les vrais murs PNG)
+    //   - proche quota : 3px
     //   - sous-quota   : 8px (compense le doorSealRadius)
     //   - sans quota   : 6px (compromis prudent)
     let expandMaxPx: number;
