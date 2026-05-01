@@ -1288,29 +1288,24 @@ export async function extractRoomsByQuotaFloodFill(
     }
     const contourRaw = traceContour(regionForContour, W, H, bboxForContour);
     if (contourRaw.length < 4) continue;
-    // s28 tour 9 — Fix 4 : Douglas-Peucker conservateur (10px) pour toutes
-    // les pièces. DP plus aggressif élargit l'aire et crée des bumps. Pour
-    // les petites pièces, on relâche à 4px (pas 12) pour préserver leur
-    // aire mais conserver une simplification utile.
-    const TINY_THR = 2 / scaleM2PerPx2;
-    const SMALL_THR = 5 / scaleM2PerPx2;
-    let dpTol: number;
-    if (s.quotaKnown && s.quotaPx2 < TINY_THR) dpTol = 4;
-    else if (s.quotaKnown && s.quotaPx2 < SMALL_THR) dpTol = 6;
-    else dpTol = Math.max(simplifyTolerancePx, 10);
+    // s28 tour 9 — Douglas-Peucker conservateur (5px tour 8) pour préserver
+    // proximité au mur. DP > 5px crée des vertices à >5px du contour →
+    // Inv C fail. On garde la simplification fine pour toutes les pièces.
+    const dpTol = Math.max(simplifyTolerancePx, 3);
     let polygon = simplifyDP(contourRaw, dpTol);
     if (polygon.length < 4) continue;
     if (vectorWalls.length > 0) {
-      // s28 tour 9 — snap tolerance ADAPTATIVE à la taille de la pièce.
-      let snapTol: number;
-      if (s.quotaKnown && s.quotaPx2 < TINY_THR) snapTol = 8;
-      else if (s.quotaKnown && s.quotaPx2 < SMALL_THR) snapTol = 15;
-      else snapTol = 40;
-      polygon = snapPolygonToWalls(polygon, vectorWalls, snapTol);
-      // s28 tour 9 — Fix 4 : 2e passe DP + re-snap STRICT.
-      polygon = simplifyDP(polygon, 5);
+      // s28 tour 9 — Premier snap large (40px) : capture le mur réel quel
+      // que soit le décalage doorSeal/dilatation/DP. Indispensable pour les
+      // grandes pièces dont le BFS est borné en interne loin du mur.
+      polygon = snapPolygonToWalls(polygon, vectorWalls, 40);
+      // 2e passe DP fine (3px) après snap : élimine vertices co-linéaires
+      // sans réintroduire d'écart au mur.
+      polygon = simplifyDP(polygon, 3);
+      // 3e passe re-snap STRICT (5px) : ramène tout vertex restant à ≤5px
+      // d'un mur connu. Indispensable pour Inv C ≥ 95%.
       if (polygon.length >= 4) {
-        polygon = snapPolygonToWalls(polygon, vectorWalls, 8);
+        polygon = snapPolygonToWalls(polygon, vectorWalls, 5);
       }
     }
 

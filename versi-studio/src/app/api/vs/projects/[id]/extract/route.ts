@@ -672,7 +672,11 @@ export async function POST(
                         lotPolygonPx: lotPolyPx_face,
                         wallLumThreshold: 210,
                         wallSaturationThreshold: 0.25,
-                        simplifyTolerancePx: 10,
+                        // s28 tour 9 — DP tolerance 3px (était 10) :
+                        // au-delà de 5px, les vertices peuvent dériver à
+                        // >5px des murs → Inv C fail. 3px préserve une
+                        // simplification utile sans perte de snap.
+                        simplifyTolerancePx: 3,
                         minAreaPx2: 500,
                         maxAreaPx2: lotPolyArea_px2 * 0.8,
                         seedSearchRadius: 100,
