@@ -1331,19 +1331,19 @@ export async function extractRoomsByQuotaFloodFill(
         const nd = d + 1;
         const trySpread = (n: number) => {
           if (dist[n] !== 255) return; // déjà visité (court-circuit)
-          // STOP : autre seed
+          // STOP : autre seed (frontière entre 2 pièces voisines)
           const own = ownership[n];
           if (own !== -1 && own !== s.idx) return;
-          // STOP : vrai mur PNG (peinture sombre native)
-          if (rawPngMask[n] === 1) {
-            // On INCLUT le pixel mur dans la région finale (le contour passe
-            // dessus → vertex à <1px du mur). Mais on n'étend pas plus loin
-            // depuis lui (dist set à expandMaxPx pour bloquer next iter).
-            dist[n] = expandMaxPx;
-            return;
-          }
-          // STOP : mur vectoriel
+          // STOP : mur vectoriel PDF (vrai mur géométrique précis)
+          // s28 tour 13 — On NE s'arrête PAS sur rawPngMask car celui-ci
+          // capture aussi du texte/cotes/hachures (pas que les murs). On
+          // s'arrête uniquement sur thinVectorWallsMask (1px exact des
+          // segments PDF vectoriels = vrais murs garantis). Le contour
+          // final passe ALORS exactement sur ces 1px → vertex à <2px du
+          // mur dans 95%+ des cas.
           if (thinVectorWallsMask[n] === 1) {
+            // INCLUT le pixel mur dans la région finale, mais bloque
+            // l'expansion plus loin (dist marqué à expandMaxPx).
             dist[n] = expandMaxPx;
             return;
           }

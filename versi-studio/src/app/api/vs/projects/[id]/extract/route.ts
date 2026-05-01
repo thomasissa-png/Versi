@@ -120,6 +120,7 @@ import {
   type RoomLike as SynthRoomLike,
 } from "@/lib/vs/inter-room-walls";
 import { smartLineSnap } from "@/lib/vs/smart-line-snap";
+import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -1255,6 +1256,73 @@ export async function POST(
                   } else {
                     cleanRooms[ri] = { ...r, polygon: reSnapped };
                   }
+                }
+
+                // ─── s28 tour 13 — STEP 9.9 : SNAP-TO-PNG-WALL FINAL ───
+                // Cause racine plateau Inv C : certaines cloisons (notamment
+                // SDB/WC F1, parois fines F0/F3) sont rendues UNIQUEMENT en
+                // peinture raster PNG, pas en PDF vectoriel. Donc smartLineSnap
+                // et dragOutliersToWalls ne trouvent rien à <5px → vertex à 50-70px.
+                //
+                // Diagnostic tour 13 (b8ca4514) : 14% F1 / 5% F0 / 8% F3 outliers
+                // sont à <5px d'un pixel noir PNG (= mur peint), 43-69% à <10px.
+                //
+                // Fix : pour chaque vertex à >5px de tout mur PDF, scan spirale
+                // dans la masque PNG (pixels noirs) sur rayon 12px. Snap si
+                // trouvé. Garde-fou : drift d'aire ≤ 3% (rollback sinon).
+                try {
+                  // Build wallMask depuis PNG (idem buildWallMask)
+                  const img = sharp(pngBuf).raw().ensureAlpha();
+                  const meta = await img.metadata();
+                  const Wp = meta.width!;
+                  const Hp = meta.height!;
+                  const px = await img.toBuffer();
+                  const wallMaskPng = new Uint8Array(Wp * Hp);
+                  for (let i = 0, p = 0; i < Wp * Hp; i++, p += 4) {
+                    const rr = px[p], gg = px[p + 1], bb = px[p + 2];
+                    const lum = 0.299 * rr + 0.587 * gg + 0.114 * bb;
+                    let isWall = lum < 210;
+                    if (!isWall) {
+                      const max = Math.max(rr, gg, bb);
+                      const min = Math.min(rr, gg, bb);
+                      const sat = max > 0 ? (max - min) / max : 0;
+                      if (sat > 0.25 && lum < 230) isWall = true;
+                    }
+                    wallMaskPng[i] = isWall ? 1 : 0;
+                  }
+                  let totalSnapped = 0;
+                  let totalRollback = 0;
+                  for (let ri = 0; ri < cleanRooms.length; ri++) {
+                    const r = cleanRooms[ri];
+                    if (r.polygon.length < 3) continue;
+                    const result = snapPolygonToPngWalls(
+                      r.polygon,
+                      wallMaskPng,
+                      Wp, Hp,
+                      allWalls_snap.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 })),
+                      {
+                        snapTolPdfPx: 5,
+                        maxSearchPx: 12,
+                        // Drift strict 3% pour préserver Inv A
+                        maxAreaDriftRatio: 0.03,
+                      },
+                    );
+                    if (result.snappedCount > 0) {
+                      cleanRooms[ri] = { ...r, polygon: result.polygon };
+                      totalSnapped += result.snappedCount;
+                    }
+                    if (result.snappedCount === 0 && result.areaDriftRatio > 0.03) {
+                      totalRollback++;
+                    }
+                  }
+                  console.log(
+                    `[extract/s28-tour13-snap-png] plan ${plan.id} : ${totalSnapped} vertices snappés sur PNG, ${totalRollback} rollbacks (drift>3%)`,
+                  );
+                } catch (snapPngErr) {
+                  console.warn(
+                    `[extract/s28-tour13-snap-png] plan ${plan.id} échec :`,
+                    snapPngErr instanceof Error ? snapPngErr.message : snapPngErr,
+                  );
                 }
 
                 // Step 10 : push dans builders_face
