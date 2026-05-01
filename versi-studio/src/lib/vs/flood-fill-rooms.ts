@@ -881,10 +881,18 @@ export async function extractRoomsByQuotaFloodFill(
       activeCount = 0;
       for (const s of seeds) {
         if (s.blocked) continue;
-        // Limite stricte : 1.0× quota (pas d'overshoot autorisé).
-        // Avant tour 9 : seuil = quotaPx2 → overshoot par-pixel non borné.
-        // Maintenant : on stoppe la frontière dès qu'on touche quotaPx2.
-        if (s.area >= s.quotaPx2) {
+        // s28 tour 10 — limite BFS adaptative à la taille de la pièce :
+        //   - quota < 3m² (Cellier, WC, ECS) : stop à 0.92× quota.
+        //     Le post-process (dilatation +1px + snap 40px aux murs) va ensuite
+        //     gonfler l'aire de ~8% → ratio final ~1.0. Si on stoppait à 1.0×,
+        //     le post-process produit ratio 1.15-1.20 (Cellier R+1 fail tour 9).
+        //   - quota ≥ 3m² : stop à 1.0× quota. La dilatation +1px sur grandes
+        //     pièces gonfle <2% (négligeable).
+        const SMALL_M2 = 3 / scaleM2PerPx2;
+        const stopThreshold = s.quotaKnown && s.quotaPx2 < SMALL_M2
+          ? s.quotaPx2 * 0.92
+          : s.quotaPx2;
+        if (s.area >= stopThreshold) {
           s.blocked = true;
           continue;
         }
@@ -913,8 +921,8 @@ export async function extractRoomsByQuotaFloodFill(
             if (nx > s.bbox.maxX) s.bbox.maxX = nx;
             if (ny > s.bbox.maxY) s.bbox.maxY = ny;
             newFrontier.push(nIdx);
-            // Arrêt strict au quota — ne PAS continuer après dépassement.
-            if (s.area >= s.quotaPx2) {
+            // Arrêt strict au seuil adaptatif (cf. plus haut : 0.92× pour <3m²).
+            if (s.area >= stopThreshold) {
               stopThisSeed = true;
               break;
             }

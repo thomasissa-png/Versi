@@ -921,24 +921,18 @@ export async function POST(
                     const target = r.surface_m2; // m²
                     // s28 tour 10 — FIX STRUCTUREL trade-off Inv A↔Inv C.
                     //
-                    // Tour 9 : light drag appliqué APRÈS SWITCH seulement.
-                    // Mais si SWITCH choisit "flood" (pour Inv A), les vertices
-                    // restent en escalier pixel → Inv C fail (vertices à >5px
-                    // du mur le plus proche).
-                    //
-                    // Tour 10 : light drag appliqué SUR CHAQUE candidat AVANT
-                    // le SWITCH. Tous les 3 candidats (drag/reg/flood) ont
-                    // alors leurs vertices snappés sur les murs (≤5px), et le
-                    // SWITCH choisit celui le plus proche du PDF en aire.
-                    // → Inv A ET Inv C simultanément satisfaits.
-                    //
-                    // Le drag léger utilise un seuil 8px (vs 5px Inv C) pour
-                    // capturer les vertices "presque snappés" sans tirer ceux
-                    // qui sont volontairement loin (escalier interne).
+                    // STRATÉGIE :
+                    //   1. Light drag (8px/12px) sur CHAQUE candidat (drag/reg/flood)
+                    //      → tous les candidats ont quelques vertices snappés
+                    //   2. SWITCH = choisir le plus proche du PDF en aire (Inv A)
+                    //   3. POST-SWITCH : drag itératif PROGRESSIF (5,10,15,20,30px)
+                    //      sur best.poly, avec garde-fou Inv A. On garde la
+                    //      version la PLUS snappée qui maintient ratio ∈ [0.85, 1.15].
+                    //      → Inv A ET Inv C simultanément satisfaits.
                     const lightDrag = (poly: VoronoiVertex[]): { poly: VoronoiVertex[]; area: number } => {
                       const dr = dragOutliersToWalls(poly, allWalls_snap, {
                         thresholdPx: 8,
-                        dragMaxPx: 12, // léger : juste pour snapper, pas pour gonfler
+                        dragMaxPx: 12,
                         maxAreaChangeRatio: 0.05,
                       });
                       return { poly: dr, area: polygonAreaPx2_pre(dr) * scaleM2PerPx2 };
@@ -951,8 +945,6 @@ export async function POST(
                       { name: "reg", poly: step1Light.poly, area: step1Light.area },
                       { name: "flood", poly: floodLight.poly, area: floodLight.area },
                     ];
-                    // s28 tour 9 — Stratégie : choisir le polygone le plus
-                    // proche du PDF (Inv A primordial).
                     candidates.sort((a, b) => {
                       const sa = Math.abs(a.area - target) / target;
                       const sb = Math.abs(b.area - target) / target;
@@ -967,25 +959,63 @@ export async function POST(
                     } else {
                       console.log(`[s28-tour10-pipe] ${r.label} KEEP drag=${best.area.toFixed(2)} (target ${target}m²)`);
                     }
-                    dragged = best.poly;
+
+                    // s28 tour 10 — Snap progressif post-SWITCH avec garde-fou Inv A.
+                    // On essaie des seuils croissants (5,10,15,20,30,50px) et
+                    // on garde la version qui maximise la cardinalité des vertices
+                    // snappés (≤5px d'un mur) tout en maintenant ratio ∈ [0.85, 1.15].
+                    const countSnapped = (poly: VoronoiVertex[]): number => {
+                      let n = 0;
+                      for (const v of poly) {
+                        let bd = Infinity;
+                        for (const w of allWalls_snap) {
+                          // distance point-segment inline pour perf
+                          const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+                          const len2 = dx * dx + dy * dy;
+                          let d: number;
+                          if (len2 === 0) d = Math.hypot(v.x - w.x1, v.y - w.y1);
+                          else {
+                            const t = Math.max(0, Math.min(1, ((v.x - w.x1) * dx + (v.y - w.y1) * dy) / len2));
+                            d = Math.hypot(v.x - (w.x1 + t * dx), v.y - (w.y1 + t * dy));
+                          }
+                          if (d < bd) bd = d;
+                          if (bd <= 5) break;
+                        }
+                        if (bd <= 5) n++;
+                      }
+                      return n;
+                    };
+                    const baseSnapped = countSnapped(best.poly);
+                    let bestPoly = best.poly;
+                    let bestSnappedCount = baseSnapped;
+                    for (const dragMax of [10, 15, 20, 30, 50]) {
+                      const cand = dragOutliersToWalls(best.poly, allWalls_snap, {
+                        thresholdPx: 5,
+                        dragMaxPx: dragMax,
+                        maxAreaChangeRatio: 0.5, // permissif : on filtre par ratio Inv A après
+                      });
+                      const candArea = polygonAreaPx2_pre(cand) * scaleM2PerPx2;
+                      const candRatio = candArea / target;
+                      if (candRatio < 0.85 || candRatio > 1.15) continue; // viole Inv A → reject
+                      const snapped = countSnapped(cand);
+                      if (snapped > bestSnappedCount) {
+                        bestSnappedCount = snapped;
+                        bestPoly = cand;
+                      }
+                    }
+                    if (bestSnappedCount > baseSnapped) {
+                      console.log(`[s28-tour10-snap] ${r.label} progressive snap : ${baseSnapped}/${best.poly.length} → ${bestSnappedCount}/${bestPoly.length}`);
+                    }
+                    dragged = bestPoly;
                   }
-                  // s28 tour 9 — SNAP FINAL aux murs en 2 passes (strict puis
-                  // large) pour garantir Inv C : la majorité des vertices à
-                  // ≤5px d'un mur. Le regularizer + dragOutliers peuvent
-                  // laisser certains vertices à 7-12px du mur le plus proche
-                  // (orthogonalisation forcée). Le snap final corrige.
-                  // Tolérance 6px : strict mais pas plus que l'Inv C target (5),
-                  // évite de coller un vertex à un mur d'une pièce voisine.
+                  // s28 tour 10 — SNAP FINAL avec DOUBLE garde-fou :
+                  //   1. Drift < 8% par rapport au polygone post-drag (anti-distorsion locale)
+                  //   2. Si pdfSurface_m2 connu : ratio finalArea/target ∈ [0.85, 1.15] (Inv A)
+                  // Sans ce 2e garde-fou, snap3 (20px) tirait des vertices vers des murs
+                  // voisins, gonflant le polygone hors plage Inv A → tour 9 régression.
                   const wallsForSnap: WallSegment[] = allWalls_snap.map((w) => ({
                     x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
                   }));
-                  // s28 tour 9 — Snap final progressif sur le polygone choisi.
-                  // 2 passes : tight (5px) puis loose (10px). Garde-fou anti-
-                  // drift à 8% (rejeter le snap si trop de distortion).
-                  // Snap progressif 5 → 10 → 20px. Le polygon "flood" peut
-                  // avoir des vertices encore en escalier pixel (10-30px du
-                  // mur le plus proche). Snap 20px capture ces vertices sans
-                  // distortion forte (limité par garde-fou).
                   const snap1 = snapPolygonToWalls(dragged, wallsForSnap, 5);
                   const snap2 = snapPolygonToWalls(snap1.polygon, wallsForSnap, 10);
                   const snap3 = snapPolygonToWalls(snap2.polygon, wallsForSnap, 20);
@@ -993,21 +1023,30 @@ export async function POST(
                   const snap1Area = polygonAreaPx2_pre(snap1.polygon);
                   const snap2Area = polygonAreaPx2_pre(snap2.polygon);
                   const snap3Area = polygonAreaPx2_pre(snap3.polygon);
-                  // Choix : snap3 (≤20px) si drift < 8%, sinon snap2 (≤10px),
-                  // sinon snap1 (≤5px), sinon dragged.
                   let finalPoly: VoronoiVertex[];
                   const driftThr = 0.08;
                   const driftOf = (a: number) => draggedArea > 0 ? Math.abs(a - draggedArea) / draggedArea : 0;
-                  if (driftOf(snap3Area) < driftThr) {
+                  // Garde-fou Inv A (m²) : si pdfSurface dispo, ratio doit rester [0.85, 1.15]
+                  const targetM2 = r.surface_m2;
+                  const ratioOf = (a_px2: number): number | null => {
+                    if (targetM2 == null || targetM2 <= 0) return null;
+                    const a_m2 = a_px2 * scaleM2PerPx2;
+                    return a_m2 / targetM2;
+                  };
+                  const isInvAOK = (ratio: number | null): boolean => {
+                    if (ratio == null) return true; // pas de pdfSurface → pas de contrainte
+                    return ratio >= 0.85 && ratio <= 1.15;
+                  };
+                  if (driftOf(snap3Area) < driftThr && isInvAOK(ratioOf(snap3Area))) {
                     finalPoly = snap3.polygon;
-                  } else if (driftOf(snap2Area) < driftThr) {
+                  } else if (driftOf(snap2Area) < driftThr && isInvAOK(ratioOf(snap2Area))) {
                     finalPoly = snap2.polygon;
-                  } else if (driftOf(snap1Area) < driftThr) {
+                  } else if (driftOf(snap1Area) < driftThr && isInvAOK(ratioOf(snap1Area))) {
                     finalPoly = snap1.polygon;
                   } else {
                     finalPoly = dragged;
                   }
-                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} snap10=${snap2.snappedCount} snap20=${snap3.snappedCount} d20=${(driftOf(snap3Area) * 100).toFixed(1)}%`);
+                  console.log(`[s28-tour10-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} snap10=${snap2.snappedCount} snap20=${snap3.snappedCount} d20=${(driftOf(snap3Area) * 100).toFixed(1)}% r3=${ratioOf(snap3Area)?.toFixed(2) ?? "-"}`);
                   return { ...r, polygon: finalPoly };
                 });
 
