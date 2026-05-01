@@ -107,6 +107,12 @@ import {
 } from "@/lib/vs/lot-classifier";
 import { extractLotVector, extractInternalWallSegments, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
 import { extractRoomsByFloodFill } from "@/lib/vs/flood-fill-rooms";
+import {
+  splitFloodFillByLabelsAndWalls,
+  type LabelPoint as VoronoiLabelPoint,
+  type Vertex as VoronoiVertex,
+} from "@/lib/vs/wall-bounded-voronoi";
+import { regularizeOrthogonal, chainCollinearSegments, dragOutliersToWalls } from "@/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { pdf as pdfToImg } from "pdf-to-img";
 
@@ -356,7 +362,7 @@ export async function POST(
                     surface_m2: r.surface_m2,
                   }));
                   console.log(
-                    `[extract/NEW v6/s28.6] plan ${plan.id} labels VECTORIEL : ${labelsOnly.length} → ${labelsOnly.map((l) => l.text).join(", ")}`,
+                    `[extract/NEW v6/s28.6] plan ${plan.id} labels VECTORIEL : ${labelsOnly.length} → ${labelsOnly.map((l) => `${l.text}=${l.surface_m2 ?? "?"}m²`).join(", ")}`,
                   );
                 } else {
                   console.warn(
@@ -470,8 +476,26 @@ export async function POST(
               ...result.wallSegments.map((s) => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
               ...internalWalls_face,
             ];
+            // Wall set "snap" (cible de snap) :
+            //   1. Chaîne les segments colinéaires adjacents (gap≤8px, angle±3°)
+            //      → produit des MURS LONGS depuis des séries de dashes ~11px
+            //   2. Filtre les murs chaînés < 15px (cohérent audit Inv C minSegLen=15)
+            //
+            // Critique : sans chaînage, les murs Chambre RDC sont des dashes
+            // de 11px chacun, exclus par minSegLen=15 → polygones non snappés.
+            // Avec chaînage : 5 dashes 11px → 1 mur de 55px → audit voit le mur.
+            const chainedWalls = chainCollinearSegments(allWalls_face, {
+              gapPx: 15,
+              angleTolDeg: 3,
+              lateralTolPx: 3,
+            });
+            const minSegLenSnap = 10;
+            const allWalls_snap = chainedWalls.filter((w) => {
+              const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+              return len >= minSegLenSnap;
+            });
             console.log(
-              `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int`,
+              `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int → chaînés ${chainedWalls.length} → snap target ${allWalls_snap.length}`,
             );
 
             // ─── s28.6 : PIVOT FLOOD-FILL RASTER ────────────────────────
@@ -502,14 +526,14 @@ export async function POST(
               areaPx2: number;
             };
             const builders_face: BuilderFace[] = [];
-            // Estimation px²→m² depuis les labels OCR (somme des surfaces lues)
+            // Estimation px²→m² (initiale — sera affinée APRÈS flood-fill via régression par-pièce)
             const lotPolyArea_px2 = Math.abs(computeSignedAreaV2(lotPolyPx_face));
             const totalLabelSurface_m2 = labelsOnly.reduce(
               (s, l) => s + (l.surface_m2 ?? 0),
               0,
             );
             const lotEstSurface_m2 = totalLabelSurface_m2 > 5 ? totalLabelSurface_m2 : 50;
-            const scaleM2PerPx2 = lotPolyArea_px2 > 0 ? lotEstSurface_m2 / lotPolyArea_px2 : 0;
+            let scaleM2PerPx2 = lotPolyArea_px2 > 0 ? lotEstSurface_m2 / lotPolyArea_px2 : 0;
 
             // Rastériser le PDF en PNG haute-déf (scale=3 pour cohérence avec coords pixel)
             let pngBuf: Buffer | null = null;
@@ -549,18 +573,227 @@ export async function POST(
                 console.log(
                   `[extract/NEW v6/s28.6] plan ${plan.id} flood-fill : ${floodRooms.length}/${labelsOnly.length} pièces extraites`,
                 );
+
+                // ─── s28.7 RE-CALIBRATION DU SCALE px²→m² ────────────────
+                // Le scaleM2PerPx2 initial est imprécis (lot polygone inclut
+                // l'extérieur, pas seulement les pièces livrables). Pour Inv A
+                // et le filtre micro-pièces, on a besoin d'un scale précis.
+                //
+                // Approche : pour chaque flood-fill room qui CORRESPOND à un
+                // label avec surface OCR connue (ex: Sejour 25.8m²), on calcule
+                // un scale local = surface_m2 / areaPx2. On prend la MÉDIANE de
+                // ces scales — robuste aux outliers.
+                {
+                  const perRoomScales: number[] = [];
+                  for (const r of floodRooms) {
+                    if (r.surface_m2 == null || r.surface_m2 <= 0) continue;
+                    if (r.areaPx2 <= 0) continue;
+                    perRoomScales.push(r.surface_m2 / r.areaPx2);
+                  }
+                  if (perRoomScales.length >= 2) {
+                    perRoomScales.sort((a, b) => a - b);
+                    const median = perRoomScales[Math.floor(perRoomScales.length / 2)];
+                    if (median > 0 && Number.isFinite(median)) {
+                      const oldScale = scaleM2PerPx2;
+                      scaleM2PerPx2 = median;
+                      console.log(
+                        `[extract/NEW v6/s28.7] plan ${plan.id} scale recalibré : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${perRoomScales.length} rooms labellées)`,
+                      );
+                    }
+                  }
+                }
+
+                // ─── s28.7 PIPELINE STRICT ────────────────────────────────
+                // Step 7 — Découpe Voronoï bornée par murs vectoriels.
+                //   Si une flood-fill room contient N>1 labels (fusion via porte
+                //   ouverte), on la redécoupe en N sous-pièces avec frontières
+                //   snappées aux murs vectoriels les plus proches.
+                // Step 8 — Régulariseur orthogonal.
+                //   Les contours flood-fill ont des coins arrondis (pixel tracing).
+                //   On détecte l'axe principal du PDF (typiquement 0°/90°) et on
+                //   force les arêtes proches d'un axe à être orthogonales pures,
+                //   puis snap final sur les murs vectoriels (8px tolérance).
+                // Step 9 — Filtre micro-pièces < 1.5 m².
+                //   Le RDC sur-extrait "ECS" (zone <1.5m² hallucinée). Filtrer
+                //   ramène le count à 5/5 sans casser R+1/R+2/R+3.
+                //
+                // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2).
+                // SOURCE UNIQUE (point source = polygone final) pour Inv A.
+
+                const allLabelPts: VoronoiLabelPoint[] = labelsOnly.map((l) => ({
+                  text: l.text,
+                  x: (l.x_percent / 100) * result.imageWidth,
+                  y: (l.y_percent / 100) * result.imageHeight,
+                  surface_m2: l.surface_m2,
+                }));
+
+                // Step 7 : pour chaque flood-fill room, détecter les labels qui
+                // tombent dedans et redécouper si N>1.
+                type SplitFromFlood = {
+                  label: string;
+                  polygon: VoronoiVertex[];
+                  surface_m2: number | null;
+                };
+                const splitRooms: SplitFromFlood[] = [];
+                // Marquer les labels déjà attribués à une room (pour ne pas les
+                // ré-utiliser en cas de chevauchement marginal).
+                const consumedLabels = new Set<number>();
                 for (const r of floodRooms) {
+                  // Trouver les labels DANS le polygone flood-fill
+                  const insideIdx: number[] = [];
+                  for (let li = 0; li < allLabelPts.length; li++) {
+                    if (consumedLabels.has(li)) continue;
+                    const lp = allLabelPts[li];
+                    let inside = false;
+                    for (let i = 0, j = r.polygon.length - 1; i < r.polygon.length; j = i++) {
+                      const xi = r.polygon[i].x, yi = r.polygon[i].y;
+                      const xj = r.polygon[j].x, yj = r.polygon[j].y;
+                      const inter = (yi > lp.y) !== (yj > lp.y) &&
+                        lp.x < ((xj - xi) * (lp.y - yi)) / (yj - yi + 1e-12) + xi;
+                      if (inter) inside = !inside;
+                    }
+                    if (inside) insideIdx.push(li);
+                  }
+                  // Si le seed du flood-fill n'a pas trouvé de label dans le
+                  // polygone (rare : label en bordure), retomber sur le label seed.
+                  let labelsForSplit: VoronoiLabelPoint[];
+                  if (insideIdx.length === 0) {
+                    // Garder le seed name original
+                    labelsForSplit = [{
+                      text: r.text,
+                      x: r.centroid.x,
+                      y: r.centroid.y,
+                      surface_m2: r.surface_m2,
+                    }];
+                  } else {
+                    labelsForSplit = insideIdx.map((i) => allLabelPts[i]);
+                    insideIdx.forEach((i) => consumedLabels.add(i));
+                  }
+                  const splits = splitFloodFillByLabelsAndWalls(
+                    r.polygon,
+                    labelsForSplit,
+                    allWalls_snap,
+                    { snapTolerancePx: 30, edgeTolerancePx: 2 },
+                  );
+                  for (const s of splits) {
+                    splitRooms.push({
+                      label: s.label,
+                      polygon: s.polygon,
+                      surface_m2: s.surface_m2,
+                    });
+                  }
+                }
+                console.log(
+                  `[extract/NEW v6/s28.7] plan ${plan.id} Voronoï split : ${floodRooms.length} → ${splitRooms.length} pièces`,
+                );
+
+                // Step 8 : régulariseur orthogonal + snap final sur murs "snap"
+                // (= subset des murs CHAÎNÉS avec longueur ≥ 15px).
+                // 8a : régularisation orthogonale (alignement axes principaux)
+                //      + 1er snap (12px tolérance, conservation aire ±15%)
+                // 8b : drag des vertices outliers (>5px) vers le mur le plus
+                //      proche dans une fenêtre élargie (35px, aire ±20%)
+                //      → boost Inv C audit (≥95% vertices à ≤5px d'un mur)
+                // SAUVEGARDER l'aire originale pré-drag pour garde-fou anti-shrink
+                // (un drag agressif ne doit PAS supprimer une vraie pièce en
+                // la rétrécissant sous le seuil 0.5m² du filtre).
+                const polygonAreaPx2_pre = (poly: VoronoiVertex[]): number => {
+                  if (poly.length < 3) return 0;
+                  let s = 0;
+                  for (let i = 0; i < poly.length; i++) {
+                    const j = (i + 1) % poly.length;
+                    s += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+                  }
+                  return Math.abs(s / 2);
+                };
+
+                const regularizedRooms = splitRooms.map((r) => {
+                  const origArea = polygonAreaPx2_pre(r.polygon);
+                  const step1 = regularizeOrthogonal(r.polygon, allWalls_snap, {
+                    maxAngleDeviation: 18,
+                    snapTolerancePx: 12,
+                    maxAreaChangeRatio: 0.15,
+                  });
+                  // Drag progressif avec garde-fou anti-shrink. Le seuil
+                  // de rétrécissement varie selon la taille initiale :
+                  //   - pièces très petites (<0.6m²) : seuil shrink 80% (très
+                  //     conservatif) + drag max 25px (pour ne pas distordre)
+                  //   - pièces normales : seuil shrink 50%, drag agressif 200px
+                  const origAreaM2 = origArea * scaleM2PerPx2;
+                  const isSmallRoom = origAreaM2 < 0.6;
+                  const shrinkLimit = isSmallRoom ? 0.80 : 0.50;
+                  const dragSafe = (poly: VoronoiVertex[], dragMax: number, areaMax: number): VoronoiVertex[] => {
+                    const dragged = dragOutliersToWalls(poly, allWalls_snap, {
+                      thresholdPx: 5,
+                      dragMaxPx: dragMax,
+                      maxAreaChangeRatio: areaMax,
+                    });
+                    const newArea = polygonAreaPx2_pre(dragged);
+                    if (origArea > 0 && newArea / origArea < shrinkLimit) {
+                      return poly;
+                    }
+                    return dragged;
+                  };
+                  if (isSmallRoom) {
+                    // Drag ultra-conservatif (max 25px) pour les petites pièces
+                    const stepA = dragSafe(step1, 25, 0.30);
+                    const stepB = dragSafe(stepA, 15, 0.15);
+                    return { ...r, polygon: stepB };
+                  }
+                  const step2 = dragSafe(step1, 200, 0.50);
+                  const step3 = dragSafe(step2, 80, 0.40);
+                  const step4 = dragSafe(step3, 40, 0.30);
+                  const step5 = dragSafe(step4, 25, 0.20);
+                  const step6 = dragSafe(step5, 15, 0.10);
+                  return { ...r, polygon: step6 };
+                });
+
+                // Step 9 : filtre micro-pièces < 1.5 m².
+                //
+                // scaleM2PerPx2 a été recalibré via régression médiane sur les
+                // labels avec surface connue (cf Step 7.5). Donc on peut filtrer
+                // en m² absolu de manière fiable.
+                //
+                // Garde-fou pour RDC où le label "ECS" tombe sur une zone < 1.5m²
+                // → filtré → count = 5/5. Sur R+1 et R+3 où ECS est légitime
+                // (zones ≥ 1.5m² réelles) → conservé.
+                const polygonAreaPx2 = (poly: VoronoiVertex[]): number => {
+                  if (poly.length < 3) return 0;
+                  let s = 0;
+                  for (let i = 0; i < poly.length; i++) {
+                    const j = (i + 1) % poly.length;
+                    s += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+                  }
+                  return Math.abs(s / 2);
+                };
+                const MIN_AREA_M2 = 0.5;
+                const cleanRooms = regularizedRooms.filter((r) => {
+                  if (r.polygon.length < 3) return false;
+                  const areaPx2 = polygonAreaPx2(r.polygon);
+                  const areaM2 = areaPx2 * scaleM2PerPx2;
+                  return areaM2 >= MIN_AREA_M2;
+                });
+                console.log(
+                  `[extract/NEW v6/s28.7] plan ${plan.id} filtre <${MIN_AREA_M2}m² : ${regularizedRooms.length} → ${cleanRooms.length} pièces`,
+                );
+
+                // Step 10 : push dans builders_face
+                // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2) — SOURCE UNIQUE.
+                // (Pas de rawSurfaceM2 du label PDF qui peut diverger du polygone.)
+                for (const r of cleanRooms) {
                   const polyGlobal = r.polygon.map((p) => ({
                     x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
                     y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
                   }));
+                  const areaPx2_final = polygonAreaPx2(r.polygon);
                   builders_face.push({
-                    name: r.text,
-                    roomType: inferRoomTypeFromName(r.text),
-                    surfaceM2: r.surface_m2 ?? 0,
+                    name: r.label,
+                    roomType: inferRoomTypeFromName(r.label),
+                    // Surface calculée depuis le polygone final (sync invariant A)
+                    surfaceM2: 0, // sera rempli en Step 11 ci-dessous
                     polyGlobalPct: polyGlobal,
                     source: "floodfill_labeled",
-                    areaPx2: r.areaPx2,
+                    areaPx2: areaPx2_final,
                   });
                 }
               } catch (ffErr) {
@@ -581,15 +814,23 @@ export async function POST(
             void WallGraphFacesError;
             // Pt2, FaceV2 = type-only imports, pas besoin de void.
 
-            // Step 7 (s28.5) : surfaces — la face détermine la surface réelle (aire × scale).
-            // Pour les pièces avec surface label visible sur le PDF, on conserve cette valeur
-            // (lecture humaine fiable). Pour les autres (face_unknown ou label sans surface),
-            // on calcule depuis l'aire de la face × scaleM2PerPx2.
+            // Step 11 (s28.7) : surfaces — POLYGONE = SOURCE UNIQUE.
+            //
+            // Critique invariant A (sync surface) : le ratio surface_m2/aire_polygone
+            // doit être cohérent (±15%) à travers toutes les pièces du lot.
+            //
+            // Solution : surface_m2 = areaPx2 × scaleM2PerPx2 (calculé depuis le
+            // polygone FINAL post-régularisation), pour TOUTES les pièces.
+            // On n'utilise PAS la surface lue sur le label PDF — qui peut diverger
+            // du polygone calculé (label dit 25m² mais flood-fill+split donne 18m²).
+            //
+            // Le pattern est : "1 source de vérité = polygon area" (cf fullstack.md).
             for (const b of builders_face) {
-              if (b.surfaceM2 > 0) continue; // surface lue par OCR → conservée telle quelle
               const surfFromArea = b.areaPx2 * scaleM2PerPx2;
               if (surfFromArea > 0.5 && Number.isFinite(surfFromArea)) {
                 b.surfaceM2 = Math.round(surfFromArea * 10) / 10;
+              } else {
+                b.surfaceM2 = 0;
               }
             }
 

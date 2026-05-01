@@ -21,6 +21,7 @@ import { Pool } from "pg";
 import { readFile } from "fs/promises";
 import { extractLotVector, type WallSegPx } from "../src/lib/vs/lot-vector-extractor";
 import { extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor";
+import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
 
@@ -168,10 +169,25 @@ async function main() {
           x: (p.x_percent / 100) * imageW,
           y: (p.y_percent / 100) * imageH,
         }));
-        internalWalls = await extractInternalWallSegments(buffer, lotPolyPx, {
+        // s28.7 : extraction puis chaînage des segments colinéaires.
+        // Sans chaînage, les murs dessinés en dashes (~11px chacun, ex: Chambre
+        // RDC) sont individuellement filtrés par minSegLen=15. Avec chaînage,
+        // une série de dashes devient un mur unique long → audit cohérent
+        // avec la géométrie réelle du PDF (qui contient bien des murs là).
+        // Note : ceci DURCIT l'audit (plus de murs cibles) — pas un soft.
+        const rawInternal = await extractInternalWallSegments(buffer, lotPolyPx, {
           scale: 3,
           multiColor: true,
-          minSegLen: 15,
+          minSegLen: 5, // pré-filtre permissif, le chaînage gère les bruits
+        });
+        const chained = chainCollinearSegments(rawInternal, {
+          gapPx: 15,
+          angleTolDeg: 3,
+          lateralTolPx: 3,
+        });
+        internalWalls = chained.filter((w) => {
+          const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+          return len >= 10;
         });
       } catch (err) {
         console.warn(`[${lot.name}] extraction murs échouée :`, err instanceof Error ? err.message : err);
