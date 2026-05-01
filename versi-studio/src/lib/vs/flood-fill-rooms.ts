@@ -881,17 +881,8 @@ export async function extractRoomsByQuotaFloodFill(
       activeCount = 0;
       for (const s of seeds) {
         if (s.blocked) continue;
-        // s28 tour 10 — limite BFS adaptative à la taille de la pièce :
-        //   - quota < 3m² (Cellier, WC, ECS) : stop à 0.92× quota.
-        //     Le post-process (dilatation +1px + snap 40px aux murs) va ensuite
-        //     gonfler l'aire de ~8% → ratio final ~1.0. Si on stoppait à 1.0×,
-        //     le post-process produit ratio 1.15-1.20 (Cellier R+1 fail tour 9).
-        //   - quota ≥ 3m² : stop à 1.0× quota. La dilatation +1px sur grandes
-        //     pièces gonfle <2% (négligeable).
-        const SMALL_M2 = 3 / scaleM2PerPx2;
-        const stopThreshold = s.quotaKnown && s.quotaPx2 < SMALL_M2
-          ? s.quotaPx2 * 0.92
-          : s.quotaPx2;
+        // Limite stricte : 1.0× quota (pas d'overshoot autorisé).
+        const stopThreshold = s.quotaPx2;
         if (s.area >= stopThreshold) {
           s.blocked = true;
           continue;

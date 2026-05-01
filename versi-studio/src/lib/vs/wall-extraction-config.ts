@@ -33,12 +33,11 @@ export const WALL_EXTRACTION_CONFIG = {
   multiColor: true,
 
   /**
-   * Filtre minimal AU MOMENT de l'extraction PDF. Doit être PETIT (≤5)
-   * pour conserver les dashes courts qui formeront des murs longs après
-   * chaînage. minSegLen=10 ici jetterait les dashes 11px individuellement
-   * → murs Chambre RDC absents.
+   * Filtre minimal AU MOMENT de l'extraction PDF.
+   * 10 = valeur empirique tour 9 extract (cohérente avec minSegLenFinal).
+   * Audit utilisait 5 → divergence. Tour 10 force 10 partout (audit + extract).
    */
-  minSegLenExtraction: 5,
+  minSegLenExtraction: 10,
 
   /**
    * Chaînage segments colinéaires : gap maximum entre 2 segments pour les
