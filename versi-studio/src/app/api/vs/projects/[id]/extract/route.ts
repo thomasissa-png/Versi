@@ -692,6 +692,50 @@ export async function POST(
                         `[extract/NEW v8/s28-quota] plan ${plan.id} 2e passe quota : ${quotaRooms.length}/${labelsOnly.length} pièces (vs ${floodRooms.length} sans quota)`,
                       );
                       activeFloodRooms = quotaRooms;
+                      // s28 tour 9 — RE-CALIBRAGE scale sur les polygones
+                      // quotaRooms (post-BFS strict + dilatation conditionnelle).
+                      // Le scale précédent était calibré sur floodRooms (1ère
+                      // passe sans quota = aires souvent fuyantes / gonflées),
+                      // d'où ratio audit 1.20-1.46. Avec quotaRooms, l'aire
+                      // px² du polygone est strictement bornée → scale =
+                      // surface_pdf / aire_polygon devient juste.
+                      const polyAreaQ = (poly: { x: number; y: number }[]) => {
+                        let s2 = 0;
+                        for (let i = 0; i < poly.length; i++) {
+                          const j = (i + 1) % poly.length;
+                          s2 += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+                        }
+                        return Math.abs(s2 / 2);
+                      };
+                      const candidatesQ = quotaRooms
+                        .filter((r) => r.surface_m2 != null && r.surface_m2 > 0)
+                        .map((r) => ({
+                          area: polyAreaQ(r.polygon),
+                          pdf: r.surface_m2!,
+                        }))
+                        .filter((x) => x.area > 0);
+                      if (candidatesQ.length >= 3) {
+                        const ks = candidatesQ.map((c) => c.pdf / c.area).sort((a, b) => a - b);
+                        const medianK = ks[Math.floor(ks.length / 2)];
+                        // Filtre outliers : exclure rooms ratio > 2x ou < 0.5x médiane
+                        const filtered = candidatesQ.filter((c) => {
+                          const k = c.pdf / c.area;
+                          return k >= medianK * 0.5 && k <= medianK * 2.0;
+                        });
+                        if (filtered.length >= 2) {
+                          const filteredKs = filtered
+                            .map((c) => c.pdf / c.area)
+                            .sort((a, b) => a - b);
+                          const newScale = filteredKs[Math.floor(filteredKs.length / 2)];
+                          if (newScale > 0 && Number.isFinite(newScale)) {
+                            const oldScale = scaleM2PerPx2;
+                            scaleM2PerPx2 = newScale;
+                            console.log(
+                              `[extract/NEW v8/s28-tour9-recal] plan ${plan.id} scale RE-calibré sur quotaRooms : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${filtered.length}/${candidatesQ.length} polygones)`,
+                            );
+                          }
+                        }
+                      }
                     } else {
                       console.warn(
                         `[extract/NEW v8/s28-quota] plan ${plan.id} 2e passe insuffisante (${quotaRooms.length} vs ${floodRooms.length}), conservation 1ère passe`,
@@ -872,7 +916,8 @@ export async function POST(
                       { name: "reg", poly: step1, area: step1Area },
                       { name: "flood", poly: r.polygon, area: origAreaM2_log },
                     ];
-                    // Score = |area - target| / target. Plus petit = plus proche.
+                    // s28 tour 9 — Stratégie : choisir le polygone le plus
+                    // proche du PDF (Inv A primordial).
                     candidates.sort((a, b) => {
                       const sa = Math.abs(a.area - target) / target;
                       const sb = Math.abs(b.area - target) / target;
@@ -880,14 +925,32 @@ export async function POST(
                     });
                     const best = candidates[0];
                     const bestRatio = best.area / target;
-                    // Accepter le best si dans [0.85, 1.15] OU si tous sont hors
-                    // (= choisir le moins pire). Logguer en cas de fallback.
                     if (bestRatio < 0.85 || bestRatio > 1.15) {
                       console.log(`[s28-tour9-pipe] ${r.label} NO_CANDIDATE_IN_RANGE — choosing ${best.name}=${best.area.toFixed(2)} (ratio ${bestRatio.toFixed(2)})`);
                     } else if (best.name !== "drag") {
                       console.log(`[s28-tour9-pipe] ${r.label} SWITCH ${best.name}=${best.area.toFixed(2)} drag was ${draggedAreaLog.toFixed(2)} (target ${target}m²)`);
                     }
-                    dragged = best.poly;
+                    // s28 tour 9 — Si on a switché vers flood ou reg (= polygone
+                    // pré-drag), appliquer un drag léger pour snapper les vertices
+                    // proches des murs (Inv C) sans déformer (areaMax 0.05).
+                    if (best.name !== "drag") {
+                      const lightDragged = dragOutliersToWalls(best.poly, allWalls_snap, {
+                        thresholdPx: 5,
+                        dragMaxPx: 30,
+                        maxAreaChangeRatio: 0.05,
+                      });
+                      // Vérifier que le drag léger n'a pas dérivé l'aire
+                      const lightArea = polygonAreaPx2_pre(lightDragged) * scaleM2PerPx2;
+                      const lightRatio = lightArea / target;
+                      if (lightRatio >= 0.85 && lightRatio <= 1.15) {
+                        dragged = lightDragged;
+                        console.log(`[s28-tour9-pipe] ${r.label} LIGHT_DRAG applied : ${best.area.toFixed(2)} → ${lightArea.toFixed(2)}`);
+                      } else {
+                        dragged = best.poly;
+                      }
+                    } else {
+                      dragged = best.poly;
+                    }
                   }
                   // s28 tour 9 — SNAP FINAL aux murs en 2 passes (strict puis
                   // large) pour garantir Inv C : la majorité des vertices à
@@ -899,25 +962,35 @@ export async function POST(
                   const wallsForSnap: WallSegment[] = allWalls_snap.map((w) => ({
                     x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
                   }));
-                  // s28 tour 9 — Snap final tight (5px) UNIQUEMENT pour
-                  // ramener vertices à ≤5px (Inv C). Pas de 2e passe large
-                  // (12px) qui causait drift de surface jusqu'à +30% vs PDF.
-                  // Si un vertex est à >5px d'un mur, on le laisse tel quel
-                  // (= dragOutliers a peut-être déjà fait son travail, ou
-                  // c'est un vertex sur une zone sans mur vectoriel).
+                  // s28 tour 9 — Snap final progressif sur le polygone choisi.
+                  // 2 passes : tight (5px) puis loose (10px). Garde-fou anti-
+                  // drift à 8% (rejeter le snap si trop de distortion).
+                  // Snap progressif 5 → 10 → 20px. Le polygon "flood" peut
+                  // avoir des vertices encore en escalier pixel (10-30px du
+                  // mur le plus proche). Snap 20px capture ces vertices sans
+                  // distortion forte (limité par garde-fou).
                   const snap1 = snapPolygonToWalls(dragged, wallsForSnap, 5);
+                  const snap2 = snapPolygonToWalls(snap1.polygon, wallsForSnap, 10);
+                  const snap3 = snapPolygonToWalls(snap2.polygon, wallsForSnap, 20);
                   const draggedArea = polygonAreaPx2_pre(dragged);
                   const snap1Area = polygonAreaPx2_pre(snap1.polygon);
-                  // Garde-fou : si le snap change l'aire de >10%, rejeter
-                  // (un snap pathologique attire les vertices vers un mur
-                  // d'une pièce voisine → distortion forte).
+                  const snap2Area = polygonAreaPx2_pre(snap2.polygon);
+                  const snap3Area = polygonAreaPx2_pre(snap3.polygon);
+                  // Choix : snap3 (≤20px) si drift < 8%, sinon snap2 (≤10px),
+                  // sinon snap1 (≤5px), sinon dragged.
                   let finalPoly: VoronoiVertex[];
-                  if (draggedArea > 0 && Math.abs(snap1Area - draggedArea) / draggedArea > 0.10) {
-                    finalPoly = dragged;
-                  } else {
+                  const driftThr = 0.08;
+                  const driftOf = (a: number) => draggedArea > 0 ? Math.abs(a - draggedArea) / draggedArea : 0;
+                  if (driftOf(snap3Area) < driftThr) {
+                    finalPoly = snap3.polygon;
+                  } else if (driftOf(snap2Area) < driftThr) {
+                    finalPoly = snap2.polygon;
+                  } else if (driftOf(snap1Area) < driftThr) {
                     finalPoly = snap1.polygon;
+                  } else {
+                    finalPoly = dragged;
                   }
-                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} drift=${draggedArea > 0 ? ((snap1Area - draggedArea) / draggedArea * 100).toFixed(1) : "n/a"}%`);
+                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} snap10=${snap2.snappedCount} snap20=${snap3.snappedCount} d20=${(driftOf(snap3Area) * 100).toFixed(1)}%`);
                   return { ...r, polygon: finalPoly };
                 });
 
