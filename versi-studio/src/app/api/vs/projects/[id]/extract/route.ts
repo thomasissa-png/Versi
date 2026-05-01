@@ -815,11 +815,13 @@ export async function POST(
 
                 const regularizedRooms = splitRooms.map((r) => {
                   const origArea = polygonAreaPx2_pre(r.polygon);
+                  const origAreaM2_log = origArea * scaleM2PerPx2;
                   const step1 = regularizeOrthogonal(r.polygon, allWalls_snap, {
                     maxAngleDeviation: 18,
                     snapTolerancePx: 12,
                     maxAreaChangeRatio: 0.15,
                   });
+                  const step1Area = polygonAreaPx2_pre(step1) * scaleM2PerPx2;
                   // Drag progressif avec garde-fou anti-shrink. Le seuil
                   // de rétrécissement varie selon la taille initiale :
                   //   - pièces très petites (<0.6m²) : seuil shrink 80% (très
@@ -840,18 +842,83 @@ export async function POST(
                     }
                     return dragged;
                   };
+                  let dragged: VoronoiVertex[];
                   if (isSmallRoom) {
                     // Drag ultra-conservatif (max 25px) pour les petites pièces
                     const stepA = dragSafe(step1, 25, 0.30);
                     const stepB = dragSafe(stepA, 15, 0.15);
-                    return { ...r, polygon: stepB };
+                    dragged = stepB;
+                  } else {
+                    const step2 = dragSafe(step1, 200, 0.50);
+                    const step3 = dragSafe(step2, 80, 0.40);
+                    const step4 = dragSafe(step3, 40, 0.30);
+                    const step5 = dragSafe(step4, 25, 0.20);
+                    const step6 = dragSafe(step5, 15, 0.10);
+                    dragged = step6;
                   }
-                  const step2 = dragSafe(step1, 200, 0.50);
-                  const step3 = dragSafe(step2, 80, 0.40);
-                  const step4 = dragSafe(step3, 40, 0.30);
-                  const step5 = dragSafe(step4, 25, 0.20);
-                  const step6 = dragSafe(step5, 15, 0.10);
-                  return { ...r, polygon: step6 };
+                  const draggedAreaLog = polygonAreaPx2_pre(dragged) * scaleM2PerPx2;
+                  console.log(`[s28-tour9-pipe] room=${r.label} pdf=${r.surface_m2 ?? "?"} flood=${origAreaM2_log.toFixed(2)} reg=${step1Area.toFixed(2)} drag=${draggedAreaLog.toFixed(2)}`);
+                  // s28 tour 9 — Garde-fou quota PDF : si le pipeline drag/snap
+                  // a fait dériver l'aire de plus de 15% par rapport au quota
+                  // PDF, REVENIR au polygone post-flood-fill (r.polygon) ou
+                  // post-regularizer (step1) selon lequel est le plus proche
+                  // du quota PDF. Le drag est alors annulé (cas typique :
+                  // petite pièce dont le drag attire les vertices vers un mur
+                  // d'une pièce voisine, gonflant l'aire de 30%+).
+                  if (r.surface_m2 != null && r.surface_m2 > 0) {
+                    const target = r.surface_m2; // m²
+                    const candidates = [
+                      { name: "drag", poly: dragged, area: draggedAreaLog },
+                      { name: "reg", poly: step1, area: step1Area },
+                      { name: "flood", poly: r.polygon, area: origAreaM2_log },
+                    ];
+                    // Score = |area - target| / target. Plus petit = plus proche.
+                    candidates.sort((a, b) => {
+                      const sa = Math.abs(a.area - target) / target;
+                      const sb = Math.abs(b.area - target) / target;
+                      return sa - sb;
+                    });
+                    const best = candidates[0];
+                    const bestRatio = best.area / target;
+                    // Accepter le best si dans [0.85, 1.15] OU si tous sont hors
+                    // (= choisir le moins pire). Logguer en cas de fallback.
+                    if (bestRatio < 0.85 || bestRatio > 1.15) {
+                      console.log(`[s28-tour9-pipe] ${r.label} NO_CANDIDATE_IN_RANGE — choosing ${best.name}=${best.area.toFixed(2)} (ratio ${bestRatio.toFixed(2)})`);
+                    } else if (best.name !== "drag") {
+                      console.log(`[s28-tour9-pipe] ${r.label} SWITCH ${best.name}=${best.area.toFixed(2)} drag was ${draggedAreaLog.toFixed(2)} (target ${target}m²)`);
+                    }
+                    dragged = best.poly;
+                  }
+                  // s28 tour 9 — SNAP FINAL aux murs en 2 passes (strict puis
+                  // large) pour garantir Inv C : la majorité des vertices à
+                  // ≤5px d'un mur. Le regularizer + dragOutliers peuvent
+                  // laisser certains vertices à 7-12px du mur le plus proche
+                  // (orthogonalisation forcée). Le snap final corrige.
+                  // Tolérance 6px : strict mais pas plus que l'Inv C target (5),
+                  // évite de coller un vertex à un mur d'une pièce voisine.
+                  const wallsForSnap: WallSegment[] = allWalls_snap.map((w) => ({
+                    x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
+                  }));
+                  // s28 tour 9 — Snap final tight (5px) UNIQUEMENT pour
+                  // ramener vertices à ≤5px (Inv C). Pas de 2e passe large
+                  // (12px) qui causait drift de surface jusqu'à +30% vs PDF.
+                  // Si un vertex est à >5px d'un mur, on le laisse tel quel
+                  // (= dragOutliers a peut-être déjà fait son travail, ou
+                  // c'est un vertex sur une zone sans mur vectoriel).
+                  const snap1 = snapPolygonToWalls(dragged, wallsForSnap, 5);
+                  const draggedArea = polygonAreaPx2_pre(dragged);
+                  const snap1Area = polygonAreaPx2_pre(snap1.polygon);
+                  // Garde-fou : si le snap change l'aire de >10%, rejeter
+                  // (un snap pathologique attire les vertices vers un mur
+                  // d'une pièce voisine → distortion forte).
+                  let finalPoly: VoronoiVertex[];
+                  if (draggedArea > 0 && Math.abs(snap1Area - draggedArea) / draggedArea > 0.10) {
+                    finalPoly = dragged;
+                  } else {
+                    finalPoly = snap1.polygon;
+                  }
+                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} drift=${draggedArea > 0 ? ((snap1Area - draggedArea) / draggedArea * 100).toFixed(1) : "n/a"}%`);
+                  return { ...r, polygon: finalPoly };
                 });
 
                 // Step 9 : filtre micro-pièces < 1.5 m².
