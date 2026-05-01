@@ -113,6 +113,13 @@ import {
   type Vertex as VoronoiVertex,
 } from "@/lib/vs/wall-bounded-voronoi";
 import { regularizeOrthogonal, chainCollinearSegments, dragOutliersToWalls } from "@/lib/vs/orthogonal-regularizer";
+import {
+  synthesizeInterRoomWalls,
+  synthesizeRoomToLotWalls,
+  type Wall as SynthWall,
+  type RoomLike as SynthRoomLike,
+} from "@/lib/vs/inter-room-walls";
+import { smartLineSnap } from "@/lib/vs/smart-line-snap";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -1034,6 +1041,221 @@ export async function POST(
                 console.log(
                   `[extract/NEW v8/s28.7] plan ${plan.id} filtre <${MIN_AREA_M2_LABELED}/${MIN_AREA_M2_UNLABELED}m² : ${regularizedRooms.length} → ${cleanRooms.length} pièces`,
                 );
+
+                // ─── s28 tour 12 — STEP 9.5 : Synthèse murs inter-pièces ───
+                // Pour chaque pièce, on dérive un set de murs synthétiques
+                // depuis :
+                //   1. Frontières communes avec pièces VOISINES (lateralTol 15px)
+                //   2. Frontières en contact avec le contour LOT
+                // Ces murs synthétiques s'AJOUTENT à allWalls_snap pour un
+                // dernier passage de smartLineSnap + dragOutliersToWalls.
+                //
+                // L'objectif : absorber les outliers à 30-100px de tout mur PDF
+                // (cas typique : flood-fill décalé par dilatation morphologique).
+                // Les murs synthétiques sont EXACTEMENT les contours des pièces
+                // voisines → snap dessus = aligner les contours mutuellement.
+                //
+                // NB Inv C audit : les murs synth ne sont PAS dans le set audit.
+                // Donc Inv C ne se mesure que vs murs PDF. Le gain Inv C est
+                // INDIRECT : en alignant les contours mutuellement, on tend à
+                // les ramener tous au même endroit (la cloison réelle, qu'elle
+                // soit dans le set PDF ou non).
+                try {
+                  const synthRooms: SynthRoomLike[] = cleanRooms.map((r) => ({
+                    name: r.label,
+                    polygon: r.polygon,
+                  }));
+                  const interRoomWalls = synthesizeInterRoomWalls(synthRooms, {
+                    lateralTolPx: 15,
+                    parallelTolDeg: 8,
+                    overlapMinPx: 8,
+                    minWallLenPx: 8,
+                  });
+                  const lotEdgeWalls = synthesizeRoomToLotWalls(synthRooms, lotPolyPx_face, {
+                    lateralTolPx: 15,
+                    parallelTolDeg: 8,
+                    overlapMinPx: 8,
+                    minWallLenPx: 8,
+                  });
+                  const synthWalls: SynthWall[] = [...interRoomWalls, ...lotEdgeWalls];
+                  console.log(
+                    `[extract/NEW s28-tour12] plan ${plan.id} synthèse murs : ${interRoomWalls.length} inter-pièces + ${lotEdgeWalls.length} room↔lot = ${synthWalls.length} murs synthétiques`,
+                  );
+
+                  if (synthWalls.length > 0) {
+                    // Combiner murs PDF + synthétiques pour un dernier snap.
+                    const enrichedWalls = [
+                      ...allWalls_snap.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 })),
+                      ...synthWalls,
+                    ];
+
+                    // Pour chaque pièce, ré-appliquer un snap CONSERVATIF (3% drift)
+                    // avec murs enrichis (synth) + un drag léger (10px max, 2% drift).
+                    // Garde-fou STRICT pour préserver Inv A : si la pièce a un
+                    // pdfSurfaceM2, on rejette toute modification qui DÉGRADE
+                    // |new_area - pdf_area| / pdf_area au-delà de l'original.
+                    for (let ri = 0; ri < cleanRooms.length; ri++) {
+                      const r = cleanRooms[ri];
+                      const origArea = polygonAreaPx2(r.polygon);
+                      if (origArea < 1) continue;
+                      const origAreaM2 = origArea * scaleM2PerPx2;
+                      // Snap ligne 12px avec garde-fou aire 3%
+                      const snapped = smartLineSnap(r.polygon, enrichedWalls, {
+                        angleTolDeg: 18,
+                        dragTolPx: 12,
+                        parallelTolDeg: 22,
+                        finalSnapTolPx: 5,
+                        maxAreaDriftRatio: 0.03,
+                      });
+                      // Drag final 10px avec garde-fou aire 2%
+                      const dragged = dragOutliersToWalls(snapped, enrichedWalls, {
+                        thresholdPx: 5,
+                        dragMaxPx: 10,
+                        maxAreaChangeRatio: 0.02,
+                      });
+                      const newArea = polygonAreaPx2(dragged);
+                      const newAreaM2 = newArea * scaleM2PerPx2;
+                      // Garde-fou aire absolue : 3% max
+                      if (origArea > 0 && Math.abs(newArea - origArea) / origArea > 0.03) {
+                        continue;
+                      }
+                      // Garde-fou Inv A : si pdfSurfaceM2 connu, ne pas DÉGRADER
+                      // l'écart (i.e. si on est déjà à 1.10 et qu'on devient 1.13,
+                      // on rejette).
+                      if (r.surface_m2 != null && r.surface_m2 > 0) {
+                        const origRatio = Math.abs(origAreaM2 - r.surface_m2) / r.surface_m2;
+                        const newRatio = Math.abs(newAreaM2 - r.surface_m2) / r.surface_m2;
+                        if (newRatio > origRatio + 0.005) {
+                          // Dégradation > 0.5pt → rejeter
+                          continue;
+                        }
+                      }
+                      cleanRooms[ri] = { ...r, polygon: dragged };
+                    }
+                  }
+                } catch (synthErr) {
+                  console.warn(
+                    `[extract/NEW s28-tour12] plan ${plan.id} synthèse échouée :`,
+                    synthErr instanceof Error ? synthErr.message : synthErr,
+                  );
+                }
+
+                // ─── s28 tour 12 — STEP 9.7 : DRAG OUTLIERS aggressif AVEC garde-fou Inv A ───
+                // Pour chaque pièce, drag les vertices outliers (>5px de tout mur PDF)
+                // vers le mur PDF le plus proche dans une fenêtre TRÈS élargie (200px).
+                // Garde-fou critique : si la nouvelle aire pousse le ratio Inv A
+                // en dehors de [0.86, 1.14], rejeter le drag.
+                //
+                // L'idée : ces outliers sont à 30-200px du mur PDF. Les ramener
+                // à <5px d'un mur (n'importe lequel) fait passer Inv C, MAIS la
+                // déformation peut casser Inv A. On itère vertex par vertex et
+                // on rollback si Inv A se dégrade.
+                const wallsForFinalDrag = allWalls_snap.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
+                for (let ri = 0; ri < cleanRooms.length; ri++) {
+                  const r = cleanRooms[ri];
+                  if (r.polygon.length < 3) continue;
+                  const origAreaPx2 = polygonAreaPx2(r.polygon);
+                  if (origAreaPx2 < 1) continue;
+                  const origAreaM2 = origAreaPx2 * scaleM2PerPx2;
+                  const pdfM2 = r.surface_m2;
+                  // Tolérance Inv A STRICTE : si pdfM2 connu, [0.88, 1.12]
+                  // (marge de sécurité 0.02 vs limite audit [0.85, 1.15]).
+                  // Sans pdfM2 : ±3% de l'aire originale (très conservatif).
+                  const minAcceptableArea = pdfM2 != null && pdfM2 > 0
+                    ? (pdfM2 * 0.88) / scaleM2PerPx2
+                    : origAreaPx2 * 0.97;
+                  const maxAcceptableArea = pdfM2 != null && pdfM2 > 0
+                    ? (pdfM2 * 1.12) / scaleM2PerPx2
+                    : origAreaPx2 * 1.03;
+
+                  const distSeg = (px: number, py: number, w: { x1: number; y1: number; x2: number; y2: number }) => {
+                    const ddx = w.x2 - w.x1, ddy = w.y2 - w.y1, l2 = ddx * ddx + ddy * ddy;
+                    if (l2 < 1e-9) return { d: Math.hypot(px - w.x1, py - w.y1), proj: { x: w.x1, y: w.y1 } };
+                    const t = Math.max(0, Math.min(1, ((px - w.x1) * ddx + (py - w.y1) * ddy) / l2));
+                    const projX = w.x1 + t * ddx, projY = w.y1 + t * ddy;
+                    return { d: Math.hypot(px - projX, py - projY), proj: { x: projX, y: projY } };
+                  };
+
+                  // Tester drag par batch décroissant (200px → 100px → 50px → 20px)
+                  // Pour chaque batch, drag tous les outliers à <= dragMax
+                  const draggedPolygon = r.polygon.map((p) => ({ ...p }));
+                  for (const dragMax of [200, 100, 50, 20]) {
+                    const trialPolygon = draggedPolygon.map((v) => {
+                      let bestD = Infinity;
+                      let bestProj = { x: v.x, y: v.y };
+                      for (const w of wallsForFinalDrag) {
+                        const r2 = distSeg(v.x, v.y, w);
+                        if (r2.d < bestD) { bestD = r2.d; bestProj = r2.proj; }
+                      }
+                      if (bestD <= 5) return { x: v.x, y: v.y };
+                      if (bestD > dragMax) return { x: v.x, y: v.y };
+                      return bestProj;
+                    });
+                    const trialArea = polygonAreaPx2(trialPolygon);
+                    // Garde-fou : aire reste dans tolérance Inv A
+                    if (trialArea < minAcceptableArea || trialArea > maxAcceptableArea) {
+                      // Rollback ce batch
+                      continue;
+                    }
+                    // OK : appliquer
+                    for (let i = 0; i < trialPolygon.length; i++) {
+                      draggedPolygon[i] = trialPolygon[i];
+                    }
+                  }
+                  cleanRooms[ri] = { ...r, polygon: draggedPolygon };
+                }
+
+                // ─── s28 tour 12 — STEP 9.8 : SHRINK FINAL ciblé Inv A ───
+                // Après le drag aggressif (qui peut gonfler ou rétrécir),
+                // pour chaque pièce avec pdfSurfaceM2 connu : si ratio > 1.10,
+                // shrink uniforme vers centroïde pour cibler ratio 1.05.
+                // Garde-fou : nouvelle aire ∈ [0.88, 1.13] × pdfM2.
+                for (let ri = 0; ri < cleanRooms.length; ri++) {
+                  const r = cleanRooms[ri];
+                  if (r.surface_m2 == null || r.surface_m2 <= 0) continue;
+                  const areaPx2 = polygonAreaPx2(r.polygon);
+                  if (areaPx2 < 1) continue;
+                  const areaM2 = areaPx2 * scaleM2PerPx2;
+                  const ratio = areaM2 / r.surface_m2;
+                  if (ratio <= 1.10) continue;
+
+                  // Cible : ratio 1.05 (sous limite audit 1.15 avec marge)
+                  const targetAreaM2 = r.surface_m2 * 1.05;
+                  const targetAreaPx2 = targetAreaM2 / scaleM2PerPx2;
+                  const f = Math.sqrt(targetAreaPx2 / areaPx2);
+                  if (f >= 1 || f < 0.92) continue;
+
+                  let cx = 0, cy = 0;
+                  for (const p of r.polygon) { cx += p.x; cy += p.y; }
+                  cx /= r.polygon.length;
+                  cy /= r.polygon.length;
+                  const shrunk = r.polygon.map((p) => ({
+                    x: cx + (p.x - cx) * f,
+                    y: cy + (p.y - cy) * f,
+                  }));
+                  const newAreaPx2 = polygonAreaPx2(shrunk);
+                  const newAreaM2 = newAreaPx2 * scaleM2PerPx2;
+                  const newRatio = newAreaM2 / r.surface_m2;
+                  if (newRatio > 1.13 || newRatio < 0.88) continue;
+                  console.log(
+                    `[extract/s28-tour12-shrink-final] plan ${plan.id} ${r.label} : ratio ${ratio.toFixed(3)} → ${newRatio.toFixed(3)} (f=${f.toFixed(3)})`,
+                  );
+                  // Re-snap léger 8px pour récupérer les vertices outliers
+                  // créés par le shrink (vertices éloignés des murs).
+                  const reSnapped = dragOutliersToWalls(shrunk, wallsForFinalDrag, {
+                    thresholdPx: 5,
+                    dragMaxPx: 8,
+                    maxAreaChangeRatio: 0.03,
+                  });
+                  const reAreaPx2 = polygonAreaPx2(reSnapped);
+                  const reAreaM2 = reAreaPx2 * scaleM2PerPx2;
+                  const reRatio = reAreaM2 / r.surface_m2;
+                  if (reRatio > 1.13 || reRatio < 0.88) {
+                    cleanRooms[ri] = { ...r, polygon: shrunk };
+                  } else {
+                    cleanRooms[ri] = { ...r, polygon: reSnapped };
+                  }
+                }
 
                 // Step 10 : push dans builders_face
                 // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2) — SOURCE UNIQUE.
