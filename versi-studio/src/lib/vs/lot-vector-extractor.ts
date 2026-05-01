@@ -682,12 +682,61 @@ function mooreTrace(mask: Uint8Array, W: number, H: number): Pt[] {
 export async function extractInternalWallSegments(
   pdfBuffer: Buffer,
   lotPolygonPx: Pt[],
-  options: { scale?: number; targetFillColor?: string; colorTolerance?: number; minSegLen?: number } = {},
+  options: {
+    scale?: number;
+    targetFillColor?: string;
+    colorTolerance?: number;
+    minSegLen?: number;
+    /**
+     * Mode multi-couleur (s28.6) : capture TOUS les strokes (pas seulement orange)
+     * SAUF les couleurs explicitement exclues (cotes, hachures, grilles).
+     * Critique pour les PDFs où les murs intérieurs sont en gris/noir/anthracite.
+     *
+     * Profil empirique Muguets (4 plans) :
+     *   - #ff8000 (orange) : enveloppe + quelques cloisons
+     *   - #7f7f7f (gris)   : majorité des cloisons intérieures
+     *   - #363636/#0d0d0d  : cloisons fines, quelques très foncés
+     * Couleurs systématiquement exclues (cotes/hachures/cartouche) :
+     *   - #c3c3c3 (cotes uniformes ~48px)
+     *   - #d9d9d9, #c0c0c0, #d0d0d0 (hachures terrasse/escalier)
+     *   - #ff0000 (cotation rouge)
+     *   - #638e4e, #ffb368, #c5c7c4, #b3b3b3 (légendes/symboles)
+     *   - #595959 (grilles fond)
+     *   - #000000 (cadre cartouche — filtré aussi par longueur > 200px)
+     */
+    multiColor?: boolean;
+    /** Hex colors à exclure en mode multi-couleur. */
+    excludedColors?: string[];
+  } = {},
 ): Promise<Array<{ x1: number; y1: number; x2: number; y2: number }>> {
   const target = options.targetFillColor ?? "#ff8000";
   const tol = options.colorTolerance ?? 30;
   const scale = options.scale ?? 3;
   const minSegLen = options.minSegLen ?? 30;
+  const multiColor = options.multiColor ?? false;
+  // Couleurs systématiquement exclues : cotes, hachures, cartouche, légendes.
+  const DEFAULT_EXCLUDED = [
+    "#c3c3c3", // cotes uniformes
+    "#d9d9d9", // hachures
+    "#c0c0c0", // hachures
+    "#d0d0d0", // hachures
+    "#ff0000", // cotation rouge
+    "#638e4e", // légende verte
+    "#ffb368", // arc orange clair (porte)
+    "#c5c7c4", // texte gris
+    "#b3b3b3", // texte
+    "#595959", // grilles fond
+    "#626251", // texte vert foncé
+    "#a0a0a0", // texte
+  ];
+  const excludedColors = options.excludedColors ?? DEFAULT_EXCLUDED;
+  const isExcluded = (hex: string): boolean => {
+    if (typeof hex !== "string" || !hex.startsWith("#")) return true;
+    for (const ex of excludedColors) {
+      if (hexCloseTo(hex, ex, 8)) return true;
+    }
+    return false;
+  };
 
   if (lotPolygonPx.length < 3) return [];
 
@@ -770,9 +819,21 @@ export async function extractInternalWallSegments(
       const drawType = typeof a[0] === "number" ? a[0] : -1;
       const isFill = (drawType === 22 || drawType === 24);
       const isStroke = (drawType === 20 || drawType === 24 || drawType === 28);
-      const matchFill = isFill && hexCloseTo(currentFill, target, tol);
-      const matchStroke = isStroke && hexCloseTo(currentStroke, target, tol);
-      if (!matchFill && !matchStroke) continue;
+      let accept: boolean;
+      if (multiColor) {
+        // Mode s28.6 : tout segment NON-exclu est candidat. On filtre par longueur
+        // et point-in-polygon plus tard. La couleur n'est pas un signal fiable
+        // pour distinguer mur vs cloison (cf. PDFs Muguets : enveloppe orange,
+        // cloisons gris #7f7f7f, doublures #363636).
+        const stroke = isStroke && !isExcluded(currentStroke);
+        const fill = isFill && !isExcluded(currentFill);
+        accept = stroke || fill;
+      } else {
+        const matchFill = isFill && hexCloseTo(currentFill, target, tol);
+        const matchStroke = isStroke && hexCloseTo(currentStroke, target, tol);
+        accept = matchFill || matchStroke;
+      }
+      if (!accept) continue;
       const paths = a[1];
       if (!Array.isArray(paths)) continue;
       for (const pathObj of paths) {
@@ -824,11 +885,18 @@ export async function extractInternalWallSegments(
   // endpoint dans + l'autre sur le bord) est un mur INTERNE/PERIMETRIQUE.
   // On accepte aussi les segments dont 1 endpoint est dans la bbox + l'autre
   // proche du bord (couvre les murs partagés avec le contour).
+  //
+  // Diagonale du lot pour filtre anti-cartouche (segments cadres très longs
+  // qui sortent du lot mais traversent la bbox).
+  const lotDiag = Math.hypot(bx1 - bx0, by1 - by0);
+  const maxSegLen = lotDiag * 0.95; // > 95% de la diagonale = très probable cartouche/cadre
+
   const internal: Seg[] = [];
   for (const s of allOrangeSegs) {
     const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
     const len = Math.hypot(dx, dy);
     if (len < minSegLen) continue;
+    if (multiColor && len > maxSegLen) continue; // anti-cartouche
     // Pré-filtrage bbox (perf)
     if (
       (s.x1 < bx0 && s.x2 < bx0) || (s.x1 > bx1 && s.x2 > bx1) ||

@@ -168,7 +168,11 @@ async function main() {
           x: (p.x_percent / 100) * imageW,
           y: (p.y_percent / 100) * imageH,
         }));
-        internalWalls = await extractInternalWallSegments(buffer, lotPolyPx, { scale: 3 });
+        internalWalls = await extractInternalWallSegments(buffer, lotPolyPx, {
+          scale: 3,
+          multiColor: true,
+          minSegLen: 15,
+        });
       } catch (err) {
         console.warn(`[${lot.name}] extraction murs échouée :`, err instanceof Error ? err.message : err);
       }
