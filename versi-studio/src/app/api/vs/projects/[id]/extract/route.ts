@@ -1341,24 +1341,49 @@ export async function POST(
                   for (let ri = 0; ri < cleanRooms.length; ri++) {
                     const r = cleanRooms[ri];
                     if (r.polygon.length < 3) continue;
-                    const result = snapPolygonToPngWalls(
-                      r.polygon,
-                      wallMaskPng,
-                      Wp, Hp,
-                      allWalls_snap.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 })),
-                      {
+                    // s28 tour 13 fix6 — Snap-to-PNG en 3 passes :
+                    //   passe 1 (rayon 12, drift 3%) — capture cas standards
+                    //   passe 2 (rayon 30, drift 6%) — capture déconnexions
+                    //                                  modérées (Cellier F1, etc.)
+                    //   passe 3 (rayon 60, drift 10%) — dernier recours pour
+                    //                                   vertices très loin (SDE F3)
+                    // Garde-fou Inv A : drift cumulé borné par maxAreaDriftRatio
+                    // de chaque passe. La passe 3 ne s'applique QUE si pdf_m2
+                    // connu (sinon risque de gonfler une pièce sans limite).
+                    const wallsForPng = allWalls_snap.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 }));
+                    let currentPoly = r.polygon;
+                    let cumSnapped = 0;
+
+                    // Passe 1 : tolérance standard
+                    const p1 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
+                      snapTolPdfPx: 5,
+                      maxSearchPx: 12,
+                      maxAreaDriftRatio: 0.03,
+                    });
+                    if (p1.snappedCount > 0) { currentPoly = p1.polygon; cumSnapped += p1.snappedCount; }
+
+                    // Passe 2 : étendue moyenne (capture vertices à 12-30px du mur)
+                    const p2 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
+                      snapTolPdfPx: 5,
+                      maxSearchPx: 30,
+                      maxAreaDriftRatio: 0.05,
+                    });
+                    if (p2.snappedCount > 0) { currentPoly = p2.polygon; cumSnapped += p2.snappedCount; }
+
+                    // Passe 3 : étendue large (50-60px) — UNIQUEMENT si pdf_m2 connu
+                    // pour pouvoir contraindre le drift global
+                    if (r.surface_m2 != null && r.surface_m2 > 0) {
+                      const p3 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
                         snapTolPdfPx: 5,
-                        maxSearchPx: 12,
-                        // Drift strict 3% pour préserver Inv A
-                        maxAreaDriftRatio: 0.03,
-                      },
-                    );
-                    if (result.snappedCount > 0) {
-                      cleanRooms[ri] = { ...r, polygon: result.polygon };
-                      totalSnapped += result.snappedCount;
+                        maxSearchPx: 60,
+                        maxAreaDriftRatio: 0.08,
+                      });
+                      if (p3.snappedCount > 0) { currentPoly = p3.polygon; cumSnapped += p3.snappedCount; }
                     }
-                    if (result.snappedCount === 0 && result.areaDriftRatio > 0.03) {
-                      totalRollback++;
+
+                    if (cumSnapped > 0) {
+                      cleanRooms[ri] = { ...r, polygon: currentPoly };
+                      totalSnapped += cumSnapped;
                     }
                   }
                   console.log(
