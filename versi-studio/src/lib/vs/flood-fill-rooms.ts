@@ -1142,6 +1142,81 @@ export async function extractRoomsByQuotaFloodFill(
     }
   }
 
+  // s28 tour 9 — ÉROSION quota-aware : pour chaque seed quotaKnown sur-quota
+  // (> 1.10× quota après redistribution), libérer les pixels périphériques
+  // (= au moins un voisin non-claim par le seed) jusqu'à ramener à 1.02× quota.
+  // Ces pixels deviennent "libres" (ownership = -1). Le polygone résultant
+  // suit alors une frontière intérieure aux pixels claim → contour proche
+  // d'un vrai mur.
+  //
+  // Pas appliqué aux seeds sans quota PDF (incertitude).
+  // Pas appliqué si pas de pixels frontaliers libérables (bordures totalement
+  // entourées de claim d'autres seeds → on les laisse).
+  {
+    const overSeeds = seeds.filter(
+      (s) => s.quotaKnown && s.area > s.quotaPx2 * 1.10,
+    );
+    for (const s of overSeeds) {
+      const TARGET = s.quotaPx2 * 1.02;
+      const MAX_PASSES = 8; // pas trop, sinon on érode trop
+      for (let pass = 0; pass < MAX_PASSES; pass++) {
+        if (s.area <= TARGET) break;
+        // Identifier les pixels frontaliers du seed (≥ 1 voisin non-claim ou
+        // sur un mur → "bord externe" de la pièce). Libérer ceux-ci.
+        const toFree: number[] = [];
+        for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+          for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+            const idx = y * W + x;
+            if (ownership[idx] !== s.idx) continue;
+            // Est-ce un pixel "périphérique" ? Au moins 1 voisin n'est PAS claim
+            // par s (= mur, hors-bbox, ou claim autre seed).
+            const ne = [
+              y > 0 ? idx - W : -1,
+              y < H - 1 ? idx + W : -1,
+              x > 0 ? idx - 1 : -1,
+              x < W - 1 ? idx + 1 : -1,
+            ];
+            let isPeripheral = false;
+            for (const nIdx of ne) {
+              if (nIdx < 0) { isPeripheral = true; break; }
+              if (ownership[nIdx] !== s.idx) { isPeripheral = true; break; }
+            }
+            if (isPeripheral) toFree.push(idx);
+          }
+        }
+        if (toFree.length === 0) break;
+        // Libérer en commençant par les plus éloignés du seed (centroïde simple
+        // = barycentre des pixels claim, mais coûteux ; à la place, on libère
+        // ceux les plus loin du seed centerOfMass approximé par le seed lui-même).
+        // Pour simplicité : libérer tous les périphériques jusqu'à atteindre TARGET.
+        // Trier par distance au seed-centroïde (recalculé)
+        let scxSum = 0, scySum = 0, n = 0;
+        for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+          for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+            if (ownership[y * W + x] === s.idx) {
+              scxSum += x; scySum += y; n++;
+            }
+          }
+        }
+        const scx = n > 0 ? scxSum / n : s.seedX;
+        const scy = n > 0 ? scySum / n : s.seedY;
+        toFree.sort((a, b) => {
+          const ax = a % W, ay = (a - ax) / W;
+          const bx = b % W, by = (b - bx) / W;
+          const da = (ax - scx) ** 2 + (ay - scy) ** 2;
+          const db = (bx - scx) ** 2 + (by - scy) ** 2;
+          return db - da; // plus loin d'abord
+        });
+        const toRemove = Math.min(toFree.length, s.area - Math.round(TARGET));
+        for (let k = 0; k < toRemove; k++) {
+          ownership[toFree[k]] = -1;
+          s.area--;
+        }
+        if (toRemove < toFree.length / 4) break; // peu d'effet, stop
+      }
+    }
+  }
+
   // Construction des polygones via traceContour sur la masque ownership
   const results: RoomPolygonPx[] = [];
   for (const s of seeds) {
@@ -1239,46 +1314,11 @@ export async function extractRoomsByQuotaFloodFill(
       }
     }
 
-    // s28 tour 9 — POST-SHRINK pour pièces dont polygon-area > 1.10 × quota.
-    // La traceContour + DP + snap walls peut produire un polygone d'aire
-    // significativement supérieure aux pixels claim (notamment pour les
-    // petites pièces avec snap qui projette vers murs voisins). Si on dépasse
-    // 1.10× quota après tout, on érode itérativement le polygone (offset
-    // négatif via shrink des vertices vers le centroïde) jusqu'à atteindre
-    // 1.05× quota OU max 5 itérations.
-    if (s.quotaKnown && polygon.length >= 4) {
-      const polygonAreaPx = (poly: { x: number; y: number }[]): number => {
-        if (poly.length < 3) return 0;
-        let s2 = 0;
-        for (let i = 0; i < poly.length; i++) {
-          const j = (i + 1) % poly.length;
-          s2 += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
-        }
-        return Math.abs(s2 / 2);
-      };
-      const targetArea = s.quotaPx2 * 1.05;
-      const maxArea = s.quotaPx2 * 1.10;
-      let currentArea = polygonAreaPx(polygon);
-      if (currentArea > maxArea) {
-        // Centroïde du polygone
-        let centX = 0, centY = 0;
-        for (const p of polygon) { centX += p.x; centY += p.y; }
-        centX /= polygon.length;
-        centY /= polygon.length;
-        // Shrink itératif : à chaque itération, déplacer chaque vertex de
-        // 1px vers le centroïde. La perte de surface dépend du périmètre.
-        for (let iter = 0; iter < 20 && currentArea > targetArea; iter++) {
-          const shrunk = polygon.map((p) => {
-            const dx = centX - p.x, dy = centY - p.y;
-            const d = Math.hypot(dx, dy);
-            if (d < 1e-6) return { x: p.x, y: p.y };
-            return { x: p.x + dx / d, y: p.y + dy / d };
-          });
-          polygon = shrunk;
-          currentArea = polygonAreaPx(polygon);
-        }
-      }
-    }
+    // s28 tour 9 — Pas de post-shrink "vers centroïde" :
+    // déplacer les vertices vers le centroïde casse Inv C (snap aux murs).
+    // Le shrink-to-quota est traité au niveau BFS (érosion par seed sur-quota
+    // dans la phase d'érosion ci-dessus) ou laissé tel quel (un over-quota
+    // léger reste préférable à un polygone détaché de tout mur).
     let cx = 0, cy = 0;
     for (const p of polygon) { cx += p.x; cy += p.y; }
     cx /= polygon.length;

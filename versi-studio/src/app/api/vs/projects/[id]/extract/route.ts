@@ -880,7 +880,7 @@ export async function POST(
                 // est rejeté plus haut par le PIP test ou par sa zone ouverte
                 // (no-cell) qui produit un polygone fragmenté < 0.55m².
                 const MIN_AREA_M2_UNLABELED = 0.55;
-                const cleanRoomsPre = regularizedRooms.filter((r) => {
+                const cleanRooms = regularizedRooms.filter((r) => {
                   if (r.polygon.length < 3) return false;
                   const areaPx2 = polygonAreaPx2(r.polygon);
                   const areaM2 = areaPx2 * scaleM2PerPx2;
@@ -889,39 +889,12 @@ export async function POST(
                   return areaM2 >= threshold;
                 });
 
-                // s28 tour 9 — POST-SHRINK absolu vs PDF.
-                // Le pipeline aval (regularizer + dragOutliers) peut élargir
-                // une petite pièce de +30% en attirant des vertices vers des
-                // murs voisins. Si polygon-area-m2 > pdf × 1.10, on érode le
-                // polygone vers son centroïde (1px par itération) jusqu'à
-                // atteindre pdf × 1.05 (ou max 30 itérations).
-                // Pas d'expansion : si la pièce est sous-quota, c'est un
-                // problème BFS qu'on ne corrige pas en post-process.
-                const cleanRooms = cleanRoomsPre.map((r) => {
-                  if (r.surface_m2 == null || r.surface_m2 <= 0) return r;
-                  const areaPx2 = polygonAreaPx2(r.polygon);
-                  const areaM2 = areaPx2 * scaleM2PerPx2;
-                  const ratio = areaM2 / r.surface_m2;
-                  if (ratio <= 1.10) return r;
-                  // Shrink itératif vers centroïde
-                  const target = r.surface_m2 * 1.05 / scaleM2PerPx2; // px²
-                  let centX = 0, centY = 0;
-                  for (const p of r.polygon) { centX += p.x; centY += p.y; }
-                  centX /= r.polygon.length;
-                  centY /= r.polygon.length;
-                  let poly = r.polygon;
-                  let curr = areaPx2;
-                  for (let it = 0; it < 30 && curr > target; it++) {
-                    poly = poly.map((p) => {
-                      const dx = centX - p.x, dy = centY - p.y;
-                      const d = Math.hypot(dx, dy);
-                      if (d < 1e-6) return p;
-                      return { x: p.x + dx / d, y: p.y + dy / d };
-                    });
-                    curr = polygonAreaPx2(poly);
-                  }
-                  return { ...r, polygon: poly };
-                });
+                // s28 tour 9 — Note : le post-shrink "vers centroïde" essayé
+                // précédemment cassait Inv C (vertices éloignés des murs).
+                // Le shrink-to-quota est désormais traité INTRA flood-fill-rooms
+                // (post-shrink + 2e snap aux murs vectoriels). Pas de
+                // post-process supplémentaire ici qui éloignerait les vertices
+                // des murs.
                 console.log(
                   `[extract/NEW v8/s28.7] plan ${plan.id} filtre <${MIN_AREA_M2_LABELED}/${MIN_AREA_M2_UNLABELED}m² : ${regularizedRooms.length} → ${cleanRooms.length} pièces`,
                 );
