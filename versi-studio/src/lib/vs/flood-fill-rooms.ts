@@ -742,6 +742,12 @@ export async function extractRoomsByQuotaFloodFill(
     wallLumThreshold, wallSaturationThreshold,
   });
   const wallMask = rawMask;
+  // s28 tour 9 — masque ULTRA-permissive : seulement luminance brute du PNG
+  // + apt-separators (= cloisons entre apts à NE PAS franchir). Pas de
+  // vector-walls (cloisons internes) ni de doorSeal. Utilisée en phase 3 pour
+  // les seeds GRAVEMENT sous-quota que la phase 2 n'a pas réussi à servir.
+  const ultraPermissiveMask = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) ultraPermissiveMask[i] = wallMask[i];
 
   // Tracé du contour du lot
   const drawSegment = (mask: Uint8Array, x1: number, y1: number, x2: number, y2: number, thickness: number) => {
@@ -767,6 +773,7 @@ export async function extractRoomsByQuotaFloodFill(
       const a = lotPolyPx[k];
       const b = lotPolyPx[(k + 1) % lotPolyPx.length];
       drawSegment(wallMask, a.x, a.y, b.x, b.y, 4);
+      drawSegment(ultraPermissiveMask, a.x, a.y, b.x, b.y, 4);
     }
   }
   for (const seg of vectorWalls) {
@@ -774,8 +781,21 @@ export async function extractRoomsByQuotaFloodFill(
   }
   for (const seg of aptSeparators) {
     drawSegment(wallMask, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
+    // Apt-separators sont GARDÉS dans la masque ultra-permissive : ils
+    // empêchent une fuite vers l'apt voisin (ce qui serait bien pire que
+    // sous-quota).
+    drawSegment(ultraPermissiveMask, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
   }
   const sealedMask = doorSealRadius > 0 ? morphDilate1D(wallMask, W, H, doorSealRadius) : wallMask;
+  // s28 tour 9 — Fix 1 : door-seal RÉDUIT pour petites pièces.
+  // Une SdB ou WC < 5 m² a un seuil de porte qui représente une part énorme
+  // de son volume. La dilatation 6px crée des "joints" qui mangent 15-25% du
+  // quota et empêchent le BFS de coloniser la pièce entière. On crée une
+  // masque sealed allégée (3px) qu'on utilise spécifiquement pour les seeds
+  // dont le quota est < 5m².
+  const sealedMaskSmall = doorSealRadius > 3
+    ? morphDilate1D(wallMask, W, H, 3)
+    : sealedMask;
   // Masque permissive (sans doorSeal) : utilisée en phase 2 pour permettre
   // aux seeds bloqués AVANT leur quota de traverser des portes étroites.
   const permissiveMask = wallMask;
@@ -787,6 +807,8 @@ export async function extractRoomsByQuotaFloodFill(
   const medianQuotaPx2 = knownQuotas.length > 0
     ? [...knownQuotas].sort((a, b) => a - b)[Math.floor(knownQuotas.length / 2)]
     : 50000; // fallback ~5m² si aucun connu (ne devrait pas arriver)
+  // Seuil "petite pièce" en px² : 5 m² → quota_px2
+  const SMALL_ROOM_THRESHOLD_PX2 = 5 / scaleM2PerPx2;
 
   // Init seeds + assignment d'un index
   type SeedState = {
@@ -794,6 +816,8 @@ export async function extractRoomsByQuotaFloodFill(
     text: string;
     surface_m2: number | null;
     quotaPx2: number;
+    /** s28 tour 9 — quota explicite connu via PDF (true) ou fallback médiane (false). Les seeds sans quota PDF ne participent PAS à la redistribution (incertitude). */
+    quotaKnown: boolean;
     seedX: number;
     seedY: number;
     /** Frontière BFS (pixels à explorer ensuite). */
@@ -814,18 +838,18 @@ export async function extractRoomsByQuotaFloodFill(
     const sx = (lab.x_percent / 100) * W;
     const sy = (lab.y_percent / 100) * H;
     const proj = projectIntoLotLocal(sx, sy);
+    const quotaKnown = lab.surface_m2 != null && lab.surface_m2 > 0;
+    const quotaPx2 = quotaKnown ? lab.surface_m2! / scaleM2PerPx2 : medianQuotaPx2;
     const seedSearchPos = findNonWallSeed(sealedMask, W, H, Math.round(proj.x), Math.round(proj.y), seedSearchRadius);
     if (!seedSearchPos) continue;
     // Si un autre seed claim déjà cette position : skip
     if (ownership[seedSearchPos.y * W + seedSearchPos.x] !== -1) continue;
-    const quotaPx2 = lab.surface_m2 != null && lab.surface_m2 > 0
-      ? lab.surface_m2 / scaleM2PerPx2
-      : medianQuotaPx2;
     seeds.push({
       idx: seeds.length,
       text: lab.text,
       surface_m2: lab.surface_m2,
       quotaPx2,
+      quotaKnown,
       seedX: seedSearchPos.x,
       seedY: seedSearchPos.y,
       frontier: [seedSearchPos.y * W + seedSearchPos.x],
@@ -837,10 +861,18 @@ export async function extractRoomsByQuotaFloodFill(
   }
   if (seeds.length === 0) return [];
 
+  // s28 tour 9 — Référence à sealedMaskSmall (laissée pour la phase 1.5 ci-dessous).
+  void sealedMaskSmall;
+  void SMALL_ROOM_THRESHOLD_PX2;
+
   // BFS round-robin par couches : à chaque tour, chaque seed avance d'UN pas
   // (= toute sa frontière courante devient claimed, et la nouvelle frontière =
   // les voisins libres). Stop seed si quota atteint ou frontière vide.
   // O((W*H) / nb_seeds) tours en pire cas.
+  //
+  // s28 tour 9 — Garde-fou anti-overshoot : pour chaque seed, ne pas dépasser
+  // 1.02× quota (overshoot max +2% par tour grâce à l'arrêt précoce). Pour
+  // les seeds sans quota, pas de limite (s.quotaPx2 fallback ~10m²).
   //
   // PHASE 1 : masque sealed (doors fermées) — sépare les pièces strictement
   const runBFS = (mask: Uint8Array): void => {
@@ -849,13 +881,18 @@ export async function extractRoomsByQuotaFloodFill(
       activeCount = 0;
       for (const s of seeds) {
         if (s.blocked) continue;
+        // Limite stricte : 1.0× quota (pas d'overshoot autorisé).
+        // Avant tour 9 : seuil = quotaPx2 → overshoot par-pixel non borné.
+        // Maintenant : on stoppe la frontière dès qu'on touche quotaPx2.
         if (s.area >= s.quotaPx2) {
           s.blocked = true;
           continue;
         }
         activeCount++;
         const newFrontier: number[] = [];
+        let stopThisSeed = false;
         for (const idx of s.frontier) {
+          if (stopThisSeed) break;
           const x = idx % W;
           const y = (idx - x) / W;
           const neighbors = [
@@ -876,9 +913,12 @@ export async function extractRoomsByQuotaFloodFill(
             if (nx > s.bbox.maxX) s.bbox.maxX = nx;
             if (ny > s.bbox.maxY) s.bbox.maxY = ny;
             newFrontier.push(nIdx);
-            if (s.area >= s.quotaPx2) break;
+            // Arrêt strict au quota — ne PAS continuer après dépassement.
+            if (s.area >= s.quotaPx2) {
+              stopThisSeed = true;
+              break;
+            }
           }
-          if (s.area >= s.quotaPx2) break;
         }
         s.frontier = newFrontier;
         if (newFrontier.length === 0) s.blocked = true;
@@ -887,11 +927,53 @@ export async function extractRoomsByQuotaFloodFill(
   };
   runBFS(sealedMask);
 
+  // s28 tour 9 — Fix 1 : PHASE 1.5 — pour les seeds avec quota CONNU PDF qui
+  // sont bloqués SOUS leur quota après phase 1, autoriser un BFS additionnel
+  // sur la masque allégée (sealedMaskSmall, doorSeal 3px au lieu de 6px).
+  // Ne s'applique PAS aux seeds sans quota connu (incertitude).
+  // Cette passe permet à une SdB sous-quotaée à 79% de récupérer ses pixels
+  // manquants en relâchant la contrainte de fermeture des portes (sans aller
+  // jusqu'à la masque permissive de phase 2).
+  const seedsToRetryPhase15 = seeds.filter(
+    (s) => s.quotaKnown && s.area < s.quotaPx2 * 0.95,
+  );
+  if (seedsToRetryPhase15.length > 0) {
+    for (const s of seedsToRetryPhase15) {
+      const newFrontier: number[] = [];
+      for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+        for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+          const idx = y * W + x;
+          if (ownership[idx] !== s.idx) continue;
+          const ne = [
+            y > 0 ? idx - W : -1,
+            y < H - 1 ? idx + W : -1,
+            x > 0 ? idx - 1 : -1,
+            x < W - 1 ? idx + 1 : -1,
+          ];
+          for (const nIdx of ne) {
+            if (nIdx >= 0 && sealedMaskSmall[nIdx] === 0 && ownership[nIdx] === -1) {
+              newFrontier.push(idx);
+              break;
+            }
+          }
+        }
+      }
+      s.frontier = newFrontier;
+      s.blocked = newFrontier.length === 0;
+    }
+    runBFS(sealedMaskSmall);
+  }
+
   // PHASE 2 : pour chaque seed BLOQUÉ AVANT son quota (cellule fermée par
   // doorSeal mais le quota PDF dit qu'il y a plus de pièce), réessayer avec
   // masque permissive (wall PNG + vector + apt-sep, mais sans doorSeal).
   // La frontière est régénérée depuis tous les pixels claim du seed (= tous
   // les pixels où ownership[i] === s.idx).
+  //
+  // s28 tour 9 : tous les seeds participent (y compris sans quota PDF, qui
+  // ont besoin d'atteindre un volume minimal pour ne pas être filtrés en
+  // sortie). La REDISTRIBUTION post-BFS exclut les sans-quota → pas de risque
+  // qu'ils volent les pixels des seeds avec quota.
   const seedsToRetry = seeds.filter((s) => s.area < s.quotaPx2 * 0.85);
   if (seedsToRetry.length > 0) {
     for (const s of seedsToRetry) {
@@ -923,6 +1005,143 @@ export async function extractRoomsByQuotaFloodFill(
     runBFS(permissiveMask);
   }
 
+  // s28 tour 9 — PHASE 3 : seeds avec quota PDF connu TOUJOURS gravement
+  // sous-quota (< 0.85x) après phase 2 ont besoin de franchir les cloisons
+  // internes (vector walls). On utilise la masque ultra-permissive (pas de
+  // vector walls), en gardant les apt-separators et le contour du lot.
+  // Les seeds sans quota PDF ne participent PAS (risque de fuite vers une
+  // pièce voisine importante).
+  const seedsToRetryPhase3 = seeds.filter(
+    (s) => s.quotaKnown && s.area < s.quotaPx2 * 0.85,
+  );
+  if (seedsToRetryPhase3.length > 0) {
+    for (const s of seedsToRetryPhase3) {
+      const newFrontier: number[] = [];
+      for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
+        for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
+          const idx = y * W + x;
+          if (ownership[idx] !== s.idx) continue;
+          const ne = [
+            y > 0 ? idx - W : -1,
+            y < H - 1 ? idx + W : -1,
+            x > 0 ? idx - 1 : -1,
+            x < W - 1 ? idx + 1 : -1,
+          ];
+          for (const nIdx of ne) {
+            if (nIdx >= 0 && ultraPermissiveMask[nIdx] === 0 && ownership[nIdx] === -1) {
+              newFrontier.push(idx);
+              break;
+            }
+          }
+        }
+      }
+      s.frontier = newFrontier;
+      s.blocked = newFrontier.length === 0;
+    }
+    runBFS(ultraPermissiveMask);
+  }
+
+  // s28 tour 9 — Fix 2 : REDISTRIBUTION post-BFS.
+  //
+  // Quand la phase 2 permissive ouvre une porte étroite, certains seeds gros
+  // (Séjour) absorbent les pixels d'une petite pièce voisine sous-quotaée
+  // (Chambre 01). Ratio résultant : Séjour=1.10 (OK) mais Chambre=0.75.
+  //
+  // Correction : pour chaque pièce P en SUR-quota (>1.10x), identifier ses
+  // pixels frontaliers adjacents à une pièce V en SOUS-quota (<0.85x) et les
+  // transférer P→V jusqu'à ce que P revienne dans [0.95, 1.10]× son quota
+  // OU V atteigne 0.95×.
+  //
+  // Itérer jusqu'à stabilité (max 10 itérations pour éviter oscillations).
+  {
+    // s28 tour 9 — Une pièce voisine "OK" (ratio 1.06) peut quand même donner
+    // ses pixels frontaliers à une pièce sous-quotaée à 0.74 — c'est la sur-
+    // attribution de la phase 2 permissive qu'on corrige. Seuil "donneur" bas
+    // (1.02) pour que tout seed légèrement au-dessus de quota partage avec un
+    // voisin gravement sous quota.
+    const OVER_THRESHOLD = 1.02;
+    const UNDER_THRESHOLD = 0.95;
+    const TARGET_OVER = 0.98;  // arrêter de donner si P passe sous ce ratio
+    const TARGET_UNDER = 0.98; // arrêter de prendre si V passe au-dessus
+    const MAX_ITERATIONS = 20;
+
+    for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+      // Identifier sur-quota et sous-quota — UNIQUEMENT seeds avec quota PDF connu
+      // (les seeds sans PDF surface ont un quota de fallback peu fiable, ne
+      // doivent ni donner ni recevoir des pixels).
+      const overSeeds = seeds.filter(
+        (s) => s.quotaKnown && s.area > s.quotaPx2 * OVER_THRESHOLD,
+      );
+      const underSeeds = seeds.filter(
+        (s) => s.quotaKnown && s.area < s.quotaPx2 * UNDER_THRESHOLD,
+      );
+      if (overSeeds.length === 0 || underSeeds.length === 0) break;
+
+      let totalTransferred = 0;
+
+      // Pour chaque pièce sur-quota, scanner sa frontière et transférer aux
+      // voisines sous-quotaées.
+      for (const over of overSeeds) {
+        if (over.area <= over.quotaPx2 * TARGET_OVER) continue;
+        // Construire un set rapide des voisins sous-quotaées
+        const underSet = new Set(underSeeds.map((u) => u.idx));
+        // Pour chaque pixel frontalier de over, vérifier si voisin = under
+        const overBudget = over.area - Math.round(over.quotaPx2 * TARGET_OVER);
+        if (overBudget <= 0) continue;
+        let transferred = 0;
+        // Scanner la bbox de over (suffisant)
+        for (let y = over.bbox.minY; y <= over.bbox.maxY && transferred < overBudget; y++) {
+          for (let x = over.bbox.minX; x <= over.bbox.maxX && transferred < overBudget; x++) {
+            const idx = y * W + x;
+            if (ownership[idx] !== over.idx) continue;
+            // Voisins
+            const nIdxs = [
+              y > 0 ? idx - W : -1,
+              y < H - 1 ? idx + W : -1,
+              x > 0 ? idx - 1 : -1,
+              x < W - 1 ? idx + 1 : -1,
+            ];
+            let neighborUnderIdx = -1;
+            for (const nIdx of nIdxs) {
+              if (nIdx < 0) continue;
+              const own = ownership[nIdx];
+              if (own < 0) continue;
+              if (underSet.has(own)) {
+                neighborUnderIdx = own;
+                break;
+              }
+            }
+            if (neighborUnderIdx < 0) continue;
+            // Transférer ce pixel : over → underTarget
+            const underTarget = seeds[neighborUnderIdx];
+            if (underTarget.area >= underTarget.quotaPx2 * TARGET_UNDER) {
+              underSet.delete(neighborUnderIdx);
+              continue;
+            }
+            ownership[idx] = neighborUnderIdx;
+            over.area--;
+            underTarget.area++;
+            transferred++;
+            totalTransferred++;
+            // Update bbox underTarget (peut s'agrandir)
+            if (x < underTarget.bbox.minX) underTarget.bbox.minX = x;
+            if (y < underTarget.bbox.minY) underTarget.bbox.minY = y;
+            if (x > underTarget.bbox.maxX) underTarget.bbox.maxX = x;
+            if (y > underTarget.bbox.maxY) underTarget.bbox.maxY = y;
+            if (underTarget.area >= underTarget.quotaPx2 * TARGET_UNDER) {
+              underSet.delete(neighborUnderIdx);
+            }
+            if (over.area <= over.quotaPx2 * TARGET_OVER) break;
+          }
+        }
+      }
+
+      if (totalTransferred === 0) break;
+      // Si très peu transféré, on arrête (proche stabilité)
+      if (totalTransferred < 50) break;
+    }
+  }
+
   // Construction des polygones via traceContour sur la masque ownership
   const results: RoomPolygonPx[] = [];
   for (const s of seeds) {
@@ -933,11 +1152,41 @@ export async function extractRoomsByQuotaFloodFill(
       if (ownership[i] === s.idx) region[i] = 1;
     }
     // Dilatation pour aller jusqu'aux murs réels (sans envahir les voisins).
-    // s28 tour 8 — radius minimal (2px) : suffisant pour absorber l'épaisseur
-    // d'un mur PDF sans gonfler l'aire de plus de 5% pour une petite pièce.
+    // s28 tour 9 — Fix 3 : dilatation adaptative à l'aire ATTEINTE vs quota.
+    //
+    // La dilatation 2px gonfle l'aire d'environ +2*périmètre. Pour une pièce
+    // carrée de N×N pixels, +2px sur 4 côtés = (N+4)² - N² = 8N+16. À 1.3 m²
+    // (≈ N=110 pixels), c'est +880 pixels = +7%. Mais à 2 m² (≈ N=140), c'est
+    // +5%. Et à 5 m² (≈ N=222), c'est +3%.
+    //
+    // Si le BFS a déjà DÉPASSÉ le quota (area > quotaPx2), on n'a pas besoin
+    // de dilater. La dilatation ne doit pas pousser au-delà de quota ×1.10.
+    // Stratégie : choisir le radius qui respecte cette borne.
+    //   delta_pct ≈ 8R*sqrt(area)/area = 8R/sqrt(area)
+    //   ratio_post = (area + delta) / quota
+    //   On veut ratio_post <= 1.10 (mid-range cible)
     let regionForContour: Uint8Array = region;
     let bboxForContour = s.bbox;
-    const postDilateRadius = Math.min(doorSealRadius, 2);
+    let postDilateRadius: number;
+    if (s.quotaKnown) {
+      const baseRatio = s.area / s.quotaPx2;
+      // Si déjà au-dessus du quota, pas de dilatation (anti-overshoot).
+      if (baseRatio >= 1.05) {
+        postDilateRadius = 0;
+      } else if (baseRatio >= 0.97) {
+        // Légèrement sous quota : +1px pour atteindre le mur (~3-5% gain)
+        postDilateRadius = 1;
+      } else {
+        // Bien sous quota : 2px standard pour absorber l'épaisseur mur
+        postDilateRadius = Math.min(doorSealRadius, 2);
+      }
+    } else {
+      // Sans quota fiable, dilatation standard 2px : les pièces sans quota
+      // sont typiquement des ECS/TGBT (1-2m² réels) qui ont besoin d'absorber
+      // l'épaisseur du mur. 1px est insuffisant et les fait passer sous le
+      // seuil min 0.55m² → suppression à tort.
+      postDilateRadius = Math.min(doorSealRadius, 2);
+    }
     if (postDilateRadius > 0) {
       const expanded = morphDilate1D(region, W, H, postDilateRadius);
       const out = new Uint8Array(W * H);
@@ -964,10 +1213,71 @@ export async function extractRoomsByQuotaFloodFill(
     }
     const contourRaw = traceContour(regionForContour, W, H, bboxForContour);
     if (contourRaw.length < 4) continue;
-    let polygon = simplifyDP(contourRaw, simplifyTolerancePx);
+    // s28 tour 9 — Fix 4 : Douglas-Peucker conservateur (10px) pour toutes
+    // les pièces. DP plus aggressif élargit l'aire et crée des bumps. Pour
+    // les petites pièces, on relâche à 4px (pas 12) pour préserver leur
+    // aire mais conserver une simplification utile.
+    const TINY_THR = 2 / scaleM2PerPx2;
+    const SMALL_THR = 5 / scaleM2PerPx2;
+    let dpTol: number;
+    if (s.quotaKnown && s.quotaPx2 < TINY_THR) dpTol = 4;
+    else if (s.quotaKnown && s.quotaPx2 < SMALL_THR) dpTol = 6;
+    else dpTol = Math.max(simplifyTolerancePx, 10);
+    let polygon = simplifyDP(contourRaw, dpTol);
     if (polygon.length < 4) continue;
     if (vectorWalls.length > 0) {
-      polygon = snapPolygonToWalls(polygon, vectorWalls, 40);
+      // s28 tour 9 — snap tolerance ADAPTATIVE à la taille de la pièce.
+      let snapTol: number;
+      if (s.quotaKnown && s.quotaPx2 < TINY_THR) snapTol = 8;
+      else if (s.quotaKnown && s.quotaPx2 < SMALL_THR) snapTol = 15;
+      else snapTol = 40;
+      polygon = snapPolygonToWalls(polygon, vectorWalls, snapTol);
+      // s28 tour 9 — Fix 4 : 2e passe DP + re-snap STRICT.
+      polygon = simplifyDP(polygon, 5);
+      if (polygon.length >= 4) {
+        polygon = snapPolygonToWalls(polygon, vectorWalls, 8);
+      }
+    }
+
+    // s28 tour 9 — POST-SHRINK pour pièces dont polygon-area > 1.10 × quota.
+    // La traceContour + DP + snap walls peut produire un polygone d'aire
+    // significativement supérieure aux pixels claim (notamment pour les
+    // petites pièces avec snap qui projette vers murs voisins). Si on dépasse
+    // 1.10× quota après tout, on érode itérativement le polygone (offset
+    // négatif via shrink des vertices vers le centroïde) jusqu'à atteindre
+    // 1.05× quota OU max 5 itérations.
+    if (s.quotaKnown && polygon.length >= 4) {
+      const polygonAreaPx = (poly: { x: number; y: number }[]): number => {
+        if (poly.length < 3) return 0;
+        let s2 = 0;
+        for (let i = 0; i < poly.length; i++) {
+          const j = (i + 1) % poly.length;
+          s2 += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+        }
+        return Math.abs(s2 / 2);
+      };
+      const targetArea = s.quotaPx2 * 1.05;
+      const maxArea = s.quotaPx2 * 1.10;
+      let currentArea = polygonAreaPx(polygon);
+      if (currentArea > maxArea) {
+        // Centroïde du polygone
+        let centX = 0, centY = 0;
+        for (const p of polygon) { centX += p.x; centY += p.y; }
+        centX /= polygon.length;
+        centY /= polygon.length;
+        // Shrink itératif : à chaque itération, déplacer chaque vertex de
+        // 1px vers le centroïde. La perte de surface dépend du périmètre.
+        for (let iter = 0; iter < 20 && currentArea > targetArea; iter++) {
+          const shrunk = polygon.map((p) => {
+            const dx = centX - p.x, dy = centY - p.y;
+            const d = Math.hypot(dx, dy);
+            if (d < 1e-6) return { x: p.x, y: p.y };
+            return { x: p.x + dx / d, y: p.y + dy / d };
+          });
+          polygon = shrunk;
+          currentArea = polygonAreaPx(polygon);
+        }
+      }
     }
     let cx = 0, cy = 0;
     for (const p of polygon) { cx += p.x; cy += p.y; }
