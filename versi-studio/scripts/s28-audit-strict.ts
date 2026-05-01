@@ -250,13 +250,15 @@ async function main() {
           for await (const p of pages) { pngBuf = Buffer.from(p); break; }
           if (pngBuf) {
             const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
-              minRunPx: 12,
-              thicknessPx: 3,
-              minDensity: 0.7,
+              // s28 tour 13 — Cohérent avec extract/route.ts (mêmes seuils)
+              minRunPx: 6,
+              thicknessPx: 4,
+              minDensity: 0.78,
             });
-            // Filtrer : garder seulement les murs DANS le bbox du lot (perf)
-            // et de longueur ≥ minSegLenFinal pour cohérence avec set audit.
-            const minLen = WALL_EXTRACTION_CONFIG.minSegLenFinal;
+            // s28 tour 13 — Filtre cohérent avec extract/route.ts : longueur ≥ 6px
+            // (vs 10 pour chained vector). Justification : densité 78% + 6px
+            // continus = vrai trait (rejet bruit/texte).
+            const minLen = 6;
             const lotBx0 = Math.min(...lotPolyPx.map(p => p.x));
             const lotBx1 = Math.max(...lotPolyPx.map(p => p.x));
             const lotBy0 = Math.min(...lotPolyPx.map(p => p.y));

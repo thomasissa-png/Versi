@@ -586,12 +586,20 @@ export async function POST(
               // ne sont pas dans extractInternalWallSegments (vectoriel).
               try {
                 const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
-                  minRunPx: 12,
-                  thicknessPx: 3,
-                  minDensity: 0.7,
+                  // s28 tour 13 — minRunPx réduit à 6 pour capturer cloisons
+                  // courtes (SDB/WC F1 ont des fragments noirs <12px). Compenser
+                  // le bruit (texte) par density 0.78 et thickness 4 (vrais
+                  // murs sont quasi toujours ≥4px épaisseur).
+                  minRunPx: 6,
+                  thicknessPx: 4,
+                  minDensity: 0.78,
                 });
-                // Filtrer : DANS le bbox du lot et longueur ≥ minSegLenFinal
-                const minLen = WALL_EXTRACTION_CONFIG.minSegLenFinal;
+                // s28 tour 13 — Filtre raster walls : longueur ≥ 6px (vs 10
+                // pour chained vector). Justification : un run de pixels noirs
+                // continus densité 78% sur 6px = vrai trait (pas du bruit).
+                // Le minRunPx déjà à 6 dans vectorize ; ce filtre additionnel
+                // limiterait à 10 sinon — on l'aligne sur 6.
+                const minLen = 6;
                 const lotBx0 = Math.min(...lotPolyPx_face.map(p => p.x));
                 const lotBx1 = Math.max(...lotPolyPx_face.map(p => p.x));
                 const lotBy0 = Math.min(...lotPolyPx_face.map(p => p.y));

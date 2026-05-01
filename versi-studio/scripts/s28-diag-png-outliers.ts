@@ -12,6 +12,7 @@ import sharp from "sharp";
 import { extractLotVector, extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor";
 import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
 import { WALL_EXTRACTION_CONFIG } from "../src/lib/vs/wall-extraction-config";
+import { vectorizeRasterWallsFromPng } from "../src/lib/vs/raster-walls-vectorize";
 import { pdf as pdfToImg } from "pdf-to-img";
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
@@ -73,9 +74,28 @@ async function main() {
     lateralTolPx: WALL_EXTRACTION_CONFIG.chainLateralTolPx,
   });
   const internalWalls = chained.filter(w => Math.hypot(w.x2 - w.x1, w.y2 - w.y1) >= WALL_EXTRACTION_CONFIG.minSegLenFinal);
+  // s28 tour 13 — Inclure aussi les raster walls (cohérent avec l'audit)
+  const pages0 = await pdfToImg(buf, { scale: 3 });
+  let pngBuf0: Buffer | null = null;
+  for await (const p of pages0) { pngBuf0 = Buffer.from(p); break; }
+  let rasterFiltered: Wall[] = [];
+  if (pngBuf0) {
+    const { walls: rw } = await vectorizeRasterWallsFromPng(pngBuf0, { minRunPx: 12, thicknessPx: 3, minDensity: 0.7 });
+    const lotBx0 = Math.min(...lotPolyPx.map(p => p.x));
+    const lotBx1 = Math.max(...lotPolyPx.map(p => p.x));
+    const lotBy0 = Math.min(...lotPolyPx.map(p => p.y));
+    const lotBy1 = Math.max(...lotPolyPx.map(p => p.y));
+    rasterFiltered = rw.filter(w => {
+      const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+      if (len < WALL_EXTRACTION_CONFIG.minSegLenFinal) return false;
+      const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+      return cx >= lotBx0 && cx <= lotBx1 && cy >= lotBy0 && cy <= lotBy1;
+    });
+  }
   const allPdfWalls: Wall[] = [
     ...externalWalls.map(s => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
     ...internalWalls,
+    ...rasterFiltered,
   ];
 
   // Build wallMask (pixels noirs PNG)
