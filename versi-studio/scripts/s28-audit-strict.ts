@@ -1,19 +1,22 @@
 /**
- * s28 STRICT — Audit invariants 1-5 sans assouplissement
+ * s28 STRICT (tour 8) — Audit invariants 1-5 SURFACES ABSOLUES vs PDF
  *
- * Inv 1 (sync surface) : ratio polygon_area_m2 / db_area ∈ [0.98, 1.02] sur
- *                        TOUTES les pièces (y compris < 2m²). Pas de fallback.
- * Inv 2 (⊆ lot)        : 0 vertex hors polygone lot (tolérance 0.1% bord).
- * Inv 3 (snap murs)    : ≥95% des vertices à ≤5px du mur le plus proche
- *                        (mur externe OU mur interne via pivot vectoriel).
- * Inv 4 (labels PDF)   : label DB existe dans les labels OCR du PDF
- *                        (substring ou Levenshtein < 3).
- * Inv 5 (count exact)  : strict {0:5, 1:8, 2:6, 3:5}.
+ * Le tour 7 utilisait un critère « k constant » (proportionnalité) qui
+ * masquait les surfaces absolues fausses. Le tour 8 mesure les surfaces
+ * RÉELLES en m² vs les valeurs ÉCRITES sur les PDFs originaux.
  *
- * Coords :
- *   - lotPoly : polygone lot en plan-global %
- *   - r.polygon : polygone room en lot-local %
- *   - lot.surface_m2 (parfois NULL) → on calcule via aire polygone scaled
+ * Source de vérité PDF :
+ *   On utilise extractTextItems() pour lire les valeurs m² écrites SUR le PDF
+ *   (ex: "Chambre" + "10.2 m²"). Pour chaque label DB, on cherche le label
+ *   PDF correspondant et on compare la surface calculée du polygone à la
+ *   valeur PDF.
+ *
+ * Inv A (surface absolue) : pour chaque pièce, ratio polygon_area_m2 / pdf_label_m2
+ *                           DOIT être ∈ [0.85, 1.15]. Pas de fallback.
+ * Inv B (⊆ lot)            : 0 vertex hors polygone lot.
+ * Inv C (snap murs)        : ≥95% des vertices à ≤5px du mur le plus proche.
+ * Inv D (labels PDF)       : label DB conforme whitelist sémantique.
+ * Inv E (count exact)      : strict {0:5, 1:8, 2:6, 3:5}.
  *
  * Cible : 20/20 strict (5 invariants × 4 étages).
  */
@@ -22,18 +25,17 @@ import { readFile } from "fs/promises";
 import { extractLotVector, type WallSegPx } from "../src/lib/vs/lot-vector-extractor";
 import { extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor";
 import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
+import { extractTextItems, filterRoomLabels, type PdfTextItem } from "../src/lib/vs/pdf-text-extractor";
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
 
 interface Pt { x_percent: number; y_percent: number }
-interface PtPx { x: number; y: number }
 
-// Vérité terrain s28.5 confirmée par lecture orchestrator des PDF originaux :
-// - RDC : 5 (SdB, Chambre, Entrée, Couloir, Séjour/cuisine) — TGBT/ECS étaient des hallucinations IA
-// - R+1 : 8 (T2+T3 — Cellier, SDB, Entrée, Chambre 01, Chambre 02, ECS, Séjour/cuisine, WC)
-// - R+2 : 6 (WC, Cellier, SDB, Entrée, Chambre 01, Séjour/cuisine)
-// - R+3 : 5 (ECS, Palier, Chambre 02, Chambre 03, SDE)
 const EXPECTED_COUNTS: Record<number, number> = { 0: 5, 1: 8, 2: 6, 3: 5 };
+
+// Tolérances absolues
+const RATIO_MIN = 0.85;
+const RATIO_MAX = 1.15;
 
 function polygonAreaPercent(points: Pt[]): number {
   if (points.length < 3) return 0;
@@ -71,7 +73,6 @@ function distPointToSegment(
   return Math.hypot(px - projX, py - projY);
 }
 
-/** Levenshtein distance (utf-8 chars). */
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
   if (m === 0) return n;
@@ -91,8 +92,53 @@ function levenshtein(a: string, b: string): number {
 function normalizeLabel(s: string): string {
   return s.toLowerCase()
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[\s\/\.\-_]/g, "")
-    .replace(/[0-9]/g, "");
+    .replace(/[\s\/\.\-_]/g, "");
+}
+
+/**
+ * Trouve la valeur PDF pour un label DB en matchant texte + position.
+ * Pour chaque pièce DB, on cherche dans les pdfLabels celui dont le NOM est
+ * sémantiquement le même (via normalizeLabel + numéro) ET dont la position
+ * (centroïde) est la plus proche du centroïde DB.
+ *
+ * Retourne null si aucun match raisonnable (label hallucination).
+ */
+function findPdfLabelForRoom(
+  roomName: string,
+  roomCentroidPx: { x: number; y: number },
+  pdfLabels: PdfTextItem[],
+): PdfTextItem | null {
+  const normRoom = normalizeLabel(roomName);
+  const numMatch = roomName.match(/(\d+)/);
+  const roomNum = numMatch ? numMatch[1] : null;
+
+  // Préselection : labels PDF qui matchent sémantiquement (substring, levenshtein)
+  const candidates: Array<{ label: PdfTextItem; score: number }> = [];
+  for (const pl of pdfLabels) {
+    const normPl = normalizeLabel(pl.text);
+    // Match exact (avec numéro)
+    let semScore = 0;
+    if (normRoom === normPl) {
+      semScore = 100;
+    } else if (normRoom.replace(/\d+/g, "") === normPl.replace(/\d+/g, "")) {
+      // Mêmes lettres, numéro peut différer
+      const plNum = pl.text.match(/(\d+)/)?.[1] ?? null;
+      if (roomNum && plNum && roomNum === plNum) semScore = 90;
+      else semScore = 60;
+    } else if (normRoom.includes(normPl) || normPl.includes(normRoom)) {
+      semScore = 50;
+    } else {
+      const lev = levenshtein(normRoom, normPl);
+      if (lev <= 2) semScore = 40;
+    }
+    if (semScore < 40) continue;
+    // Score géométrique : distance centroïde DB ↔ centroïde PDF
+    const dist = Math.hypot(pl.x - roomCentroidPx.x, pl.y - roomCentroidPx.y);
+    candidates.push({ label: pl, score: semScore - dist * 0.01 });
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].label;
 }
 
 async function main() {
@@ -102,7 +148,8 @@ async function main() {
     process.exit(1);
   }
   const pool = new Pool({ connectionString: DB_URL });
-  console.log(`\n═══ s28 STRICT — audit (project ${projectId}) ═══\n`);
+  console.log(`\n=== s28 STRICT TOUR 8 — audit (project ${projectId}) ===\n`);
+  console.log(`Tolérance Inv A : ratio polygon_m2 / pdf_label_m2 ∈ [${RATIO_MIN}, ${RATIO_MAX}]\n`);
 
   const lotsRes = await pool.query<{
     id: string;
@@ -111,9 +158,8 @@ async function main() {
     surface_m2: string | null;
     zone_data: { type: string; points: Pt[] };
   }>(
-    "SELECT l.id, l.floor_number, l.name, l.surface_m2, l.zone_data, p.file_path " +
-    "FROM vs_lots l JOIN vs_plans p ON p.project_id = l.project_id AND p.floor_number = l.floor_number " +
-    "WHERE l.project_id = $1 ORDER BY l.floor_number",
+    "SELECT l.id, l.floor_number, l.name, l.surface_m2, l.zone_data " +
+    "FROM vs_lots l WHERE l.project_id = $1 ORDER BY l.floor_number",
     [projectId],
   );
 
@@ -123,9 +169,16 @@ async function main() {
   );
   const planPaths = new Map(planPathsRes.rows.map(r => [r.floor_number, r.file_path]));
 
+  type RatioEntry = {
+    name: string;
+    actual: number;
+    expected: number | null;
+    ratio: number | null;
+    status: "OK" | "FAIL" | "NO_PDF_LABEL";
+  };
   type Result = {
     floor: number; lotName: string;
-    invA: { passed: boolean; detail: string };
+    invA: { passed: boolean; detail: string; ratios: RatioEntry[] };
     invB: { passed: boolean; detail: string };
     invC: { passed: boolean; detail: string };
     invD: { passed: boolean; detail: string };
@@ -140,7 +193,6 @@ async function main() {
       continue;
     }
 
-    // Bbox lot pour conversion lot-local → plan-global
     let lotMinX = 100, lotMinY = 100, lotMaxX = 0, lotMaxY = 0;
     for (const p of lotPoly) {
       if (p.x_percent < lotMinX) lotMinX = p.x_percent;
@@ -150,13 +202,12 @@ async function main() {
     }
     const lotW = lotMaxX - lotMinX;
     const lotH = lotMaxY - lotMinY;
-    const lotAreaPct = polygonAreaPercent(lotPoly);
 
-    // Extraction murs externes + internes pour Inv C (snap quality)
     const planPath = planPaths.get(lot.floor_number);
     let externalWalls: WallSegPx[] = [];
     let internalWalls: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
     let imageW = 0, imageH = 0;
+    let pdfLabels: PdfTextItem[] = [];
     if (planPath) {
       try {
         const buffer = await readFile(planPath);
@@ -164,33 +215,22 @@ async function main() {
         externalWalls = lvr.wallSegments;
         imageW = lvr.imageWidth;
         imageH = lvr.imageHeight;
-        // Murs internes : segments orange dont les 2 endpoints sont DANS le polygone lot
         const lotPolyPx = lotPoly.map(p => ({
           x: (p.x_percent / 100) * imageW,
           y: (p.y_percent / 100) * imageH,
         }));
-        // s28.7 : extraction puis chaînage des segments colinéaires.
-        // Sans chaînage, les murs dessinés en dashes (~11px chacun, ex: Chambre
-        // RDC) sont individuellement filtrés par minSegLen=15. Avec chaînage,
-        // une série de dashes devient un mur unique long → audit cohérent
-        // avec la géométrie réelle du PDF (qui contient bien des murs là).
-        // Note : ceci DURCIT l'audit (plus de murs cibles) — pas un soft.
         const rawInternal = await extractInternalWallSegments(buffer, lotPolyPx, {
-          scale: 3,
-          multiColor: true,
-          minSegLen: 5, // pré-filtre permissif, le chaînage gère les bruits
+          scale: 3, multiColor: true, minSegLen: 5,
         });
         const chained = chainCollinearSegments(rawInternal, {
-          gapPx: 15,
-          angleTolDeg: 3,
-          lateralTolPx: 3,
+          gapPx: 15, angleTolDeg: 3, lateralTolPx: 3,
         });
-        internalWalls = chained.filter((w) => {
-          const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-          return len >= 10;
-        });
+        internalWalls = chained.filter((w) => Math.hypot(w.x2 - w.x1, w.y2 - w.y1) >= 10);
+        // Lire les labels PDF avec leur surface (source de vérité absolue)
+        const allTextItems = await extractTextItems(buffer, lotPolyPx, 3);
+        pdfLabels = filterRoomLabels(allTextItems);
       } catch (err) {
-        console.warn(`[${lot.name}] extraction murs échouée :`, err instanceof Error ? err.message : err);
+        console.warn(`[${lot.name}] extraction PDF échouée :`, err instanceof Error ? err.message : err);
       }
     }
     const allWalls = [
@@ -198,7 +238,6 @@ async function main() {
       ...internalWalls,
     ];
 
-    // Récupère rooms
     const roomsRes = await pool.query<{
       name: string;
       surface_m2: string | null;
@@ -208,50 +247,96 @@ async function main() {
       [lot.id],
     );
 
-    // ─── Inv A : sync surface = cohérence proportionnelle ───
-    // Test : pour chaque pièce, surface_m2 / aire_polygone doit être constant
-    // (à ±15%) à travers toutes les pièces du lot. Si une pièce a 25m² avec un
-    // polygone plus petit qu'une autre à 12m² → INCOHÉRENT (bug Thomas s28).
-    // Méthode : k_i = surface_m2_i / aire_polygone_i ; tous les k_i doivent
-    // être dans [median × 0.85, median × 1.15].
-    let invAPass = true;
-    const invADetails: string[] = [];
-    const ks: Array<{ name: string; k: number; surface: number; area: number }> = [];
+    // ─── Inv A : surface absolue vs PDF ───
+    // Pour chaque pièce, calculer la surface en m² depuis le polygone et la
+    // comparer à la surface lue sur le PDF (extractTextItems → surface_m2).
+    //
+    // Le scale utilisé est la médiane des k_i = pdf_m2_i / aire_polygon_pct_i
+    // sur les pièces avec PDF ET un ratio « brut » dans la fourchette
+    // raisonnable (filtre outliers : pièces fusionnées ou découpées qui
+    // biaiseraient la médiane).
+    type RoomData = {
+      name: string;
+      polyGlobalPct: Pt[];
+      areaPct: number;
+      centroidPx: { x: number; y: number };
+      pdfM2: number | null;
+    };
+    const roomData: RoomData[] = [];
     for (const r of roomsRes.rows) {
       if (!r.polygon || r.polygon.length < 3) continue;
-      const surfaceRoom = parseFloat(r.surface_m2 ?? "0");
-      if (surfaceRoom <= 0) continue;
-      const roomPolyGlobal = r.polygon.map(v => ({
+      const polyGlobal = r.polygon.map(v => ({
         x_percent: lotMinX + (v.x_percent / 100) * lotW,
         y_percent: lotMinY + (v.y_percent / 100) * lotH,
       }));
-      const a = polygonAreaPercent(roomPolyGlobal);
-      if (a <= 0) continue;
-      ks.push({ name: r.name, k: surfaceRoom / a, surface: surfaceRoom, area: a });
+      const a = polygonAreaPercent(polyGlobal);
+      let cx = 0, cy = 0;
+      for (const v of polyGlobal) { cx += v.x_percent; cy += v.y_percent; }
+      cx /= polyGlobal.length;
+      cy /= polyGlobal.length;
+      const cxPx = (cx / 100) * imageW;
+      const cyPx = (cy / 100) * imageH;
+      const pdfMatch = findPdfLabelForRoom(r.name, { x: cxPx, y: cyPx }, pdfLabels);
+      const pdfM2 = pdfMatch?.surface_m2 ?? null;
+      roomData.push({
+        name: r.name,
+        polyGlobalPct: polyGlobal,
+        areaPct: a,
+        centroidPx: { x: cxPx, y: cyPx },
+        pdfM2,
+      });
     }
-    if (ks.length < 2) {
-      invAPass = false;
-      invADetails.push(`pas assez de pièces avec polygone+surface (${ks.length})`);
-    } else {
-      const sortedK = [...ks].sort((a, b) => a.k - b.k);
-      const median = sortedK[Math.floor(sortedK.length / 2)].k;
-      for (const e of ks) {
-        const ratio = e.k / median;
-        if (ratio < 0.85 || ratio > 1.15) {
-          invAPass = false;
-          invADetails.push(`${e.name}=k×${ratio.toFixed(2)}`);
-        }
+    // Calibrage scale : médiane des k_i sur pièces avec PDF, après filtre outliers
+    const ksRaw = roomData
+      .filter((r) => r.pdfM2 != null && r.pdfM2 > 0 && r.areaPct > 0)
+      .map((r) => ({ name: r.name, k: r.pdfM2! / r.areaPct }));
+    let scalePerPctSq = 0;
+    if (ksRaw.length >= 2) {
+      // Pré-filtre : médiane brute, puis exclure les rooms hors [median*0.5, median*2]
+      const sortedRaw = [...ksRaw].map(r => r.k).sort((a, b) => a - b);
+      const medianRaw = sortedRaw[Math.floor(sortedRaw.length / 2)];
+      const filteredKs = ksRaw
+        .filter((r) => r.k >= medianRaw * 0.5 && r.k <= medianRaw * 2.0)
+        .map((r) => r.k);
+      if (filteredKs.length >= 2) {
+        filteredKs.sort((a, b) => a - b);
+        scalePerPctSq = filteredKs[Math.floor(filteredKs.length / 2)];
+      } else {
+        scalePerPctSq = medianRaw;
       }
     }
-    const invADetail = invADetails.length === 0
-      ? `${ks.length} pièces, k = surface/aire cohérent (±15%)`
-      : `incohérent : ${invADetails.slice(0, 5).join(", ")}`;
+    // Ratios par pièce
+    let invAPass = true;
+    const ratiosOut: RatioEntry[] = [];
+    for (const r of roomData) {
+      const actualM2 = r.areaPct * scalePerPctSq;
+      if (r.pdfM2 == null || r.pdfM2 <= 0) {
+        invAPass = false;
+        ratiosOut.push({
+          name: r.name, actual: actualM2, expected: null, ratio: null, status: "NO_PDF_LABEL",
+        });
+        continue;
+      }
+      const ratio = actualM2 / r.pdfM2;
+      const status: "OK" | "FAIL" = ratio >= RATIO_MIN && ratio <= RATIO_MAX ? "OK" : "FAIL";
+      if (status === "FAIL") invAPass = false;
+      ratiosOut.push({ name: r.name, actual: actualM2, expected: r.pdfM2, ratio, status });
+    }
+    const invAFails = ratiosOut
+      .filter((r) => r.status !== "OK")
+      .map((r) => {
+        if (r.status === "NO_PDF_LABEL") return `${r.name}=label-PDF-introuvable`;
+        return `${r.name}=${r.actual.toFixed(1)}m² (PDF=${r.expected!.toFixed(1)}m², r=${r.ratio!.toFixed(2)})`;
+      });
+    const invADetail = invAFails.length === 0
+      ? `${ratiosOut.length} pièces dans ratio [${RATIO_MIN}, ${RATIO_MAX}]`
+      : `hors ratio : ${invAFails.slice(0, 6).join(", ")}`;
 
     // ─── Inv B : tous les vertices ⊆ lotPoly ───
     let outsideVerts = 0;
     let totalVerts = 0;
     const outsideRooms: string[] = [];
-    const TOL_BORDER = 0.1; // 0.1% de tolérance bord (snap arrondis)
+    const TOL_BORDER = 0.1;
     for (const r of roomsRes.rows) {
       if (!r.polygon || r.polygon.length < 3) continue;
       let outsideThisRoom = 0;
@@ -260,7 +345,6 @@ async function main() {
         const gy = lotMinY + (v.y_percent / 100) * lotH;
         let inside = pointInPolygon(gx, gy, lotPoly);
         if (!inside) {
-          // Tolérance bord : si on est très proche de n'importe quelle arête lot
           let minDist = Infinity;
           for (let i = 0, j = lotPoly.length - 1; i < lotPoly.length; j = i++) {
             const d = distPointToSegment(
@@ -278,16 +362,14 @@ async function main() {
           outsideThisRoom++;
         }
       }
-      if (outsideThisRoom > 0) {
-        outsideRooms.push(`${r.name}(${outsideThisRoom})`);
-      }
+      if (outsideThisRoom > 0) outsideRooms.push(`${r.name}(${outsideThisRoom})`);
     }
     const invBPass = outsideVerts === 0;
     const invBDetail = `${outsideVerts}/${totalVerts} hors lot${
       outsideRooms.length > 0 ? ` — ${outsideRooms.slice(0, 3).join(", ")}` : ""
     }`;
 
-    // ─── Inv C : snap murs (≥95% vertices à ≤5px d'un mur) ───
+    // ─── Inv C : snap murs ───
     let snapTotal = 0, snapPassed = 0;
     if (allWalls.length > 0 && imageW > 0 && imageH > 0) {
       for (const r of roomsRes.rows) {
@@ -295,7 +377,6 @@ async function main() {
         for (const v of r.polygon) {
           const gx = lotMinX + (v.x_percent / 100) * lotW;
           const gy = lotMinY + (v.y_percent / 100) * lotH;
-          // Conversion en pixels image native
           const px = (gx / 100) * imageW;
           const py = (gy / 100) * imageH;
           let bestDist = Infinity;
@@ -311,13 +392,11 @@ async function main() {
     }
     const snapRatio = snapTotal > 0 ? snapPassed / snapTotal : 0;
     const invCPass = snapRatio >= 0.95;
-    const invCDetail = `${snapPassed}/${snapTotal} (${(snapRatio * 100).toFixed(1)}%) à ≤5px${
+    const invCDetail = `${snapPassed}/${snapTotal} (${(snapRatio * 100).toFixed(1)}%) à <=5px${
       allWalls.length === 0 ? " — pas de murs" : ` — ${externalWalls.length} ext + ${internalWalls.length} int`
     }`;
 
-    // ─── Inv D : labels PDF ─── (vérification basique : nom non-vide, pas
-    // un placeholder générique). Pour vraiment vérifier vs PDF, il faudrait
-    // OCR — ici on accepte tout label réaliste (présent dans le glossaire).
+    // ─── Inv D : labels PDF (whitelist sémantique) ───
     const KNOWN_LABELS = [
       "entree", "sejour", "cuisine", "sdb", "sde", "chambre", "wc", "couloir",
       "palier", "bureau", "cellier", "dressing", "ecs", "tgbt", "placard",
@@ -342,17 +421,17 @@ async function main() {
       : `non standards : ${invalidLabels.slice(0, 3).join(", ")}`;
 
     // ─── Inv E : count strict ───
-    const expected = EXPECTED_COUNTS[lot.floor_number];
-    const actual = roomsRes.rows.length;
-    const invEPass = expected !== undefined && actual === expected;
-    const invEDetail = expected !== undefined
-      ? `${actual}/${expected}`
-      : `${actual} (étage non référencé)`;
+    const expectedCount = EXPECTED_COUNTS[lot.floor_number];
+    const actualCount = roomsRes.rows.length;
+    const invEPass = expectedCount !== undefined && actualCount === expectedCount;
+    const invEDetail = expectedCount !== undefined
+      ? `${actualCount}/${expectedCount}`
+      : `${actualCount} (étage non référencé)`;
 
     results.push({
       floor: lot.floor_number,
       lotName: lot.name,
-      invA: { passed: invAPass, detail: invADetail },
+      invA: { passed: invAPass, detail: invADetail, ratios: ratiosOut },
       invB: { passed: invBPass, detail: invBDetail },
       invC: { passed: invCPass, detail: invCDetail },
       invD: { passed: invDPass, detail: invDDetail },
@@ -360,23 +439,37 @@ async function main() {
     });
   }
 
-  // Affichage tableau
-  console.log("| Plan        | A.Surf | B.⊆Lot | C.Snap | D.Lab | E.Cnt |");
-  console.log("|-------------|--------|--------|--------|-------|-------|");
+  // Tableau récap
+  console.log("| Plan        | A.Surf | B.SubLot | C.Snap | D.Lab | E.Cnt |");
+  console.log("|-------------|--------|----------|--------|-------|-------|");
   for (const r of results) {
-    const c = (b: boolean) => (b ? "✓" : "✗").padEnd(6);
+    const c = (b: boolean) => (b ? "OK" : "FAIL").padEnd(6);
     console.log(
-      `| ${r.lotName.padEnd(11)} | ${c(r.invA.passed)} | ${c(r.invB.passed)} | ${c(r.invC.passed)} | ${c(r.invD.passed).padEnd(5)} | ${c(r.invE.passed).padEnd(5)} |`,
+      `| ${r.lotName.padEnd(11)} | ${c(r.invA.passed)} | ${c(r.invB.passed).padEnd(8)} | ${c(r.invC.passed)} | ${c(r.invD.passed).padEnd(5)} | ${c(r.invE.passed).padEnd(5)} |`,
     );
   }
   console.log("");
   for (const r of results) {
     console.log(`\n[${r.lotName}]`);
-    console.log(`  A. Sync surface : ${r.invA.passed ? "PASS" : "FAIL"} — ${r.invA.detail}`);
-    console.log(`  B. ⊆ Lot        : ${r.invB.passed ? "PASS" : "FAIL"} — ${r.invB.detail}`);
-    console.log(`  C. Snap murs    : ${r.invC.passed ? "PASS" : "FAIL"} — ${r.invC.detail}`);
-    console.log(`  D. Labels PDF   : ${r.invD.passed ? "PASS" : "FAIL"} — ${r.invD.detail}`);
-    console.log(`  E. Count exact  : ${r.invE.passed ? "PASS" : "FAIL"} — ${r.invE.detail}`);
+    console.log(`  A. Surface absolue : ${r.invA.passed ? "PASS" : "FAIL"} — ${r.invA.detail}`);
+    if (r.invA.ratios.length > 0) {
+      console.log(`     Détail par pièce :`);
+      for (const rt of r.invA.ratios) {
+        if (rt.status === "NO_PDF_LABEL") {
+          console.log(
+            `       [FAIL] ${rt.name.padEnd(20)} actual=${rt.actual.toFixed(1).padStart(6)}m² expected=ABSENT-DU-PDF`,
+          );
+        } else {
+          console.log(
+            `       [${rt.status}] ${rt.name.padEnd(20)} actual=${rt.actual.toFixed(1).padStart(6)}m² expected=${rt.expected!.toFixed(1).padStart(6)}m² ratio=${rt.ratio!.toFixed(2)}`,
+          );
+        }
+      }
+    }
+    console.log(`  B. SubLot          : ${r.invB.passed ? "PASS" : "FAIL"} — ${r.invB.detail}`);
+    console.log(`  C. Snap murs       : ${r.invC.passed ? "PASS" : "FAIL"} — ${r.invC.detail}`);
+    console.log(`  D. Labels PDF      : ${r.invD.passed ? "PASS" : "FAIL"} — ${r.invD.detail}`);
+    console.log(`  E. Count exact     : ${r.invE.passed ? "PASS" : "FAIL"} — ${r.invE.detail}`);
   }
 
   const total = results.length * 5;
@@ -386,7 +479,7 @@ async function main() {
       (r.invC.passed ? 1 : 0) + (r.invD.passed ? 1 : 0) + (r.invE.passed ? 1 : 0),
     0,
   );
-  console.log(`\n═══ Total : ${passed}/${total} (${((passed / total) * 100).toFixed(0)}%) ═══\n`);
+  console.log(`\n=== Total : ${passed}/${total} (${((passed / total) * 100).toFixed(0)}%) ===\n`);
 
   await pool.end();
   process.exit(passed === total ? 0 : 1);

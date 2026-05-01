@@ -114,6 +114,7 @@ import {
 } from "@/lib/vs/wall-bounded-voronoi";
 import { regularizeOrthogonal, chainCollinearSegments, dragOutliersToWalls } from "@/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
+import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { pdf as pdfToImg } from "pdf-to-img";
 
 // s24 — timeout route = 5min pour autoriser pipeline IA lourd (passe-1 +
@@ -558,6 +559,22 @@ export async function POST(
                   y_percent: l.y_percent,
                   surface_m2: l.surface_m2,
                 }));
+                // s28 tour 8 — Détection des murs séparateurs d'appartements.
+                // Sur R+1 Muguets, le plan contient T2 + T3 séparés par une
+                // cloison palière qui peut être traversée par flood-fill via
+                // une porte ouverte. On détecte ces séparateurs (longs +
+                // orthogonaux + traversants) et on les renforce dans la masque.
+                // Si 1 seul apt → 0 séparateur trouvé, no-op.
+                const aptSeparators = detectAptSeparators(allWalls_face, lotPolyPx_face, {
+                  minLengthRatio: 0.30,
+                  angleTolDeg: 5,
+                  endpointToLotTolPx: 30,
+                });
+                if (aptSeparators.length > 0) {
+                  console.log(
+                    `[extract/NEW v8/s28-apt-sep] plan ${plan.id} — ${aptSeparators.length} apt-separator(s) détecté(s) (longueur min ${(Math.hypot(result.imageWidth, result.imageHeight) * 0.30).toFixed(0)}px)`,
+                  );
+                }
                 const floodRooms = await extractRoomsByFloodFill(pngBuf, labelSeeds, {
                   lotPolygonPx: lotPolyPx_face,
                   wallLumThreshold: 210,
@@ -569,35 +586,45 @@ export async function POST(
                   doorSealRadius: 6,
                   vectorWallSegments: allWalls_face,
                   vectorWallThickness: 3,
+                  aptSeparatorSegments: aptSeparators,
+                  aptSeparatorThickness: 6,
                 });
                 console.log(
                   `[extract/NEW v6/s28.6] plan ${plan.id} flood-fill : ${floodRooms.length}/${labelsOnly.length} pièces extraites`,
                 );
 
-                // ─── s28.7 RE-CALIBRATION DU SCALE px²→m² ────────────────
-                // Le scaleM2PerPx2 initial est imprécis (lot polygone inclut
-                // l'extérieur, pas seulement les pièces livrables). Pour Inv A
-                // et le filtre micro-pièces, on a besoin d'un scale précis.
+                // ─── s28 TOUR 8 — CALIBRAGE SCALE depuis labels PDF ──────
+                // Précédent (s28.7) : médiane sur les rooms flood-fill avec
+                // surface_m2 lue. Mais si le flood-fill a FUSIONNÉ deux apts
+                // (R+1 T2+T3), la room "Séjour" a une areaPx2 énorme par
+                // rapport à sa surface PDF → outlier qui biaisait la médiane.
                 //
-                // Approche : pour chaque flood-fill room qui CORRESPOND à un
-                // label avec surface OCR connue (ex: Sejour 25.8m²), on calcule
-                // un scale local = surface_m2 / areaPx2. On prend la MÉDIANE de
-                // ces scales — robuste aux outliers.
+                // Tour 8 : maintenant que les apt-separators bloquent la fusion,
+                // les flood-fill rooms ont des aires cohérentes. On utilise
+                // toujours la médiane (calibrateScaleFromPdfLabels), avec un
+                // garde-fou supplémentaire : on rejette les rooms dont l'aire
+                // est aberrante (>3× la médiane brute = probablement fusionnée).
                 {
-                  const perRoomScales: number[] = [];
-                  for (const r of floodRooms) {
-                    if (r.surface_m2 == null || r.surface_m2 <= 0) continue;
-                    if (r.areaPx2 <= 0) continue;
-                    perRoomScales.push(r.surface_m2 / r.areaPx2);
-                  }
-                  if (perRoomScales.length >= 2) {
-                    perRoomScales.sort((a, b) => a - b);
-                    const median = perRoomScales[Math.floor(perRoomScales.length / 2)];
-                    if (median > 0 && Number.isFinite(median)) {
+                  const candidates = floodRooms.filter(
+                    (r) => r.surface_m2 != null && r.surface_m2 > 0 && r.areaPx2 > 0,
+                  );
+                  if (candidates.length >= 2) {
+                    // Pré-filtre outlier : k_brut = surface_m2 / areaPx2
+                    // On garde uniquement les rooms dont k est dans [median * 0.5, median * 2]
+                    const ksBrut = candidates
+                      .map((r) => r.surface_m2! / r.areaPx2)
+                      .sort((a, b) => a - b);
+                    const medianBrut = ksBrut[Math.floor(ksBrut.length / 2)];
+                    const filtered = candidates.filter((r) => {
+                      const k = r.surface_m2! / r.areaPx2;
+                      return k >= medianBrut * 0.5 && k <= medianBrut * 2.0;
+                    });
+                    const newScale = calibrateScaleFromPdfLabels(filtered);
+                    if (newScale > 0 && Number.isFinite(newScale)) {
                       const oldScale = scaleM2PerPx2;
-                      scaleM2PerPx2 = median;
+                      scaleM2PerPx2 = newScale;
                       console.log(
-                        `[extract/NEW v6/s28.7] plan ${plan.id} scale recalibré : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${perRoomScales.length} rooms labellées)`,
+                        `[extract/NEW v8/s28-tour8] plan ${plan.id} scale calibré PDF : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${filtered.length}/${candidates.length} rooms PDF, après filtre outliers)`,
                       );
                     }
                   }

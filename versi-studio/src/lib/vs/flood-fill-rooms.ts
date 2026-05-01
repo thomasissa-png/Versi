@@ -75,6 +75,15 @@ export type FloodFillOptions = {
   vectorWallSegments?: Array<{ x1: number; y1: number; x2: number; y2: number }>;
   /** Épaisseur de tracé des murs vectoriels dans la masque (px). Défaut 3. */
   vectorWallThickness?: number;
+  /**
+   * Murs SÉPARATEURS d'appartements (s28 tour 8) — segments à renforcer ENCORE
+   * plus que vectorWalls. Utilisé quand un plan d'étage contient plusieurs apts
+   * (T2+T3 R+1 Muguets) : sans ces murs renforcés, le flood-fill traverse la
+   * cloison palière et fusionne deux apts en un.
+   */
+  aptSeparatorSegments?: Array<{ x1: number; y1: number; x2: number; y2: number }>;
+  /** Épaisseur de tracé des séparateurs apt (px). Défaut 5 (plus épais que vectorWalls). */
+  aptSeparatorThickness?: number;
 };
 
 /**
@@ -432,6 +441,8 @@ export async function extractRoomsByFloodFill(
   const doorSealRadius = options.doorSealRadius ?? 5;
   const vectorWallThickness = options.vectorWallThickness ?? 3;
   const vectorWalls = options.vectorWallSegments ?? [];
+  const aptSeparators = options.aptSeparatorSegments ?? [];
+  const aptSeparatorThickness = options.aptSeparatorThickness ?? 5;
   const lotPolyPx = options.lotPolygonPx;
 
   const { mask: wallMask, W, H } = await buildWallMask(pngBuffer, {
@@ -476,6 +487,15 @@ export async function extractRoomsByFloodFill(
     drawSegment(wallMask, seg.x1, seg.y1, seg.x2, seg.y2, vectorWallThickness);
   }
 
+  // s28 tour 8 — Renforcer les apt-separators (murs entre appartements).
+  // Ces murs DOIVENT être infranchissables au flood-fill, sinon une porte
+  // palière ouverte fait fusionner deux apts en un. Tracé plus épais que
+  // les vectorWalls normaux pour résister à la dilatation morphologique
+  // (qui sinon "ouvrirait" un passage de l'autre côté).
+  for (const seg of aptSeparators) {
+    drawSegment(wallMask, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
+  }
+
   // Dilatation morphologique pour fermer les portes (gaps dans le réseau).
   // Une porte de 80cm ≈ 240px à scale=3, mais le passage utile est ~5-10px
   // de gap dans le tracé du mur (chambranle). 5px de dilatation ferme les
@@ -494,8 +514,22 @@ export async function extractRoomsByFloodFill(
 
   const results: RoomPolygonPx[] = [];
 
-  // Trier les labels par position (haut→bas, gauche→droite) pour stabilité
-  const sortedLabels = [...labels];
+  // s28 tour 8 — Trier les labels du PLUS PETIT au PLUS GRAND (par
+  // surface_m2 PDF si connue, sinon par défaut milieu = 10m²).
+  // Raison : les petits seeds (SdB, WC, Couloir) doivent être inondés en
+  // premier ; sinon une grande pièce voisine (Séjour) absorbe leur espace
+  // via une porte ouverte → la SdB tombe sur un pixel claimed et n'a plus
+  // qu'un mini reste. En commençant par les petits, ils prennent EXACTEMENT
+  // leur volume puis les grands flood-fillent le reste (qui DOIT être leur
+  // vrai volume).
+  //
+  // Garde-fou : les labels avec surface inconnue ont une priorité moyenne
+  // (10m²) → ils s'intercalent entre micro-pièces et grandes pièces.
+  const sortedLabels = [...labels].sort((a, b) => {
+    const sa = a.surface_m2 != null && a.surface_m2 > 0 ? a.surface_m2 : 10;
+    const sb = b.surface_m2 != null && b.surface_m2 > 0 ? b.surface_m2 : 10;
+    return sa - sb;
+  });
 
   for (const lab of sortedLabels) {
     // Position pixel
