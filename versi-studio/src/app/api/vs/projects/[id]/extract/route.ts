@@ -121,6 +121,7 @@ import {
 } from "@/lib/vs/inter-room-walls";
 import { smartLineSnap } from "@/lib/vs/smart-line-snap";
 import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
+import { vectorizeRasterWallsFromPng } from "@/lib/vs/raster-walls-vectorize";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -507,10 +508,14 @@ export async function POST(
               angleTolDeg: WALL_EXTRACTION_CONFIG.chainAngleTolDeg,
               lateralTolPx: WALL_EXTRACTION_CONFIG.chainLateralTolPx,
             });
-            const allWalls_snap = chainedWalls.filter((w) => {
+            const chainedWalls_filtered = chainedWalls.filter((w) => {
               const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
               return len >= WALL_EXTRACTION_CONFIG.minSegLenFinal;
             });
+            // s28 tour 13 — Mutable pour qu'on puisse ajouter raster walls après PNG.
+            // Cohérent avec l'audit qui fait pareil dans s28-audit-strict.
+            const allWalls_snap: Array<{ x1: number; y1: number; x2: number; y2: number }> =
+              [...chainedWalls_filtered];
             console.log(
               `[extract/NEW v6/s28.4] plan ${plan.id} murs : ${result.wallSegments.length} ext + ${internalWalls_face.length} int → chaînés ${chainedWalls.length} → snap target ${allWalls_snap.length}`,
             );
@@ -575,6 +580,39 @@ export async function POST(
             }
 
             if (pngBuf && labelsOnly.length > 0) {
+              // s28 tour 13 — Vectorisation des cloisons RASTER PNG.
+              // Cohérent avec l'audit (s28-audit-strict appelle la même fonction).
+              // Les cloisons en peinture noire (SDB/WC F1, parois fines F0/F3)
+              // ne sont pas dans extractInternalWallSegments (vectoriel).
+              try {
+                const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
+                  minRunPx: 12,
+                  thicknessPx: 3,
+                  minDensity: 0.7,
+                });
+                // Filtrer : DANS le bbox du lot et longueur ≥ minSegLenFinal
+                const minLen = WALL_EXTRACTION_CONFIG.minSegLenFinal;
+                const lotBx0 = Math.min(...lotPolyPx_face.map(p => p.x));
+                const lotBx1 = Math.max(...lotPolyPx_face.map(p => p.x));
+                const lotBy0 = Math.min(...lotPolyPx_face.map(p => p.y));
+                const lotBy1 = Math.max(...lotPolyPx_face.map(p => p.y));
+                const filtered = rasterWalls.filter(w => {
+                  const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+                  if (len < minLen) return false;
+                  const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+                  return cx >= lotBx0 && cx <= lotBx1 && cy >= lotBy0 && cy <= lotBy1;
+                });
+                allWalls_snap.push(...filtered);
+                console.log(
+                  `[extract/s28-tour13-raster] plan ${plan.id} : +${filtered.length} murs raster vectorisés (sur ${rasterWalls.length} candidats) → total snap = ${allWalls_snap.length}`,
+                );
+              } catch (rasterErr) {
+                console.warn(
+                  `[extract/s28-tour13-raster] plan ${plan.id} échec vectorisation raster :`,
+                  rasterErr instanceof Error ? rasterErr.message : rasterErr,
+                );
+              }
+
               try {
                 const labelSeeds = labelsOnly.map((l) => ({
                   text: l.text,

@@ -27,6 +27,8 @@ import { extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor"
 import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels, type PdfTextItem } from "../src/lib/vs/pdf-text-extractor";
 import { WALL_EXTRACTION_CONFIG } from "../src/lib/vs/wall-extraction-config";
+import { vectorizeRasterWallsFromPng } from "../src/lib/vs/raster-walls-vectorize";
+import { pdf as pdfToImg } from "pdf-to-img";
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
 
@@ -237,6 +239,40 @@ async function main() {
         internalWalls = chained.filter(
           (w) => Math.hypot(w.x2 - w.x1, w.y2 - w.y1) >= WALL_EXTRACTION_CONFIG.minSegLenFinal,
         );
+        // s28 tour 13 — VECTORISATION des murs raster PNG.
+        // Les cloisons en peinture noire (SDB/WC F1, parois fines F0/F3) ne
+        // sont PAS dans extractInternalWallSegments (vectoriel pur). On scanne
+        // la masque PNG pour détecter les runs orthogonaux de pixels noirs et
+        // on les ajoute au set audit. Cohérent avec l'extract (même fonction).
+        try {
+          const pages = await pdfToImg(buffer, { scale: WALL_EXTRACTION_CONFIG.scale });
+          let pngBuf: Buffer | null = null;
+          for await (const p of pages) { pngBuf = Buffer.from(p); break; }
+          if (pngBuf) {
+            const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
+              minRunPx: 12,
+              thicknessPx: 3,
+              minDensity: 0.7,
+            });
+            // Filtrer : garder seulement les murs DANS le bbox du lot (perf)
+            // et de longueur ≥ minSegLenFinal pour cohérence avec set audit.
+            const minLen = WALL_EXTRACTION_CONFIG.minSegLenFinal;
+            const lotBx0 = Math.min(...lotPolyPx.map(p => p.x));
+            const lotBx1 = Math.max(...lotPolyPx.map(p => p.x));
+            const lotBy0 = Math.min(...lotPolyPx.map(p => p.y));
+            const lotBy1 = Math.max(...lotPolyPx.map(p => p.y));
+            const filtered = rasterWalls.filter(w => {
+              const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+              if (len < minLen) return false;
+              const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+              return cx >= lotBx0 && cx <= lotBx1 && cy >= lotBy0 && cy <= lotBy1;
+            });
+            internalWalls = [...internalWalls, ...filtered];
+          }
+        } catch (rasterErr) {
+          // Non bloquant : les vector walls existants suffisent pour le set audit
+          console.warn(`[${lot.name}] vectorisation raster échouée :`, rasterErr instanceof Error ? rasterErr.message : rasterErr);
+        }
         // Lire les labels PDF avec leur surface (source de vérité absolue)
         const allTextItems = await extractTextItems(buffer, lotPolyPx, WALL_EXTRACTION_CONFIG.scale);
         pdfLabels = filterRoomLabels(allTextItems);
