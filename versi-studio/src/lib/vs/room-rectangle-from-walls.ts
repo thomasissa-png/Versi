@@ -360,6 +360,7 @@ function expandToFit(
   walls: Wall[],
   angleTolDeg: number,
   scaleM2PerPx2Hint: number | null = null,
+  seeds: Array<{ x: number; y: number }> | null = null,
 ): RectangleRoom[] {
   const result = rooms.map((r) => ({
     ...r,
@@ -381,11 +382,30 @@ function expandToFit(
       scale = cands[Math.floor(cands.length / 2)];
     }
   }
+  // s28 tour 19.b — fallback médiane PDF pour les pièces sans surface (ECS, etc.)
+  // ECS / placard technique : on cap à 1/3 de la médiane des autres pièces (≈3-5m²).
+  // Utile pour éviter qu'ECS s'expande à 30+ m² sur R+1.
+  let medianPdfM2 = 0;
+  {
+    const pdfList = rooms
+      .map((r) => r.pdfSurfaceM2)
+      .filter((s): s is number => s != null && s > 0)
+      .sort((a, b) => a - b);
+    if (pdfList.length > 0) {
+      medianPdfM2 = pdfList[Math.floor(pdfList.length / 2)];
+    }
+  }
   function maxAreaPx2(idx: number): number | null {
     if (scale === null || scale <= 0) return null;
     const pdf = result[idx].pdfSurfaceM2;
-    if (pdf == null || pdf <= 0) return null;
-    return (pdf * 1.3) / scale; // 30% tolérance d'expansion
+    if (pdf != null && pdf > 0) {
+      return (pdf * 1.3) / scale; // 30% tolérance d'expansion
+    }
+    // Pas de surface PDF (ex ECS, TGBT, placard) — cap à 1/3 médiane (≈3-5m²)
+    if (medianPdfM2 > 0) {
+      return (medianPdfM2 / 3) / scale;
+    }
+    return null;
   }
 
   // s28 tour 19 — précalcul : index murs H et V pour borne expansion.
@@ -540,16 +560,29 @@ function expandToFit(
       if (cap !== null) {
         const candidateArea = (newXMax - newXMin) * (newYMax - newYMin);
         if (candidateArea > cap) {
-          // Réduire isotropiquement (autour du centre courant) jusqu'à cap
+          // s28 tour 19.b — Réduire isotropiquement AUTOUR DU SEED (pas centre)
+          // pour préserver la position du label IA dans le rectangle final.
           const scale_factor = Math.sqrt(cap / candidateArea);
-          const cx = (newXMin + newXMax) / 2;
-          const cy = (newYMin + newYMax) / 2;
+          const sx = seeds ? seeds[i].x : (newXMin + newXMax) / 2;
+          const sy = seeds ? seeds[i].y : (newYMin + newYMax) / 2;
           const halfW = (newXMax - newXMin) / 2 * scale_factor;
           const halfH = (newYMax - newYMin) / 2 * scale_factor;
-          newXMin = Math.max(newXMin, cx - halfW);
-          newXMax = Math.min(newXMax, cx + halfW);
-          newYMin = Math.max(newYMin, cy - halfH);
-          newYMax = Math.min(newYMax, cy + halfH);
+          newXMin = Math.max(newXMin, sx - halfW);
+          newXMax = Math.min(newXMax, sx + halfW);
+          newYMin = Math.max(newYMin, sy - halfH);
+          newYMax = Math.min(newYMax, sy + halfH);
+          // Si le shrink autour du seed laisse box < halfW/halfH (seed trop près
+          // d'un bord), corrige en décalant
+          if (newXMax - newXMin < halfW * 1.8) {
+            const cx = sx;
+            newXMin = cx - halfW;
+            newXMax = cx + halfW;
+          }
+          if (newYMax - newYMin < halfH * 1.8) {
+            const cy = sy;
+            newYMin = cy - halfH;
+            newYMax = cy + halfH;
+          }
         }
       }
       if (
@@ -928,7 +961,8 @@ export function extractRoomsAsRectangles(
   // C'est la passe critique : sans elle, les rectangles restent "petits" et
   // ne couvrent pas tout l'espace habitable. AVEC les murs en borne, on
   // évite l'expansion sauvage dans des zones vides (ex Palier R+3 → 32 m²).
-  const expanded = expandToFit(rooms, lotBbox, walls, opts.angleTolDeg);
+  // s28 tour 19.b — passe seeds pour shrink AUTOUR DU LABEL si cap PDF déclenché.
+  const expanded = expandToFit(rooms, lotBbox, walls, opts.angleTolDeg, null, seeds);
 
   // Étape 2 : résolution des chevauchements (au cas où expand a généré des conflits)
   let resolved = resolveOverlaps(expanded);
