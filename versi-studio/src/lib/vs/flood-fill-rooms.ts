@@ -1438,66 +1438,57 @@ export async function extractRoomsByQuotaFloodFill(
       // Si le seal3 réussit à coloniser sans fuite, l'expand stage 2 récupère
       // les pixels du seuil sans risquer de fuite (puisqu'on part d'une base
       // déjà colonisée → la porte est déjà fermée par les pixels claim).
+      // s28 tour 15 fix6 — RING EXPAND limité par DISTANCE :
+      // Au lieu d'un BFS libre (qui fuit par la porte), on étend la région seal3
+      // d'une couronne de RING_RADIUS pixels (= récupère les pixels du seuil
+      // sans risque de fuite vers la pièce voisine). Implémentation : N passes
+      // de dilatation 8-connect sur la région, bornées par wallBarrierStrict.
       const seal3Trial = trials.find(t => t.name === "seal3");
       if (seal3Trial && !seal3Trial.runaway && seal3Trial.area / s.quotaPx2 < 0.95) {
-        // Expand seal3 region avec wallBarrierStrict, limité à 1.10× quota
         const baseRegion = seal3Trial.region;
+        const RING_RADIUS = 6; // pixels max d'expansion (= rayon dilatation seal3 + 3)
         const expanded = new Uint8Array(W * H);
         for (let i = 0; i < W * H; i++) expanded[i] = baseRegion[i];
-        const stack: number[] = [];
-        // Initialiser stack avec frontier de la région seal3
-        for (let y = seal3Trial.bbox.minY; y <= seal3Trial.bbox.maxY; y++) {
-          const rowOff = y * W;
-          for (let x = seal3Trial.bbox.minX; x <= seal3Trial.bbox.maxX; x++) {
-            if (baseRegion[rowOff + x] === 1) stack.push(rowOff + x);
-          }
-        }
         let area = seal3Trial.area;
-        // s28 tour 15 fix5 — borne expand à 1.05× : on cherche à récupérer les
-        // pixels du seuil (~14% de quota), donc on plafonne à ratio 1.05 (=
-        // moyenne entre 0.86 cible-erreur et 1.20 explosion). Au-delà, c'est
-        // une fuite. Le ratio runaway sera < 1.10 (= acceptable [0.88, 1.12]).
-        const maxAreaExpand = Math.round(s.quotaPx2 * 1.05);
         let bx0 = seal3Trial.bbox.minX, by0 = seal3Trial.bbox.minY;
         let bx1 = seal3Trial.bbox.maxX, by1 = seal3Trial.bbox.maxY;
-        while (stack.length > 0 && area < maxAreaExpand) {
-          const idx = stack.pop()!;
-          const x = idx % W;
-          const y = (idx - x) / W;
-          const ne = [
-            y > 0 ? idx - W : -1,
-            y < H - 1 ? idx + W : -1,
-            x > 0 ? idx - 1 : -1,
-            x < W - 1 ? idx + 1 : -1,
-          ];
-          for (const n of ne) {
-            if (n < 0) continue;
-            if (expanded[n]) continue;
-            // BARRIÈRE = wallBarrierStrict (vrais murs). Si on touche un vrai
-            // mur, on s'arrête. Sinon on s'étend.
-            if (wallBarrierStrict[n]) continue;
-            const own = ownership[n];
-            if (own !== -1 && own !== s.idx) continue;
-            expanded[n] = 1;
-            area++;
-            const nx = n % W, ny = (n - nx) / W;
-            if (nx < bx0) bx0 = nx;
-            if (ny < by0) by0 = ny;
-            if (nx > bx1) bx1 = nx;
-            if (ny > by1) by1 = ny;
-            stack.push(n);
+        for (let pass = 0; pass < RING_RADIUS; pass++) {
+          const before = new Uint8Array(expanded);
+          const ebx0 = Math.max(0, bx0 - 1), ebx1 = Math.min(W - 1, bx1 + 1);
+          const eby0 = Math.max(0, by0 - 1), eby1 = Math.min(H - 1, by1 + 1);
+          for (let y = eby0; y <= eby1; y++) {
+            const rowOff = y * W;
+            for (let x = ebx0; x <= ebx1; x++) {
+              const idx = rowOff + x;
+              if (before[idx]) continue;
+              if (wallBarrierStrict[idx]) continue;
+              const own = ownership[idx];
+              if (own !== -1 && own !== s.idx) continue;
+              const hasNeighbor =
+                (x > 0 && before[idx - 1]) ||
+                (x < W - 1 && before[idx + 1]) ||
+                (y > 0 && before[idx - W]) ||
+                (y < H - 1 && before[idx + W]) ||
+                (x > 0 && y > 0 && before[idx - W - 1]) ||
+                (x < W - 1 && y > 0 && before[idx - W + 1]) ||
+                (x > 0 && y < H - 1 && before[idx + W - 1]) ||
+                (x < W - 1 && y < H - 1 && before[idx + W + 1]);
+              if (hasNeighbor) {
+                expanded[idx] = 1;
+                area++;
+                if (x < bx0) bx0 = x;
+                if (y < by0) by0 = y;
+                if (x > bx1) bx1 = x;
+                if (y > by1) by1 = y;
+              }
+            }
           }
         }
-        const trialName = "seal3+strictExpand";
-        // s28 tour 15 fix5 — runaway flag pour strictExpand : si on a atteint
-        // exactement maxAreaExpand sans plus de pixels possibles → c'est une
-        // FUITE (le BFS aurait continué). Si area < maxAreaExpand → arrêt
-        // naturel sur un mur (légitime).
-        // Pour distinguer : on pop le stack et regarde si arrêt naturel.
-        // Implémentation simple : si stack.length === 0 → arrêt naturel.
-        const runawayStrict = stack.length > 0; // stack non-vide = on a coupé sur la borne
-        trials.push({ area, runaway: runawayStrict, region: expanded, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 }, name: trialName });
-        console.log(`[s28-tour15-WA-${trialName}] seed=${s.text} area=${area} ratio=${(area / s.quotaPx2).toFixed(3)} runaway=${runawayStrict} stackRemaining=${stack.length}`);
+        const trialName = "seal3+ring6";
+        const ratio = area / s.quotaPx2;
+        const runawayRing = ratio > 1.20;
+        trials.push({ area, runaway: runawayRing, region: expanded, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 }, name: trialName });
+        console.log(`[s28-tour15-WA-${trialName}] seed=${s.text} area=${area} ratio=${ratio.toFixed(3)} runaway=${runawayRing}`);
       }
 
       // Sélection : tier dont ratio est le plus proche de 1.0, en filtrant les
