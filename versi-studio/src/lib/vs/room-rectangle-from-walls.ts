@@ -359,12 +359,34 @@ function expandToFit(
   lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
   walls: Wall[],
   angleTolDeg: number,
+  scaleM2PerPx2Hint: number | null = null,
 ): RectangleRoom[] {
   const result = rooms.map((r) => ({
     ...r,
     bbox: { ...r.bbox },
     polygon: r.polygon.map((v) => ({ ...v })),
   }));
+
+  // s28 tour 19.b — Compute a max-area-px2 cap par pièce basé sur PDF.
+  // Si PDF surface = 10m², on autorise au max 13m² (1.3× tolérance).
+  // Convertit en px² via scaleM2PerPx2Hint si disponible, sinon dérivé de
+  // la médiane des rooms qui ont PDF surface.
+  let scale = scaleM2PerPx2Hint;
+  if (scale === null || !Number.isFinite(scale) || scale <= 0) {
+    const cands = rooms
+      .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+      .map((r) => r.pdfSurfaceM2! / r.areaPx2)
+      .sort((a, b) => a - b);
+    if (cands.length >= 2) {
+      scale = cands[Math.floor(cands.length / 2)];
+    }
+  }
+  function maxAreaPx2(idx: number): number | null {
+    if (scale === null || scale <= 0) return null;
+    const pdf = result[idx].pdfSurfaceM2;
+    if (pdf == null || pdf <= 0) return null;
+    return (pdf * 1.3) / scale; // 30% tolérance d'expansion
+  }
 
   // s28 tour 19 — précalcul : index murs H et V pour borne expansion.
   // expansion vers N/S = arrête au mur H le plus proche.
@@ -401,7 +423,7 @@ function expandToFit(
       const ovLo = Math.max(reqLo, w.lo);
       const ovHi = Math.min(reqHi, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      const minOv = Math.min(20, (reqHi - reqLo) * 0.25);
       if (ov < minOv) continue;
       if (w.pos > bestY) {
         bestY = w.pos;
@@ -419,7 +441,7 @@ function expandToFit(
       const ovLo = Math.max(reqLo, w.lo);
       const ovHi = Math.min(reqHi, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      const minOv = Math.min(20, (reqHi - reqLo) * 0.25);
       if (ov < minOv) continue;
       if (w.pos < bestY) {
         bestY = w.pos;
@@ -437,7 +459,7 @@ function expandToFit(
       const ovLo = Math.max(reqLo, w.lo);
       const ovHi = Math.min(reqHi, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      const minOv = Math.min(20, (reqHi - reqLo) * 0.25);
       if (ov < minOv) continue;
       if (w.pos > bestX) {
         bestX = w.pos;
@@ -455,7 +477,7 @@ function expandToFit(
       const ovLo = Math.max(reqLo, w.lo);
       const ovHi = Math.min(reqHi, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      const minOv = Math.min(20, (reqHi - reqLo) * 0.25);
       if (ov < minOv) continue;
       if (w.pos < bestX) {
         bestX = w.pos;
@@ -508,11 +530,28 @@ function expandToFit(
       if (wallE !== null && wallE < eMax) eMax = wallE;
 
       // Apply expansion (avec marge 1px pour ne pas chevaucher exactement)
+      // s28 tour 19.b — cap par PDF surface (1.3×) si dispo.
       const margin = 1;
-      const newYMin = Math.min(a.yMin, nMax + margin);
-      const newYMax = Math.max(a.yMax, sMax - margin);
-      const newXMin = Math.min(a.xMin, wMax + margin);
-      const newXMax = Math.max(a.xMax, eMax - margin);
+      let newYMin = Math.min(a.yMin, nMax + margin);
+      let newYMax = Math.max(a.yMax, sMax - margin);
+      let newXMin = Math.min(a.xMin, wMax + margin);
+      let newXMax = Math.max(a.xMax, eMax - margin);
+      const cap = maxAreaPx2(i);
+      if (cap !== null) {
+        const candidateArea = (newXMax - newXMin) * (newYMax - newYMin);
+        if (candidateArea > cap) {
+          // Réduire isotropiquement (autour du centre courant) jusqu'à cap
+          const scale_factor = Math.sqrt(cap / candidateArea);
+          const cx = (newXMin + newXMax) / 2;
+          const cy = (newYMin + newYMax) / 2;
+          const halfW = (newXMax - newXMin) / 2 * scale_factor;
+          const halfH = (newYMax - newYMin) / 2 * scale_factor;
+          newXMin = Math.max(newXMin, cx - halfW);
+          newXMax = Math.min(newXMax, cx + halfW);
+          newYMin = Math.max(newYMin, cy - halfH);
+          newYMax = Math.min(newYMax, cy + halfH);
+        }
+      }
       if (
         newYMin < a.yMin ||
         newYMax > a.yMax ||

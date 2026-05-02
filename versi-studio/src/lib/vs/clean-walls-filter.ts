@@ -34,9 +34,9 @@ export type Wall = { x1: number; y1: number; x2: number; y2: number };
 export type Pt = { x: number; y: number };
 
 const EPS_ENDPOINT = 8; // distance max entre 2 endpoints pour être "connectés"
-const HATCH_LATERAL_PX = 8; // distance latérale max entre 2 segments d'une hachure
-const HATCH_ANGLE_TOL_DEG = 5;
-const HATCH_MIN_GROUP = 3; // ≥3 parallèles ⇒ hachure
+const HATCH_LATERAL_PX = 5; // distance latérale max entre 2 segments d'une hachure (réduit s28 t19.b)
+const HATCH_ANGLE_TOL_DEG = 3;
+const HATCH_MIN_GROUP = 5; // ≥5 parallèles ⇒ hachure (s28 t19.b — préserve les murs épais double-trait)
 const FURNITURE_MAX_AREA_PX2 = 2500; // ~0.7m² à scale=3 ⇒ chaise/table/lavabo
 const MIN_WALL_LEN_PX = 30;
 
@@ -100,7 +100,7 @@ function filterTooShort(walls: Wall[]): Wall[] {
  * extérieur droit, vrai mur porteur isolé légitime).
  */
 function filterIsolated(walls: Wall[]): Wall[] {
-  const KEEP_IF_LONG = 120;
+  const KEEP_IF_LONG = 60;
   return walls.filter((w) => {
     if (len(w) >= KEEP_IF_LONG) return true;
     const e1 = { x: w.x1, y: w.y1 };
