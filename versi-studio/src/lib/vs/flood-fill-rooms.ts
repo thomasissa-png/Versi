@@ -1430,6 +1430,65 @@ export async function extractRoomsByQuotaFloodFill(
       tryMask(sealedMask5, "seal5");
       tryMask(sealedMask, "seal6");
 
+      // s28 tour 15 fix3 — STRATÉGIE 2-STAGE EXPAND :
+      // Pour récupérer les ~13.6% de pixels du seuil que seal3 érode :
+      //   stage 1 = seed-flood avec seal3 (base saine, pas de fuite par porte)
+      //   stage 2 = expand cette région avec wallBarrierStrict (vrais murs)
+      //             jusqu'au mur réel, MAIS limité à 1.10× quota (anti-fuite)
+      // Si le seal3 réussit à coloniser sans fuite, l'expand stage 2 récupère
+      // les pixels du seuil sans risquer de fuite (puisqu'on part d'une base
+      // déjà colonisée → la porte est déjà fermée par les pixels claim).
+      const seal3Trial = trials.find(t => t.name === "seal3");
+      if (seal3Trial && !seal3Trial.runaway && seal3Trial.area / s.quotaPx2 < 0.95) {
+        // Expand seal3 region avec wallBarrierStrict, limité à 1.10× quota
+        const baseRegion = seal3Trial.region;
+        const expanded = new Uint8Array(W * H);
+        for (let i = 0; i < W * H; i++) expanded[i] = baseRegion[i];
+        const stack: number[] = [];
+        // Initialiser stack avec frontier de la région seal3
+        for (let y = seal3Trial.bbox.minY; y <= seal3Trial.bbox.maxY; y++) {
+          const rowOff = y * W;
+          for (let x = seal3Trial.bbox.minX; x <= seal3Trial.bbox.maxX; x++) {
+            if (baseRegion[rowOff + x] === 1) stack.push(rowOff + x);
+          }
+        }
+        let area = seal3Trial.area;
+        const maxAreaExpand = Math.round(s.quotaPx2 * 1.10);
+        let bx0 = seal3Trial.bbox.minX, by0 = seal3Trial.bbox.minY;
+        let bx1 = seal3Trial.bbox.maxX, by1 = seal3Trial.bbox.maxY;
+        while (stack.length > 0 && area < maxAreaExpand) {
+          const idx = stack.pop()!;
+          const x = idx % W;
+          const y = (idx - x) / W;
+          const ne = [
+            y > 0 ? idx - W : -1,
+            y < H - 1 ? idx + W : -1,
+            x > 0 ? idx - 1 : -1,
+            x < W - 1 ? idx + 1 : -1,
+          ];
+          for (const n of ne) {
+            if (n < 0) continue;
+            if (expanded[n]) continue;
+            // BARRIÈRE = wallBarrierStrict (vrais murs). Si on touche un vrai
+            // mur, on s'arrête. Sinon on s'étend.
+            if (wallBarrierStrict[n]) continue;
+            const own = ownership[n];
+            if (own !== -1 && own !== s.idx) continue;
+            expanded[n] = 1;
+            area++;
+            const nx = n % W, ny = (n - nx) / W;
+            if (nx < bx0) bx0 = nx;
+            if (ny < by0) by0 = ny;
+            if (nx > bx1) bx1 = nx;
+            if (ny > by1) by1 = ny;
+            stack.push(n);
+          }
+        }
+        const trialName = "seal3+strictExpand";
+        trials.push({ area, runaway: area >= maxAreaExpand, region: expanded, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 }, name: trialName });
+        console.log(`[s28-tour15-WA-${trialName}] seed=${s.text} area=${area} ratio=${(area / s.quotaPx2).toFixed(3)} runaway=${area >= maxAreaExpand}`);
+      }
+
       // Sélection : tier dont ratio est le plus proche de 1.0, en filtrant les
       // runaway et les ratios > 1.15 (anti-explosion).
       let chosen: Trial | null = null;
