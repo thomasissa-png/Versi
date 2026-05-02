@@ -1629,6 +1629,39 @@ export async function POST(
                       console.log(
                         `[extract/s28-tour17-fillgaps] plan ${plan.id} fill-gaps appliqué (${filled.length} polygones étendus)`,
                       );
+
+                      // ─── s28 TOUR 17 — SNAP FINAL APRÈS FILL-GAPS ──────
+                      // FillGaps a étendu les polygones sur les pixels orphelins,
+                      // mais les nouveaux contours ne sont plus alignés sur les
+                      // murs PDF. On re-applique snapPolygonToWalls pour ramener
+                      // les vertices sur les murs (Inv C). Garde-fou : drift
+                      // d'aire max 3% (préserve Inv A).
+                      const wallsForSnap2: WallSegment[] = allWalls_snap.map((w) => ({
+                        x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
+                      }));
+                      for (let ri = 0; ri < cleanRooms.length; ri++) {
+                        const r = cleanRooms[ri];
+                        if (r.polygon.length < 3) continue;
+                        const origAreaPx2 = polygonAreaPx2(r.polygon);
+                        if (origAreaPx2 < 1) continue;
+                        // Snap progressif 4 → 8 → 12 px, garder le plus snappé
+                        // tant que drift d'aire < 3%.
+                        let cur = r.polygon;
+                        for (const tol of [4, 8, 12]) {
+                          const snapped = snapPolygonToWalls(cur, wallsForSnap2, tol);
+                          if (snapped.snappedCount === 0) continue;
+                          const newArea = polygonAreaPx2(snapped.polygon);
+                          const drift = origAreaPx2 > 0
+                            ? Math.abs(newArea - origAreaPx2) / origAreaPx2
+                            : 0;
+                          if (drift < 0.03) {
+                            cur = snapped.polygon;
+                          }
+                        }
+                        if (cur !== r.polygon) {
+                          cleanRooms[ri] = { ...r, polygon: cur };
+                        }
+                      }
                     } else {
                       console.warn(
                         `[extract/s28-tour17-fillgaps] plan ${plan.id} count mismatch (${filled.length} vs ${cleanRooms.length}), skip`,
