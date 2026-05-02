@@ -31,6 +31,7 @@
 
 import sharp from "sharp";
 import { smartLineSnap } from "./smart-line-snap";
+import { vectorizeRasterWalls } from "./raster-walls-vectorize";
 
 export type LabelSeed = {
   text: string;
@@ -1250,6 +1251,163 @@ export async function extractRoomsByQuotaFloodFill(
     }
   }
 
+  // ─── s28 TOUR 14 — PASSE WALL-AWARE STRICT (récupération sous-extraction) ───
+  //
+  // Cause racine plateau 17/20 (tour 13) : certains seeds restent <0.85× quota
+  // après les phases 1+1.5+2+3. Le BFS s'arrête au quota ou à un mur dilaté
+  // (doorSealRadius), JAMAIS aux vrais pixels mur.
+  //
+  // Stratégie tour 14 :
+  //   - Construire un wall-barrier "STRICT mais étanche aux portes" :
+  //     thinVectorWallsMask (vector walls + aptSep + lot edges, 1px) + apt-sep
+  //     renforcés (4px) + lot edges (2px) + raster runs vectorisés (2px). C'est
+  //     le set géométrique le plus PRÉCIS possible (vrais murs) MAIS PAS le
+  //     wallMask original (qui inclut le doorSeal 6px qui colmate les portes).
+  //   - Pour chaque seed sous-extrait (< 0.92× quota), faire un flood-fill local.
+  //   - Si le flood s'arrête NATURELLEMENT (touche un mur strict) avant 1.15×
+  //     quota → on accepte (la pièce est bien définie par les murs).
+  //   - Si le flood traverse une porte non-sealed et explose au-delà 1.15× →
+  //     RETRY avec sealedMaskSmall (door-seal 3px) qui colmate les portes
+  //     sans bouffer la pièce.
+  //   - Garde-fous : pas d'empiètement sur les pièces voisines, pas de
+  //     régression (on n'accepte que si area_after > area_before ET dans [0.88, 1.15]).
+  //
+  // Cela RÉSOUT Inv A F1 Chambre 01 (0.84 → ~1.0).
+  {
+    // Vectoriser les runs raster (cloisons en peinture pure)
+    const rasterRuns = vectorizeRasterWalls(rawPngMask, W, H, {
+      minRunPx: 6,
+      thicknessPx: 4,
+      minDensity: 0.78,
+    });
+    // Construire le wall-barrier strict : pixels sur un VRAI mur géométrique
+    const wallBarrierStrict = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) wallBarrierStrict[i] = thinVectorWallsMask[i];
+    for (const seg of aptSeparators) {
+      drawSegment(wallBarrierStrict, seg.x1, seg.y1, seg.x2, seg.y2, 4);
+    }
+    if (lotPolyPx.length >= 3) {
+      for (let k = 0; k < lotPolyPx.length; k++) {
+        const a = lotPolyPx[k];
+        const b = lotPolyPx[(k + 1) % lotPolyPx.length];
+        drawSegment(wallBarrierStrict, a.x, a.y, b.x, b.y, 2);
+      }
+    }
+    for (const seg of rasterRuns) {
+      drawSegment(wallBarrierStrict, seg.x1, seg.y1, seg.x2, seg.y2, 2);
+    }
+
+    // Helper : flood-fill local depuis (s.seedX, s.seedY) sur un mask donné.
+    // Retourne {area, runaway, region, bbox} sans muter ownership.
+    const localFlood = (
+      s: SeedState,
+      mask: Uint8Array,
+      maxArea: number,
+    ): { area: number; runaway: boolean; region: Uint8Array; bbox: { minX: number; minY: number; maxX: number; maxY: number } } => {
+      const region = new Uint8Array(W * H);
+      const seedIdx0 = s.seedY * W + s.seedX;
+      const out0 = { area: 0, runaway: false, region, bbox: { minX: 0, minY: 0, maxX: 0, maxY: 0 } };
+      if (mask[seedIdx0] !== 0) return out0;
+      const own0 = ownership[seedIdx0];
+      if (own0 !== -1 && own0 !== s.idx) return out0;
+      const stack: number[] = [seedIdx0];
+      region[seedIdx0] = 1;
+      let area = 1;
+      let bx0 = s.seedX, by0 = s.seedY, bx1 = s.seedX, by1 = s.seedY;
+      let runaway = false;
+      while (stack.length > 0) {
+        if (area >= maxArea) { runaway = true; break; }
+        const idx = stack.pop()!;
+        const x = idx % W;
+        const y = (idx - x) / W;
+        const ne = [
+          y > 0 ? idx - W : -1,
+          y < H - 1 ? idx + W : -1,
+          x > 0 ? idx - 1 : -1,
+          x < W - 1 ? idx + 1 : -1,
+        ];
+        for (const n of ne) {
+          if (n < 0) continue;
+          if (region[n]) continue;
+          if (mask[n]) continue;
+          const own = ownership[n];
+          if (own !== -1 && own !== s.idx) continue;
+          region[n] = 1;
+          area++;
+          const nx = n % W, ny = (n - nx) / W;
+          if (nx < bx0) bx0 = nx;
+          if (ny < by0) by0 = ny;
+          if (nx > bx1) bx1 = nx;
+          if (ny > by1) by1 = ny;
+          stack.push(n);
+        }
+      }
+      return { area, runaway, region, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 } };
+    };
+
+    // Filtrer les seeds candidats : sous-extraits avec quota PDF connu
+    const candidates = seeds.filter(
+      (s) => s.quotaKnown && s.area < s.quotaPx2 * 0.92,
+    );
+
+    for (const s of candidates) {
+      // s28 tour 14 — maxAreaWA dual-tier :
+      //   - HARD STOP à 1.5× quota (anti-runaway absolu : si on dépasse 1.5×,
+      //     c'est qu'on a fui dans tout l'apt → rejet inconditionnel)
+      //   - SOFT TARGET à 1.15× quota (bornure logique : si l'aire finale dépasse,
+      //     on rejette le résultat même non-runaway)
+      // Cela permet au BFS de FINIR son flood naturel jusqu'au mur réel ; on
+      // décide après si l'aire est acceptable.
+      const hardStopWA = Math.round(s.quotaPx2 * 1.5);
+      // Tentative 1 : wallBarrierStrict (vrais murs uniquement, pas de doorSeal)
+      const r1 = localFlood(s, wallBarrierStrict, hardStopWA);
+      console.log(`[s28-tour14-WA-tier1] seed=${s.text} mask=strict area=${r1.area} ratio=${(r1.area/s.quotaPx2).toFixed(2)} runaway=${r1.runaway}`);
+      let chosen = r1;
+      let chosenMaskName = "strict";
+      // Si r1 runaway (= a explosé > 1.5× quota), retry avec sealedMaskSmall
+      // (door-seal 3px → colmate les portes étroites sans bouffer la pièce)
+      if (r1.runaway || r1.area / s.quotaPx2 > 1.15) {
+        const r2 = localFlood(s, sealedMaskSmall, hardStopWA);
+        console.log(`[s28-tour14-WA-tier2] seed=${s.text} mask=sealedSmall area=${r2.area} ratio=${(r2.area/s.quotaPx2).toFixed(2)} runaway=${r2.runaway}`);
+        if (!r2.runaway && r2.area > chosen.area && r2.area / s.quotaPx2 <= 1.15) {
+          chosen = r2;
+          chosenMaskName = "sealedSmall";
+        } else if (r2.runaway || r2.area / s.quotaPx2 > 1.15) {
+          // Si r2 toujours problématique, retry avec sealedMask (door-seal 6px)
+          const r3 = localFlood(s, sealedMask, hardStopWA);
+          console.log(`[s28-tour14-WA-tier3] seed=${s.text} mask=sealed area=${r3.area} ratio=${(r3.area/s.quotaPx2).toFixed(2)} runaway=${r3.runaway}`);
+          if (!r3.runaway && r3.area > chosen.area && r3.area / s.quotaPx2 <= 1.15) {
+            chosen = r3;
+            chosenMaskName = "sealed";
+          }
+        }
+      }
+      const ratio = chosen.area / s.quotaPx2;
+      // Acceptation : ratio ∈ [0.88, 1.15] ET pas runaway ET amélioration
+      const accept = !chosen.runaway && ratio >= 0.88 && ratio <= 1.15 && chosen.area > s.area;
+      console.log(
+        `[s28-tour14-WA] seed=${s.text} area_before=${s.area} area_after=${chosen.area} ratio=${ratio.toFixed(2)} mask=${chosenMaskName} runaway=${chosen.runaway} accept=${accept}`,
+      );
+      if (!accept) continue;
+      // Re-claim : tous les pixels chosen.region → ownership = s.idx
+      // (garde-fou : on ne réécrit JAMAIS sur un autre seed déjà claim)
+      const reg = chosen.region;
+      const bb = chosen.bbox;
+      for (let y = bb.minY; y <= bb.maxY; y++) {
+        const rowOff = y * W;
+        for (let x = bb.minX; x <= bb.maxX; x++) {
+          const idx = rowOff + x;
+          if (reg[idx] !== 1) continue;
+          const own = ownership[idx];
+          if (own !== -1 && own !== s.idx) continue;
+          ownership[idx] = s.idx;
+        }
+      }
+      s.area = chosen.area;
+      s.bbox = bb;
+    }
+  }
+
   // Construction des polygones via traceContour sur la masque ownership
   const results: RoomPolygonPx[] = [];
   for (const s of seeds) {
@@ -1278,17 +1436,20 @@ export async function extractRoomsByQuotaFloodFill(
     // un gain max de ~8px*périmètre = ~5% pour une pièce moyenne.
     let regionForContour: Uint8Array = region;
     let bboxForContour = s.bbox;
-    // s28 tour 13 fix1 — expandMaxPx adapté au quota :
+    // s28 tour 14 — expandMaxPx adapté au quota (extension du tour 13) :
     //   - sur-quota (>1.05x) : 0 (pas d'expansion, on est déjà au-dessus)
     //   - proche quota : 3px
-    //   - sous-quota   : 8px (compense le doorSealRadius)
+    //   - sous-quota léger (0.92-0.97x) : 8px
+    //   - sous-quota fort (<0.92x)  : 16px (récupère les pixels d'épaisseur de mur
+    //     que le doorSeal a injustement attribué au "vide")
     //   - sans quota   : 6px (compromis prudent)
     let expandMaxPx: number;
     if (s.quotaKnown) {
       const baseRatio = s.area / s.quotaPx2;
       if (baseRatio >= 1.05) expandMaxPx = 0;
       else if (baseRatio >= 0.97) expandMaxPx = 3;
-      else expandMaxPx = Math.min(doorSealRadius + 2, 8);
+      else if (baseRatio >= 0.92) expandMaxPx = Math.min(doorSealRadius + 2, 8);
+      else expandMaxPx = 16; // sous-quota fort : extension agressive
     } else {
       expandMaxPx = Math.min(doorSealRadius, 6);
     }
