@@ -357,12 +357,113 @@ function overlapV(
 function expandToFit(
   rooms: RectangleRoom[],
   lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  walls: Wall[],
+  angleTolDeg: number,
 ): RectangleRoom[] {
   const result = rooms.map((r) => ({
     ...r,
     bbox: { ...r.bbox },
     polygon: r.polygon.map((v) => ({ ...v })),
   }));
+
+  // s28 tour 19 — précalcul : index murs H et V pour borne expansion.
+  // expansion vers N/S = arrête au mur H le plus proche.
+  // expansion vers E/O = arrête au mur V le plus proche.
+  type WallInfo = { pos: number; lo: number; hi: number };
+  const hWalls: WallInfo[] = []; // y, [xLo, xHi]
+  const vWalls: WallInfo[] = []; // x, [yLo, yHi]
+  for (const w of walls) {
+    const cls = classifyWall(w, angleTolDeg);
+    if (cls === "H") {
+      hWalls.push({
+        pos: wallY(w),
+        lo: Math.min(w.x1, w.x2),
+        hi: Math.max(w.x1, w.x2),
+      });
+    } else if (cls === "V") {
+      vWalls.push({
+        pos: wallX(w),
+        lo: Math.min(w.y1, w.y2),
+        hi: Math.max(w.y1, w.y2),
+      });
+    }
+  }
+
+  // Pour le bord N de bbox `a`, cherche le mur H le plus proche AU-DESSUS
+  // (yWall < a.yMin) qui couvre [a.xMin, a.xMax] (au moins 50% d'overlap).
+  function nearestWallN(a: typeof result[0]["bbox"]): number | null {
+    let best: number | null = null;
+    let bestY = -Infinity;
+    const reqLo = a.xMin, reqHi = a.xMax;
+    for (const w of hWalls) {
+      if (w.pos >= a.yMin - 2) continue;
+      // Overlap minimum 50% de la largeur du rectangle
+      const ovLo = Math.max(reqLo, w.lo);
+      const ovHi = Math.min(reqHi, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      if (ov < minOv) continue;
+      if (w.pos > bestY) {
+        bestY = w.pos;
+        best = w.pos;
+      }
+    }
+    return best;
+  }
+  function nearestWallS(a: typeof result[0]["bbox"]): number | null {
+    let best: number | null = null;
+    let bestY = Infinity;
+    const reqLo = a.xMin, reqHi = a.xMax;
+    for (const w of hWalls) {
+      if (w.pos <= a.yMax + 2) continue;
+      const ovLo = Math.max(reqLo, w.lo);
+      const ovHi = Math.min(reqHi, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      if (ov < minOv) continue;
+      if (w.pos < bestY) {
+        bestY = w.pos;
+        best = w.pos;
+      }
+    }
+    return best;
+  }
+  function nearestWallW(a: typeof result[0]["bbox"]): number | null {
+    let best: number | null = null;
+    let bestX = -Infinity;
+    const reqLo = a.yMin, reqHi = a.yMax;
+    for (const w of vWalls) {
+      if (w.pos >= a.xMin - 2) continue;
+      const ovLo = Math.max(reqLo, w.lo);
+      const ovHi = Math.min(reqHi, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      if (ov < minOv) continue;
+      if (w.pos > bestX) {
+        bestX = w.pos;
+        best = w.pos;
+      }
+    }
+    return best;
+  }
+  function nearestWallE(a: typeof result[0]["bbox"]): number | null {
+    let best: number | null = null;
+    let bestX = Infinity;
+    const reqLo = a.yMin, reqHi = a.yMax;
+    for (const w of vWalls) {
+      if (w.pos <= a.xMax + 2) continue;
+      const ovLo = Math.max(reqLo, w.lo);
+      const ovHi = Math.min(reqHi, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      const minOv = Math.min(40, (reqHi - reqLo) * 0.5);
+      if (ov < minOv) continue;
+      if (w.pos < bestX) {
+        bestX = w.pos;
+        best = w.pos;
+      }
+    }
+    return best;
+  }
 
   // 3 passes : chaque passe étend les rectangles, ce qui peut autoriser
   // l'expansion supplémentaire des voisins. Stable après ~2 passes.
@@ -371,7 +472,11 @@ function expandToFit(
     for (let i = 0; i < result.length; i++) {
       const a = result[i].bbox;
       // Pour chaque direction, calculer la borne max d'expansion.
-      // Direction N (yMin décroit) : on cherche la borne yMin minimale possible.
+      // s28 tour 19 : on prend le MIN entre :
+      //   - bord du lot
+      //   - bord d'un autre rectangle voisin (avec overlap perpendiculaire)
+      //   - mur architectural le plus proche dans la direction
+      // (le plus proche du seed = le moins permissif = le plus contraignant)
       let nMax = lotBbox.yMin;
       let sMax = lotBbox.yMax;
       let eMax = lotBbox.xMax;
@@ -392,6 +497,16 @@ function expandToFit(
           if (b.xMin >= a.xMax - 1 && b.xMin < eMax) eMax = b.xMin;
         }
       }
+      // s28 tour 19 — borne murale (la plus contraignante des 3 sources)
+      const wallN = nearestWallN(a);
+      if (wallN !== null && wallN > nMax) nMax = wallN;
+      const wallS = nearestWallS(a);
+      if (wallS !== null && wallS < sMax) sMax = wallS;
+      const wallW = nearestWallW(a);
+      if (wallW !== null && wallW > wMax) wMax = wallW;
+      const wallE = nearestWallE(a);
+      if (wallE !== null && wallE < eMax) eMax = wallE;
+
       // Apply expansion (avec marge 1px pour ne pas chevaucher exactement)
       const margin = 1;
       const newYMin = Math.min(a.yMin, nMax + margin);
@@ -769,10 +884,12 @@ export function extractRoomsAsRectangles(
   });
 
   // Étape 1.5 : expand-to-fit. Chaque rectangle s'étend dans chaque direction
-  // jusqu'à toucher un autre rectangle voisin ou le bord du lot.
+  // jusqu'à toucher un autre rectangle voisin, le bord du lot, OU un mur
+  // architectural perpendiculaire (s28 tour 19).
   // C'est la passe critique : sans elle, les rectangles restent "petits" et
-  // ne couvrent pas tout l'espace habitable.
-  const expanded = expandToFit(rooms, lotBbox);
+  // ne couvrent pas tout l'espace habitable. AVEC les murs en borne, on
+  // évite l'expansion sauvage dans des zones vides (ex Palier R+3 → 32 m²).
+  const expanded = expandToFit(rooms, lotBbox, walls, opts.angleTolDeg);
 
   // Étape 2 : résolution des chevauchements (au cas où expand a généré des conflits)
   let resolved = resolveOverlaps(expanded);
