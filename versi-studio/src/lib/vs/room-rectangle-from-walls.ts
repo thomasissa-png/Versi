@@ -411,11 +411,16 @@ function expandToFit(
   // s28 tour 19 — précalcul : index murs H et V pour borne expansion.
   // expansion vers N/S = arrête au mur H le plus proche.
   // expansion vers E/O = arrête au mur V le plus proche.
+  // s28 tour 19.c — uniquement murs LONGS (≥80px) comme bornes — sinon
+  // les petites cotes / mobilier vectoriel survivants bloquent l'expansion.
+  const STRONG_WALL_MIN_LEN = 80;
   type WallInfo = { pos: number; lo: number; hi: number };
   const hWalls: WallInfo[] = []; // y, [xLo, xHi]
   const vWalls: WallInfo[] = []; // x, [yLo, yHi]
   for (const w of walls) {
     const cls = classifyWall(w, angleTolDeg);
+    const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    if (wlen < STRONG_WALL_MIN_LEN) continue;
     if (cls === "H") {
       hWalls.push({
         pos: wallY(w),
