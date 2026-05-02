@@ -1448,6 +1448,8 @@ export async function POST(
                       snapThresholdPx: 5,
                       areaDriftMax: 0.03,
                       projectionWindows: [80, 50, 30, 20],
+                      pdfTargetM2: r.surface_m2 ?? null,
+                      scaleM2PerPx2: scaleM2PerPx2,
                     });
                     cleanRooms[ri] = { ...r, polygon: cleanup.polygon };
                     if (cleanup.outliersBefore - cleanup.outliersAfter > 0) {

@@ -39,6 +39,14 @@ export type CleanupOptions = {
   areaDriftMax?: number;
   /** Fenêtres de projection des outliers. Défaut [80, 50, 30, 20]. */
   projectionWindows?: number[];
+  /**
+   * Aire PDF cible en m² (label "X.X m²" lu sur le PDF). Si fourni, le module
+   * vérifie qu'aucun snap ne fait sortir le polygon de [PDF*0.86, PDF*1.14]
+   * (marge de sécurité 1pp vs audit [0.85, 1.15]).
+   */
+  pdfTargetM2?: number | null;
+  /** Échelle px²→m² pour calcul aire absolue. */
+  scaleM2PerPx2?: number;
 };
 
 const DEFAULTS = {
@@ -268,14 +276,21 @@ export function cleanupOutliers(
   const outlierCandidates = indexed.filter(x => x.dist > opts.snapThresholdPx && x.dist <= 10);
   outlierCandidates.sort((a, b) => a.dist - b.dist);
   // Itérer : pour chaque candidat, tenter le snap, vérifier drift cumulé
+  // ET garde-fou ratio PDF si fourni (priorité Inv A audit).
+  const pdfTargetM2 = options.pdfTargetM2 ?? null;
+  const scaleM2PerPx2 = options.scaleM2PerPx2 ?? 0;
   for (const cand of outlierCandidates) {
     const trial = cleaned.map((v, i) => i === cand.idx ? cand.bestProj : { ...v });
     const trialArea = polygonAreaPx(trial);
     const driftCum = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
-    if (driftCum <= opts.areaDriftMax) {
-      cleaned = trial;
+    if (driftCum > opts.areaDriftMax) continue;
+    // Garde-fou PDF strict (1pp marge vs audit [0.85, 1.15] → [0.86, 1.14])
+    if (pdfTargetM2 != null && pdfTargetM2 > 0 && scaleM2PerPx2 > 0) {
+      const trialAreaM2 = trialArea * scaleM2PerPx2;
+      const ratio = trialAreaM2 / pdfTargetM2;
+      if (ratio < 0.86 || ratio > 1.14) continue;
     }
-    // sinon : skip ce vertex, garde le suivant (peut-être moins de drift)
+    cleaned = trial;
   }
 
   let outliersAfter = 0;
