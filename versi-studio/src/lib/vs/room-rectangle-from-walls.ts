@@ -792,6 +792,204 @@ function resolveOverlaps(rooms: RectangleRoom[]): RectangleRoom[] {
 }
 
 /**
+ * s28 tour 19.c — grossit les pièces sous-dimensionnées (< 0.85 PDF).
+ * Pour chaque pièce, dans chaque direction où il n'y a pas de voisin proche
+ * (à <50px), on étend jusqu'au mur architectural OU bord du lot, jusqu'à
+ * atteindre 0.95 × PDF.
+ *
+ * Évite : Séjour R+1 stuck à 30 m² alors que PDF = 40.5 m².
+ */
+function growUnderSized(
+  rooms: RectangleRoom[],
+  lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  walls: Wall[],
+  angleTolDeg: number,
+): RectangleRoom[] {
+  const result = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+  // Compute scale (m² per px²)
+  const cands = rooms
+    .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+    .map((r) => r.pdfSurfaceM2! / r.areaPx2)
+    .sort((a, b) => a - b);
+  if (cands.length < 2) return rooms;
+  const scale = cands[Math.floor(cands.length / 2)];
+
+  // Index murs longs (≥80px) pour bornes
+  const STRONG = 80;
+  type WI = { pos: number; lo: number; hi: number };
+  const hWalls: WI[] = [];
+  const vWalls: WI[] = [];
+  for (const w of walls) {
+    const cls = classifyWall(w, angleTolDeg);
+    const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    if (wlen < STRONG) continue;
+    if (cls === "H") {
+      hWalls.push({ pos: wallY(w), lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
+    } else if (cls === "V") {
+      vWalls.push({ pos: wallX(w), lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+    }
+  }
+  function nearestWallN(a: typeof result[0]["bbox"]): number {
+    let best = lotBbox.yMin;
+    for (const w of hWalls) {
+      if (w.pos >= a.yMin - 2) continue;
+      const ovLo = Math.max(a.xMin, w.lo);
+      const ovHi = Math.min(a.xMax, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      if (ov < Math.min(20, (a.xMax - a.xMin) * 0.25)) continue;
+      if (w.pos > best) best = w.pos;
+    }
+    return best;
+  }
+  function nearestWallS(a: typeof result[0]["bbox"]): number {
+    let best = lotBbox.yMax;
+    for (const w of hWalls) {
+      if (w.pos <= a.yMax + 2) continue;
+      const ovLo = Math.max(a.xMin, w.lo);
+      const ovHi = Math.min(a.xMax, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      if (ov < Math.min(20, (a.xMax - a.xMin) * 0.25)) continue;
+      if (w.pos < best) best = w.pos;
+    }
+    return best;
+  }
+  function nearestWallW(a: typeof result[0]["bbox"]): number {
+    let best = lotBbox.xMin;
+    for (const w of vWalls) {
+      if (w.pos >= a.xMin - 2) continue;
+      const ovLo = Math.max(a.yMin, w.lo);
+      const ovHi = Math.min(a.yMax, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      if (ov < Math.min(20, (a.yMax - a.yMin) * 0.25)) continue;
+      if (w.pos > best) best = w.pos;
+    }
+    return best;
+  }
+  function nearestWallE(a: typeof result[0]["bbox"]): number {
+    let best = lotBbox.xMax;
+    for (const w of vWalls) {
+      if (w.pos <= a.xMax + 2) continue;
+      const ovLo = Math.max(a.yMin, w.lo);
+      const ovHi = Math.min(a.yMax, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      if (ov < Math.min(20, (a.yMax - a.yMin) * 0.25)) continue;
+      if (w.pos < best) best = w.pos;
+    }
+    return best;
+  }
+  function nearestNeighborN(i: number, a: typeof result[0]["bbox"]): number {
+    let best = -Infinity;
+    for (let j = 0; j < result.length; j++) {
+      if (i === j) continue;
+      const b = result[j].bbox;
+      if (b.xMax > a.xMin && b.xMin < a.xMax) {
+        if (b.yMax <= a.yMin && b.yMax > best) best = b.yMax;
+      }
+    }
+    return best;
+  }
+  function nearestNeighborS(i: number, a: typeof result[0]["bbox"]): number {
+    let best = Infinity;
+    for (let j = 0; j < result.length; j++) {
+      if (i === j) continue;
+      const b = result[j].bbox;
+      if (b.xMax > a.xMin && b.xMin < a.xMax) {
+        if (b.yMin >= a.yMax && b.yMin < best) best = b.yMin;
+      }
+    }
+    return best;
+  }
+  function nearestNeighborW(i: number, a: typeof result[0]["bbox"]): number {
+    let best = -Infinity;
+    for (let j = 0; j < result.length; j++) {
+      if (i === j) continue;
+      const b = result[j].bbox;
+      if (b.yMax > a.yMin && b.yMin < a.yMax) {
+        if (b.xMax <= a.xMin && b.xMax > best) best = b.xMax;
+      }
+    }
+    return best;
+  }
+  function nearestNeighborE(i: number, a: typeof result[0]["bbox"]): number {
+    let best = Infinity;
+    for (let j = 0; j < result.length; j++) {
+      if (i === j) continue;
+      const b = result[j].bbox;
+      if (b.yMax > a.yMin && b.yMin < a.yMax) {
+        if (b.xMin >= a.xMax && b.xMin < best) best = b.xMin;
+      }
+    }
+    return best;
+  }
+
+  // Pour chaque pièce sous-dimensionnée, on grossit dans une direction sans voisin
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < result.length; i++) {
+      const r = result[i];
+      if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) continue;
+      const targetArea = r.pdfSurfaceM2 / scale;
+      const currentArea = (r.bbox.xMax - r.bbox.xMin) * (r.bbox.yMax - r.bbox.yMin);
+      if (currentArea >= targetArea * 0.95) continue; // assez grand
+      const a = r.bbox;
+      // Calcule la "marge" libre dans chaque direction = min(neighbor, wall) - bord
+      const nN = nearestNeighborN(i, a);
+      const nS = nearestNeighborS(i, a);
+      const nW = nearestNeighborW(i, a);
+      const nE = nearestNeighborE(i, a);
+      const wN = nearestWallN(a);
+      const wS = nearestWallS(a);
+      const wW = nearestWallW(a);
+      const wE = nearestWallE(a);
+      // Marge dispo = (limite la plus proche entre voisin et mur) - bord courant
+      const limN = Math.max(nN === -Infinity ? lotBbox.yMin : nN, wN);
+      const limS = Math.min(nS === Infinity ? lotBbox.yMax : nS, wS);
+      const limW = Math.max(nW === -Infinity ? lotBbox.xMin : nW, wW);
+      const limE = Math.min(nE === Infinity ? lotBbox.xMax : nE, wE);
+      const slackN = a.yMin - limN; // espace libre en haut
+      const slackS = limS - a.yMax;
+      const slackW = a.xMin - limW;
+      const slackE = limE - a.xMax;
+      // Choix de la direction : la plus libre
+      const slacks = [
+        { dir: "N", slack: slackN, lim: limN },
+        { dir: "S", slack: slackS, lim: limS },
+        { dir: "W", slack: slackW, lim: limW },
+        { dir: "E", slack: slackE, lim: limE },
+      ].sort((a, b) => b.slack - a.slack);
+      // On étend dans la direction la plus libre, jusqu'à atteindre target
+      const ratio = Math.sqrt(targetArea / currentArea);
+      const widthA = a.xMax - a.xMin;
+      const heightA = a.yMax - a.yMin;
+      const targetW = widthA * ratio;
+      const targetH = heightA * ratio;
+      const deltaW = targetW - widthA;
+      const deltaH = targetH - heightA;
+      // On étend la dimension dans la direction la plus libre
+      const dir1 = slacks[0];
+      const margin = 2;
+      if (dir1.dir === "N" && dir1.slack > 5) {
+        a.yMin = Math.max(dir1.lim + margin, a.yMin - Math.min(dir1.slack - margin, deltaH));
+      } else if (dir1.dir === "S" && dir1.slack > 5) {
+        a.yMax = Math.min(dir1.lim - margin, a.yMax + Math.min(dir1.slack - margin, deltaH));
+      } else if (dir1.dir === "W" && dir1.slack > 5) {
+        a.xMin = Math.max(dir1.lim + margin, a.xMin - Math.min(dir1.slack - margin, deltaW));
+      } else if (dir1.dir === "E" && dir1.slack > 5) {
+        a.xMax = Math.min(dir1.lim - margin, a.xMax + Math.min(dir1.slack - margin, deltaW));
+      }
+    }
+  }
+  for (const r of result) {
+    r.polygon = buildRectangle(r.bbox.yMin, r.bbox.yMax, r.bbox.xMax, r.bbox.xMin);
+    r.areaPx2 = polygonArea(r.polygon);
+  }
+  return result;
+}
+
+/**
  * Clippe le rectangle pour qu'il reste strictement DANS le polygone du lot
  * (intersection bbox rectangle × bbox lot, puis assurance vertices ⊆ lot).
  *
@@ -978,6 +1176,12 @@ export function extractRoomsAsRectangles(
   // shrinkant vers le seed jusqu'à matcher la surface PDF.
   // Ne grossit JAMAIS un rectangle (= éviterait re-overlap).
   resolved = enforcePdfSurfaces(resolved, seeds, lotBbox);
+
+  // Étape 2.6 — s28 tour 19.c : grossir les pièces sous-dimensionnées
+  // (ratio < 0.85). On grossit dans la direction opposée à la médiatrice avec
+  // les voisins, jusqu'à atteindre le bord du lot ou un voisin proche.
+  // Évite Séjour stuck à 30 m² alors que PDF = 40.
+  resolved = growUnderSized(resolved, lotBbox, walls, opts.angleTolDeg);
 
   // Étape 3 : clip dans le lot
   const clipped = resolved.map((r) => {
