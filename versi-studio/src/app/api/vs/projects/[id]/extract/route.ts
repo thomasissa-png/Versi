@@ -108,6 +108,7 @@ import {
 import { extractLotVector, extractInternalWallSegments, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
 import { extractRoomsByFloodFill, extractRoomsByQuotaFloodFill } from "@/lib/vs/flood-fill-rooms";
 import { extractRoomsByWallBoundedFloodFill } from "@/lib/vs/wall-bounded-bfs";
+import { fillGapsBetweenRooms } from "@/lib/vs/fill-gaps";
 import {
   splitFloodFillByLabelsAndWalls,
   type LabelPoint as VoronoiLabelPoint,
@@ -723,20 +724,23 @@ export async function POST(
 
                 let activeFloodRooms = floodRooms;
 
-                // ─── s28 TOUR 17 — BFS WALL-BOUNDED (Voronoï discret sans quota) ───
-                // PRIORITÉ 1 : flood-fill multi-source compétitif borné par les murs.
-                // L'algorithme attribue CHAQUE pixel libre du lot à une pièce (le
-                // seed le plus proche en distance BFS). Résultats :
-                //   - Aucun espace vide entre polygone et murs (couverture 100%
-                //     du lot)
-                //   - Forme architecturale (frontière passe sur les murs détectés)
-                //   - Pas de quota, donc pas de sous-extraction artificielle
+                // ─── s28 TOUR 17 — BFS WALL-BOUNDED (DÉSACTIVÉ Muguets) ──
+                // Diag tour 17 itération 1-3 : sans quota, le BFS Voronoï
+                // discret fuit massivement sur les plans Muguets parce que
+                // les cloisons internes sont trop fines (<3px) ou ont des
+                // portes trop larges (>10px) → multi-tier door-seal n'arrive
+                // pas à les fermer. Résultat : Chambre 01 absorbe Séjour/cuisine
+                // (ratio 1.98), Palier absorbe SdE (ratio 8.45)... → fuite
+                // catastrophique.
                 //
-                // Si wall-bounded retourne assez de pièces (>=70%) ET passe le
-                // ratio max (toutes pièces dans [0.7, 1.4]× pdf), on l'utilise.
-                // Sinon → fallback sur quotaFlood (ancien comportement).
+                // Pivot : on garde le pipeline tour 16 stable (quotaPass) et
+                // on ajoute une passe fill-gaps APRÈS pour combler les espaces
+                // vides résiduels (post-processing, ne change pas les surfaces
+                // déjà conformes au PDF).
+                //
+                // Le code WB reste pour fallback futur (plans avec murs nets).
                 let usedWallBounded = false;
-                try {
+                if (process.env.VS_USE_WALL_BOUNDED === "true") try {
                   const wbRooms = await extractRoomsByWallBoundedFloodFill(
                     pngBuf,
                     labelSeeds,
@@ -1581,6 +1585,58 @@ export async function POST(
                     `[extract/s28-tour16-cleanup] plan ${plan.id} cleanup échoué :`,
                     cleanupErr instanceof Error ? cleanupErr.message : cleanupErr,
                   );
+                }
+
+                // ─── s28 TOUR 17 — FILL GAPS (couverture 100% du lot) ─────
+                // Élimine les espaces vides entre polygones et murs : les
+                // pixels du lot non-mur non attribués à une pièce sont
+                // attribués à la pièce voisine la plus proche en distance BFS.
+                // Garanties : aucune pièce ne shrink, aucun chevauchement, les
+                // murs détectés bloquent l'extension. La forme architecturale
+                // est préservée par les murs (BFS s'arrête sur mur PNG).
+                //
+                // Activé par défaut. Si VS_DISABLE_FILL_GAPS=true → skip
+                // (pour debug uniquement).
+                if (process.env.VS_DISABLE_FILL_GAPS !== "true") {
+                  try {
+                    const filled = await fillGapsBetweenRooms(
+                      cleanRooms.map(r => ({
+                        text: r.label,
+                        surface_m2: r.surface_m2 ?? null,
+                        polygon: r.polygon,
+                      })),
+                      {
+                        lotPolygonPx: lotPolyPx_face,
+                        pngBuffer: pngBuf,
+                        wallLumThreshold: 210,
+                        wallSaturationThreshold: 0.25,
+                        lotEdgeThickness: 3,
+                        vectorWallSegments: allWalls_snap,
+                        vectorWallThickness: 2,
+                        simplifyTolerancePx: 4,
+                        // Pas de limite de distance : on remplit TOUT pour
+                        // garantir 0 espace vide. Les murs bloquent naturellement.
+                        maxBfsDistance: 200,
+                      },
+                    );
+                    if (filled.length === cleanRooms.length) {
+                      for (let i = 0; i < cleanRooms.length; i++) {
+                        cleanRooms[i] = { ...cleanRooms[i], polygon: filled[i].polygon };
+                      }
+                      console.log(
+                        `[extract/s28-tour17-fillgaps] plan ${plan.id} fill-gaps appliqué (${filled.length} polygones étendus)`,
+                      );
+                    } else {
+                      console.warn(
+                        `[extract/s28-tour17-fillgaps] plan ${plan.id} count mismatch (${filled.length} vs ${cleanRooms.length}), skip`,
+                      );
+                    }
+                  } catch (fillErr) {
+                    console.warn(
+                      `[extract/s28-tour17-fillgaps] plan ${plan.id} échoué :`,
+                      fillErr instanceof Error ? fillErr.message : fillErr,
+                    );
+                  }
                 }
 
                 // Step 10 : push dans builders_face
