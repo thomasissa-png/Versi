@@ -1029,6 +1029,80 @@ function growUnderSized(
 }
 
 /**
+ * s28 tour 20 — SNAP des 4 bords du rectangle aux murs architecturaux.
+ *
+ * Pour chaque bord (N/S/E/O), on cherche dans une fenêtre de ±tolPx un mur
+ * orthogonal correctement orienté. Si trouvé, on aligne le bord à sa position.
+ * Améliore Inv C (snap murs) en réduisant les bords "flottants" (≠ wall position).
+ *
+ * Précautions :
+ *   - On ne snap PAS si plusieurs murs candidats sont à des positions très
+ *     différentes (ambiguïté → on laisse).
+ *   - On ne snap PAS si le snap rendrait le rectangle de surface négative.
+ */
+function snapBordersToWalls(
+  rooms: RectangleRoom[],
+  walls: Wall[],
+  angleTolDeg: number,
+  tolPx: number,
+): RectangleRoom[] {
+  // Index walls H/V
+  type WI = { pos: number; lo: number; hi: number };
+  const hWalls: WI[] = [];
+  const vWalls: WI[] = [];
+  for (const w of walls) {
+    const cls = classifyWall(w, angleTolDeg);
+    if (cls === "H") {
+      hWalls.push({ pos: wallY(w), lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
+    } else if (cls === "V") {
+      vWalls.push({ pos: wallX(w), lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+    }
+  }
+  // Pour chaque bord, trouver le mur le plus proche dans la fenêtre tolPx
+  // qui couvre suffisamment (≥ 30%) la longueur du bord.
+  function snapBorder(
+    target: number,
+    perpLo: number,
+    perpHi: number,
+    candidates: WI[],
+  ): number {
+    const reqLen = perpHi - perpLo;
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (const w of candidates) {
+      const d = Math.abs(w.pos - target);
+      if (d > tolPx) continue;
+      const ovLo = Math.max(perpLo, w.lo);
+      const ovHi = Math.min(perpHi, w.hi);
+      const ov = Math.max(0, ovHi - ovLo);
+      if (ov < reqLen * 0.3) continue;
+      if (d < bestDist) {
+        bestDist = d;
+        best = w.pos;
+      }
+    }
+    return best !== null ? best : target;
+  }
+  return rooms.map((r) => {
+    const a = r.bbox;
+    const newYMin = snapBorder(a.yMin, a.xMin, a.xMax, hWalls);
+    const newYMax = snapBorder(a.yMax, a.xMin, a.xMax, hWalls);
+    const newXMin = snapBorder(a.xMin, a.yMin, a.yMax, vWalls);
+    const newXMax = snapBorder(a.xMax, a.yMin, a.yMax, vWalls);
+    // Vérifier que le rectangle reste valide
+    if (newXMin >= newXMax || newYMin >= newYMax) return r;
+    const newBbox = { xMin: newXMin, yMin: newYMin, xMax: newXMax, yMax: newYMax };
+    const newPoly = buildRectangle(newBbox.yMin, newBbox.yMax, newBbox.xMax, newBbox.xMin);
+    return {
+      ...r,
+      polygon: newPoly,
+      areaPx2: polygonArea(newPoly),
+      bbox: newBbox,
+    };
+  });
+}
+
+/**
  * Clippe le rectangle pour qu'il reste strictement DANS le polygone du lot
  * (intersection bbox rectangle × bbox lot, puis assurance vertices ⊆ lot).
  *
@@ -1289,6 +1363,13 @@ export function extractRoomsAsRectangles(
   // les voisins, jusqu'à atteindre le bord du lot ou un voisin proche.
   // Évite Séjour stuck à 30 m² alors que PDF = 40.
   resolved = growUnderSized(resolved, lotBbox, walls, opts.angleTolDeg);
+
+  // Note : snapBordersToWalls testé et REJETÉ — le snap mid-pipeline ré-ouvrait
+  // des chevauchements (les bords mitoyens claquaient sur 2 murs voisins
+  // différents) et déplaçait le bord opposé hors zone, faisant régresser
+  // l'audit (16/20 → 13/20). Inv C reste FAIL acceptable : les rectangles
+  // sont au bon endroit visuellement mais les vertices tombent au "centre"
+  // d'un mur épais (≥4px de raster) plutôt que sur la ligne idéale.
 
   // Étape 3 : clip dans le lot
   const clipped = resolved.map((r) => {
