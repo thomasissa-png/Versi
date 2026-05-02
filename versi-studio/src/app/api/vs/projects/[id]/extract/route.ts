@@ -1379,6 +1379,17 @@ export async function POST(
                         maxAreaDriftRatio: 0.08,
                       });
                       if (p3.snappedCount > 0) { currentPoly = p3.polygon; cumSnapped += p3.snappedCount; }
+
+                      // s28 tour 15 fix9 — Passe 4 ULTRA-LARGE (100px) pour
+                      // vertices très isolés (Cellier F1 à snap5=0/16, SDE F3
+                      // à snap5=4/17). Drift 4% max = ne déplace QUE les
+                      // vertices vraiment isolés (loin de tout mur).
+                      const p4 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
+                        snapTolPdfPx: 5,
+                        maxSearchPx: 100,
+                        maxAreaDriftRatio: 0.04,
+                      });
+                      if (p4.snappedCount > 0) { currentPoly = p4.polygon; cumSnapped += p4.snappedCount; }
                     }
 
                     if (cumSnapped > 0) {
