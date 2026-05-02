@@ -926,14 +926,24 @@ function growUnderSized(
     return best;
   }
 
-  // Pour chaque pièce sous-dimensionnée, on grossit dans une direction sans voisin
-  for (let pass = 0; pass < 2; pass++) {
+  // Pour chaque pièce sous-dimensionnée, on grossit dans les 2 directions
+  // les plus libres (= les "côtés ouverts" sans voisin/mur architectural
+  // proche). 4 passes pour permettre la propagation après que les premières
+  // pièces se sont étendues (ouvre du slack pour les autres).
+  //
+  // s28 tour 20 — passé de 2 → 4 passes ET on étend désormais les 2 dirs les
+  // plus libres au lieu d'une seule. Justification : R+1 Séjour était stuck à
+  // ratio 0.84 alors que slackS et slackE étaient TOUS DEUX > 30px (slack
+  // suffisant des 2 côtés). Avec 1 seule direction par passe + réduction de
+  // slack à chaque expansion via le cap PDF (×1.3), on plafonnait avant
+  // d'atteindre la cible. Étendre les 2 dirs distribue mieux.
+  for (let pass = 0; pass < 4; pass++) {
     for (let i = 0; i < result.length; i++) {
       const r = result[i];
       if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) continue;
       const targetArea = r.pdfSurfaceM2 / scale;
       const currentArea = (r.bbox.xMax - r.bbox.xMin) * (r.bbox.yMax - r.bbox.yMin);
-      if (currentArea >= targetArea * 0.95) continue; // assez grand
+      if (currentArea >= targetArea * 0.97) continue; // assez grand (≥ 0.97 cible)
       const a = r.bbox;
       // Calcule la "marge" libre dans chaque direction = min(neighbor, wall) - bord
       const nN = nearestNeighborN(i, a);
@@ -953,32 +963,34 @@ function growUnderSized(
       const slackS = limS - a.yMax;
       const slackW = a.xMin - limW;
       const slackE = limE - a.xMax;
-      // Choix de la direction : la plus libre
+      // Choix de direction : on prend les 2 directions les plus libres.
       const slacks = [
         { dir: "N", slack: slackN, lim: limN },
         { dir: "S", slack: slackS, lim: limS },
         { dir: "W", slack: slackW, lim: limW },
         { dir: "E", slack: slackE, lim: limE },
       ].sort((a, b) => b.slack - a.slack);
-      // On étend dans la direction la plus libre, jusqu'à atteindre target
-      const ratio = Math.sqrt(targetArea / currentArea);
+      // Calcul de ce qu'il faut gagner pour atteindre 0.97 de target.
+      const ratio = Math.sqrt((targetArea * 0.97) / currentArea);
       const widthA = a.xMax - a.xMin;
       const heightA = a.yMax - a.yMin;
       const targetW = widthA * ratio;
       const targetH = heightA * ratio;
       const deltaW = targetW - widthA;
       const deltaH = targetH - heightA;
-      // On étend la dimension dans la direction la plus libre
-      const dir1 = slacks[0];
       const margin = 2;
-      if (dir1.dir === "N" && dir1.slack > 5) {
-        a.yMin = Math.max(dir1.lim + margin, a.yMin - Math.min(dir1.slack - margin, deltaH));
-      } else if (dir1.dir === "S" && dir1.slack > 5) {
-        a.yMax = Math.min(dir1.lim - margin, a.yMax + Math.min(dir1.slack - margin, deltaH));
-      } else if (dir1.dir === "W" && dir1.slack > 5) {
-        a.xMin = Math.max(dir1.lim + margin, a.xMin - Math.min(dir1.slack - margin, deltaW));
-      } else if (dir1.dir === "E" && dir1.slack > 5) {
-        a.xMax = Math.min(dir1.lim - margin, a.xMax + Math.min(dir1.slack - margin, deltaW));
+      // On étend les 2 directions les plus libres (top 2 en slack > 5px).
+      const topDirs = slacks.filter((s) => s.slack > 5).slice(0, 2);
+      for (const dir of topDirs) {
+        if (dir.dir === "N") {
+          a.yMin = Math.max(dir.lim + margin, a.yMin - Math.min(dir.slack - margin, deltaH));
+        } else if (dir.dir === "S") {
+          a.yMax = Math.min(dir.lim - margin, a.yMax + Math.min(dir.slack - margin, deltaH));
+        } else if (dir.dir === "W") {
+          a.xMin = Math.max(dir.lim + margin, a.xMin - Math.min(dir.slack - margin, deltaW));
+        } else if (dir.dir === "E") {
+          a.xMax = Math.min(dir.lim - margin, a.xMax + Math.min(dir.slack - margin, deltaW));
+        }
       }
     }
   }
@@ -1205,24 +1217,43 @@ export function extractRoomsAsRectangles(
   // Étape 6 : recalcul areaPx2 final
   const finalRooms = inset.map((r) => ({ ...r, areaPx2: polygonArea(r.polygon) }));
 
-  // Étape 7 : filtre micro-pièces hallucinées.
-  // Règle métier : un label ECS / TGBT / Local technique / placard <3m² qui
-  // n'est pas une "vraie" pièce habitable (WC, SdB, SdE, Cellier, Couloir,
-  // Entrée, Palier sont des cas où <3m² est acceptable).
-  // Les ECS RDC Muguets sont des locaux techniques sous escalier — pas de
-  // vraie pièce. Sur R+1/R+3 l'ECS est dans un placard technique légitime.
-  // Pour discriminer, on rejette si :
-  //   - nom = ECS (équivalent local technique)
-  //   - ET PDF surface absente OU < 1.5m²
-  // Sur R+1 ECS = 1.2m² → rejeté aussi ❌. Donc on garde uniquement la règle
-  // "no PDF surface" (= label sans m² donc artefact).
-  // Compromis V1 : filtre uniquement pièces SANS surface PDF ET nom dans la
-  // blacklist micro (ECS, TGBT). Les pièces avec surface PDF connue restent.
-  // V2 : on n'applique PAS de filtre business ici. La règle "ECS RDC =
-  // pas une pièce" est métier et fragile à hardcoder. On laisse le pipeline
-  // produire ce qui est lu sur le PDF, et l'utilisateur valide manuellement.
-  // Sur R+1/R+3 ECS est légitime (placard technique étiqueté).
-  return finalRooms;
+  // Étape 7 — s28 tour 20 : filtre métier ECS/TGBT/placards techniques HALLU.
+  //
+  // Règle (raffinée tour 20) :
+  //   Le label TECHNICAL_LABELS (ECS, TGBT, gaine, vide-ordures) est rejeté
+  //   UNIQUEMENT si la surface PDF est ABSENTE (= placeholder, pas une vraie
+  //   pièce annotée par l'architecte).
+  //
+  // Justification :
+  //   - RDC Muguets : "ECS" = placard technique sous escalier, AUCUNE surface
+  //     écrite sur le PDF → l'IA hallucine un polygone → on filtre.
+  //   - R+1 Muguets : "ECS" = placard technique mais PDF n'écrit PAS de
+  //     surface non plus → on filtre aussi.
+  //   - R+3 Muguets : "ECS" = espace technique légitime étiqueté avec
+  //     surface PDF (visible "ECS 1.x m²" ou similaire) → on garde.
+  //
+  // Décision : si le label est dans TECHNICAL_LABELS ET pdfSurfaceM2 == null,
+  // on rejette. Sinon on garde.
+  //
+  // Cible Inv E :
+  //   RDC 6 → 5  (-1 ECS)
+  //   R+1 8 → 8  (ECS R+1 garde car la pdfSurface peut être lue ou ECS valide)
+  //   R+2 6 → 6
+  //   R+3 5 → 5
+  const TECHNICAL_LABELS = new Set(["ecs", "tgbt", "vide-ordures", "vide-ordure", "gaine"]);
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const filteredFinal = finalRooms.filter((r) => {
+    const label = norm(r.label);
+    if (!TECHNICAL_LABELS.has(label)) return true;
+    // Label technique : on garde UNIQUEMENT si l'architecte a écrit une
+    // surface explicite (= placard légitime annoté).
+    if (r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0) return true;
+    // Sinon, c'est un label IA halluciné sans support PDF → reject.
+    return false;
+  });
+
+  return filteredFinal;
 }
 
 /**
