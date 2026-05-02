@@ -1534,45 +1534,56 @@ export function extractRoomsAsRectangles(
       if (!labelBbox || PDF_TO_PX_HEURISTIC === null) return r;
       if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) return r;
       const a = { ...r.bbox };
-      // Marge max autour du label = sqrt(PDF_m²) × pxPerM × 0.5 (= demi-côté
-      // d'un carré équivalent en surface). On capera chaque bord à
-      // label_bbox ± marge_demiCarre, garantissant que le rectangle reste
-      // d'une taille raisonnable proportionnelle à sa surface PDF.
+      // s28 tour 21 — Marge AUTOUR DU CENTROÏDE label = demi-côté du carré
+      // équivalent à PDF_surface (en px). On cap chaque bord à
+      // `label.cx ± demiCarre × 1.1` (tolérance 10% pour rectangles non-carrés).
+      // Cela garantit que le rectangle reste de taille proportionnelle à sa
+      // surface PDF, même si lot polygon englobe terrasse externe.
       const demiCarre = Math.sqrt(r.pdfSurfaceM2) * PDF_TO_PX_HEURISTIC * 0.5;
-      // Marge sécurité = 1.3× pour permettre rectangles non-carrés
-      const safetyMargin = demiCarre * 1.3;
+      const tolerance = 1.1; // permet aspect ratio jusqu'à 1.21:1
+      const labelCx = (labelBbox.xMin + labelBbox.xMax) / 2;
+      const labelCy = (labelBbox.yMin + labelBbox.yMax) / 2;
+      const maxRadius = demiCarre * tolerance;
       let modified = false;
       // Bord N : si touche lot ET pas de mur strong à yMin → cap à
-      // label_bbox.yMin - safetyMargin
+      // label.cy - maxRadius (= top du carré équivalent)
       if (Math.abs(a.yMin - lotBbox.yMin) <= TOL_LOT) {
         if (!hasStrongWallAt(a.yMin, a.xMin, a.xMax, true)) {
-          const newYMin = Math.max(a.yMin, labelBbox.yMin - safetyMargin);
+          const cap = labelCy - maxRadius;
+          // borne au moins à labelBbox.yMin - 5 (ne pas tronquer le label)
+          const safeCap = Math.min(cap, labelBbox.yMin - 5);
+          const newYMin = Math.max(a.yMin, safeCap);
           if (newYMin > a.yMin + 2) { a.yMin = newYMin; modified = true; }
         }
       }
-      // Bord S : si touche lot ET pas de mur strong à yMax
+      // Bord S
       if (Math.abs(a.yMax - lotBbox.yMax) <= TOL_LOT) {
         if (!hasStrongWallAt(a.yMax, a.xMin, a.xMax, true)) {
-          const newYMax = Math.min(a.yMax, labelBbox.yMax + safetyMargin);
+          const cap = labelCy + maxRadius;
+          const safeCap = Math.max(cap, labelBbox.yMax + 5);
+          const newYMax = Math.min(a.yMax, safeCap);
           if (newYMax < a.yMax - 2) { a.yMax = newYMax; modified = true; }
         }
       }
       // Bord W
       if (Math.abs(a.xMin - lotBbox.xMin) <= TOL_LOT) {
         if (!hasStrongWallAt(a.xMin, a.yMin, a.yMax, false)) {
-          const newXMin = Math.max(a.xMin, labelBbox.xMin - safetyMargin);
+          const cap = labelCx - maxRadius;
+          const safeCap = Math.min(cap, labelBbox.xMin - 5);
+          const newXMin = Math.max(a.xMin, safeCap);
           if (newXMin > a.xMin + 2) { a.xMin = newXMin; modified = true; }
         }
       }
       // Bord E
       if (Math.abs(a.xMax - lotBbox.xMax) <= TOL_LOT) {
         if (!hasStrongWallAt(a.xMax, a.yMin, a.yMax, false)) {
-          const newXMax = Math.min(a.xMax, labelBbox.xMax + safetyMargin);
+          const cap = labelCx + maxRadius;
+          const safeCap = Math.max(cap, labelBbox.xMax + 5);
+          const newXMax = Math.min(a.xMax, safeCap);
           if (newXMax < a.xMax - 2) { a.xMax = newXMax; modified = true; }
         }
       }
       if (!modified) return r;
-      console.log(`[s28-tour21-clip] ${r.label}: clipped ${r.bbox.yMin.toFixed(0)},${r.bbox.yMax.toFixed(0)},${r.bbox.xMin.toFixed(0)},${r.bbox.xMax.toFixed(0)} → ${a.yMin.toFixed(0)},${a.yMax.toFixed(0)},${a.xMin.toFixed(0)},${a.xMax.toFixed(0)}`);
       const newPoly = buildRectangle(a.yMin, a.yMax, a.xMax, a.xMin);
       return { ...r, polygon: newPoly, areaPx2: polygonArea(newPoly), bbox: a };
     });
