@@ -1644,19 +1644,32 @@ export async function POST(
                         if (r.polygon.length < 3) continue;
                         const origAreaPx2 = polygonAreaPx2(r.polygon);
                         if (origAreaPx2 < 1) continue;
-                        // Snap progressif 4 → 8 → 12 px, garder le plus snappé
-                        // tant que drift d'aire < 3%.
+                        // Étape 1 : Smart Line Snap (translate edges entières)
                         let cur = r.polygon;
-                        for (const tol of [4, 8, 12]) {
+                        for (const tol of [4, 8, 12, 16]) {
                           const snapped = snapPolygonToWalls(cur, wallsForSnap2, tol);
                           if (snapped.snappedCount === 0) continue;
                           const newArea = polygonAreaPx2(snapped.polygon);
                           const drift = origAreaPx2 > 0
                             ? Math.abs(newArea - origAreaPx2) / origAreaPx2
                             : 0;
-                          if (drift < 0.03) {
+                          if (drift < 0.05) {
                             cur = snapped.polygon;
                           }
+                        }
+                        // Étape 2 : Drag Outliers Vertex (projete vertex-par-vertex)
+                        // Plus agressif pour atteindre Inv C ≥ 95%.
+                        const dragged = dragOutliersToWalls(cur, allWalls_snap, {
+                          thresholdPx: 5,
+                          dragMaxPx: 25,
+                          maxAreaChangeRatio: 0.05,
+                        });
+                        const newArea = polygonAreaPx2(dragged);
+                        const drift = origAreaPx2 > 0
+                          ? Math.abs(newArea - origAreaPx2) / origAreaPx2
+                          : 0;
+                        if (drift < 0.05) {
+                          cur = dragged;
                         }
                         if (cur !== r.polygon) {
                           cleanRooms[ri] = { ...r, polygon: cur };
