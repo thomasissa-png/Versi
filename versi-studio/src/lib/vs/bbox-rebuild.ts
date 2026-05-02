@@ -163,20 +163,26 @@ export function rebuildBboxFromWalls(
   // s28 tour 15 — On retourne TOP-K candidats par direction (pas juste le
   // plus proche). Permet de tester combinaisons et trouver le rect dont
   // l'aire respecte la cible PDF.
+  // s28 tour 15 — Critère couverture ASSOUPLI : on accepte tout mur dont
+  // le RANGE intersecte la BBOX du polygone (avec marge), pas juste le
+  // centre cx/cy. Permet de capturer les murs qui touchent un coin de la
+  // pièce (ex. SDE F3 : mur vertical interne à x=1730 couvrant y=[1692, 1753]
+  // touche bien le coin SE du SDE même si cy=1563 n'est pas dans ce range).
   function findHorizontalCandidates(targetY: number): Array<{ wall: Wall; y: number; delta: number }> {
     const cands: Array<{ wall: Wall; y: number; delta: number }> = [];
     for (const w of horizontals) {
       const wy = (w.y1 + w.y2) / 2;
       const wx0 = Math.min(w.x1, w.x2);
       const wx1 = Math.max(w.x1, w.x2);
-      const margin = 30;
-      if (cx < wx0 - margin || cx > wx1 + margin) continue;
+      // Le RANGE x du mur doit overlap la BBOX x du polygone (avec marge 20px)
+      const margin = 20;
+      if (wx1 < bx0 - margin || wx0 > bx1 + margin) continue;
       const delta = Math.abs(targetY - wy);
       if (delta > opts.searchWindowPx) continue;
       cands.push({ wall: w, y: wy, delta });
     }
     cands.sort((a, b) => a.delta - b.delta);
-    return cands.slice(0, 5);
+    return cands.slice(0, 8);
   }
 
   function findVerticalCandidates(targetX: number): Array<{ wall: Wall; x: number; delta: number }> {
@@ -185,14 +191,15 @@ export function rebuildBboxFromWalls(
       const wx = (w.x1 + w.x2) / 2;
       const wy0 = Math.min(w.y1, w.y2);
       const wy1 = Math.max(w.y1, w.y2);
-      const margin = 30;
-      if (cy < wy0 - margin || cy > wy1 + margin) continue;
+      // Le RANGE y du mur doit overlap la BBOX y du polygone (avec marge 20px)
+      const margin = 20;
+      if (wy1 < by0 - margin || wy0 > by1 + margin) continue;
       const delta = Math.abs(targetX - wx);
       if (delta > opts.searchWindowPx) continue;
       cands.push({ wall: w, x: wx, delta });
     }
     cands.sort((a, b) => a.delta - b.delta);
-    return cands.slice(0, 5);
+    return cands.slice(0, 8);
   }
 
   const candsN = findHorizontalCandidates(by0);

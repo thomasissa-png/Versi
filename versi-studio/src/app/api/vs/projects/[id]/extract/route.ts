@@ -1454,19 +1454,42 @@ export async function POST(
                   }));
                   for (let ri = 0; ri < cleanRooms.length; ri++) {
                     const r = cleanRooms[ri];
-                    const res = snapEdgesToFarWalls(r.polygon, wallsForEdge, {
+                    // s28 tour 15 — Première passe : ortho-snap (12° de tolérance)
+                    let res = snapEdgesToFarWalls(r.polygon, wallsForEdge, {
                       ghostThresholdPx: 10,
                       searchRadiusPx: 100,
                       parallelTolDeg: 12,
                       maxAreaDriftRatio: 0.05,
                       minEdgeLenPx: 8,
                     });
-                    if (res.edgesSnapped > 0) {
-                      cleanRooms[ri] = { ...r, polygon: res.polygon };
-                      totalEdgesSnapped += res.edgesSnapped;
+                    let curPoly = res.polygon;
+                    let curSnapped = res.edgesSnapped;
+                    let curDrift = res.areaDriftPct;
+
+                    // s28 tour 15 — Seconde passe : ANGLE LARGE (45°) avec drift
+                    // 8% pour récupérer les edges DIAGONAUX sur murs ortho.
+                    // Cas SDE F3 : le polygone est tordu, ses edges font 30-60°
+                    // avec les vrais murs. On les "redresse" en snappant l'edge
+                    // sur le mur le plus proche même non-parallèle.
+                    const res2 = snapEdgesToFarWalls(curPoly, wallsForEdge, {
+                      ghostThresholdPx: 10,
+                      searchRadiusPx: 80,
+                      parallelTolDeg: 45,
+                      maxAreaDriftRatio: 0.08,
+                      minEdgeLenPx: 8,
+                    });
+                    if (res2.edgesSnapped > 0) {
+                      curPoly = res2.polygon;
+                      curSnapped += res2.edgesSnapped;
+                      curDrift = Math.max(curDrift, res2.areaDriftPct);
+                    }
+
+                    if (curSnapped > 0) {
+                      cleanRooms[ri] = { ...r, polygon: curPoly };
+                      totalEdgesSnapped += curSnapped;
                       totalRoomsTouched++;
                       console.log(
-                        `[extract/s28-tour15-edge-snap] plan ${plan.id} ${r.label} : ${res.edgesSnapped} edges snappés (drift ${(res.areaDriftPct * 100).toFixed(1)}%)`,
+                        `[extract/s28-tour15-edge-snap] plan ${plan.id} ${r.label} : ${curSnapped} edges snappés (drift ${(curDrift * 100).toFixed(1)}%)`,
                       );
                     }
                   }
@@ -1501,13 +1524,14 @@ export async function POST(
                   }));
                   for (let ri = 0; ri < cleanRooms.length; ri++) {
                     const r = cleanRooms[ri];
-                    // s28 tour 15 — Si on connaît surface_m2 PDF, on valide
-                    // contre la CIBLE PDF (pas l'aire actuelle, qui peut elle-
-                    // même être mal placée). Cible = pdfM2 / scaleM2PerPx2.
-                    // Tolérance [0.85, 1.15] = même que Inv A audit.
-                    const targetAreaPx2 = (r.surface_m2 != null && r.surface_m2 > 0 && scaleM2PerPx2 > 0)
-                      ? r.surface_m2 / scaleM2PerPx2
-                      : undefined;
+                    // s28 tour 15 — Cible PDF basée sur le scale LOCAL au polygon
+                    // (pas le scale global plan qui peut être mal calibré).
+                    // Justification : le pipeline a déjà fait converger l'aire
+                    // du polygon sur la cible PDF (Inv A=1.00 typique). Donc
+                    // l'aire actuelle DU POLYGON = aire PDF "réelle". Le rect
+                    // rebuilt doit rester dans [0.85, 1.15] × cette aire.
+                    const polyArea = polygonAreaPx2(r.polygon);
+                    const targetAreaPx2 = polyArea > 0 ? polyArea : undefined;
                     const res = rebuildBboxFromWalls(r.polygon, wallsForBbox, {
                       outlierThresholdPx: 10,
                       outlierRatioTrigger: 0.5,
