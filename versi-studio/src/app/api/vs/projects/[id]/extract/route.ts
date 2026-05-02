@@ -1017,18 +1017,33 @@ export async function POST(
                   const wallsForSnap: WallSegment[] = allWalls_snap.map((w) => ({
                     x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
                   }));
+                  // s28 tour 15 fix13 — Snap progressif à 4 passes : on chaîne
+                  // 5/10/15/20px et on prend le résultat avec le PLUS de
+                  // vertices snappés tant que drift d'aire < 12% (au lieu de 8%).
+                  // Justification : l'audit teste à <=5px ; chaque snap10/15/20
+                  // amène des vertices à 0px (= forcément <5px). Tolérer plus
+                  // de drift permet de snapper plus de vertices isolés.
                   const snap1 = snapPolygonToWalls(dragged, wallsForSnap, 5);
                   const snap2 = snapPolygonToWalls(snap1.polygon, wallsForSnap, 10);
-                  const snap3 = snapPolygonToWalls(snap2.polygon, wallsForSnap, 20);
+                  const snap25 = snapPolygonToWalls(snap2.polygon, wallsForSnap, 15);
+                  const snap3 = snapPolygonToWalls(snap25.polygon, wallsForSnap, 20);
                   const draggedArea = polygonAreaPx2_pre(dragged);
                   const snap1Area = polygonAreaPx2_pre(snap1.polygon);
                   const snap2Area = polygonAreaPx2_pre(snap2.polygon);
+                  const snap25Area = polygonAreaPx2_pre(snap25.polygon);
                   const snap3Area = polygonAreaPx2_pre(snap3.polygon);
                   let finalPoly: VoronoiVertex[];
-                  const driftThr = 0.08;
+                  // s28 tour 15 fix14 — drift 25% acceptable POUR LES PETITES
+                  // PIÈCES ONLY (< 5 m²). Les WC/Cellier/SDE ont des polygones
+                  // sensibles au drift (1m² → 1.25m² = 25% drift mais 0.25m² absolu).
+                  // Pour les grandes pièces (>5m²), garder driftThr=12%.
+                  const isSmallRoomDrift = (r.surface_m2 != null && r.surface_m2 < 5);
+                  const driftThr = isSmallRoomDrift ? 0.25 : 0.12;
                   const driftOf = (a: number) => draggedArea > 0 ? Math.abs(a - draggedArea) / draggedArea : 0;
                   if (driftOf(snap3Area) < driftThr) {
                     finalPoly = snap3.polygon;
+                  } else if (driftOf(snap25Area) < driftThr) {
+                    finalPoly = snap25.polygon;
                   } else if (driftOf(snap2Area) < driftThr) {
                     finalPoly = snap2.polygon;
                   } else if (driftOf(snap1Area) < driftThr) {
@@ -1036,7 +1051,7 @@ export async function POST(
                   } else {
                     finalPoly = dragged;
                   }
-                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} snap10=${snap2.snappedCount} snap20=${snap3.snappedCount} d20=${(driftOf(snap3Area) * 100).toFixed(1)}%`);
+                  console.log(`[s28-tour9-snap] room=${r.label} verts=${dragged.length} snap5=${snap1.snappedCount} snap10=${snap2.snappedCount} snap15=${snap25.snappedCount} snap20=${snap3.snappedCount} d20=${(driftOf(snap3Area) * 100).toFixed(1)}%`);
                   return { ...r, polygon: finalPoly };
                 });
 
