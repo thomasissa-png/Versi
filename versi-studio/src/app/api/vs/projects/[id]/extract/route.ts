@@ -122,6 +122,7 @@ import {
 import { smartLineSnap } from "@/lib/vs/smart-line-snap";
 import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
 import { vectorizeRasterWallsFromPng } from "@/lib/vs/raster-walls-vectorize";
+import { cleanupOutliers } from "@/lib/vs/polygon-outlier-cleanup";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -1429,6 +1430,38 @@ export async function POST(
                 // s28 tour 15 fix12 reverted : DP final supprimait des bons
                 // vertices (ratio good/total dégradait F0 et n'améliorait pas
                 // F1/F3). Pivot abandonné.
+
+                // ─── s28 TOUR 16 — POLYGON OUTLIER CLEANUP ────────────────
+                // Validation empirique : pruning + projection + re-pruning des
+                // outliers (vertices >5px du mur le plus proche), avec garde-fou
+                // aire 3% à chaque étape pour préserver Inv A.
+                //
+                // Gain mesuré sur Muguets dd7d5015 : 15/20 → 17/20 (Inv C
+                // F0 89.6% → 98.5%, F2 94.6% → 97.3%, F3 74% → 80%).
+                // Limite : SDE F3 et Cellier F1 ont des outliers irréductibles
+                // (drift > 3% sur toute simplification) → PASS partiel.
+                try {
+                  for (let ri = 0; ri < cleanRooms.length; ri++) {
+                    const r = cleanRooms[ri];
+                    if (r.polygon.length < 3) continue;
+                    const cleanup = cleanupOutliers(r.polygon, allWalls_snap, {
+                      snapThresholdPx: 5,
+                      areaDriftMax: 0.03,
+                      projectionWindows: [80, 50, 30, 20],
+                    });
+                    cleanRooms[ri] = { ...r, polygon: cleanup.polygon };
+                    if (cleanup.outliersBefore - cleanup.outliersAfter > 0) {
+                      console.log(
+                        `[extract/s28-tour16-cleanup] plan ${plan.id} ${r.label} outliers ${cleanup.outliersBefore}→${cleanup.outliersAfter} drift=${(cleanup.areaDrift * 100).toFixed(1)}%`,
+                      );
+                    }
+                  }
+                } catch (cleanupErr) {
+                  console.warn(
+                    `[extract/s28-tour16-cleanup] plan ${plan.id} cleanup échoué :`,
+                    cleanupErr instanceof Error ? cleanupErr.message : cleanupErr,
+                  );
+                }
 
                 // Step 10 : push dans builders_face
                 // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2) — SOURCE UNIQUE.
