@@ -76,6 +76,8 @@ export type ExtractOptions = {
   insetPx?: number;
   /** Active la détection de forme L/T quand un coin de mur est dedans. */
   detectLShapes?: boolean;
+  /** Longueur minimum d'un segment pour qu'il compte comme borne (px). Filtre cotes/textes. */
+  minWallLenPx?: number;
 };
 
 const DEFAULT_OPTS: Required<ExtractOptions> = {
@@ -83,6 +85,7 @@ const DEFAULT_OPTS: Required<ExtractOptions> = {
   angleTolDeg: 12,
   insetPx: 0,
   detectLShapes: true,
+  minWallLenPx: 24,
 };
 
 /**
@@ -170,7 +173,15 @@ function polygonArea(poly: Vertex[]): number {
 /**
  * Trouve le 1er mur dans une direction (N/S/E/O) depuis un seed.
  * Direction "N" = y décroissant, mur HORIZONTAL au-dessus du seed.
- * Le mur doit aussi couvrir la coordonnée X du seed (range X inclut seed.x).
+ *
+ * Fonctionne en 2 modes :
+ *   - mode strict : le mur doit couvrir la coordonnée perpendiculaire du seed
+ *     (range X inclut seed.x pour H, range Y inclut seed.y pour V)
+ *   - mode souple (fallback) : si rien en strict, on accepte tout mur dans
+ *     une bande de ±latBandPx autour du seed perpendiculairement.
+ *
+ * S'enrichit aussi des "antagonistes" : pour chaque autre seed dans la même
+ * direction (= un autre label entre seed et la cible), on capse à la médiatrice.
  */
 function findEnclosingWall(
   seed: { x: number; y: number },
@@ -179,58 +190,121 @@ function findEnclosingWall(
   angleTolDeg: number,
   fallback: number,
   minMarginPx: number,
+  otherSeeds: Array<{ x: number; y: number }> = [],
+  latBandPx: number = 30,
 ): number {
-  let best = fallback;
-  let bestDist = Math.abs(fallback - (direction === "N" || direction === "S" ? seed.y : seed.x));
-  for (const w of walls) {
-    const cls = classifyWall(w, angleTolDeg);
+  // ─── Étape 1 : médiatrice avec autres seeds dans la direction ────
+  // Si un autre seed est entre `seed` et le fallback dans la direction,
+  // capse au midpoint (= séparation naturelle entre 2 pièces voisines).
+  let cap = fallback;
+  for (const o of otherSeeds) {
     if (direction === "N" || direction === "S") {
-      // Cherche mur horizontal qui couvre seed.x
-      if (cls !== "H") continue;
-      const [xLo, xHi] = wallXRange(w);
-      if (seed.x < xLo - 2 || seed.x > xHi + 2) continue;
-      const wy = wallY(w);
+      // Doit être proche en X (même couloir vertical)
+      if (Math.abs(o.x - seed.x) > latBandPx * 4) continue;
       if (direction === "N") {
-        // Mur au-dessus (wy < seed.y)
-        if (wy >= seed.y - minMarginPx) continue;
-        const d = seed.y - wy;
-        if (d < bestDist) {
-          bestDist = d;
-          best = wy;
+        if (o.y < seed.y - minMarginPx && o.y > cap) {
+          // o est entre cap (haut) et seed
+          cap = (seed.y + o.y) / 2;
         }
       } else {
-        // Mur au-dessous (wy > seed.y)
-        if (wy <= seed.y + minMarginPx) continue;
-        const d = wy - seed.y;
-        if (d < bestDist) {
-          bestDist = d;
-          best = wy;
+        if (o.y > seed.y + minMarginPx && o.y < cap) {
+          cap = (seed.y + o.y) / 2;
         }
       }
     } else {
-      // Cherche mur vertical qui couvre seed.y
-      if (cls !== "V") continue;
-      const [yLo, yHi] = wallYRange(w);
-      if (seed.y < yLo - 2 || seed.y > yHi + 2) continue;
-      const wx = wallX(w);
+      if (Math.abs(o.y - seed.y) > latBandPx * 4) continue;
       if (direction === "W") {
-        if (wx >= seed.x - minMarginPx) continue;
-        const d = seed.x - wx;
-        if (d < bestDist) {
-          bestDist = d;
-          best = wx;
+        if (o.x < seed.x - minMarginPx && o.x > cap) {
+          cap = (seed.x + o.x) / 2;
         }
       } else {
-        if (wx <= seed.x + minMarginPx) continue;
-        const d = wx - seed.x;
-        if (d < bestDist) {
-          bestDist = d;
-          best = wx;
+        if (o.x > seed.x + minMarginPx && o.x < cap) {
+          cap = (seed.x + o.x) / 2;
         }
       }
     }
   }
-  return best;
+
+  // ─── Étape 2 : raycast murs en mode strict puis souple ──────────
+  // On cherche le mur le plus proche du seed (avant cap) qui est dans
+  // la direction, en privilégiant les murs qui couvrent la coordonnée
+  // perpendiculaire (strict). Si aucun mur strict, on tolère lateralBand.
+  const tryFind = (lateralTol: number, requireStrict: boolean, minLen: number): number | null => {
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (const w of walls) {
+      const cls = classifyWall(w, angleTolDeg);
+      if (direction === "N" || direction === "S") {
+        if (cls !== "H") continue;
+        const [xLo, xHi] = wallXRange(w);
+        const segLen = xHi - xLo;
+        if (segLen < minLen) continue;
+        // Strict : seed.x doit être dans [xLo, xHi]
+        // Souple : seed.x dans [xLo - lateralTol, xHi + lateralTol]
+        const tol = requireStrict ? 2 : lateralTol;
+        if (seed.x < xLo - tol || seed.x > xHi + tol) continue;
+        const wy = wallY(w);
+        if (direction === "N") {
+          if (wy >= seed.y - minMarginPx) continue;
+          if (wy <= cap - 1) continue; // au-delà de la médiatrice : on ignore
+          const d = seed.y - wy;
+          if (d < bestDist) {
+            bestDist = d;
+            best = wy;
+          }
+        } else {
+          if (wy <= seed.y + minMarginPx) continue;
+          if (wy >= cap + 1) continue;
+          const d = wy - seed.y;
+          if (d < bestDist) {
+            bestDist = d;
+            best = wy;
+          }
+        }
+      } else {
+        if (cls !== "V") continue;
+        const [yLo, yHi] = wallYRange(w);
+        const segLen = yHi - yLo;
+        if (segLen < minLen) continue;
+        const tol = requireStrict ? 2 : lateralTol;
+        if (seed.y < yLo - tol || seed.y > yHi + tol) continue;
+        const wx = wallX(w);
+        if (direction === "W") {
+          if (wx >= seed.x - minMarginPx) continue;
+          if (wx <= cap - 1) continue;
+          const d = seed.x - wx;
+          if (d < bestDist) {
+            bestDist = d;
+            best = wx;
+          }
+        } else {
+          if (wx <= seed.x + minMarginPx) continue;
+          if (wx >= cap + 1) continue;
+          const d = wx - seed.x;
+          if (d < bestDist) {
+            bestDist = d;
+            best = wx;
+          }
+        }
+      }
+    }
+    return best;
+  };
+
+  // 4 passes : strict long → strict moyen → souple long → souple moyen
+  // Long = 30px+, moyen = 12px+. Préférer long (= vrais murs) avant moyen.
+  const strict30 = tryFind(2, true, 30);
+  if (strict30 !== null) return strict30;
+  const strict12 = tryFind(2, true, 12);
+  if (strict12 !== null) return strict12;
+  const soft30 = tryFind(latBandPx, false, 30);
+  if (soft30 !== null) return soft30;
+  const soft12 = tryFind(latBandPx, false, 12);
+  if (soft12 !== null) return soft12;
+  const wide12 = tryFind(80, false, 12);
+  if (wide12 !== null) return wide12;
+  // Fallback : médiatrice ou bord du lot
+  return cap;
 }
 
 /**
@@ -266,6 +340,84 @@ function overlapV(
   b: { yMin: number; yMax: number },
 ): number {
   return Math.max(0, Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin));
+}
+
+/**
+ * Expand-to-fit : étend chaque rectangle dans chaque direction jusqu'à
+ * toucher un autre rectangle voisin ou le bord du lot.
+ *
+ * Algo : pour chaque rectangle r et chaque direction d (N/S/E/O), on
+ * cherche la borne maximum :
+ *   - Bord du lot (lotBbox dans cette direction)
+ *   - Bord d'un autre rectangle qui chevauche perpendiculairement
+ *
+ * Le "premier obstacle" est le plus proche. On expand r jusqu'à ce premier
+ * obstacle (avec une marge de 2px).
+ */
+function expandToFit(
+  rooms: RectangleRoom[],
+  lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+): RectangleRoom[] {
+  const result = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  // 3 passes : chaque passe étend les rectangles, ce qui peut autoriser
+  // l'expansion supplémentaire des voisins. Stable après ~2 passes.
+  for (let pass = 0; pass < 3; pass++) {
+    let anyExpanded = false;
+    for (let i = 0; i < result.length; i++) {
+      const a = result[i].bbox;
+      // Pour chaque direction, calculer la borne max d'expansion.
+      // Direction N (yMin décroit) : on cherche la borne yMin minimale possible.
+      let nMax = lotBbox.yMin;
+      let sMax = lotBbox.yMax;
+      let eMax = lotBbox.xMax;
+      let wMax = lotBbox.xMin;
+      for (let j = 0; j < result.length; j++) {
+        if (i === j) continue;
+        const b = result[j].bbox;
+        // Overlap perpendiculaire ?
+        // N : on regarde vers le haut. Un voisin contre lequel on s'arrête doit
+        //     avoir un overlap horizontal (b.xMin < a.xMax ET b.xMax > a.xMin),
+        //     ET être au-dessus (b.yMax <= a.yMin + epsilon).
+        if (b.xMax > a.xMin && b.xMin < a.xMax) {
+          if (b.yMax <= a.yMin + 1 && b.yMax > nMax) nMax = b.yMax;
+          if (b.yMin >= a.yMax - 1 && b.yMin < sMax) sMax = b.yMin;
+        }
+        if (b.yMax > a.yMin && b.yMin < a.yMax) {
+          if (b.xMax <= a.xMin + 1 && b.xMax > wMax) wMax = b.xMax;
+          if (b.xMin >= a.xMax - 1 && b.xMin < eMax) eMax = b.xMin;
+        }
+      }
+      // Apply expansion (avec marge 1px pour ne pas chevaucher exactement)
+      const margin = 1;
+      const newYMin = Math.min(a.yMin, nMax + margin);
+      const newYMax = Math.max(a.yMax, sMax - margin);
+      const newXMin = Math.min(a.xMin, wMax + margin);
+      const newXMax = Math.max(a.xMax, eMax - margin);
+      if (
+        newYMin < a.yMin ||
+        newYMax > a.yMax ||
+        newXMin < a.xMin ||
+        newXMax > a.xMax
+      ) {
+        a.yMin = newYMin;
+        a.yMax = newYMax;
+        a.xMin = newXMin;
+        a.xMax = newXMax;
+        anyExpanded = true;
+      }
+    }
+    if (!anyExpanded) break;
+  }
+  for (const r of result) {
+    r.polygon = buildRectangle(r.bbox.yMin, r.bbox.yMax, r.bbox.xMax, r.bbox.xMin);
+    r.areaPx2 = polygonArea(r.polygon);
+  }
+  return result;
 }
 
 /**
@@ -477,18 +629,22 @@ export function extractRoomsAsRectangles(
   const lotBbox = polygonBbox(lotPolygon);
 
   // Étape 1 : pour chaque label → rectangle initial
-  const rooms: RectangleRoom[] = labels.map((label) => {
-    // Si le label tombe hors du lot (bug rare), on le clamp dans le lot
-    const seedX = Math.max(lotBbox.xMin + 5, Math.min(lotBbox.xMax - 5, label.x));
-    const seedY = Math.max(lotBbox.yMin + 5, Math.min(lotBbox.yMax - 5, label.y));
-    const seed = { x: seedX, y: seedY };
+  // On capture d'abord les seeds clamped pour chaque label (utilisés comme
+  // antagonistes Voronoï dans findEnclosingWall).
+  const seeds = labels.map((label) => ({
+    x: Math.max(lotBbox.xMin + 5, Math.min(lotBbox.xMax - 5, label.x)),
+    y: Math.max(lotBbox.yMin + 5, Math.min(lotBbox.yMax - 5, label.y)),
+  }));
 
-    // Raycast vers chaque direction. On considère TOUS les murs (vector + raster)
-    // ainsi que les bords du lot (côtés du polygone lot tracés comme segments).
-    const yNorth = findEnclosingWall(seed, walls, "N", opts.angleTolDeg, lotBbox.yMin, opts.minMarginPx);
-    const ySouth = findEnclosingWall(seed, walls, "S", opts.angleTolDeg, lotBbox.yMax, opts.minMarginPx);
-    const xEast = findEnclosingWall(seed, walls, "E", opts.angleTolDeg, lotBbox.xMax, opts.minMarginPx);
-    const xWest = findEnclosingWall(seed, walls, "W", opts.angleTolDeg, lotBbox.xMin, opts.minMarginPx);
+  const rooms: RectangleRoom[] = labels.map((label, idx) => {
+    const seed = seeds[idx];
+    const others = seeds.filter((_, i) => i !== idx);
+
+    // Raycast vers chaque direction avec antagonistes Voronoï.
+    const yNorth = findEnclosingWall(seed, walls, "N", opts.angleTolDeg, lotBbox.yMin, opts.minMarginPx, others);
+    const ySouth = findEnclosingWall(seed, walls, "S", opts.angleTolDeg, lotBbox.yMax, opts.minMarginPx, others);
+    const xEast = findEnclosingWall(seed, walls, "E", opts.angleTolDeg, lotBbox.xMax, opts.minMarginPx, others);
+    const xWest = findEnclosingWall(seed, walls, "W", opts.angleTolDeg, lotBbox.xMin, opts.minMarginPx, others);
 
     const rect = buildRectangle(yNorth, ySouth, xEast, xWest);
     const bbox = { xMin: xWest, yMin: yNorth, xMax: xEast, yMax: ySouth };
@@ -501,8 +657,14 @@ export function extractRoomsAsRectangles(
     };
   });
 
-  // Étape 2 : résolution des chevauchements
-  const resolved = resolveOverlaps(rooms);
+  // Étape 1.5 : expand-to-fit. Chaque rectangle s'étend dans chaque direction
+  // jusqu'à toucher un autre rectangle voisin ou le bord du lot.
+  // C'est la passe critique : sans elle, les rectangles restent "petits" et
+  // ne couvrent pas tout l'espace habitable.
+  const expanded = expandToFit(rooms, lotBbox);
+
+  // Étape 2 : résolution des chevauchements (au cas où expand a généré des conflits)
+  const resolved = resolveOverlaps(expanded);
 
   // Étape 3 : clip dans le lot
   const clipped = resolved.map((r) => {
