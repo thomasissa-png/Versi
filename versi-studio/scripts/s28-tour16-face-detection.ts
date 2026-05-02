@@ -111,6 +111,10 @@ async function main() {
     );
 
     // 4. Murs raster vectorisés (cloisons noires PNG)
+    // TOUR 16 : minRunPx élevé (30) pour ne garder que les vrais murs longs
+    // Ce sont les cloisons. Les fragments courts (texte, hachures) sont du bruit
+    // qui fragmenterait le graphe planaire en micro-faces inexploitables.
+    const minRasterRunPx = parseInt(process.env.MIN_RASTER_RUN_PX || "30", 10);
     let rasterWallsFiltered: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
     try {
       const pages = await pdfToImg(buffer, { scale: WALL_EXTRACTION_CONFIG.scale });
@@ -118,9 +122,9 @@ async function main() {
       for await (const p of pages) { pngBuf = Buffer.from(p); break; }
       if (pngBuf) {
         const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
-          minRunPx: 6,
+          minRunPx: minRasterRunPx,
           thicknessPx: 4,
-          minDensity: 0.78,
+          minDensity: 0.85,
         });
         const lotBx0 = Math.min(...lotPolyPx.map(p => p.x));
         const lotBx1 = Math.max(...lotPolyPx.map(p => p.x));
@@ -128,7 +132,7 @@ async function main() {
         const lotBy1 = Math.max(...lotPolyPx.map(p => p.y));
         rasterWallsFiltered = rasterWalls.filter(w => {
           const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-          if (len < 6) return false;
+          if (len < minRasterRunPx) return false;
           const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
           return cx >= lotBx0 && cx <= lotBx1 && cy >= lotBy0 && cy <= lotBy1;
         });
@@ -170,6 +174,39 @@ async function main() {
     });
     console.log(`  faces gardées (rooms) : ${roomFaces.length}, ${pdfLabels.length} labels PDF`);
 
+    // Diag global : top 10 faces par aire (en m²)
+    const sortedFaces = [...allFaces].sort((a, b) => b.area - a.area).slice(0, 10);
+    console.log(`  --- top 10 faces par aire ---`);
+    for (let i = 0; i < sortedFaces.length; i++) {
+      const f = sortedFaces[i];
+      const m2 = f.area * scaleM2PerPx2_est;
+      const inLot = pointInPolygon(f.centroid, lotPolyPx);
+      console.log(`    [${i}] aire=${m2.toFixed(2)}m² compact=${f.compactness.toFixed(3)} in_lot=${inLot} verts=${f.points.length}`);
+    }
+
+    // Debug : pour chaque label PDF, dire dans quelle face il tombe (parmi
+    // toutes les faces — pas filtrées). Si label tombe nulle part → graphe
+    // ne ferme pas la pièce de ce label.
+    console.log(`  --- diag labels vs faces ---`);
+    for (const lbl of pdfLabels) {
+      const inAllFaces: number[] = [];
+      const inRoomFaces: number[] = [];
+      for (let fi = 0; fi < allFaces.length; fi++) {
+        if (pointInPolygon({ x: lbl.x, y: lbl.y }, allFaces[fi].points)) {
+          inAllFaces.push(fi);
+        }
+      }
+      for (let fi = 0; fi < roomFaces.length; fi++) {
+        if (pointInPolygon({ x: lbl.x, y: lbl.y }, roomFaces[fi].points)) {
+          inRoomFaces.push(fi);
+        }
+      }
+      const surfaceLbl = lbl.surface_m2 != null ? `${lbl.surface_m2.toFixed(1)}m²` : "?";
+      const aFace = inAllFaces.length > 0 ? allFaces[inAllFaces[0]] : null;
+      const aFaceArea = aFace ? `face0_aire=${(aFace.area * scaleM2PerPx2_est).toFixed(2)}m² compact=${aFace.compactness.toFixed(3)}` : "AUCUNE";
+      console.log(`    "${lbl.text}" (${surfaceLbl}) @${lbl.x.toFixed(0)},${lbl.y.toFixed(0)} → ${inAllFaces.length} all-faces, ${inRoomFaces.length} room-faces. ${aFaceArea}`);
+    }
+
     // 7. Match face ↔ label PDF (label dont position est dans la face)
     type RoomFromFace = {
       label: string;
@@ -208,6 +245,11 @@ async function main() {
 
     if (matched.length === 0) {
       console.log(`  [SKIP] aucune face matchée label, garde rooms existantes`);
+      continue;
+    }
+
+    if (process.argv.includes("--dry-run")) {
+      console.log(`  [DRY-RUN] ${matched.length} faces matched, pas d'écriture DB`);
       continue;
     }
 
@@ -255,15 +297,15 @@ async function main() {
       // Surface = aire face × scale
       const surface_m2 = m.areaPx2 * scaleM2PerPx2;
       await pool.query(
-        `INSERT INTO vs_rooms (lot_id, name, room_type, surface_m2, polygon, ai_confidence)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO vs_rooms (lot_id, plan_id, name, room_type, surface_m2, polygon, source, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'ai', 'suggested')`,
         [
           lot.id,
+          plan.id,
           m.label,
           inferRoomType(m.label),
           surface_m2.toFixed(2),
           JSON.stringify(polyLotPct),
-          0.95,
         ],
       );
       inserted++;
