@@ -733,8 +733,32 @@ export function extractRoomsAsRectangles(
     const xEast = findEnclosingWall(seed, walls, "E", opts.angleTolDeg, lotBbox.xMax, opts.minMarginPx, others);
     const xWest = findEnclosingWall(seed, walls, "W", opts.angleTolDeg, lotBbox.xMin, opts.minMarginPx, others);
 
-    const rect = buildRectangle(yNorth, ySouth, xEast, xWest);
-    const bbox = { xMin: xWest, yMin: yNorth, xMax: xEast, yMax: ySouth };
+    let rect = buildRectangle(yNorth, ySouth, xEast, xWest);
+    let bbox = { xMin: xWest, yMin: yNorth, xMax: xEast, yMax: ySouth };
+
+    // s28 tour 19 — VALIDATION SEED INSIDE.
+    // Le seed (label IA) DOIT être strictement à l'intérieur du rectangle
+    // produit. Si non, c'est que le raycast a trouvé un mur "à travers" le
+    // seed (= mauvais mur). Dans ce cas, on bornait sur ce mauvais mur, ce
+    // qui crée un rectangle qui n'englobe PAS le label.
+    // Fallback : rectangle centré sur le seed avec dimensions médianes
+    // (moins agressif).
+    const seedInside =
+      seed.x > bbox.xMin + 1 &&
+      seed.x < bbox.xMax - 1 &&
+      seed.y > bbox.yMin + 1 &&
+      seed.y < bbox.yMax - 1;
+    if (!seedInside) {
+      // Fallback : on étend le rectangle pour englober le seed
+      bbox = {
+        xMin: Math.min(bbox.xMin, seed.x - 30),
+        yMin: Math.min(bbox.yMin, seed.y - 30),
+        xMax: Math.max(bbox.xMax, seed.x + 30),
+        yMax: Math.max(bbox.yMax, seed.y + 30),
+      };
+      rect = buildRectangle(bbox.yMin, bbox.yMax, bbox.xMax, bbox.xMin);
+    }
+
     return {
       label: label.text,
       polygon: rect,

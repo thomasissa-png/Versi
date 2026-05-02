@@ -131,6 +131,7 @@ import {
   lotPolygonAsWalls,
   type Wall as RectWall,
 } from "@/lib/vs/room-rectangle-from-walls";
+import { filterRealWalls } from "@/lib/vs/clean-walls-filter";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
 import { pdf as pdfToImg } from "pdf-to-img";
@@ -631,13 +632,23 @@ export async function POST(
 
                 // 2) Pool complet de murs : externes lot + internes vectoriels
                 //    + raster + bords du lot (segments du polygone lot).
+                //
+                // s28 tour 19 — FILTRE AGRESSIF appliqué AVANT raycast :
+                //   - élimine cotes (<30px), mobilier (quads <0.7m²),
+                //     hachures (3+ parallèles à <8px), murs isolés.
+                //   - on PRÉSERVE les bords du lot (lotEdgeWalls) qui sont
+                //     toujours valides et ne doivent jamais être filtrés.
                 const lotEdgeWalls = lotPolygonAsWalls(lotPolyPx_face);
-                const allWallsForRect: RectWall[] = [
+                const wallsToFilter: RectWall[] = [
                   ...result.wallSegments.map((s) => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
                   ...internalWalls_face.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 })),
                   ...rasterWallsForRect,
-                  ...lotEdgeWalls,
                 ];
+                const cleanWalls = filterRealWalls(wallsToFilter, { verbose: true });
+                console.log(
+                  `[extract/s28-tour19-filter] plan ${plan.id} murs : raw ${wallsToFilter.length} → clean ${cleanWalls.length} (+ ${lotEdgeWalls.length} edges lot)`,
+                );
+                const allWallsForRect: RectWall[] = [...cleanWalls, ...lotEdgeWalls];
 
                 // 3) Labels (pixel image) avec surfaces PDF
                 const rectLabels = labelsOnly.map((l) => ({
