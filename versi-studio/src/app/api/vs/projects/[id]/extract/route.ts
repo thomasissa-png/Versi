@@ -1657,19 +1657,28 @@ export async function POST(
                             cur = snapped.polygon;
                           }
                         }
-                        // Étape 2 : Drag Outliers Vertex (projete vertex-par-vertex)
+                        // Étape 2 : Drag Outliers Vertex progressif
+                        // (projete vertex-par-vertex) avec drift croissant.
                         // Plus agressif pour atteindre Inv C ≥ 95%.
-                        const dragged = dragOutliersToWalls(cur, allWalls_snap, {
-                          thresholdPx: 5,
-                          dragMaxPx: 25,
-                          maxAreaChangeRatio: 0.05,
-                        });
-                        const newArea = polygonAreaPx2(dragged);
-                        const drift = origAreaPx2 > 0
-                          ? Math.abs(newArea - origAreaPx2) / origAreaPx2
-                          : 0;
-                        if (drift < 0.05) {
-                          cur = dragged;
+                        // Limite drift cumulé 8% (pour préserver Inv A à 12%).
+                        for (const cfg of [
+                          { dragMaxPx: 15, maxAreaChangeRatio: 0.03 },
+                          { dragMaxPx: 25, maxAreaChangeRatio: 0.04 },
+                          { dragMaxPx: 35, maxAreaChangeRatio: 0.05 },
+                        ]) {
+                          const dragged = dragOutliersToWalls(cur, allWalls_snap, {
+                            thresholdPx: 5,
+                            dragMaxPx: cfg.dragMaxPx,
+                            maxAreaChangeRatio: cfg.maxAreaChangeRatio,
+                          });
+                          const newArea = polygonAreaPx2(dragged);
+                          // Drift cumulé vs orig
+                          const driftCum = origAreaPx2 > 0
+                            ? Math.abs(newArea - origAreaPx2) / origAreaPx2
+                            : 0;
+                          if (driftCum < 0.08) {
+                            cur = dragged;
+                          }
                         }
                         if (cur !== r.polygon) {
                           cleanRooms[ri] = { ...r, polygon: cur };
