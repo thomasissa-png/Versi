@@ -126,6 +126,11 @@ import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
 import { vectorizeRasterWallsFromPng } from "@/lib/vs/raster-walls-vectorize";
 import { cleanupOutliers } from "@/lib/vs/polygon-outlier-cleanup";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
+import {
+  extractRoomsAsRectangles,
+  lotPolygonAsWalls,
+  type Wall as RectWall,
+} from "@/lib/vs/room-rectangle-from-walls";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
 import { pdf as pdfToImg } from "pdf-to-img";
@@ -582,7 +587,132 @@ export async function POST(
               );
             }
 
-            if (pngBuf && labelsOnly.length > 0) {
+            // ─── s28 TOUR 18 — PIVOT bbox-from-walls ─────────────────────
+            // Activé via VS_USE_RECTANGLE_ROOMS=true. Court-circuite tout le
+            // pipeline flood-fill BFS (tours 1-17) qui produisait des polygones
+            // biscornus.
+            //
+            // Approche : pour chaque label PDF, raycast 4 directions (N/S/E/O)
+            // depuis le centroïde du label vers les murs vectoriels + raster
+            // les plus proches. Le rectangle (xWest..xEast, yNorth..ySouth)
+            // est le polygone candidat. Resolve overlaps 2-à-2. Clip dans le
+            // lot. Inset visuel optionnel.
+            //
+            // Avantages : polygones rectangulaires architecturaux PAR
+            // CONSTRUCTION, frontières alignées sur les murs, pas d'escalier.
+            const useRectangleRooms = process.env.VS_USE_RECTANGLE_ROOMS === "true";
+
+            if (pngBuf && labelsOnly.length > 0 && useRectangleRooms) {
+              try {
+                // 1) Vectorisation murs raster (cloisons fines en peinture)
+                let rasterWallsForRect: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+                try {
+                  const { walls: rasterWalls } = await vectorizeRasterWallsFromPng(pngBuf, {
+                    minRunPx: 6,
+                    thicknessPx: 4,
+                    minDensity: 0.78,
+                  });
+                  const lotBx0 = Math.min(...lotPolyPx_face.map(p => p.x));
+                  const lotBx1 = Math.max(...lotPolyPx_face.map(p => p.x));
+                  const lotBy0 = Math.min(...lotPolyPx_face.map(p => p.y));
+                  const lotBy1 = Math.max(...lotPolyPx_face.map(p => p.y));
+                  rasterWallsForRect = rasterWalls.filter((w) => {
+                    const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+                    if (len < 6) return false;
+                    const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+                    return cx >= lotBx0 && cx <= lotBx1 && cy >= lotBy0 && cy <= lotBy1;
+                  });
+                } catch (rastErr) {
+                  console.warn(
+                    `[extract/s28-tour18] plan ${plan.id} raster walls failed:`,
+                    rastErr instanceof Error ? rastErr.message : rastErr,
+                  );
+                }
+
+                // 2) Pool complet de murs : externes lot + internes vectoriels
+                //    + raster + bords du lot (segments du polygone lot).
+                const lotEdgeWalls = lotPolygonAsWalls(lotPolyPx_face);
+                const allWallsForRect: RectWall[] = [
+                  ...result.wallSegments.map((s) => ({ x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 })),
+                  ...internalWalls_face.map((w) => ({ x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2 })),
+                  ...rasterWallsForRect,
+                  ...lotEdgeWalls,
+                ];
+
+                // 3) Labels (pixel image) avec surfaces PDF
+                const rectLabels = labelsOnly.map((l) => ({
+                  text: l.text,
+                  x: (l.x_percent / 100) * result.imageWidth,
+                  y: (l.y_percent / 100) * result.imageHeight,
+                  surface_m2: l.surface_m2 ?? null,
+                }));
+
+                // 4) Extraction rectangles
+                const rectRooms = extractRoomsAsRectangles(
+                  rectLabels,
+                  allWallsForRect,
+                  lotPolyPx_face,
+                  {
+                    minMarginPx: 4,
+                    angleTolDeg: 12,
+                    insetPx: 0,
+                    detectLShapes: true,
+                  },
+                );
+
+                console.log(
+                  `[extract/s28-tour18-rect] plan ${plan.id} bbox-from-walls : ${rectRooms.length}/${labelsOnly.length} pièces rectangulaires`,
+                );
+
+                // 5) Re-calibrage scale si surfaces PDF disponibles
+                {
+                  const cands = rectRooms
+                    .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+                    .map((r) => ({ pdf: r.pdfSurfaceM2!, area: r.areaPx2 }));
+                  if (cands.length >= 2) {
+                    const ks = cands.map((c) => c.pdf / c.area).sort((a, b) => a - b);
+                    const medianK = ks[Math.floor(ks.length / 2)];
+                    const filtered = cands.filter((c) => {
+                      const k = c.pdf / c.area;
+                      return k >= medianK * 0.5 && k <= medianK * 2.0;
+                    });
+                    if (filtered.length >= 2) {
+                      const fk = filtered.map((c) => c.pdf / c.area).sort((a, b) => a - b);
+                      const newScale = fk[Math.floor(fk.length / 2)];
+                      if (newScale > 0 && Number.isFinite(newScale)) {
+                        const oldScale = scaleM2PerPx2;
+                        scaleM2PerPx2 = newScale;
+                        console.log(
+                          `[extract/s28-tour18-rect] plan ${plan.id} scale calibré : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${filtered.length}/${cands.length} rooms PDF)`,
+                        );
+                      }
+                    }
+                  }
+                }
+
+                // 6) Push direct dans builders_face (court-circuit pipeline flood-fill)
+                for (const r of rectRooms) {
+                  const polyGlobal = r.polygon.map((p) => ({
+                    x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
+                    y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
+                  }));
+                  builders_face.push({
+                    name: r.label,
+                    roomType: inferRoomTypeFromName(r.label),
+                    surfaceM2: 0, // rempli en Step 11 plus bas
+                    polyGlobalPct: polyGlobal,
+                    source: "floodfill_labeled",
+                    areaPx2: r.areaPx2,
+                    pdfSurfaceM2: r.pdfSurfaceM2,
+                  });
+                }
+              } catch (rectErr) {
+                console.error(
+                  `[extract/s28-tour18-rect] plan ${plan.id} bbox-from-walls failed:`,
+                  rectErr instanceof Error ? rectErr.message : rectErr,
+                );
+              }
+            } else if (pngBuf && labelsOnly.length > 0) {
               // s28 tour 13 — Vectorisation des cloisons RASTER PNG.
               // Cohérent avec l'audit (s28-audit-strict appelle la même fonction).
               // Les cloisons en peinture noire (SDB/WC F1, parois fines F0/F3)
