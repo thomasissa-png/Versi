@@ -421,6 +421,93 @@ function expandToFit(
 }
 
 /**
+ * Enforce PDF surfaces : pour chaque pièce avec pdfSurfaceM2 connue, on
+ * calcule le ratio actuel = areaPx2 * scale / pdfSurfaceM2.
+ * Si le ratio > 1.20 (rectangle trop grand de plus de 20%), on shrink le
+ * rectangle vers le seed proportionnellement, en gardant le seed à
+ * l'intérieur. Ne grossit jamais (évite la regénération de chevauchements).
+ *
+ * scale est calculé sur la médiane des ratios area/pdf des pièces "fiables"
+ * (= ratio dans [0.7, 1.4] = bien dimensionnées).
+ */
+function enforcePdfSurfaces(
+  rooms: RectangleRoom[],
+  seeds: Array<{ x: number; y: number }>,
+  _lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+): RectangleRoom[] {
+  // Calcul scale médian
+  const candidates = rooms
+    .map((r, i) => ({ r, i }))
+    .filter((x) => x.r.pdfSurfaceM2 != null && x.r.pdfSurfaceM2 > 0 && x.r.areaPx2 > 0);
+  if (candidates.length < 2) return rooms;
+  const ks = candidates.map((c) => c.r.pdfSurfaceM2! / c.r.areaPx2).sort((a, b) => a - b);
+  const medianK = ks[Math.floor(ks.length / 2)];
+  // Filtre outliers
+  const filtered = candidates.filter((c) => {
+    const k = c.r.pdfSurfaceM2! / c.r.areaPx2;
+    return k >= medianK * 0.5 && k <= medianK * 2.0;
+  });
+  const scale = filtered.length >= 2
+    ? filtered.map((c) => c.r.pdfSurfaceM2! / c.r.areaPx2).sort((a, b) => a - b)[Math.floor(filtered.length / 2)]
+    : medianK;
+
+  // Pour chaque pièce avec PDF surface, shrink si trop grand
+  return rooms.map((r, idx) => {
+    if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) return r;
+    if (r.areaPx2 <= 0) return r;
+    const currentM2 = r.areaPx2 * scale;
+    const ratio = currentM2 / r.pdfSurfaceM2;
+    if (ratio <= 1.20) return r; // OK ou trop petit (on ne grossit pas)
+    // Shrink vers le seed. Facteur linéaire = sqrt(target / current)
+    // (pour matcher l'aire après shrink isotrope).
+    const targetArea = r.pdfSurfaceM2 / scale;
+    const shrinkFactor = Math.sqrt(targetArea / r.areaPx2);
+    if (shrinkFactor >= 1) return r;
+    const seed = seeds[idx];
+    const cx = (r.bbox.xMin + r.bbox.xMax) / 2;
+    const cy = (r.bbox.yMin + r.bbox.yMax) / 2;
+    // On shrink autour du centre du rectangle, puis on s'assure que le seed
+    // reste dedans (sinon on décale).
+    const halfW = (r.bbox.xMax - r.bbox.xMin) / 2 * shrinkFactor;
+    const halfH = (r.bbox.yMax - r.bbox.yMin) / 2 * shrinkFactor;
+    let newXMin = cx - halfW;
+    let newXMax = cx + halfW;
+    let newYMin = cy - halfH;
+    let newYMax = cy + halfH;
+    // Ajuster pour englober le seed (avec marge 5px)
+    const seedMargin = 5;
+    if (seed.x < newXMin + seedMargin) {
+      const shift = newXMin + seedMargin - seed.x;
+      newXMin -= shift;
+      newXMax -= shift;
+    }
+    if (seed.x > newXMax - seedMargin) {
+      const shift = seed.x - (newXMax - seedMargin);
+      newXMin += shift;
+      newXMax += shift;
+    }
+    if (seed.y < newYMin + seedMargin) {
+      const shift = newYMin + seedMargin - seed.y;
+      newYMin -= shift;
+      newYMax -= shift;
+    }
+    if (seed.y > newYMax - seedMargin) {
+      const shift = seed.y - (newYMax - seedMargin);
+      newYMin += shift;
+      newYMax += shift;
+    }
+    const newBbox = { xMin: newXMin, yMin: newYMin, xMax: newXMax, yMax: newYMax };
+    const newPoly = buildRectangle(newBbox.yMin, newBbox.yMax, newBbox.xMax, newBbox.xMin);
+    return {
+      ...r,
+      polygon: newPoly,
+      areaPx2: polygonArea(newPoly),
+      bbox: newBbox,
+    };
+  });
+}
+
+/**
  * Résout les chevauchements 2 à 2 par "cession" : pour chaque paire qui
  * se chevauche, on calcule la médiatrice (direction principale du chevauchement)
  * et on tronque le rectangle dont le centroïde est le plus loin de la frontière
@@ -664,7 +751,14 @@ export function extractRoomsAsRectangles(
   const expanded = expandToFit(rooms, lotBbox);
 
   // Étape 2 : résolution des chevauchements (au cas où expand a généré des conflits)
-  const resolved = resolveOverlaps(expanded);
+  let resolved = resolveOverlaps(expanded);
+
+  // Étape 2.5 : conformité PDF (passes d'ajustement aux surfaces architecte).
+  // On calcule un scale médian (px²/m²) à partir des pièces dont l'aire est
+  // proche de la valeur PDF, puis on RÉDUIT les rectangles trop grands en
+  // shrinkant vers le seed jusqu'à matcher la surface PDF.
+  // Ne grossit JAMAIS un rectangle (= éviterait re-overlap).
+  resolved = enforcePdfSurfaces(resolved, seeds, lotBbox);
 
   // Étape 3 : clip dans le lot
   const clipped = resolved.map((r) => {
