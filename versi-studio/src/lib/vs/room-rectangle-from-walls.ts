@@ -686,7 +686,26 @@ export function extractRoomsAsRectangles(
     : withLShapes;
 
   // Étape 6 : recalcul areaPx2 final
-  return inset.map((r) => ({ ...r, areaPx2: polygonArea(r.polygon) }));
+  const finalRooms = inset.map((r) => ({ ...r, areaPx2: polygonArea(r.polygon) }));
+
+  // Étape 7 : filtre micro-pièces hallucinées.
+  // Règle métier : un label ECS / TGBT / Local technique / placard <3m² qui
+  // n'est pas une "vraie" pièce habitable (WC, SdB, SdE, Cellier, Couloir,
+  // Entrée, Palier sont des cas où <3m² est acceptable).
+  // Les ECS RDC Muguets sont des locaux techniques sous escalier — pas de
+  // vraie pièce. Sur R+1/R+3 l'ECS est dans un placard technique légitime.
+  // Pour discriminer, on rejette si :
+  //   - nom = ECS (équivalent local technique)
+  //   - ET PDF surface absente OU < 1.5m²
+  // Sur R+1 ECS = 1.2m² → rejeté aussi ❌. Donc on garde uniquement la règle
+  // "no PDF surface" (= label sans m² donc artefact).
+  // Compromis V1 : filtre uniquement pièces SANS surface PDF ET nom dans la
+  // blacklist micro (ECS, TGBT). Les pièces avec surface PDF connue restent.
+  // V2 : on n'applique PAS de filtre business ici. La règle "ECS RDC =
+  // pas une pièce" est métier et fragile à hardcoder. On laisse le pipeline
+  // produire ce qui est lu sur le PDF, et l'utilisateur valide manuellement.
+  // Sur R+1/R+3 ECS est légitime (placard technique étiqueté).
+  return finalRooms;
 }
 
 /**
