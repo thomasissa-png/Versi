@@ -1446,7 +1446,10 @@ export async function extractRoomsByQuotaFloodFill(
       const seal3Trial = trials.find(t => t.name === "seal3");
       if (seal3Trial && !seal3Trial.runaway && seal3Trial.area / s.quotaPx2 < 0.95) {
         const baseRegion = seal3Trial.region;
-        const RING_RADIUS = 6; // pixels max d'expansion (= rayon dilatation seal3 + 3)
+        // s28 tour 15 fix8 — RING_RADIUS=18 : compensation agressive de la perte
+        // observée smartLineSnap (-25% sur Chambre 01 F1 : BFS 14.78 m² → final
+        // 11.9 m²). wallBarrierStrict empêche la fuite par les vrais murs.
+        const RING_RADIUS = 18;
         const expanded = new Uint8Array(W * H);
         for (let i = 0; i < W * H; i++) expanded[i] = baseRegion[i];
         let area = seal3Trial.area;
