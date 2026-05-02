@@ -1501,16 +1501,30 @@ export async function POST(
                   }));
                   for (let ri = 0; ri < cleanRooms.length; ri++) {
                     const r = cleanRooms[ri];
+                    // s28 tour 15 — Si on connaît surface_m2 PDF, on valide
+                    // contre la CIBLE PDF (pas l'aire actuelle, qui peut elle-
+                    // même être mal placée). Cible = pdfM2 / scaleM2PerPx2.
+                    // Tolérance [0.85, 1.15] = même que Inv A audit.
+                    const targetAreaPx2 = (r.surface_m2 != null && r.surface_m2 > 0 && scaleM2PerPx2 > 0)
+                      ? r.surface_m2 / scaleM2PerPx2
+                      : undefined;
                     const res = rebuildBboxFromWalls(r.polygon, wallsForBbox, {
                       outlierThresholdPx: 10,
                       outlierRatioTrigger: 0.5,
                       maxAreaDriftRatio: 0.18,
-                      // searchWindowPx étroit (80px) : on ne snape qu'aux
-                      // murs PROCHES du bord bbox. Si pas de mur dans 80px,
-                      // on garde le bord original (mode soft, voir bbox-rebuild).
-                      searchWindowPx: 80,
+                      // searchWindowPx large (150px) : pour SDE F3 le mur sud
+                      // est à 79px de la bbox, et le mur nord à 28px. On veut
+                      // capturer ces murs "lointains" tant que la cible PDF
+                      // est respectée.
+                      searchWindowPx: 150,
                       orthoTolDeg: 8,
-                      minWallLenPx: 30,
+                      // minWallLenPx=15 : capturer aussi les courts murs
+                      // (17-29px) qui sont parfois la séparation interne
+                      // entre 2 cellules (cas SDE F3 : mur Y=1551 = sépar Palier).
+                      minWallLenPx: 15,
+                      targetAreaPx2,
+                      targetAreaToleranceMin: 0.85,
+                      targetAreaToleranceMax: 1.15,
                     });
                     if (res.rebuilt) {
                       cleanRooms[ri] = { ...r, polygon: res.polygon };
