@@ -747,14 +747,17 @@ export async function POST(
                       simplifyTolerancePx: 4,
                       minAreaPx2: 500,
                       seedSearchRadius: 100,
-                      // s28 tour 17 fix1 — door-seal 6 (vs 4) : porte SDB F2
-                      // mesurait 5px → fuite vers Entrée. 6 ferme proprement
-                      // toutes les portes Muguets sans bouffer les pièces.
+                      // s28 tour 17 fix2 — multi-tier door-seal bracketing
+                      // (4, 6, 8, 10) avec auto-sélection du tier sans fuite
+                      // catastrophique. doorSealRadius ici = fallback si
+                      // scaleM2PerPx2 absent.
                       doorSealRadius: 6,
                       vectorWallSegments: allWalls_snap,
                       vectorWallThickness: 4,
                       aptSeparatorSegments: aptSeparators,
                       aptSeparatorThickness: 8,
+                      // Permet le bracketing multi-tier
+                      scaleM2PerPx2: scaleM2PerPx2 > 0 ? scaleM2PerPx2 : undefined,
                     },
                   );
                   // Validation simple : count seuls pièces extraites.

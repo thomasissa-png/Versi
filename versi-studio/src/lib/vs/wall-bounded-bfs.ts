@@ -485,11 +485,16 @@ function fillOrphanPixels(
  *      au seed le plus proche en distance BFS (contournant les murs).
  *   5. Phase orphelins : pixels libres restants → seed le plus proche.
  *   6. Trace contour, simplify DP, retourne polygones.
+ *
+ * Multi-tier door-seal : si scaleM2PerPx2 fourni ET pdf-surface présents,
+ * essaye plusieurs door-seal radius (4, 6, 8, 10) et choisit le tier qui
+ * minimise les fuites (= ratio max polM2/pdfM2 le plus petit). Pas de pdf
+ * surface → un seul tier (doorSealRadius option).
  */
 export async function extractRoomsByWallBoundedFloodFill(
   pngBuffer: Buffer,
   labels: LabelSeedWB[],
-  options: WallBoundedOptions,
+  options: WallBoundedOptions & { scaleM2PerPx2?: number },
 ): Promise<RoomPolygonWB[]> {
   const wallLumThreshold = options.wallLumThreshold ?? 210;
   const wallSaturationThreshold = options.wallSaturationThreshold ?? 0.25;
@@ -504,6 +509,7 @@ export async function extractRoomsByWallBoundedFloodFill(
   const aptSeparators = options.aptSeparatorSegments ?? [];
   const aptSeparatorThickness = options.aptSeparatorThickness ?? 6;
   const lotPolyPx = options.lotPolygonPx;
+  const scaleM2PerPx2 = options.scaleM2PerPx2;
 
   // 1. Build wall mask depuis PNG + vector walls + raster walls + apt sep + lot edge
   const { mask: pngMask, W, H } = await buildWallMask(pngBuffer, wallLumThreshold, wallSaturationThreshold);
@@ -528,106 +534,161 @@ export async function extractRoomsByWallBoundedFloodFill(
   for (const seg of aptSeparators) {
     drawSegment(wallBarrier, W, H, seg.x1, seg.y1, seg.x2, seg.y2, aptSeparatorThickness);
   }
-  // Door seal (dilatation morphologique des murs pour fermer les portes ouvertes)
-  const sealedBarrier: Uint8Array = doorSealRadius > 0
-    ? dilate(wallBarrier, W, H, doorSealRadius)
-    : wallBarrier;
-
-  // 2. Build lot mask
+  // 2. Build lot mask (commun à tous les tiers)
   const inLot = buildLotMask(W, H, lotPolyPx);
 
-  // 3. Place seeds (1 par label) dans le lot et hors mur
-  const seedPositions: Array<{ x: number; y: number; idx: number; label: LabelSeedWB }> = [];
-  for (let li = 0; li < labels.length; li++) {
-    const lab = labels[li];
-    const sx = (lab.x_percent / 100) * W;
-    const sy = (lab.y_percent / 100) * H;
-    // Project into lot
-    let cx = Math.round(sx), cy = Math.round(sy);
-    if (cx < 0 || cx >= W || cy < 0 || cy >= H || !inLot[cy * W + cx]) {
-      // Project on lot bbox (simplifié)
-      let lminX = W, lmaxX = 0, lminY = H, lmaxY = 0;
-      for (const p of lotPolyPx) {
-        if (p.x < lminX) lminX = p.x;
-        if (p.x > lmaxX) lmaxX = p.x;
-        if (p.y < lminY) lminY = p.y;
-        if (p.y > lmaxY) lmaxY = p.y;
+  // Tiers door-seal à essayer : si scaleM2PerPx2 dispo, on bracketing.
+  // Sinon, juste le doorSealRadius option.
+  const tierRadii: number[] = scaleM2PerPx2 != null && scaleM2PerPx2 > 0
+    ? [4, 6, 8, 10]
+    : [doorSealRadius];
+  // Toujours s'assurer que le radius option est dans la liste
+  if (!tierRadii.includes(doorSealRadius)) tierRadii.push(doorSealRadius);
+
+  type TierResult = {
+    radius: number;
+    rooms: RoomPolygonWB[];
+    maxLeakRatio: number; // ratio max polM2/pdfM2 (∞ si labels sans pdf only)
+    underCount: number;   // nb rooms ratio < 0.85
+    seedsExtracted: number;
+  };
+  const tierResults: TierResult[] = [];
+
+  for (const radius of tierRadii) {
+    const sealedBarrier: Uint8Array = radius > 0
+      ? dilate(wallBarrier, W, H, radius)
+      : new Uint8Array(wallBarrier);
+
+    // 3. Place seeds dans le lot et hors mur (refait par tier car sealedBarrier change)
+    const seedPositions: Array<{ x: number; y: number; idx: number; label: LabelSeedWB }> = [];
+    for (let li = 0; li < labels.length; li++) {
+      const lab = labels[li];
+      const sx = (lab.x_percent / 100) * W;
+      const sy = (lab.y_percent / 100) * H;
+      let cx = Math.round(sx), cy = Math.round(sy);
+      if (cx < 0 || cx >= W || cy < 0 || cy >= H || !inLot[cy * W + cx]) {
+        let lminX = W, lmaxX = 0, lminY = H, lmaxY = 0;
+        for (const p of lotPolyPx) {
+          if (p.x < lminX) lminX = p.x;
+          if (p.x > lmaxX) lmaxX = p.x;
+          if (p.y < lminY) lminY = p.y;
+          if (p.y > lmaxY) lmaxY = p.y;
+        }
+        cx = Math.max(Math.round(lminX) + 1, Math.min(Math.round(lmaxX) - 1, cx));
+        cy = Math.max(Math.round(lminY) + 1, Math.min(Math.round(lmaxY) - 1, cy));
       }
-      cx = Math.max(Math.round(lminX) + 1, Math.min(Math.round(lmaxX) - 1, cx));
-      cy = Math.max(Math.round(lminY) + 1, Math.min(Math.round(lmaxY) - 1, cy));
+      const seed = findSeed(sealedBarrier, W, H, cx, cy, seedSearchRadius);
+      if (!seed) continue;
+      if (!inLot[seed.y * W + seed.x]) continue;
+      seedPositions.push({
+        x: seed.x, y: seed.y,
+        idx: seedPositions.length,
+        label: lab,
+      });
     }
-    // Trouver un seed non-mur dans la masque sealed
-    const seed = findSeed(sealedBarrier, W, H, cx, cy, seedSearchRadius);
-    if (!seed) continue;
-    if (!inLot[seed.y * W + seed.x]) continue;
-    seedPositions.push({
-      x: seed.x, y: seed.y,
-      idx: seedPositions.length,
-      label: lab,
-    });
-  }
 
-  if (seedPositions.length === 0) return [];
+    if (seedPositions.length === 0) continue;
 
-  // 4. BFS multi-source compétitif Voronoï discret
-  const ownership = new Int16Array(W * H);
-  ownership.fill(-1);
-  const stateResults = bfsCompetitive(
-    ownership,
-    sealedBarrier,
-    W, H,
-    seedPositions.map(s => ({ x: s.x, y: s.y, idx: s.idx })),
-    inLot,
-  );
+    // 4. BFS multi-source compétitif Voronoï discret
+    const ownership = new Int16Array(W * H);
+    ownership.fill(-1);
+    bfsCompetitive(
+      ownership,
+      sealedBarrier,
+      W, H,
+      seedPositions.map(s => ({ x: s.x, y: s.y, idx: s.idx })),
+      inLot,
+    );
+    // 5. Phase orphelins (en utilisant la sealedBarrier de ce tier — pour ne pas
+    // franchir des murs minces que ce tier sealed bouche)
+    fillOrphanPixels(ownership, sealedBarrier, inLot, W, H);
 
-  void stateResults;
-  // 5. Phase orphelins : récupérer les pixels in-lot non-mur restants
-  fillOrphanPixels(ownership, sealedBarrier, inLot, W, H);
+    // 6. Construit les polygones pour ce tier
+    const rooms: RoomPolygonWB[] = [];
+    for (const s of seedPositions) {
+      const region = new Uint8Array(W * H);
+      let minX = W, minY = H, maxX = 0, maxY = 0;
+      let area = 0;
+      for (let i = 0; i < W * H; i++) {
+        if (ownership[i] === s.idx) {
+          region[i] = 1;
+          area++;
+          const x = i % W, y = (i - x) / W;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+      if (area < minAreaPx2) continue;
+      const contour = traceContour(region, W, H, { minX, minY, maxX, maxY });
+      if (contour.length < 4) continue;
+      const simplified = dpSimplify(contour, simplifyTolerancePx);
+      if (simplified.length < 4) continue;
+      let cx = 0, cy = 0;
+      for (const p of simplified) { cx += p.x; cy += p.y; }
+      cx /= simplified.length;
+      cy /= simplified.length;
+      rooms.push({
+        text: s.label.text,
+        surface_m2: s.label.surface_m2,
+        polygon: simplified,
+        areaPx2: area,
+        centroid: { x: cx, y: cy },
+      });
+    }
 
-  // 6. Trace contour pour chaque seed et construit les polygones
-  const out: RoomPolygonWB[] = [];
-  for (const s of seedPositions) {
-    const region = new Uint8Array(W * H);
-    let minX = W, minY = H, maxX = 0, maxY = 0;
-    let area = 0;
-    for (let i = 0; i < W * H; i++) {
-      if (ownership[i] === s.idx) {
-        region[i] = 1;
-        area++;
-        const x = i % W, y = (i - x) / W;
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
+    // Calcul fuite et sous-extraction
+    let maxLeakRatio = 0;
+    let underCount = 0;
+    if (scaleM2PerPx2 != null && scaleM2PerPx2 > 0) {
+      for (const r of rooms) {
+        if (r.surface_m2 == null || r.surface_m2 <= 0) continue;
+        const polM2 = polyArea(r.polygon) * scaleM2PerPx2;
+        const ratio = polM2 / r.surface_m2;
+        if (ratio > maxLeakRatio) maxLeakRatio = ratio;
+        if (ratio < 0.85) underCount++;
       }
     }
-    if (area < minAreaPx2) continue;
 
-    const contour = traceContour(region, W, H, { minX, minY, maxX, maxY });
-    if (contour.length < 4) continue;
-    const simplified = dpSimplify(contour, simplifyTolerancePx);
-    if (simplified.length < 4) continue;
-
-    let cx = 0, cy = 0;
-    for (const p of simplified) { cx += p.x; cy += p.y; }
-    cx /= simplified.length;
-    cy /= simplified.length;
-
-    out.push({
-      text: s.label.text,
-      surface_m2: s.label.surface_m2,
-      polygon: simplified,
-      areaPx2: area,
-      centroid: { x: cx, y: cy },
+    tierResults.push({
+      radius,
+      rooms,
+      maxLeakRatio,
+      underCount,
+      seedsExtracted: rooms.length,
     });
+
+    console.log(`[wall-bounded-bfs/tier${radius}] ${seedPositions.length} seeds → ${rooms.length} pièces, maxLeak=${maxLeakRatio.toFixed(2)}, under=${underCount}`);
   }
 
-  // Logging
-  console.log(`[wall-bounded-bfs] ${seedPositions.length} seeds → ${out.length} pièces`);
-  for (const r of out) {
-    const polA = polyArea(r.polygon);
-    console.log(`  ${r.text}: areaPx²=${r.areaPx2} polygonAreaPx²=${polA.toFixed(0)} vertices=${r.polygon.length}`);
+  if (tierResults.length === 0) return [];
+
+  // Sélection : meilleur tier = ratio max ≤ 1.5 (= pas de fuite catastrophique)
+  // ET maximisant le count rooms. Si tous les tiers fuit, garder le meilleur
+  // ratio.
+  // Pas de pdf-surface (scaleM2PerPx2 absent) → renvoyer le 1er.
+  let chosen: TierResult | null = null;
+  if (scaleM2PerPx2 == null || scaleM2PerPx2 <= 0) {
+    chosen = tierResults[0];
+  } else {
+    // Filtre tiers sans fuite catastrophique
+    const cleanTiers = tierResults.filter(t => t.maxLeakRatio <= 1.5);
+    if (cleanTiers.length > 0) {
+      // Parmi clean : minimiser underCount, puis maxLeakRatio le plus proche de 1
+      cleanTiers.sort((a, b) => {
+        if (a.underCount !== b.underCount) return a.underCount - b.underCount;
+        return Math.abs(a.maxLeakRatio - 1) - Math.abs(b.maxLeakRatio - 1);
+      });
+      chosen = cleanTiers[0];
+    } else {
+      // Aucun tier propre : prendre celui avec le maxLeak le plus petit
+      tierResults.sort((a, b) => a.maxLeakRatio - b.maxLeakRatio);
+      chosen = tierResults[0];
+    }
   }
 
-  return out;
+  console.log(`[wall-bounded-bfs] CHOSEN tier=${chosen.radius} rooms=${chosen.rooms.length} maxLeak=${chosen.maxLeakRatio.toFixed(2)}`);
+
+  return chosen.rooms;
 }
