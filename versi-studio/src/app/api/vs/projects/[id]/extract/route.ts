@@ -1032,13 +1032,11 @@ export async function POST(
                   const snap2Area = polygonAreaPx2_pre(snap2.polygon);
                   const snap25Area = polygonAreaPx2_pre(snap25.polygon);
                   const snap3Area = polygonAreaPx2_pre(snap3.polygon);
+                  // s28 tour 15 fix14 reverted : drift 25% pour petites pièces
+                  // dégradait Inv A (Cellier passait à 1.23×, Chambre 01 à 0.84×).
+                  // Retour au driftThr 0.08 original (= équilibre stable).
                   let finalPoly: VoronoiVertex[];
-                  // s28 tour 15 fix14 — drift 25% acceptable POUR LES PETITES
-                  // PIÈCES ONLY (< 5 m²). Les WC/Cellier/SDE ont des polygones
-                  // sensibles au drift (1m² → 1.25m² = 25% drift mais 0.25m² absolu).
-                  // Pour les grandes pièces (>5m²), garder driftThr=12%.
-                  const isSmallRoomDrift = (r.surface_m2 != null && r.surface_m2 < 5);
-                  const driftThr = isSmallRoomDrift ? 0.25 : 0.12;
+                  const driftThr = 0.08;
                   const driftOf = (a: number) => draggedArea > 0 ? Math.abs(a - draggedArea) / draggedArea : 0;
                   if (driftOf(snap3Area) < driftThr) {
                     finalPoly = snap3.polygon;
