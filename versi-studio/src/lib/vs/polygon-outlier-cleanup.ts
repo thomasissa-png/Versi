@@ -279,16 +279,30 @@ export function cleanupOutliers(
   // ET garde-fou ratio PDF si fourni (priorité Inv A audit).
   const pdfTargetM2 = options.pdfTargetM2 ?? null;
   const scaleM2PerPx2 = options.scaleM2PerPx2 ?? 0;
+  // Pré-check : si la pièce est déjà à ratio hors [0.90, 1.10] vs PDF,
+  // mieux vaut NE PAS faire le snap-forcé (risque pousser hors audit).
+  let allowForcedSnap = true;
+  if (pdfTargetM2 != null && pdfTargetM2 > 0 && scaleM2PerPx2 > 0) {
+    const initRatio = (polygonAreaPx(cleaned) * scaleM2PerPx2) / pdfTargetM2;
+    if (initRatio < 0.92 || initRatio > 1.08) {
+      allowForcedSnap = false;
+    }
+  }
+  if (!allowForcedSnap) outlierCandidates.length = 0;
   for (const cand of outlierCandidates) {
     const trial = cleaned.map((v, i) => i === cand.idx ? cand.bestProj : { ...v });
     const trialArea = polygonAreaPx(trial);
     const driftCum = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
     if (driftCum > opts.areaDriftMax) continue;
-    // Garde-fou PDF strict (1pp marge vs audit [0.85, 1.15] → [0.86, 1.14])
+    // Garde-fou PDF strict — marge 5pp vs audit [0.85, 1.15] → [0.90, 1.10]
+    // Justification : le scale scaleM2PerPx2 est global (médiane lot), peut
+    // diverger de 5% du scale audit (médiane par-pièce) pour des pièces
+    // particulières. Marge 5pp absorbe cet écart pour ne pas pousser
+    // une pièce déjà près des bornes hors tolérance audit.
     if (pdfTargetM2 != null && pdfTargetM2 > 0 && scaleM2PerPx2 > 0) {
       const trialAreaM2 = trialArea * scaleM2PerPx2;
       const ratio = trialAreaM2 / pdfTargetM2;
-      if (ratio < 0.86 || ratio > 1.14) continue;
+      if (ratio < 0.90 || ratio > 1.10) continue;
     }
     cleaned = trial;
   }
