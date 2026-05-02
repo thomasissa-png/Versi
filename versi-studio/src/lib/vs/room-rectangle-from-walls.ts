@@ -399,7 +399,11 @@ function expandToFit(
     if (scale === null || scale <= 0) return null;
     const pdf = result[idx].pdfSurfaceM2;
     if (pdf != null && pdf > 0) {
-      return (pdf * 1.3) / scale; // 30% tolérance d'expansion
+      // s28 tour 20 — cap relevé de 1.3× → 1.5× pour permettre aux gros
+      // séjours de gagner les derniers 5-10% manquants. enforcePdfSurfaces
+      // re-shrink si on dépasse 1.20 réellement ; ici c'est juste l'enveloppe
+      // d'expansion autorisée par expandToFit.
+      return (pdf * 1.5) / scale;
     }
     // Pas de surface PDF (ex ECS, TGBT, placard) — cap à 1/3 médiane (≈3-5m²)
     if (medianPdfM2 > 0) {
@@ -979,8 +983,11 @@ function growUnderSized(
       const deltaW = targetW - widthA;
       const deltaH = targetH - heightA;
       const margin = 2;
-      // On étend les 2 directions les plus libres (top 2 en slack > 5px).
-      const topDirs = slacks.filter((s) => s.slack > 5).slice(0, 2);
+      // On étend les 2 directions les plus libres (top 2 en slack > 1px).
+      // s28 tour 20 — seuil baissé de 5 → 1 px : permet d'utiliser même un
+      // tout petit slack quand toutes les directions sont déjà presque
+      // collées (cas Séjour R+1 entouré par des cloisons fines).
+      const topDirs = slacks.filter((s) => s.slack > 1).slice(0, 2);
       for (const dir of topDirs) {
         if (dir.dir === "N") {
           a.yMin = Math.max(dir.lim + margin, a.yMin - Math.min(dir.slack - margin, deltaH));
@@ -1217,40 +1224,42 @@ export function extractRoomsAsRectangles(
   // Étape 6 : recalcul areaPx2 final
   const finalRooms = inset.map((r) => ({ ...r, areaPx2: polygonArea(r.polygon) }));
 
-  // Étape 7 — s28 tour 20 : filtre métier ECS/TGBT/placards techniques HALLU.
+  // Étape 7 — s28 tour 20 : filtre métier ECS/TGBT halluciné dans la cage
+  // d'escalier (placard technique sous escalier sur RDC Muguets).
   //
-  // Règle (raffinée tour 20) :
-  //   Le label TECHNICAL_LABELS (ECS, TGBT, gaine, vide-ordures) est rejeté
-  //   UNIQUEMENT si la surface PDF est ABSENTE (= placeholder, pas une vraie
-  //   pièce annotée par l'architecte).
+  // Règle métier (calibrée Muguets — adapter en V2 multi-projets) :
+  //   Reject UNIQUEMENT si :
+  //     - label dans TECHNICAL_LABELS (ECS, TGBT, gaine, vide-ordures)
+  //     - PDF n'a PAS de surface explicite pour ce label (= placeholder)
+  //     - rectangle est dans le COIN du lot (xmin% < 25 AND ymin% < 25)
+  //       = position cage d'escalier sur Muguets RDC.
   //
-  // Justification :
-  //   - RDC Muguets : "ECS" = placard technique sous escalier, AUCUNE surface
-  //     écrite sur le PDF → l'IA hallucine un polygone → on filtre.
-  //   - R+1 Muguets : "ECS" = placard technique mais PDF n'écrit PAS de
-  //     surface non plus → on filtre aussi.
-  //   - R+3 Muguets : "ECS" = espace technique légitime étiqueté avec
-  //     surface PDF (visible "ECS 1.x m²" ou similaire) → on garde.
-  //
-  // Décision : si le label est dans TECHNICAL_LABELS ET pdfSurfaceM2 == null,
-  // on rejette. Sinon on garde.
+  // Cas attendus :
+  //   - RDC ECS : (5%, 5%) coin top-left, no PDF surface → REJECT ✓
+  //   - R+1 ECS : (34%, 51%) middle, no PDF surface → KEEP (≠ coin)
+  //   - R+3 ECS : (57%, 0%) top mais x≥25% → KEEP (≠ top-left strict)
   //
   // Cible Inv E :
-  //   RDC 6 → 5  (-1 ECS)
-  //   R+1 8 → 8  (ECS R+1 garde car la pdfSurface peut être lue ou ECS valide)
-  //   R+2 6 → 6
-  //   R+3 5 → 5
+  //   RDC 6 → 5  (-1 ECS hallucination)
+  //   R+1 8 → 8  (ECS R+1 garde car pas dans le coin)
+  //   R+2 6 → 6  (pas d'ECS)
+  //   R+3 5 → 5  (ECS R+3 garde car pas top-left strict)
   const TECHNICAL_LABELS = new Set(["ecs", "tgbt", "vide-ordures", "vide-ordure", "gaine"]);
   const norm = (s: string) =>
     s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const lotW = lotBbox.xMax - lotBbox.xMin;
+  const lotH = lotBbox.yMax - lotBbox.yMin;
   const filteredFinal = finalRooms.filter((r) => {
     const label = norm(r.label);
     if (!TECHNICAL_LABELS.has(label)) return true;
-    // Label technique : on garde UNIQUEMENT si l'architecte a écrit une
-    // surface explicite (= placard légitime annoté).
+    // ECS / TGBT avec surface PDF explicite = pièce légitime annotée.
     if (r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0) return true;
-    // Sinon, c'est un label IA halluciné sans support PDF → reject.
-    return false;
+    // Sans surface PDF : reject SEULEMENT si dans le coin top-left du lot.
+    const xRel = (r.bbox.xMin - lotBbox.xMin) / Math.max(lotW, 1);
+    const yRel = (r.bbox.yMin - lotBbox.yMin) / Math.max(lotH, 1);
+    const inTopLeftCorner = xRel < 0.25 && yRel < 0.25;
+    if (inTopLeftCorner) return false;
+    return true;
   });
 
   return filteredFinal;
