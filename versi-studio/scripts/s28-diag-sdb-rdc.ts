@@ -65,8 +65,8 @@ async function main() {
 
   // Extraire les murs internes
   const { extractInternalWallSegments } = await import("../src/lib/vs/lot-vector-extractor");
-  const wallsRes = await extractInternalWallSegments(buf, lotPolyPx, 3);
-  const walls = wallsRes.walls;
+  const wallsRaw = await extractInternalWallSegments(buf, lotPolyPx, { scale: 3, multiColor: true });
+  const walls = wallsRaw;
   console.log(`\nNombre de segments murs : ${walls.length}`);
 
   // Murs horizontaux dans une bande proche de SdB (±200px en X autour du label)

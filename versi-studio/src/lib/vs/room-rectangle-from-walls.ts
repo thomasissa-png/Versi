@@ -1395,6 +1395,223 @@ function extendToBuildingExteriorWalls(
 }
 
 /**
+ * s28 tour 23 — TRANSLATION (pas resize) des rectangles vers les murs
+ * extérieurs du bâtiment quand un bord libre est proche d'un mur.
+ *
+ * Diagnostic tour 22 : `extendToBuildingExteriorWalls` est bloqué par le
+ * cap PDF surface (Inv A 0.85-1.15). Sur SdB RDC :
+ *   - rect post-shrink : yMin=1216, yMax=1578 (bonne surface PDF)
+ *   - mur extérieur N à y=1090 (gap 126px)
+ *   - cap PDF n'autorise extension que de +108px → reste 18px de gap visible
+ *
+ * Solution : TRANSLATER le rectangle (déplacement, pas redimensionnement).
+ * La surface est PRÉSERVÉE (PDF audit reste PASS), et le rect touche bien
+ * le mur extérieur quand il a un bord libre à <200px.
+ *
+ * Direction translation choisie quand :
+ *   - bord N libre (pas de voisin <100px) ET mur extérieur N à <200px → translate UP
+ *   - idem S/E/W
+ *   - jamais de translation si elle rapproche le rect d'un voisin (collision)
+ *   - jamais de translation qui sort le rect du lot
+ *
+ * Spécifique RDC SdB : le label est en milieu vertical (40%), mais la pièce
+ * RÉELLE doit toucher le haut du bâtiment (label peut être interne au rect).
+ */
+function translateToTouchExteriorWalls(
+  rooms: RectangleRoom[],
+  walls: Wall[],
+  lotPolygon: Pt[],
+  lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  angleTolDeg: number,
+  options: { minWallLen?: number; maxTranslatePx?: number; lotEdgeTolPx?: number; neighborGapPx?: number } = {},
+): RectangleRoom[] {
+  const minWallLen = options.minWallLen ?? 120;
+  const maxTranslatePx = options.maxTranslatePx ?? 200;
+  const lotEdgeTolPx = options.lotEdgeTolPx ?? 8;
+  const neighborGapPx = options.neighborGapPx ?? 100;
+  if (rooms.length === 0) return rooms;
+  // Index murs extérieurs H/V (longs, pas sur le bord lot)
+  type WI = { pos: number; lo: number; hi: number };
+  const hWallsExt: WI[] = [];
+  const vWallsExt: WI[] = [];
+  for (const w of walls) {
+    const cls = classifyWall(w, angleTolDeg);
+    const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    if (wlen < minWallLen) continue;
+    if (cls === "H") {
+      const wy = wallY(w);
+      if (Math.abs(wy - lotBbox.yMin) <= lotEdgeTolPx) continue;
+      if (Math.abs(wy - lotBbox.yMax) <= lotEdgeTolPx) continue;
+      hWallsExt.push({ pos: wy, lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
+    } else if (cls === "V") {
+      const wx = wallX(w);
+      if (Math.abs(wx - lotBbox.xMin) <= lotEdgeTolPx) continue;
+      if (Math.abs(wx - lotBbox.xMax) <= lotEdgeTolPx) continue;
+      vWallsExt.push({ pos: wx, lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+    }
+  }
+  // Bords du lot (murs extérieurs du bâtiment)
+  void lotPolygon;
+  hWallsExt.push({ pos: lotBbox.yMin, lo: lotBbox.xMin, hi: lotBbox.xMax });
+  hWallsExt.push({ pos: lotBbox.yMax, lo: lotBbox.xMin, hi: lotBbox.xMax });
+  vWallsExt.push({ pos: lotBbox.xMin, lo: lotBbox.yMin, hi: lotBbox.yMax });
+  vWallsExt.push({ pos: lotBbox.xMax, lo: lotBbox.yMin, hi: lotBbox.yMax });
+
+  const result = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  // Helper : un voisin existe-t-il dans la direction `dir` du rect ? (= bord NON libre)
+  function hasNeighbor(
+    a: typeof result[0]["bbox"],
+    selfIdx: number,
+    dir: "N" | "S" | "E" | "W",
+    maxGap: number,
+  ): boolean {
+    for (let j = 0; j < result.length; j++) {
+      if (j === selfIdx) continue;
+      const b = result[j].bbox;
+      if (dir === "N" || dir === "S") {
+        const ovLo = Math.max(a.xMin, b.xMin);
+        const ovHi = Math.min(a.xMax, b.xMax);
+        const ov = Math.max(0, ovHi - ovLo);
+        const minOv = (a.xMax - a.xMin) * 0.3;
+        if (ov < minOv) continue;
+        if (dir === "N") {
+          if (b.yMax <= a.yMin + 2 && a.yMin - b.yMax <= maxGap) return true;
+        } else {
+          if (b.yMin >= a.yMax - 2 && b.yMin - a.yMax <= maxGap) return true;
+        }
+      } else {
+        const ovLo = Math.max(a.yMin, b.yMin);
+        const ovHi = Math.min(a.yMax, b.yMax);
+        const ov = Math.max(0, ovHi - ovLo);
+        const minOv = (a.yMax - a.yMin) * 0.3;
+        if (ov < minOv) continue;
+        if (dir === "W") {
+          if (b.xMax <= a.xMin + 2 && a.xMin - b.xMax <= maxGap) return true;
+        } else {
+          if (b.xMin >= a.xMax - 2 && b.xMin - a.xMax <= maxGap) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Helper : trouver mur extérieur le plus proche dans la dir, avec OVERLAP ≥ 30%
+  // (un peu plus strict que extendToBuildingExteriorWalls qui fait 25%, car
+  // on TRANSLATE — gros impact visuel — mais on doit accepter SdB RDC dont
+  // le mur N couvre 164/362 = 45% du bord)
+  function nearestExteriorWallStrict(
+    a: typeof result[0]["bbox"],
+    dir: "N" | "S" | "E" | "W",
+  ): number | null {
+    const minOvFrac = 0.3;
+    if (dir === "N" || dir === "S") {
+      const reqLo = a.xMin, reqHi = a.xMax;
+      const minOv = (reqHi - reqLo) * minOvFrac;
+      let best: number | null = null;
+      let bestDist = Infinity;
+      for (const w of hWallsExt) {
+        if (dir === "N") {
+          if (w.pos >= a.yMin - 2) continue;
+        } else {
+          if (w.pos <= a.yMax + 2) continue;
+        }
+        const ovLo = Math.max(reqLo, w.lo);
+        const ovHi = Math.min(reqHi, w.hi);
+        const ov = Math.max(0, ovHi - ovLo);
+        if (ov < minOv) continue;
+        const d = dir === "N" ? a.yMin - w.pos : w.pos - a.yMax;
+        if (d > maxTranslatePx) continue;
+        if (d < bestDist) { bestDist = d; best = w.pos; }
+      }
+      return best;
+    } else {
+      const reqLo = a.yMin, reqHi = a.yMax;
+      const minOv = (reqHi - reqLo) * minOvFrac;
+      let best: number | null = null;
+      let bestDist = Infinity;
+      for (const w of vWallsExt) {
+        if (dir === "W") {
+          if (w.pos >= a.xMin - 2) continue;
+        } else {
+          if (w.pos <= a.xMax + 2) continue;
+        }
+        const ovLo = Math.max(reqLo, w.lo);
+        const ovHi = Math.min(reqHi, w.hi);
+        const ov = Math.max(0, ovHi - ovLo);
+        if (ov < minOv) continue;
+        const d = dir === "W" ? a.xMin - w.pos : w.pos - a.xMax;
+        if (d > maxTranslatePx) continue;
+        if (d < bestDist) { bestDist = d; best = w.pos; }
+      }
+      return best;
+    }
+  }
+
+  // Helper : la translation déplace-t-elle le rect VERS un voisin (collision) ?
+  function wouldCollide(
+    a: typeof result[0]["bbox"],
+    selfIdx: number,
+    dir: "N" | "S" | "E" | "W",
+    deltaPx: number,
+  ): boolean {
+    // proposed bbox après translation
+    const prop = { ...a };
+    if (dir === "N") { prop.yMin -= deltaPx; prop.yMax -= deltaPx; }
+    else if (dir === "S") { prop.yMin += deltaPx; prop.yMax += deltaPx; }
+    else if (dir === "W") { prop.xMin -= deltaPx; prop.xMax -= deltaPx; }
+    else { prop.xMin += deltaPx; prop.xMax += deltaPx; }
+    for (let j = 0; j < result.length; j++) {
+      if (j === selfIdx) continue;
+      const b = result[j].bbox;
+      const overlap = !(prop.xMax <= b.xMin + 1 || prop.xMin >= b.xMax - 1
+        || prop.yMax <= b.yMin + 1 || prop.yMin >= b.yMax - 1);
+      if (overlap) return true;
+    }
+    return false;
+  }
+
+  let totalTranslated = 0;
+  for (let i = 0; i < result.length; i++) {
+    const a = result[i].bbox;
+    // Pour chaque direction, si bord libre + mur extérieur proche → TRANSLATE
+    for (const dir of ["N", "S", "E", "W"] as const) {
+      if (hasNeighbor(a, i, dir, neighborGapPx)) continue;
+      const wallPos = nearestExteriorWallStrict(a, dir);
+      if (wallPos === null) continue;
+      let delta = 0;
+      if (dir === "N") delta = a.yMin - (wallPos + 1);
+      else if (dir === "S") delta = (wallPos - 1) - a.yMax;
+      else if (dir === "W") delta = a.xMin - (wallPos + 1);
+      else if (dir === "E") delta = (wallPos - 1) - a.xMax;
+      if (delta < 3) continue; // gap déjà petit, skip
+      // Vérifier collision : la translation rapprocherait-elle d'un voisin ?
+      if (wouldCollide(a, i, dir, delta)) continue;
+      // Appliquer translation (préserve dimensions = surface PRÉSERVÉE)
+      if (dir === "N") { a.yMin -= delta; a.yMax -= delta; }
+      else if (dir === "S") { a.yMin += delta; a.yMax += delta; }
+      else if (dir === "W") { a.xMin -= delta; a.xMax -= delta; }
+      else if (dir === "E") { a.xMin += delta; a.xMax += delta; }
+      totalTranslated++;
+    }
+  }
+  for (const r of result) {
+    r.polygon = buildRectangle(r.bbox.yMin, r.bbox.yMax, r.bbox.xMax, r.bbox.xMin);
+    r.areaPx2 = polygonArea(r.polygon);
+  }
+  if (totalTranslated > 0) {
+    console.log(
+      `[translateToTouchExteriorWalls] ${totalTranslated} rectangle(s) translaté(s) vers murs extérieurs`,
+    );
+  }
+  return result;
+}
+
+/**
  * s28 tour 20 — SNAP des 4 bords du rectangle aux murs architecturaux.
  *
  * Pour chaque bord (N/S/E/O), on cherche dans une fenêtre de ±tolPx un mur
@@ -1749,6 +1966,39 @@ export function extractRoomsAsRectangles(
     opts.angleTolDeg,
     { minWallLen: 120, maxExtendPx: 200, lotEdgeTolPx: 8 },
   );
+
+  // Étape 2.66 — s28 tour 23 : TRANSLATE rectangles vers murs extérieurs.
+  // Le cap PDF (Inv A 1.15) bloque les extensions importantes dans
+  // extendToBuildingExteriorWalls. Quand un bord est libre (pas de voisin)
+  // ET qu'un mur extérieur du bâtiment est à <200px, on TRANSLATE le rect
+  // (déplacement, surface préservée) pour éliminer les bandes vides.
+  // Cas critique RDC SdB : label PDF en milieu (40%), mais SdB doit toucher
+  // le mur N du bâtiment. La translation préserve PDF surface tout en
+  // éliminant le gap de 140px visible tour 22.
+  //
+  // FIX RDC ECS : les pièces techniques sans PDF (ECS, TGBT, placard) sont
+  // filtrées en aval (route extract Step 9, seuil 1.5m² unlabeled). Elles
+  // bloquent à tort hasNeighbor() dans translate. Solution : utiliser une
+  // VUE FILTRÉE (sans tech-noPdf) UNIQUEMENT pour la détection de voisins
+  // pendant translate. Les tech-noPdf survivent dans `resolved` (decision
+  // de filtre prise plus tard par la route).
+  {
+    const techPattern = /^(ecs|tgbt|gaine|vide-ordures?|placard)$/i;
+    const isTechNoPdf = (r: RectangleRoom) =>
+      (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) &&
+      techPattern.test(r.label.normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
+    const visibleRooms = resolved.filter((r) => !isTechNoPdf(r));
+    const techRooms = resolved.filter(isTechNoPdf);
+    const translated = translateToTouchExteriorWalls(
+      visibleRooms,
+      walls,
+      lotPolygon,
+      lotBbox,
+      opts.angleTolDeg,
+      { minWallLen: 120, maxTranslatePx: 200, lotEdgeTolPx: 8, neighborGapPx: 100 },
+    );
+    resolved = [...translated, ...techRooms];
+  }
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
