@@ -1391,6 +1391,13 @@ export async function extractRoomsByQuotaFloodFill(
       }
       return dst;
     };
+    // s28 tour 15 fix2 — bracketer aussi entre 0 (strict) et 3 (sealedSmall) :
+    // la porte de Chambre 01 F1 fait probablement 2-3 px → seal1 et seal2 sont
+    // les vrais bons candidats (strict explose à 1.50×, seal3 retombe à 0.86×).
+    let sealedMask1: Uint8Array | null = null;
+    let sealedMask2: Uint8Array | null = null;
+    sealedMask1 = dilate(wallMask, 1);
+    sealedMask2 = dilate(wallMask, 2);
     sealedMask4 = doorSealRadius >= 4 ? dilate(wallMask, 4) : null;
     sealedMask5 = doorSealRadius >= 5 ? dilate(wallMask, 5) : null;
 
@@ -1416,6 +1423,8 @@ export async function extractRoomsByQuotaFloodFill(
         console.log(`[s28-tour15-WA-${name}] seed=${s.text} area=${r.area} ratio=${(r.area / s.quotaPx2).toFixed(3)} runaway=${r.runaway}`);
       };
       tryMask(wallBarrierStrict, "strict");
+      tryMask(sealedMask1, "seal1");
+      tryMask(sealedMask2, "seal2");
       tryMask(sealedMaskSmall, "seal3");
       tryMask(sealedMask4, "seal4");
       tryMask(sealedMask5, "seal5");
