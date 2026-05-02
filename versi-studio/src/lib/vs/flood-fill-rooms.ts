@@ -1350,49 +1350,125 @@ export async function extractRoomsByQuotaFloodFill(
       (s) => s.quotaKnown && s.area < s.quotaPx2 * 0.92,
     );
 
-    for (const s of candidates) {
-      // s28 tour 14 — maxAreaWA dual-tier :
-      //   - HARD STOP à 1.5× quota (anti-runaway absolu : si on dépasse 1.5×,
-      //     c'est qu'on a fui dans tout l'apt → rejet inconditionnel)
-      //   - SOFT TARGET à 1.15× quota (bornure logique : si l'aire finale dépasse,
-      //     on rejette le résultat même non-runaway)
-      // Cela permet au BFS de FINIR son flood naturel jusqu'au mur réel ; on
-      // décide après si l'aire est acceptable.
-      const hardStopWA = Math.round(s.quotaPx2 * 1.5);
-      // Tentative 1 : wallBarrierStrict (vrais murs uniquement, pas de doorSeal)
-      const r1 = localFlood(s, wallBarrierStrict, hardStopWA);
-      console.log(`[s28-tour14-WA-tier1] seed=${s.text} mask=strict area=${r1.area} ratio=${(r1.area/s.quotaPx2).toFixed(2)} runaway=${r1.runaway}`);
-      let chosen = r1;
-      let chosenMaskName = "strict";
-      // Si r1 runaway (= a explosé > 1.5× quota), retry avec sealedMaskSmall
-      // (door-seal 3px → colmate les portes étroites sans bouffer la pièce)
-      if (r1.runaway || r1.area / s.quotaPx2 > 1.15) {
-        const r2 = localFlood(s, sealedMaskSmall, hardStopWA);
-        console.log(`[s28-tour14-WA-tier2] seed=${s.text} mask=sealedSmall area=${r2.area} ratio=${(r2.area/s.quotaPx2).toFixed(2)} runaway=${r2.runaway}`);
-        if (!r2.runaway && r2.area > chosen.area && r2.area / s.quotaPx2 <= 1.15) {
-          chosen = r2;
-          chosenMaskName = "sealedSmall";
-        } else if (r2.runaway || r2.area / s.quotaPx2 > 1.15) {
-          // Si r2 toujours problématique, retry avec sealedMask (door-seal 6px)
-          const r3 = localFlood(s, sealedMask, hardStopWA);
-          console.log(`[s28-tour14-WA-tier3] seed=${s.text} mask=sealed area=${r3.area} ratio=${(r3.area/s.quotaPx2).toFixed(2)} runaway=${r3.runaway}`);
-          if (!r3.runaway && r3.area > chosen.area && r3.area / s.quotaPx2 <= 1.15) {
-            chosen = r3;
-            chosenMaskName = "sealed";
+    // s28 tour 15 — Construire des masques door-seal intermédiaires (4 et 5 px)
+    // pour bracketer la porte de la chambre 01 F1 (la porte est trop large pour
+    // sealedSmall=3px, trop fine pour sealed=6px qui bouffe la pièce).
+    let sealedMask4: Uint8Array | null = null;
+    let sealedMask5: Uint8Array | null = null;
+    if (doorSealRadius > 4) {
+      const tmp4 = await sharp(Buffer.from(wallMask), {
+        raw: { width: W, height: H, channels: 1 },
+      })
+        .negate()
+        .toBuffer();
+      // Pas la peine de chaîner sharp ici, on construit directement à partir
+      // de wallMask pré-calculé en dilatant à 4px et 5px.
+      void tmp4;
+    }
+    // Plus simple : créer manuellement par dilatation 4 et 5 px
+    const dilate = (src: Uint8Array, radius: number): Uint8Array => {
+      // BFS-style dilatation (multi-source) sur radius pixels
+      const dst = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) dst[i] = src[i];
+      // distance transform approximée : N passes de Chebyshev (8-connectivity)
+      for (let pass = 0; pass < radius; pass++) {
+        const tmp = new Uint8Array(dst);
+        for (let y = 1; y < H - 1; y++) {
+          const rowOff = y * W;
+          for (let x = 1; x < W - 1; x++) {
+            const idx = rowOff + x;
+            if (tmp[idx]) continue;
+            if (
+              tmp[idx - 1] || tmp[idx + 1] ||
+              tmp[idx - W] || tmp[idx + W] ||
+              tmp[idx - W - 1] || tmp[idx - W + 1] ||
+              tmp[idx + W - 1] || tmp[idx + W + 1]
+            ) {
+              dst[idx] = 1;
+            }
           }
         }
       }
+      return dst;
+    };
+    sealedMask4 = doorSealRadius >= 4 ? dilate(wallMask, 4) : null;
+    sealedMask5 = doorSealRadius >= 5 ? dilate(wallMask, 5) : null;
+
+    for (const s of candidates) {
+      // s28 tour 15 — multi-tier door-seal bracket :
+      //   tier1 : strict (0px seal, vrais murs uniquement)
+      //   tier2 : sealedSmall (3px)
+      //   tier3 : sealedMask4 (4px) — NOUVEAU
+      //   tier4 : sealedMask5 (5px) — NOUVEAU
+      //   tier5 : sealedMask (6px)
+      //
+      // Au lieu de prendre le PREMIER tier acceptable, on prend le tier dont
+      // le ratio est le PLUS PROCHE de 1.0 (= meilleur compromis surface).
+      // Acceptation : ratio ∈ [0.88, 1.12], pas runaway, area_after >=
+      // area_before * 0.95 (tolérance pour cas où WA ne trouve pas mieux).
+      const hardStopWA = Math.round(s.quotaPx2 * 1.5);
+      type Trial = { area: number; runaway: boolean; region: Uint8Array; bbox: { minX: number; minY: number; maxX: number; maxY: number }; name: string };
+      const trials: Trial[] = [];
+      const tryMask = (mask: Uint8Array | null, name: string) => {
+        if (!mask) return;
+        const r = localFlood(s, mask, hardStopWA);
+        trials.push({ ...r, name });
+        console.log(`[s28-tour15-WA-${name}] seed=${s.text} area=${r.area} ratio=${(r.area / s.quotaPx2).toFixed(3)} runaway=${r.runaway}`);
+      };
+      tryMask(wallBarrierStrict, "strict");
+      tryMask(sealedMaskSmall, "seal3");
+      tryMask(sealedMask4, "seal4");
+      tryMask(sealedMask5, "seal5");
+      tryMask(sealedMask, "seal6");
+
+      // Sélection : tier dont ratio est le plus proche de 1.0, en filtrant les
+      // runaway et les ratios > 1.15 (anti-explosion).
+      let chosen: Trial | null = null;
+      let bestDist = Infinity;
+      for (const t of trials) {
+        if (t.runaway) continue;
+        const ratio = t.area / s.quotaPx2;
+        if (ratio > 1.15) continue;
+        const dist = Math.abs(ratio - 1.0);
+        if (dist < bestDist) {
+          bestDist = dist;
+          chosen = t;
+        }
+      }
+      if (!chosen) {
+        console.log(`[s28-tour15-WA] seed=${s.text} aucun tier valide → skip`);
+        continue;
+      }
       const ratio = chosen.area / s.quotaPx2;
-      // Acceptation : ratio ∈ [0.88, 1.15] ET pas runaway ET amélioration
-      const accept = !chosen.runaway && ratio >= 0.88 && ratio <= 1.15 && chosen.area > s.area;
+      // s28 tour 15 — acceptation relaxée : on accepte si ratio ∈ [0.88, 1.12]
+      // ET area_after >= area_before * 0.95 (permet petite régression si ratio
+      // beaucoup plus proche de 1).
+      const accept = ratio >= 0.88 && ratio <= 1.12 && chosen.area >= s.area * 0.95;
       console.log(
-        `[s28-tour14-WA] seed=${s.text} area_before=${s.area} area_after=${chosen.area} ratio=${ratio.toFixed(2)} mask=${chosenMaskName} runaway=${chosen.runaway} accept=${accept}`,
+        `[s28-tour15-WA] seed=${s.text} area_before=${s.area} area_after=${chosen.area} ratio=${ratio.toFixed(3)} mask=${chosen.name} accept=${accept}`,
       );
       if (!accept) continue;
-      // Re-claim : tous les pixels chosen.region → ownership = s.idx
-      // (garde-fou : on ne réécrit JAMAIS sur un autre seed déjà claim)
+      // s28 tour 15 — Re-claim avec désallocation propre :
+      // 1. Désallouer les pixels que s POSSÉDAIT dans son ancienne bbox mais qui
+      //    ne sont PAS dans chosen.region → revient à -1 (libre)
+      // 2. Allouer les pixels de chosen.region → ownership = s.idx
+      //    (garde-fou : on ne réécrit JAMAIS sur un autre seed déjà claim)
       const reg = chosen.region;
       const bb = chosen.bbox;
+      // Étape 1 : désallocation dans l'ancienne bbox du seed
+      const oldBb = s.bbox;
+      for (let y = oldBb.minY; y <= oldBb.maxY; y++) {
+        const rowOff = y * W;
+        for (let x = oldBb.minX; x <= oldBb.maxX; x++) {
+          const idx = rowOff + x;
+          if (ownership[idx] !== s.idx) continue;
+          // Si ce pixel n'est PAS dans la nouvelle région chosen, on libère
+          if (reg[idx] !== 1) {
+            ownership[idx] = -1;
+          }
+        }
+      }
+      // Étape 2 : allocation des pixels chosen.region
       for (let y = bb.minY; y <= bb.maxY; y++) {
         const rowOff = y * W;
         for (let x = bb.minX; x <= bb.maxX; x++) {
