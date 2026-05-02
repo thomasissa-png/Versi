@@ -122,6 +122,7 @@ import {
 import { smartLineSnap } from "@/lib/vs/smart-line-snap";
 import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
 import { snapEdgesToFarWalls } from "@/lib/vs/edge-translate-snap";
+import { rebuildBboxFromWalls } from "@/lib/vs/bbox-rebuild";
 import { vectorizeRasterWallsFromPng } from "@/lib/vs/raster-walls-vectorize";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
@@ -1476,6 +1477,60 @@ export async function POST(
                   console.warn(
                     `[extract/s28-tour15-edge-snap] plan ${plan.id} échec :`,
                     edgeErr instanceof Error ? edgeErr.message : edgeErr,
+                  );
+                }
+
+                // ─── s28 tour 15 — BBOX REBUILD (pivot ULTIME) ──────────
+                // Si une pièce a >50% de vertices outliers (>10px du nearest
+                // wall) ET son aire est correcte (déjà filtré par le ratio
+                // pipeline), reconstruire un RECTANGLE bbox snappé sur les
+                // 4 murs orthogonaux (N, S, E, W) du set audit.
+                //
+                // Cible : SDE F3 où le polygone post-flood-fill est
+                // chaotique (10/11 vertices outliers, edges diagonaux),
+                // mais l'aire est correcte (4.4m² = ratio 1.00). La pièce
+                // SDE est de fait un rectangle simple ; on reconstruit
+                // proprement à partir des murs réels.
+                //
+                // Garde-fou : drift d'aire <= 20%. Si pas trouvé les 4 murs
+                // ortho, on garde le polygone original.
+                try {
+                  let totalRebuilt = 0;
+                  const wallsForBbox = allWalls_snap.map((w) => ({
+                    x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
+                  }));
+                  for (let ri = 0; ri < cleanRooms.length; ri++) {
+                    const r = cleanRooms[ri];
+                    const res = rebuildBboxFromWalls(r.polygon, wallsForBbox, {
+                      outlierThresholdPx: 10,
+                      outlierRatioTrigger: 0.5,
+                      maxAreaDriftRatio: 0.18,
+                      // searchWindowPx étroit (80px) : on ne snape qu'aux
+                      // murs PROCHES du bord bbox. Si pas de mur dans 80px,
+                      // on garde le bord original (mode soft, voir bbox-rebuild).
+                      searchWindowPx: 80,
+                      orthoTolDeg: 8,
+                      minWallLenPx: 30,
+                    });
+                    if (res.rebuilt) {
+                      cleanRooms[ri] = { ...r, polygon: res.polygon };
+                      totalRebuilt++;
+                      console.log(
+                        `[extract/s28-tour15-bbox-rebuild] plan ${plan.id} ${r.label} : RECONSTRUIT (outliers=${res.outlierCount}/${r.polygon.length}, drift=${(res.areaDriftPct * 100).toFixed(1)}%)`,
+                      );
+                    } else if (res.outlierCount / r.polygon.length >= 0.5) {
+                      console.log(
+                        `[extract/s28-tour15-bbox-rebuild] plan ${plan.id} ${r.label} : SKIP — outliers ${res.outlierCount}/${r.polygon.length} mais 4 murs ortho non trouvés (drift ${(res.areaDriftPct * 100).toFixed(1)}%)`,
+                      );
+                    }
+                  }
+                  console.log(
+                    `[extract/s28-tour15-bbox-rebuild] plan ${plan.id} : ${totalRebuilt} pièces reconstruites`,
+                  );
+                } catch (bboxErr) {
+                  console.warn(
+                    `[extract/s28-tour15-bbox-rebuild] plan ${plan.id} échec :`,
+                    bboxErr instanceof Error ? bboxErr.message : bboxErr,
                   );
                 }
 
