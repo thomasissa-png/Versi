@@ -1461,22 +1461,16 @@ export function extractRoomsAsRectangles(
   // Évite Séjour stuck à 30 m² alors que PDF = 40.
   resolved = growUnderSized(resolved, lotBbox, walls, opts.angleTolDeg);
 
-  // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL.
+  // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
-  // Bug visuel résiduel tour 20 : sur le RDC Muguets, le lot polygon englobe
-  // terrasse + bâtiment, ce qui fait que les pièces du nord (Chambre, SdB)
-  // s'étendent jusqu'à y=0% du lot (= bord polygone englobant terrasse) au
-  // lieu de s'arrêter au mur extérieur du bâtiment.
+  // Tested but disabled : trop agressif sur les pièces non-carrées (ex: Séjour
+  // cuisine R+2 ratio 1.00 → 0.75). La cap basée sur sqrt(PDF_surface) capse
+  // toutes les directions de manière isotrope, ce qui broke les rectangles très
+  // large (séjour > 40 m² peut avoir width:height = 2:1).
   //
-  // Stratégie : pour chaque bord d'un rectangle qui touche le lot bbox (≤4px),
-  // si ce bord N'EST PAS supporté par un mur architectural FORT (≥80px de long,
-  // bien aligné), alors on TRONQUE ce bord à la position de la bbox label + une
-  // marge proportionnelle à sqrt(PDF_surface).
-  //
-  // Sans cette passe, les rectangles "touche-lot" s'étendent dans la terrasse
-  // (zone vide entre mur extérieur et bord lot). Avec, ils s'arrêtent à une
-  // distance raisonnable du label.
-  {
+  // Code conservé pour itération future. Ne PAS retirer — sert de base pour
+  // tour 22 (cap par direction avec aspect ratio adaptatif via voisins).
+  if (false as boolean) {
     const TOL_LOT = 4;
     const STRONG_WALL_LEN = 80;
     const STRONG_OVERLAP = 0.4; // bord doit être couvert ≥40% par mur fort
