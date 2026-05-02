@@ -240,12 +240,51 @@ export function cleanupOutliers(
   // Étape 5 : Re-pruning final
   cleaned = pruneOutliers(cleaned, walls, opts.snapThresholdPx, opts.areaDriftMax);
 
+  // Étape 6 : Snap forcé INCRÉMENTAL des outliers à 6-10px.
+  // Cas Cellier F1 : 9/16 outliers sont à 6-10px d'un mur. Faire un snap
+  // GLOBAL "tout ou rien" rejette par drift cumulé. On itère vertex par
+  // vertex : on snap le vertex avec la plus petite distance (proche-frontière)
+  // d'abord, on vérifie drift cumulé, on accepte/rejette.
+  // Order by ascending dist : on commence par les vertices les plus proches
+  // de leur mur (gain Inv C maxi pour drift mini).
+  type IndexedDist = { idx: number; dist: number; bestProj: Pt };
+  const indexed: IndexedDist[] = cleaned.map((v, idx) => {
+    let bestD = Infinity;
+    let bestProj: Pt = { x: v.x, y: v.y };
+    for (const w of walls) {
+      const d = distPointToSegment(v.x, v.y, w);
+      if (d < bestD) {
+        bestD = d;
+        if (d > opts.snapThresholdPx && d <= 10) {
+          bestProj = projectOnSegment(v, w);
+        } else if (d <= opts.snapThresholdPx) {
+          bestProj = { x: v.x, y: v.y };
+        }
+      }
+    }
+    return { idx, dist: bestD, bestProj };
+  });
+  // Trier par distance croissante (snap les plus proches d'abord = drift mini)
+  const outlierCandidates = indexed.filter(x => x.dist > opts.snapThresholdPx && x.dist <= 10);
+  outlierCandidates.sort((a, b) => a.dist - b.dist);
+  // Itérer : pour chaque candidat, tenter le snap, vérifier drift cumulé
+  for (const cand of outlierCandidates) {
+    const trial = cleaned.map((v, i) => i === cand.idx ? cand.bestProj : { ...v });
+    const trialArea = polygonAreaPx(trial);
+    const driftCum = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
+    if (driftCum <= opts.areaDriftMax) {
+      cleaned = trial;
+    }
+    // sinon : skip ce vertex, garde le suivant (peut-être moins de drift)
+  }
+
   let outliersAfter = 0;
   for (const v of cleaned) {
     if (bestWallDist(v, walls) > opts.snapThresholdPx) outliersAfter++;
   }
   const finalArea = polygonAreaPx(cleaned);
   const areaDrift = origArea > 0 ? (finalArea - origArea) / origArea : 0;
+  void origCount;
 
   return { polygon: cleaned, outliersBefore, outliersAfter, areaDrift };
 }
