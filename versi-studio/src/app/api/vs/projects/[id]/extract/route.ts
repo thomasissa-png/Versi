@@ -121,6 +121,7 @@ import {
 } from "@/lib/vs/inter-room-walls";
 import { smartLineSnap } from "@/lib/vs/smart-line-snap";
 import { snapPolygonToPngWalls } from "@/lib/vs/snap-to-png-walls";
+import { snapEdgesToFarWalls } from "@/lib/vs/edge-translate-snap";
 import { vectorizeRasterWallsFromPng } from "@/lib/vs/raster-walls-vectorize";
 import { extractTextItems, filterRoomLabels } from "@/lib/vs/pdf-text-extractor";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
@@ -1429,6 +1430,54 @@ export async function POST(
                 // s28 tour 15 fix12 reverted : DP final supprimait des bons
                 // vertices (ratio good/total dégradait F0 et n'améliorait pas
                 // F1/F3). Pivot abandonné.
+
+                // ─── s28 tour 15 — EDGE TRANSLATE SNAP (pivot final) ───
+                // Pour chaque polygone, on cherche les EDGES dont le milieu est
+                // éloigné (>10px) du nearest wall. Pour ces edges fantômes, on
+                // cherche dans la direction normale un mur PARALLÈLE et ALIGNÉ
+                // dans une fenêtre de 100px. Si trouvé, on translate l'edge
+                // entièrement vers ce mur. Garde-fou : aire stable à <=5%.
+                //
+                // Cible : SDE F3 où le BFS s'est arrêté au quota PDF (4.4m²)
+                // avant d'atteindre le mur sud raster à y=1734 (à 80px). Le
+                // pipeline existant (snapPolygonToWalls 5/10/15/20px et
+                // snapPolygonToPngWalls 12/30/60/150/250px sur PIXELS NOIRS)
+                // ne peut pas combler ce gap car il n'y a PAS de pixels noirs
+                // entre l'edge fantôme et le mur cible. Le snap edge-by-edge
+                // sur la GÉOMÉTRIE des murs PDF (= set audit) résout ça.
+                try {
+                  let totalEdgesSnapped = 0;
+                  let totalRoomsTouched = 0;
+                  const wallsForEdge = allWalls_snap.map((w) => ({
+                    x1: w.x1, y1: w.y1, x2: w.x2, y2: w.y2,
+                  }));
+                  for (let ri = 0; ri < cleanRooms.length; ri++) {
+                    const r = cleanRooms[ri];
+                    const res = snapEdgesToFarWalls(r.polygon, wallsForEdge, {
+                      ghostThresholdPx: 10,
+                      searchRadiusPx: 100,
+                      parallelTolDeg: 12,
+                      maxAreaDriftRatio: 0.05,
+                      minEdgeLenPx: 8,
+                    });
+                    if (res.edgesSnapped > 0) {
+                      cleanRooms[ri] = { ...r, polygon: res.polygon };
+                      totalEdgesSnapped += res.edgesSnapped;
+                      totalRoomsTouched++;
+                      console.log(
+                        `[extract/s28-tour15-edge-snap] plan ${plan.id} ${r.label} : ${res.edgesSnapped} edges snappés (drift ${(res.areaDriftPct * 100).toFixed(1)}%)`,
+                      );
+                    }
+                  }
+                  console.log(
+                    `[extract/s28-tour15-edge-snap] plan ${plan.id} : ${totalEdgesSnapped} edges fantômes snappés sur ${totalRoomsTouched} pièces`,
+                  );
+                } catch (edgeErr) {
+                  console.warn(
+                    `[extract/s28-tour15-edge-snap] plan ${plan.id} échec :`,
+                    edgeErr instanceof Error ? edgeErr.message : edgeErr,
+                  );
+                }
 
                 // Step 10 : push dans builders_face
                 // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2) — SOURCE UNIQUE.
