@@ -1617,6 +1617,9 @@ export async function POST(
                         // Pas de limite de distance : on remplit TOUT pour
                         // garantir 0 espace vide. Les murs bloquent naturellement.
                         maxBfsDistance: 200,
+                        // Borner extension par pdf-surface (ratio max 1.10 audit)
+                        scaleM2PerPx2: scaleM2PerPx2 > 0 ? scaleM2PerPx2 : undefined,
+                        maxRatioVsPdf: 1.10,
                       },
                     );
                     if (filled.length === cleanRooms.length) {

@@ -51,8 +51,12 @@ export type FillGapsOptions = {
   vectorWallThickness?: number;
   /** DP tolerance pour re-trace contour. Défaut 4. */
   simplifyTolerancePx?: number;
-  /** Distance max BFS pour fill (anti-runaway). Défaut Infinity (pas de limite). */
+  /** Distance max BFS pour fill (anti-runaway). Défaut 200 px. */
   maxBfsDistance?: number;
+  /** Échelle m²/px² (pour borner extension par pdfSurface). */
+  scaleM2PerPx2?: number;
+  /** Ratio max polygon_m2 / pdf_m2 acceptable (anti-fuite). Défaut 1.10. */
+  maxRatioVsPdf?: number;
 };
 
 /**
@@ -285,7 +289,9 @@ export async function fillGapsBetweenRooms(
   const vectorWalls = options.vectorWallSegments ?? [];
   const vectorWallThickness = options.vectorWallThickness ?? 2;
   const simplifyTolerancePx = options.simplifyTolerancePx ?? 4;
-  const maxBfsDistance = options.maxBfsDistance ?? Number.POSITIVE_INFINITY;
+  const maxBfsDistance = options.maxBfsDistance ?? 200;
+  const scaleM2PerPx2 = options.scaleM2PerPx2;
+  const maxRatioVsPdf = options.maxRatioVsPdf ?? 1.10;
 
   // 1. Wall mask (PNG + lot edge + vector walls)
   const { mask: pngMask, W, H } = await buildWallMaskFromPng(
@@ -312,12 +318,25 @@ export async function fillGapsBetweenRooms(
 
   // 4. BFS multi-source : depuis pixels owned, attribuer orphelins voisins.
   // On utilise une distance map pour limiter à maxBfsDistance pixels.
+  // Borne par pièce : si scaleM2PerPx2 fourni ET pdf-surface présent,
+  // chaque seed ne peut atteindre maxRatioVsPdf × pdf_m2 / scaleM2PerPx2.
+  // Sinon, pas de borne par seed (juste le BFS distance).
   const dist = new Uint8Array(W * H);
   const MAX_DIST_VAL = 254;
   dist.fill(MAX_DIST_VAL);
+  // Compteur de pixels par seed (pour borner extension)
+  const seedAreas = new Int32Array(rooms.length);
+  const seedMaxAreas = new Int32Array(rooms.length);
+  for (let pi = 0; pi < rooms.length; pi++) {
+    if (scaleM2PerPx2 != null && scaleM2PerPx2 > 0 && rooms[pi].surface_m2 != null && rooms[pi].surface_m2! > 0) {
+      seedMaxAreas[pi] = Math.round((rooms[pi].surface_m2! / scaleM2PerPx2) * maxRatioVsPdf);
+    } else {
+      // Pas de pdf : borne large = aire courante × 1.30 (anti-fuite minimaliste)
+      seedMaxAreas[pi] = -1; // calculé après scan
+    }
+  }
   // Init : tous les pixels owned ont dist=0 et sont la frontière initiale.
-  // Optimisation : ne mettre dans queue que les pixels owned qui ont un voisin
-  // orphelin (= frontière effective).
+  // Compte aussi seedAreas (pixels initiaux par seed).
   const queue: number[] = [];
   for (let y = 0; y < H; y++) {
     const rowOff = y * W;
@@ -325,6 +344,7 @@ export async function fillGapsBetweenRooms(
       const idx = rowOff + x;
       if (owner[idx] !== -1) {
         dist[idx] = 0;
+        seedAreas[owner[idx]]++;
         // Frontière effective : au moins 1 voisin orphelin in lot non-mur
         const ne = [
           y > 0 ? idx - W : -1,
@@ -342,9 +362,16 @@ export async function fillGapsBetweenRooms(
       }
     }
   }
+  // Calculer seedMaxAreas pour seeds sans pdf
+  for (let pi = 0; pi < rooms.length; pi++) {
+    if (seedMaxAreas[pi] === -1) {
+      seedMaxAreas[pi] = Math.round(seedAreas[pi] * 1.30);
+    }
+  }
 
   // BFS : à chaque pixel libre, prend l'owner du 1er voisin owned (=
-  // distance BFS la plus courte → Voronoï discret).
+  // distance BFS la plus courte → Voronoï discret), tant que le seed
+  // n'a pas atteint son quota max.
   let qi = 0;
   while (qi < queue.length) {
     const idx = queue[qi++];
@@ -353,6 +380,8 @@ export async function fillGapsBetweenRooms(
     const x = idx % W;
     const y = (idx - x) / W;
     const myOwner = owner[idx];
+    // Skip si ce seed a déjà atteint son max
+    if (seedAreas[myOwner] >= seedMaxAreas[myOwner]) continue;
     const nd = d + 1;
     const ne = [
       y > 0 ? idx - W : -1,
@@ -366,7 +395,10 @@ export async function fillGapsBetweenRooms(
       if (!inLot[n]) continue;
       if (wallMask[n]) continue;
       if (dist[n] !== MAX_DIST_VAL) continue;
+      // Re-vérifier max area (peut atteindre cap entre voisins)
+      if (seedAreas[myOwner] >= seedMaxAreas[myOwner]) break;
       owner[n] = myOwner;
+      seedAreas[myOwner]++;
       dist[n] = nd;
       if (nd < maxBfsDistance) queue.push(n);
     }
@@ -420,17 +452,14 @@ export async function fillGapsBetweenRooms(
       out.push(r);
       continue;
     }
-    // Garde-fou expansion : nouvelle aire doit être <= 1.30× originale
-    if (area > origArea * 1.30) {
-      console.log(`[fill-gaps] ${r.text} skip : new area ${area.toFixed(0)} > orig ${origArea.toFixed(0)} * 1.30 (fuite mur manquant?)`);
-      out.push(r);
-      continue;
-    }
     // Garde-fou gain insignifiant (<3%) : pas la peine de remplacer
     if (area < origArea * 1.03) {
       out.push(r);
       continue;
     }
+    // Note : pas de garde-fou expansion 1.30 ici. Le BFS borne déjà l'extension
+    // via seedMaxAreas (= maxRatioVsPdf × pdf_m2 / scaleM2PerPx2 ou orig × 1.30
+    // si pas de pdf). On accepte l'extension calculée.
     // Trace contour
     const contour = traceContour(region, W, H, { minX, minY, maxX, maxY });
     if (contour.length < 4) {
