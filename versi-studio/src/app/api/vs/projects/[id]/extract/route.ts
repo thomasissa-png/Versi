@@ -747,9 +747,12 @@ export async function POST(
                       simplifyTolerancePx: 4,
                       minAreaPx2: 500,
                       seedSearchRadius: 100,
-                      doorSealRadius: 4,
+                      // s28 tour 17 fix1 — door-seal 6 (vs 4) : porte SDB F2
+                      // mesurait 5px → fuite vers Entrée. 6 ferme proprement
+                      // toutes les portes Muguets sans bouffer les pièces.
+                      doorSealRadius: 6,
                       vectorWallSegments: allWalls_snap,
-                      vectorWallThickness: 3,
+                      vectorWallThickness: 4,
                       aptSeparatorSegments: aptSeparators,
                       aptSeparatorThickness: 8,
                     },

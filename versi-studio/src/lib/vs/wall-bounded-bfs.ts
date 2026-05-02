@@ -140,28 +140,37 @@ function drawSegment(
 }
 
 /**
- * Dilatation morphologique (carré 8-connect, N passes).
+ * Dilatation morphologique 1D-séparable (kernel carré r×r).
+ * Complexité : O(W*H*r) total au lieu de O(W*H*r²) pour kernel 2D.
  */
 function dilate(src: Uint8Array, W: number, H: number, radius: number): Uint8Array {
   if (radius <= 0) return src.slice();
-  const dst = new Uint8Array(src);
-  for (let pass = 0; pass < radius; pass++) {
-    const tmp = new Uint8Array(dst);
-    for (let y = 1; y < H - 1; y++) {
-      const rowOff = y * W;
-      for (let x = 1; x < W - 1; x++) {
-        const idx = rowOff + x;
-        if (tmp[idx]) continue;
-        if (
-          tmp[idx - 1] || tmp[idx + 1] ||
-          tmp[idx - W] || tmp[idx + W] ||
-          tmp[idx - W - 1] || tmp[idx - W + 1] ||
-          tmp[idx + W - 1] || tmp[idx + W + 1]
-        ) dst[idx] = 1;
+  // Pass horizontal : pour chaque ligne, OR sur fenêtre [x-r, x+r]
+  const tmp = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const rowOff = y * W;
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - radius), x1 = Math.min(W - 1, x + radius);
+      let any = 0;
+      for (let xx = x0; xx <= x1; xx++) {
+        if (src[rowOff + xx]) { any = 1; break; }
       }
+      tmp[rowOff + x] = any;
     }
   }
-  return dst;
+  // Pass vertical
+  const out = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - radius), y1 = Math.min(H - 1, y + radius);
+      let any = 0;
+      for (let yy = y0; yy <= y1; yy++) {
+        if (tmp[yy * W + x]) { any = 1; break; }
+      }
+      out[y * W + x] = any;
+    }
+  }
+  return out;
 }
 
 /**
@@ -419,36 +428,24 @@ function fillOrphanPixels(
   wallBarrier: Uint8Array,
   inLot: Uint8Array,
   W: number, H: number,
-  states: Array<{ idx: number; bbox: { minX: number; minY: number; maxX: number; maxY: number } }>,
 ): void {
-  // Récolter tous les pixels frontières de chaque seed (pixels claim dont
-  // un voisin est un orphelin = libre + dans lot + non mur).
-  // On lance un BFS multi-source depuis les frontières.
+  // Scanner UNE fois toute l'image : pour chaque pixel claim, regarder s'il
+  // a un voisin orphelin → l'ajouter à la queue.
+  // Note : single pass O(W*H), pas par-seed-bbox (qui peut être très large).
   const queue: number[] = [];
-  for (const s of states) {
-    for (let y = s.bbox.minY; y <= s.bbox.maxY; y++) {
-      for (let x = s.bbox.minX; x <= s.bbox.maxX; x++) {
-        const idx = y * W + x;
-        if (ownership[idx] !== s.idx) continue;
-        // A-t-il un voisin orphelin ?
-        const ne = [
-          y > 0 ? idx - W : -1,
-          y < H - 1 ? idx + W : -1,
-          x > 0 ? idx - 1 : -1,
-          x < W - 1 ? idx + 1 : -1,
-        ];
-        for (const n of ne) {
-          if (n < 0) continue;
-          if (ownership[n] !== -1) continue;
-          if (!inLot[n]) continue;
-          // Note : on autorise ici la traversée des murs minces dans la 2e passe
-          // car les "orphelins" sont souvent des pixels d'épaisseur de mur entre
-          // la pièce et le bord. Mais on ne franchit PAS les murs gros.
-          // → on laisse wallBarrier filtrer.
-          if (wallBarrier[n]) continue;
-          queue.push(idx);
-          break;
-        }
+  for (let y = 1; y < H - 1; y++) {
+    const rowOff = y * W;
+    for (let x = 1; x < W - 1; x++) {
+      const idx = rowOff + x;
+      if (ownership[idx] === -1) continue;
+      // Voisin orphelin ? (libre + in-lot + non-mur)
+      if (
+        (ownership[idx - 1] === -1 && inLot[idx - 1] && !wallBarrier[idx - 1]) ||
+        (ownership[idx + 1] === -1 && inLot[idx + 1] && !wallBarrier[idx + 1]) ||
+        (ownership[idx - W] === -1 && inLot[idx - W] && !wallBarrier[idx - W]) ||
+        (ownership[idx + W] === -1 && inLot[idx + W] && !wallBarrier[idx + W])
+      ) {
+        queue.push(idx);
       }
     }
   }
@@ -583,8 +580,9 @@ export async function extractRoomsByWallBoundedFloodFill(
     inLot,
   );
 
+  void stateResults;
   // 5. Phase orphelins : récupérer les pixels in-lot non-mur restants
-  fillOrphanPixels(ownership, sealedBarrier, inLot, W, H, stateResults);
+  fillOrphanPixels(ownership, sealedBarrier, inLot, W, H);
 
   // 6. Trace contour pour chaque seed et construit les polygones
   const out: RoomPolygonWB[] = [];
