@@ -1660,12 +1660,15 @@ export async function POST(
                         // Étape 2 : Drag Outliers Vertex progressif
                         // (projete vertex-par-vertex) avec drift croissant.
                         // Plus agressif pour atteindre Inv C ≥ 95%.
-                        // Limite drift cumulé 12% (pour rester Inv A < 15%).
+                        // Limite drift cumulé 10% (pour rester Inv A ≤ 14% = audit 15%).
+                        // s28 tour 17 v2 : bornage par PDF target (priorité Inv A absolu).
+                        const pdfTargetPx2 = (r.surface_m2 != null && r.surface_m2 > 0 && scaleM2PerPx2 > 0)
+                          ? r.surface_m2 / scaleM2PerPx2
+                          : null;
                         for (const cfg of [
-                          { dragMaxPx: 15, maxAreaChangeRatio: 0.04 },
-                          { dragMaxPx: 25, maxAreaChangeRatio: 0.06 },
-                          { dragMaxPx: 40, maxAreaChangeRatio: 0.08 },
-                          { dragMaxPx: 60, maxAreaChangeRatio: 0.10 },
+                          { dragMaxPx: 15, maxAreaChangeRatio: 0.03 },
+                          { dragMaxPx: 25, maxAreaChangeRatio: 0.05 },
+                          { dragMaxPx: 40, maxAreaChangeRatio: 0.07 },
                         ]) {
                           const dragged = dragOutliersToWalls(cur, allWalls_snap, {
                             thresholdPx: 5,
@@ -1677,9 +1680,14 @@ export async function POST(
                           const driftCum = origAreaPx2 > 0
                             ? Math.abs(newArea - origAreaPx2) / origAreaPx2
                             : 0;
-                          if (driftCum < 0.12) {
-                            cur = dragged;
+                          if (driftCum >= 0.10) continue;
+                          // Vérification finale ratio PDF : ne pas dépasser 1.13
+                          // (= audit max 1.15 - marge 2pp).
+                          if (pdfTargetPx2 != null) {
+                            const newRatio = newArea / pdfTargetPx2;
+                            if (newRatio > 1.13 || newRatio < 0.87) continue;
                           }
+                          cur = dragged;
                         }
                         if (cur !== r.polygon) {
                           cleanRooms[ri] = { ...r, polygon: cur };
