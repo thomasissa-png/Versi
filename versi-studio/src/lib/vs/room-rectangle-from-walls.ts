@@ -399,11 +399,7 @@ function expandToFit(
     if (scale === null || scale <= 0) return null;
     const pdf = result[idx].pdfSurfaceM2;
     if (pdf != null && pdf > 0) {
-      // s28 tour 20 — cap relevé de 1.3× → 1.5× pour permettre aux gros
-      // séjours de gagner les derniers 5-10% manquants. enforcePdfSurfaces
-      // re-shrink si on dépasse 1.20 réellement ; ici c'est juste l'enveloppe
-      // d'expansion autorisée par expandToFit.
-      return (pdf * 1.5) / scale;
+      return (pdf * 1.3) / scale; // 30% tolérance d'expansion
     }
     // Pas de surface PDF (ex ECS, TGBT, placard) — cap à 1/3 médiane (≈3-5m²)
     if (medianPdfM2 > 0) {
@@ -941,8 +937,18 @@ function growUnderSized(
   // suffisant des 2 côtés). Avec 1 seule direction par passe + réduction de
   // slack à chaque expansion via le cap PDF (×1.3), on plafonnait avant
   // d'atteindre la cible. Étendre les 2 dirs distribue mieux.
+  //
+  // s28 tour 20.b — PRIORITÉ aux GROSSES pièces. Sans cela, Chambre/Entrée
+  // grossissent en premier et volent l'espace au Séjour. Big-first = chaque
+  // pass on traite les rooms par PDF surface DÉCROISSANTE.
+  const indices = result.map((_, i) => i);
+  indices.sort((a, b) => {
+    const pa = result[a].pdfSurfaceM2 ?? 0;
+    const pb = result[b].pdfSurfaceM2 ?? 0;
+    return pb - pa; // décroissant
+  });
   for (let pass = 0; pass < 4; pass++) {
-    for (let i = 0; i < result.length; i++) {
+    for (const i of indices) {
       const r = result[i];
       if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) continue;
       const targetArea = r.pdfSurfaceM2 / scale;
@@ -983,11 +989,8 @@ function growUnderSized(
       const deltaW = targetW - widthA;
       const deltaH = targetH - heightA;
       const margin = 2;
-      // On étend les 2 directions les plus libres (top 2 en slack > 1px).
-      // s28 tour 20 — seuil baissé de 5 → 1 px : permet d'utiliser même un
-      // tout petit slack quand toutes les directions sont déjà presque
-      // collées (cas Séjour R+1 entouré par des cloisons fines).
-      const topDirs = slacks.filter((s) => s.slack > 1).slice(0, 2);
+      // On étend les 2 directions les plus libres (top 2 en slack > 5px).
+      const topDirs = slacks.filter((s) => s.slack > 5).slice(0, 2);
       for (const dir of topDirs) {
         if (dir.dir === "N") {
           a.yMin = Math.max(dir.lim + margin, a.yMin - Math.min(dir.slack - margin, deltaH));
