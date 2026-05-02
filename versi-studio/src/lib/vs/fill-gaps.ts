@@ -372,9 +372,15 @@ export async function fillGapsBetweenRooms(
     }
   }
 
-  // 5. Pour chaque room, reconstruire le polygone si elle a gagné des pixels.
-  // Sinon, garder le polygone original.
+  // 5. Pour chaque room, calculer gain pixels et décider si on remplace le
+  // polygone original par le nouveau (= plus large). Garde-fou STRICT :
+  //   - Si nouvelle aire < aire originale → garder original (bug de chevauchement)
+  //   - Si gain < 3% de l'aire originale → garder original (peu d'effet, pas de
+  //     risque de désalignement de la nouvelle frontière)
+  //   - Si nouvelle aire / aire originale > 1.30 → garder original (extension
+  //     trop violente, signe d'une fuite à travers un mur manquant)
   const out: RoomPolygon[] = [];
+  let totalReplaced = 0;
   let totalGained = 0;
   for (let pi = 0; pi < rooms.length; pi++) {
     const r = rooms[pi];
@@ -393,12 +399,38 @@ export async function fillGapsBetweenRooms(
         if (y > maxY) maxY = y;
       }
     }
+    // Aire originale (depuis polygon)
+    let origArea = 0;
+    {
+      let s = 0;
+      for (let i = 0; i < r.polygon.length; i++) {
+        const j = (i + 1) % r.polygon.length;
+        s += r.polygon[i].x * r.polygon[j].y - r.polygon[j].x * r.polygon[i].y;
+      }
+      origArea = Math.abs(s / 2);
+    }
     if (area === 0) {
+      // Aucun pixel claim → garder original
       out.push(r);
       continue;
     }
-    // Pour assurer que la pièce ne shrink pas, on s'assure qu'elle a >= aire orig.
-    // Ici par construction (BFS depuis owned), ça doit être >= aire_orig.
+    // Garde-fou shrink : nouvelle aire doit être >= 0.95× originale
+    if (area < origArea * 0.95) {
+      console.log(`[fill-gaps] ${r.text} skip : new area ${area.toFixed(0)} < orig ${origArea.toFixed(0)} * 0.95 (chevauchement?)`);
+      out.push(r);
+      continue;
+    }
+    // Garde-fou expansion : nouvelle aire doit être <= 1.30× originale
+    if (area > origArea * 1.30) {
+      console.log(`[fill-gaps] ${r.text} skip : new area ${area.toFixed(0)} > orig ${origArea.toFixed(0)} * 1.30 (fuite mur manquant?)`);
+      out.push(r);
+      continue;
+    }
+    // Garde-fou gain insignifiant (<3%) : pas la peine de remplacer
+    if (area < origArea * 1.03) {
+      out.push(r);
+      continue;
+    }
     // Trace contour
     const contour = traceContour(region, W, H, { minX, minY, maxX, maxY });
     if (contour.length < 4) {
@@ -422,10 +454,10 @@ export async function fillGapsBetweenRooms(
       areaPx2: area,
       centroid: { x: cx, y: cy },
     });
-    // Compte gain
-    if (r.areaPx2 != null) totalGained += area - r.areaPx2;
+    totalReplaced++;
+    totalGained += area - origArea;
   }
-  console.log(`[fill-gaps] reconstruit ${out.length} polygones, gain pixels total ≈ ${totalGained}`);
+  console.log(`[fill-gaps] ${totalReplaced}/${rooms.length} polygones étendus, gain total ≈ ${totalGained.toFixed(0)} px (moy ${totalReplaced > 0 ? (totalGained / totalReplaced).toFixed(0) : 0} px/pièce)`);
 
   return out;
 }
