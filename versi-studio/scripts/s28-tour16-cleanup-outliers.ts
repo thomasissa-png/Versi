@@ -56,6 +56,53 @@ function bestWallDist(p: PtPx, walls: Array<{ x1:number;y1:number;x2:number;y2:n
   return best;
 }
 
+function projectOnSegment(p: PtPx, w: { x1:number;y1:number;x2:number;y2:number }): PtPx {
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const len2 = dx*dx + dy*dy;
+  if (len2 < 1e-9) return { x: w.x1, y: w.y1 };
+  const t = Math.max(0, Math.min(1, ((p.x - w.x1)*dx + (p.y - w.y1)*dy) / len2));
+  return { x: w.x1 + t*dx, y: w.y1 + t*dy };
+}
+
+/**
+ * Pour chaque vertex outlier (>thresholdPx), tente de le projeter sur le mur
+ * le plus proche dans une fenêtre <= dragMaxPx. On accepte si le polygone
+ * reste valide (aire reste à ±areaDriftMax).
+ */
+function projectOutliersToWalls(
+  polygon: PtPx[],
+  walls: Array<{ x1:number;y1:number;x2:number;y2:number }>,
+  thresholdPx: number,
+  dragMaxPx: number,
+  areaDriftMax: number,
+): PtPx[] {
+  const orig = polygon.map(p => ({ ...p }));
+  const origArea = polygonAreaPx(orig);
+  if (origArea < 1) return orig;
+  // Trouver pour chaque vertex le best mur projetable
+  const trial = orig.map(v => {
+    let bestD = Infinity;
+    let bestProj: PtPx = { x: v.x, y: v.y };
+    for (const w of walls) {
+      const d = distPointToSegment(v.x, v.y, w.x1, w.y1, w.x2, w.y2);
+      if (d < bestD) {
+        bestD = d;
+        if (d > thresholdPx && d <= dragMaxPx) {
+          bestProj = projectOnSegment(v, w);
+        } else {
+          bestProj = { x: v.x, y: v.y };
+        }
+      }
+    }
+    return bestProj;
+  });
+  const trialArea = polygonAreaPx(trial);
+  if (origArea > 0 && Math.abs(trialArea - origArea) / origArea <= areaDriftMax) {
+    return trial;
+  }
+  return orig;
+}
+
 /**
  * Simplifie le polygon par pruning des outliers : pour chaque vertex à >5px d'un mur,
  * on tente de le supprimer si l'aire reste à ±10% de l'aire d'origine.
@@ -197,28 +244,126 @@ async function main() {
         if (bestWallDist(v, allWalls) > 5) outliersOrig++;
       }
 
-      // Étape 1 : Pruning agressif outliers (drift max 10%)
-      let cleaned = pruneOutliers(polyPx, allWalls, 5, 0.10);
+      // Étape 1 : Pruning conservatif outliers (drift max 3%)
+      // Marge de sécurité Inv A : audit ratio [0.85, 1.15] = ±15%.
+      // Le polygone IA original peut déjà être à ratio 1.10 → drift 3% supplémentaire
+      // amène à 1.13, encore safe. Drift > 5% = risque ratio > 1.15 = FAIL.
+      let cleaned = pruneOutliers(polyPx, allWalls, 5, 0.03);
 
-      // Étape 2 : Snap progressif (5 / 10 / 15px) avec garde-fou aire
+      // Étape 2 : Snap progressif (5 / 10 / 15 / 20px) avec garde-fou aire 3%
       const wallsForSnap: WallSegment[] = allWalls;
       const snap1 = snapPolygonToWalls(cleaned, wallsForSnap, 5);
       const snap2 = snapPolygonToWalls(snap1.polygon, wallsForSnap, 10);
       const snap3 = snapPolygonToWalls(snap2.polygon, wallsForSnap, 15);
+      const snap4 = snapPolygonToWalls(snap3.polygon, wallsForSnap, 20);
       const snap1Area = polygonAreaPx(snap1.polygon);
       const snap2Area = polygonAreaPx(snap2.polygon);
       const snap3Area = polygonAreaPx(snap3.polygon);
+      const snap4Area = polygonAreaPx(snap4.polygon);
       const driftSnap1 = origArea > 0 ? Math.abs(snap1Area - origArea) / origArea : 0;
       const driftSnap2 = origArea > 0 ? Math.abs(snap2Area - origArea) / origArea : 0;
       const driftSnap3 = origArea > 0 ? Math.abs(snap3Area - origArea) / origArea : 0;
-      // Choisir le snap le plus agressif tant que drift < 12%
+      const driftSnap4 = origArea > 0 ? Math.abs(snap4Area - origArea) / origArea : 0;
+      // Choisir le snap le plus agressif tant que drift < 3% vs aire originale
       let finalPoly = cleaned;
-      if (driftSnap3 < 0.12) finalPoly = snap3.polygon;
-      else if (driftSnap2 < 0.12) finalPoly = snap2.polygon;
-      else if (driftSnap1 < 0.12) finalPoly = snap1.polygon;
+      if (driftSnap4 < 0.03) finalPoly = snap4.polygon;
+      else if (driftSnap3 < 0.03) finalPoly = snap3.polygon;
+      else if (driftSnap2 < 0.03) finalPoly = snap2.polygon;
+      else if (driftSnap1 < 0.03) finalPoly = snap1.polygon;
 
       // Étape 3 : Re-pruning (post-snap il peut rester des outliers résiduels)
-      finalPoly = pruneOutliers(finalPoly, allWalls, 5, 0.10);
+      finalPoly = pruneOutliers(finalPoly, allWalls, 5, 0.03);
+
+      // Étape 4 : Projection des outliers résiduels (ne pas supprimer mais
+      // déplacer vers le mur le plus proche dans une fenêtre 30px)
+      // Garde-fou aire 3% global pour ne pas casser Inv A.
+      // On essaie avec différentes tolérances : on commence agressif (50px) puis
+      // on rétrécit si l'aire dérive trop.
+      for (const dragMax of [80, 50, 30, 20]) {
+        const trial = projectOutliersToWalls(finalPoly, allWalls, 5, dragMax, 0.03);
+        const trialArea = polygonAreaPx(trial);
+        const drift = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
+        if (drift <= 0.03) {
+          finalPoly = trial;
+          break;
+        }
+      }
+      // Re-pruning post-projection
+      finalPoly = pruneOutliers(finalPoly, allWalls, 5, 0.03);
+
+      // Étape 5 : BBOX REBUILD POUR PIÈCES IRRÉDUCTIBLES.
+      // Si le polygone garde >40% d'outliers après tout, on tente un fallback :
+      // remplacer par la bbox snappée (rectangle aux 4 murs les plus proches).
+      // Cela ne s'applique QUE si la nouvelle aire reste dans ±5% vs original.
+      let outliersAfter = 0;
+      for (const v of finalPoly) {
+        if (bestWallDist(v, allWalls) > 5) outliersAfter++;
+      }
+      const outliersRatio = finalPoly.length > 0 ? outliersAfter / finalPoly.length : 0;
+      if (outliersRatio > 0.4) {
+        // Compute tight bbox des vertices
+        let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+        for (const v of finalPoly) {
+          if (v.x < bx0) bx0 = v.x;
+          if (v.x > bx1) bx1 = v.x;
+          if (v.y < by0) by0 = v.y;
+          if (v.y > by1) by1 = v.y;
+        }
+        // Snap chaque côté à la ligne du mur le plus proche
+        // Direction horizontale (top, bottom) : chercher mur quasi-horizontal
+        // dont la hauteur Y est proche de by0 (top) ou by1 (bottom).
+        const snapBound = (target: number, isHorizontal: boolean): number => {
+          // mur "horizontal" = |dy/dx| < 0.2, "vertical" = |dx/dy| < 0.2
+          let bestDelta = Infinity;
+          let snapped = target;
+          for (const w of allWalls) {
+            const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+            if (isHorizontal) {
+              if (Math.abs(dy) > Math.abs(dx) * 0.2) continue; // pas horizontal
+              const wallY = (w.y1 + w.y2) / 2;
+              const delta = Math.abs(wallY - target);
+              // Vérifier overlap X avec bbox
+              const wxmin = Math.min(w.x1, w.x2), wxmax = Math.max(w.x1, w.x2);
+              if (wxmax < bx0 - 5 || wxmin > bx1 + 5) continue;
+              if (delta < bestDelta && delta < 50) {
+                bestDelta = delta;
+                snapped = wallY;
+              }
+            } else {
+              if (Math.abs(dx) > Math.abs(dy) * 0.2) continue; // pas vertical
+              const wallX = (w.x1 + w.x2) / 2;
+              const delta = Math.abs(wallX - target);
+              // Vérifier overlap Y avec bbox
+              const wymin = Math.min(w.y1, w.y2), wymax = Math.max(w.y1, w.y2);
+              if (wymax < by0 - 5 || wymin > by1 + 5) continue;
+              if (delta < bestDelta && delta < 50) {
+                bestDelta = delta;
+                snapped = wallX;
+              }
+            }
+          }
+          return snapped;
+        };
+        const newY0 = snapBound(by0, true);
+        const newY1 = snapBound(by1, true);
+        const newX0 = snapBound(bx0, false);
+        const newX1 = snapBound(bx1, false);
+        const bboxRect = [
+          { x: newX0, y: newY0 },
+          { x: newX1, y: newY0 },
+          { x: newX1, y: newY1 },
+          { x: newX0, y: newY1 },
+        ];
+        const bboxArea = polygonAreaPx(bboxRect);
+        const driftBbox = origArea > 0 ? Math.abs(bboxArea - origArea) / origArea : 1;
+        if (driftBbox <= 0.05 && bboxArea > 1) {
+          // Vérifier que les 4 vertices snappent
+          const allSnapped = bboxRect.every(v => bestWallDist(v, allWalls) <= 5);
+          if (allSnapped) {
+            finalPoly = bboxRect;
+          }
+        }
+      }
 
       let outliersFinal = 0;
       for (const v of finalPoly) {
