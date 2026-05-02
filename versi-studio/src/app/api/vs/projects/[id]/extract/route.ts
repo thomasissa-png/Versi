@@ -375,12 +375,26 @@ export async function POST(
                 const textItems = await extractTextItems(fileBuffer, lotPolyPxForText, 3);
                 const roomItems = filterRoomLabels(textItems);
                 if (roomItems.length >= 2) {
-                  labelsOnly = roomItems.map((r) => ({
-                    text: r.text,
-                    x_percent: result.imageWidth > 0 ? (r.x / result.imageWidth) * 100 : 0,
-                    y_percent: result.imageHeight > 0 ? (r.y / result.imageHeight) * 100 : 0,
-                    surface_m2: r.surface_m2,
-                  }));
+                  labelsOnly = roomItems.map((r) => {
+                    const xMinPct = result.imageWidth > 0 ? ((r.x - r.width / 2) / result.imageWidth) * 100 : 0;
+                    const xMaxPct = result.imageWidth > 0 ? ((r.x + r.width / 2) / result.imageWidth) * 100 : 0;
+                    const yMinPct = result.imageHeight > 0 ? ((r.y - r.height / 2) / result.imageHeight) * 100 : 0;
+                    const yMaxPct = result.imageHeight > 0 ? ((r.y + r.height / 2) / result.imageHeight) * 100 : 0;
+                    return {
+                      text: r.text,
+                      x_percent: result.imageWidth > 0 ? (r.x / result.imageWidth) * 100 : 0,
+                      y_percent: result.imageHeight > 0 ? (r.y / result.imageHeight) * 100 : 0,
+                      surface_m2: r.surface_m2,
+                      // s28 tour 21 — bbox label en % image, propagée vers
+                      // extractRoomsAsRectangles via rectLabels.labelBbox.
+                      label_bbox_percent: {
+                        x_min_percent: xMinPct,
+                        y_min_percent: yMinPct,
+                        x_max_percent: xMaxPct,
+                        y_max_percent: yMaxPct,
+                      },
+                    };
+                  });
                   console.log(
                     `[extract/NEW v6/s28.6] plan ${plan.id} labels VECTORIEL : ${labelsOnly.length} → ${labelsOnly.map((l) => `${l.text}=${l.surface_m2 ?? "?"}m²`).join(", ")}`,
                   );
@@ -651,12 +665,25 @@ export async function POST(
                 const allWallsForRect: RectWall[] = [...cleanWalls, ...lotEdgeWalls];
 
                 // 3) Labels (pixel image) avec surfaces PDF
-                const rectLabels = labelsOnly.map((l) => ({
-                  text: l.text,
-                  x: (l.x_percent / 100) * result.imageWidth,
-                  y: (l.y_percent / 100) * result.imageHeight,
-                  surface_m2: l.surface_m2 ?? null,
-                }));
+                // s28 tour 21 — propage label_bbox_percent en bbox pixel image,
+                // utilisée par enforcePdfSurfaces pour shrink anisotrope.
+                const rectLabels = labelsOnly.map((l) => {
+                  const lbox = l.label_bbox_percent;
+                  return {
+                    text: l.text,
+                    x: (l.x_percent / 100) * result.imageWidth,
+                    y: (l.y_percent / 100) * result.imageHeight,
+                    surface_m2: l.surface_m2 ?? null,
+                    labelBbox: lbox
+                      ? {
+                          xMin: (lbox.x_min_percent / 100) * result.imageWidth,
+                          yMin: (lbox.y_min_percent / 100) * result.imageHeight,
+                          xMax: (lbox.x_max_percent / 100) * result.imageWidth,
+                          yMax: (lbox.y_max_percent / 100) * result.imageHeight,
+                        }
+                      : null,
+                  };
+                });
 
                 // 4) Extraction rectangles
                 const rectRooms = extractRoomsAsRectangles(

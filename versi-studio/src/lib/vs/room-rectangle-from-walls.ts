@@ -53,6 +53,13 @@ export type RoomLabel = {
   y: number;
   /** Surface m² lue sur le PDF (à droite/sous le label), si trouvée. */
   surface_m2: number | null;
+  /**
+   * Bbox du texte du label en pixel image (scale=3), si disponible.
+   * Utilisée par enforcePdfSurfaces pour garantir que le rectangle final
+   * englobe la bbox label (évite que la pièce soit décalée hors de son label).
+   * Source : extractTextItems (pdfjs vectoriel).
+   */
+  labelBbox?: { xMin: number; yMin: number; xMax: number; yMax: number } | null;
 };
 
 export type RectangleRoom = {
@@ -625,7 +632,8 @@ function expandToFit(
 function enforcePdfSurfaces(
   rooms: RectangleRoom[],
   seeds: Array<{ x: number; y: number }>,
-  _lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  labelBboxes?: Array<{ xMin: number; yMin: number; xMax: number; yMax: number } | null>,
 ): RectangleRoom[] {
   // Calcul scale médian
   const candidates = rooms
@@ -643,50 +651,134 @@ function enforcePdfSurfaces(
     ? filtered.map((c) => c.r.pdfSurfaceM2! / c.r.areaPx2).sort((a, b) => a - b)[Math.floor(filtered.length / 2)]
     : medianK;
 
-  // Pour chaque pièce avec PDF surface, shrink si trop grand
+  // s28 tour 21 — SHRINK ANISOTROPE :
+  // Au lieu de shrinker isotropiquement vers le centre, on shrink en priorité
+  // les bords qui touchent le lot bbox (= bords "ouverts" sans voisin direct,
+  // typiquement la terrasse au nord du RDC Muguets). Conserve les bords mitoyens
+  // avec d'autres pièces (= séparations légitimes entre rooms).
+  //
+  // Stratégie : pour chaque pièce trop grande,
+  //   1. Calculer le surplus en px² à shrinker.
+  //   2. Identifier les bords "free" : touchent le lot bbox ET pas de voisin
+  //      collé (≤8px) côté pièce.
+  //   3. Distribuer le shrink proportionnellement à la "marge libre" sur ces
+  //      bords, en garantissant que la bbox du label reste inscrite.
+  //   4. Si pas de bord free → fallback shrink isotrope vers seed.
+  const TOL_LOT = 4; // px : tolérance pour considérer "touche le lot"
+  const TOL_NEIGHBOR = 8; // px : tolérance pour considérer "voisin collé"
   return rooms.map((r, idx) => {
     if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) return r;
     if (r.areaPx2 <= 0) return r;
     const currentM2 = r.areaPx2 * scale;
     const ratio = currentM2 / r.pdfSurfaceM2;
     if (ratio <= 1.20) return r; // OK ou trop petit (on ne grossit pas)
-    // Shrink vers le seed. Facteur linéaire = sqrt(target / current)
-    // (pour matcher l'aire après shrink isotrope).
     const targetArea = r.pdfSurfaceM2 / scale;
-    const shrinkFactor = Math.sqrt(targetArea / r.areaPx2);
-    if (shrinkFactor >= 1) return r;
     const seed = seeds[idx];
-    const cx = (r.bbox.xMin + r.bbox.xMax) / 2;
-    const cy = (r.bbox.yMin + r.bbox.yMax) / 2;
-    // On shrink autour du centre du rectangle, puis on s'assure que le seed
-    // reste dedans (sinon on décale).
-    const halfW = (r.bbox.xMax - r.bbox.xMin) / 2 * shrinkFactor;
-    const halfH = (r.bbox.yMax - r.bbox.yMin) / 2 * shrinkFactor;
-    let newXMin = cx - halfW;
-    let newXMax = cx + halfW;
-    let newYMin = cy - halfH;
-    let newYMax = cy + halfH;
-    // Ajuster pour englober le seed (avec marge 5px)
-    const seedMargin = 5;
-    if (seed.x < newXMin + seedMargin) {
-      const shift = newXMin + seedMargin - seed.x;
-      newXMin -= shift;
-      newXMax -= shift;
+    const labelBbox = labelBboxes?.[idx] ?? null;
+
+    // ─── 1. Identifier les bords "free" (touchent lot, pas de voisin collé) ───
+    const a = r.bbox;
+    const touchesLotN = Math.abs(a.yMin - lotBbox.yMin) <= TOL_LOT;
+    const touchesLotS = Math.abs(a.yMax - lotBbox.yMax) <= TOL_LOT;
+    const touchesLotW = Math.abs(a.xMin - lotBbox.xMin) <= TOL_LOT;
+    const touchesLotE = Math.abs(a.xMax - lotBbox.xMax) <= TOL_LOT;
+    let neighborN = false, neighborS = false, neighborW = false, neighborE = false;
+    for (let j = 0; j < rooms.length; j++) {
+      if (j === idx) continue;
+      const b = rooms[j].bbox;
+      const overlapX = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+      const overlapY = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+      if (overlapX > 0 && Math.abs(b.yMax - a.yMin) <= TOL_NEIGHBOR) neighborN = true;
+      if (overlapX > 0 && Math.abs(b.yMin - a.yMax) <= TOL_NEIGHBOR) neighborS = true;
+      if (overlapY > 0 && Math.abs(b.xMax - a.xMin) <= TOL_NEIGHBOR) neighborW = true;
+      if (overlapY > 0 && Math.abs(b.xMin - a.xMax) <= TOL_NEIGHBOR) neighborE = true;
     }
-    if (seed.x > newXMax - seedMargin) {
-      const shift = seed.x - (newXMax - seedMargin);
-      newXMin += shift;
-      newXMax += shift;
+    const freeN = touchesLotN && !neighborN;
+    const freeS = touchesLotS && !neighborS;
+    const freeW = touchesLotW && !neighborW;
+    const freeE = touchesLotE && !neighborE;
+    const anyFree = freeN || freeS || freeW || freeE;
+
+    // ─── 2. Limites : bbox label DOIT rester inscrite ───
+    // (avec marge 5px). Si pas de bbox label, fallback = seed ± 10px.
+    const minXMin = labelBbox ? labelBbox.xMin - 5 : seed.x - 10;
+    const minXMax = labelBbox ? labelBbox.xMax + 5 : seed.x + 10;
+    const minYMin = labelBbox ? labelBbox.yMin - 5 : seed.y - 10;
+    const minYMax = labelBbox ? labelBbox.yMax + 5 : seed.y + 10;
+
+    let newXMin = a.xMin, newXMax = a.xMax, newYMin = a.yMin, newYMax = a.yMax;
+
+    if (anyFree) {
+      // ─── 3. Shrink dimensionnel : on shrink en priorité les bords free.
+      // Surplus à shrink (en px²)
+      const surplusArea = r.areaPx2 - targetArea;
+      const widthA = a.xMax - a.xMin;
+      const heightA = a.yMax - a.yMin;
+
+      // Shrink en hauteur si free vertical
+      if (freeN || freeS) {
+        // On shrink la hauteur jusqu'à atteindre target (proportionnel à la
+        // largeur conservée). targetHeight = targetArea / widthA.
+        const targetHeightFromArea = Math.min(heightA, targetArea / widthA);
+        const totalShrinkH = heightA - targetHeightFromArea;
+        // Distribuer proportionnellement entre N et S free
+        const freeCount = (freeN ? 1 : 0) + (freeS ? 1 : 0);
+        const shrinkPerFree = totalShrinkH / freeCount;
+        if (freeN) newYMin = Math.min(minYMin, a.yMin + shrinkPerFree);
+        if (freeS) newYMax = Math.max(minYMax, a.yMax - shrinkPerFree);
+      }
+
+      // Recalcul après shrink vertical
+      const heightAfter = newYMax - newYMin;
+      const areaAfterV = (a.xMax - a.xMin) * heightAfter;
+
+      // Shrink en largeur si free horizontal ET surplus restant
+      if ((freeW || freeE) && areaAfterV > targetArea * 1.05) {
+        const targetWidthFromArea = Math.min(widthA, targetArea / heightAfter);
+        const totalShrinkW = widthA - targetWidthFromArea;
+        const freeCountH = (freeW ? 1 : 0) + (freeE ? 1 : 0);
+        const shrinkPerFreeW = totalShrinkW / freeCountH;
+        if (freeW) newXMin = Math.min(minXMin, a.xMin + shrinkPerFreeW);
+        if (freeE) newXMax = Math.max(minXMax, a.xMax - shrinkPerFreeW);
+      }
+
+      void surplusArea;
+    } else {
+      // ─── 4. Fallback isotrope vers seed (comportement legacy) ───
+      const shrinkFactor = Math.sqrt(targetArea / r.areaPx2);
+      const cx = (a.xMin + a.xMax) / 2;
+      const cy = (a.yMin + a.yMax) / 2;
+      const halfW = (a.xMax - a.xMin) / 2 * shrinkFactor;
+      const halfH = (a.yMax - a.yMin) / 2 * shrinkFactor;
+      newXMin = cx - halfW;
+      newXMax = cx + halfW;
+      newYMin = cy - halfH;
+      newYMax = cy + halfH;
+      const seedMargin = 5;
+      if (seed.x < newXMin + seedMargin) {
+        const shift = newXMin + seedMargin - seed.x;
+        newXMin -= shift; newXMax -= shift;
+      }
+      if (seed.x > newXMax - seedMargin) {
+        const shift = seed.x - (newXMax - seedMargin);
+        newXMin += shift; newXMax += shift;
+      }
+      if (seed.y < newYMin + seedMargin) {
+        const shift = newYMin + seedMargin - seed.y;
+        newYMin -= shift; newYMax -= shift;
+      }
+      if (seed.y > newYMax - seedMargin) {
+        const shift = seed.y - (newYMax - seedMargin);
+        newYMin += shift; newYMax += shift;
+      }
     }
-    if (seed.y < newYMin + seedMargin) {
-      const shift = newYMin + seedMargin - seed.y;
-      newYMin -= shift;
-      newYMax -= shift;
-    }
-    if (seed.y > newYMax - seedMargin) {
-      const shift = seed.y - (newYMax - seedMargin);
-      newYMin += shift;
-      newYMax += shift;
+
+    // Sécurité : garantir que la bbox label est inscrite dans le rectangle final
+    if (labelBbox) {
+      newXMin = Math.min(newXMin, labelBbox.xMin - 2);
+      newYMin = Math.min(newYMin, labelBbox.yMin - 2);
+      newXMax = Math.max(newXMax, labelBbox.xMax + 2);
+      newYMax = Math.max(newYMax, labelBbox.yMax + 2);
     }
     const newBbox = { xMin: newXMin, yMin: newYMin, xMax: newXMax, yMax: newYMax };
     const newPoly = buildRectangle(newBbox.yMin, newBbox.yMax, newBbox.xMax, newBbox.xMin);
@@ -1285,10 +1377,15 @@ export function extractRoomsAsRectangles(
 
   // Étape 2.5 : conformité PDF (passes d'ajustement aux surfaces architecte).
   // On calcule un scale médian (px²/m²) à partir des pièces dont l'aire est
-  // proche de la valeur PDF, puis on RÉDUIT les rectangles trop grands en
-  // shrinkant vers le seed jusqu'à matcher la surface PDF.
-  // Ne grossit JAMAIS un rectangle (= éviterait re-overlap).
-  resolved = enforcePdfSurfaces(resolved, seeds, lotBbox);
+  // proche de la valeur PDF, puis on RÉDUIT les rectangles trop grands.
+  // s28 tour 21 : shrink ANISOTROPE — privilégie les bords "free" (touchant
+  // le lot bbox sans voisin) plutôt qu'un shrink isotrope vers le seed. Évite
+  // que les rectangles débordent dans la terrasse alors qu'ils devraient
+  // s'arrêter au mur extérieur du bâtiment.
+  // labelBboxes : si label.labelBbox dispo (extraction vectorielle PDF), il
+  // contraint le rectangle final (DOIT inscrire la bbox label).
+  const labelBboxes = labels.map((l) => l.labelBbox ?? null);
+  resolved = enforcePdfSurfaces(resolved, seeds, lotBbox, labelBboxes);
 
   // Étape 2.55 — s28 tour 20.c : SHRINK les placards techniques sans surface
   // PDF (ECS, TGBT) qui bornent une grosse pièce sous-dimensionnée.

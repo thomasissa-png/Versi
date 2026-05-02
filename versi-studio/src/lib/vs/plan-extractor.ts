@@ -873,6 +873,18 @@ export type PlanLabel = {
   y_percent: number;
   /** Surface en m² lue à proximité du label (si visible). */
   surface_m2: number | null;
+  /**
+   * s28 tour 21 — Bbox du texte du label en % du plan (origine top-left).
+   * Disponible uniquement via extraction vectorielle PDF (extractTextItems).
+   * Pas disponible via OCR IA (fallback). Utilisée par extractRoomsAsRectangles
+   * pour garantir que le rectangle final inscrit la bbox label.
+   */
+  label_bbox_percent?: {
+    x_min_percent: number;
+    y_min_percent: number;
+    x_max_percent: number;
+    y_max_percent: number;
+  } | null;
 };
 
 const LABELS_ONLY_JSON_SCHEMA = {
