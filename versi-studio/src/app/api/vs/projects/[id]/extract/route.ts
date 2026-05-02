@@ -1660,11 +1660,12 @@ export async function POST(
                         // Étape 2 : Drag Outliers Vertex progressif
                         // (projete vertex-par-vertex) avec drift croissant.
                         // Plus agressif pour atteindre Inv C ≥ 95%.
-                        // Limite drift cumulé 8% (pour préserver Inv A à 12%).
+                        // Limite drift cumulé 12% (pour rester Inv A < 15%).
                         for (const cfg of [
-                          { dragMaxPx: 15, maxAreaChangeRatio: 0.03 },
-                          { dragMaxPx: 25, maxAreaChangeRatio: 0.04 },
-                          { dragMaxPx: 35, maxAreaChangeRatio: 0.05 },
+                          { dragMaxPx: 15, maxAreaChangeRatio: 0.04 },
+                          { dragMaxPx: 25, maxAreaChangeRatio: 0.06 },
+                          { dragMaxPx: 40, maxAreaChangeRatio: 0.08 },
+                          { dragMaxPx: 60, maxAreaChangeRatio: 0.10 },
                         ]) {
                           const dragged = dragOutliersToWalls(cur, allWalls_snap, {
                             thresholdPx: 5,
@@ -1676,7 +1677,7 @@ export async function POST(
                           const driftCum = origAreaPx2 > 0
                             ? Math.abs(newArea - origAreaPx2) / origAreaPx2
                             : 0;
-                          if (driftCum < 0.08) {
+                          if (driftCum < 0.12) {
                             cur = dragged;
                           }
                         }
