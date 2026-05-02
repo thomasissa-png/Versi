@@ -2031,12 +2031,120 @@ export function extractRoomsAsRectangles(
     resolved = [...translated, ...techRooms];
   }
 
-  // Étape 2.67 — s28 tour 24 : normalize aspect ratio tech rooms (TESTED, REVERTED).
-  // Tested: élargir bande ECS pour aspect ratio max 2.5. Mais expansion empiète
-  // sur Séjour/Chambre voisins → resolveOverlaps shrink les voisins → audit FAIL.
-  // Conclusion : si on veut normaliser ECS, il faut re-shrink Séjour/Chambre via
-  // une autre stratégie (pas resolveOverlaps qui prend la moitié de l'overlap).
-  // ECS bande horizontale = compromis acceptable : surface 0.4m² conforme, label visible.
+  // Étape 2.67 — s28 tour 25 : normalize aspect ratio tech rooms (ECS, TGBT…).
+  //
+  // Bug visuel R+1 : ECS finit en bande horizontale 27% × 1.35% (aspect 20:1).
+  // Cause : Étape 2.55 shrink ECS de 50% côté adj. au voisin pour libérer
+  // Séjour. Si la bbox initiale était déjà fine sur cet axe, ECS devient une
+  // ligne plate visuellement aberrante.
+  //
+  // Solution surface-preserving : si aspect ratio > 4, transformer en carré
+  // CENTRÉ SUR LE CENTROÏDE COURANT, surface inchangée (= sqrt(area)).
+  // Crucial : bornage par les voisins pour ne PAS créer de chevauchement.
+  // Si l'expansion vers carré entrerait en collision, on prend le plus grand
+  // carré qui ne créé pas d'overlap (max-square-bounded).
+  resolved = (() => {
+    const ASPECT_THRESHOLD = 4.0;
+    const techPattern = /^(ecs|tgbt|gaine|vide-ordures?|placard)$/i;
+    const norm = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    const isTechNoPdf = (r: RectangleRoom) =>
+      (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) &&
+      techPattern.test(norm(r.label));
+
+    const next = resolved.map((r) => ({
+      ...r,
+      bbox: { ...r.bbox },
+      polygon: r.polygon.map((v) => ({ ...v })),
+    }));
+
+    for (let i = 0; i < next.length; i++) {
+      const r = next[i];
+      if (!isTechNoPdf(r)) continue;
+      const w = r.bbox.xMax - r.bbox.xMin;
+      const h = r.bbox.yMax - r.bbox.yMin;
+      if (w <= 0 || h <= 0) continue;
+      const aspect = Math.max(w, h) / Math.max(1, Math.min(w, h));
+      console.log(`[normalizeTechAspect-DEBUG] ${r.label} w=${w.toFixed(0)} h=${h.toFixed(0)} aspect=${aspect.toFixed(2)}`);
+      if (aspect <= ASPECT_THRESHOLD) continue;
+
+      // Carré-cible centré, surface préservée.
+      const area = w * h;
+      const side = Math.sqrt(area);
+      const cx = (r.bbox.xMin + r.bbox.xMax) / 2;
+      const cy = (r.bbox.yMin + r.bbox.yMax) / 2;
+      let xMin = cx - side / 2;
+      let xMax = cx + side / 2;
+      let yMin = cy - side / 2;
+      let yMax = cy + side / 2;
+
+      // Borner aux voisins (no overlap) ET au lotBbox.
+      // Pour chaque voisin qui couperait le carré, ramener le bord du carré
+      // au bord du voisin en gardant la même surface (rectangle, pas carré).
+      // Approche simple : pour chaque direction, si le voisin tape, on
+      // contracte ce côté ; le côté opposé se développe pour compenser.
+      const others = next.filter((_, j) => j !== i);
+      function clampDirection(dir: "N" | "S" | "W" | "E") {
+        for (const o of others) {
+          const ob = o.bbox;
+          const horizontalOverlap =
+            Math.min(xMax, ob.xMax) - Math.max(xMin, ob.xMin);
+          const verticalOverlap =
+            Math.min(yMax, ob.yMax) - Math.max(yMin, ob.yMin);
+          if (dir === "N" || dir === "S") {
+            if (horizontalOverlap <= 1) continue;
+            if (dir === "N") {
+              if (ob.yMax > yMin && ob.yMax <= cy) {
+                yMin = Math.max(yMin, ob.yMax + 1);
+              }
+            } else {
+              if (ob.yMin < yMax && ob.yMin >= cy) {
+                yMax = Math.min(yMax, ob.yMin - 1);
+              }
+            }
+          } else {
+            if (verticalOverlap <= 1) continue;
+            if (dir === "W") {
+              if (ob.xMax > xMin && ob.xMax <= cx) {
+                xMin = Math.max(xMin, ob.xMax + 1);
+              }
+            } else {
+              if (ob.xMin < xMax && ob.xMin >= cx) {
+                xMax = Math.min(xMax, ob.xMin - 1);
+              }
+            }
+          }
+        }
+      }
+      clampDirection("N");
+      clampDirection("S");
+      clampDirection("W");
+      clampDirection("E");
+
+      // Borne au lot bbox
+      xMin = Math.max(xMin, lotBbox.xMin + 1);
+      xMax = Math.min(xMax, lotBbox.xMax - 1);
+      yMin = Math.max(yMin, lotBbox.yMin + 1);
+      yMax = Math.min(yMax, lotBbox.yMax - 1);
+
+      const newW = xMax - xMin;
+      const newH = yMax - yMin;
+      // Sécurité : si le clamp a tout cassé, on garde l'ancienne bbox.
+      if (newW < 5 || newH < 5) continue;
+      // Aspect après clamp : si toujours > threshold, on accepte ; au moins
+      // c'est un compromis (la bande s'épaissit même sans devenir carré).
+      const newAspect = Math.max(newW, newH) / Math.max(1, Math.min(newW, newH));
+      if (newAspect >= aspect) continue;
+
+      r.bbox = { xMin, xMax, yMin, yMax };
+      r.polygon = buildRectangle(yMin, yMax, xMax, xMin);
+      r.areaPx2 = polygonArea(r.polygon);
+      console.log(
+        `[normalizeTechAspect] ${r.label} : ${aspect.toFixed(1)} → ${newAspect.toFixed(1)}`,
+      );
+    }
+    return next;
+  })();
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //

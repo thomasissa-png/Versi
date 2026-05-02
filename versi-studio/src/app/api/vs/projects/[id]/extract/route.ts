@@ -734,6 +734,13 @@ export async function POST(
                     x_percent: result.imageWidth > 0 ? (p.x / result.imageWidth) * 100 : 0,
                     y_percent: result.imageHeight > 0 ? (p.y / result.imageHeight) * 100 : 0,
                   }));
+                  // s28 tour 25 — debug aspect ratio bbox sortie
+                  const ww = r.bbox.xMax - r.bbox.xMin;
+                  const hh = r.bbox.yMax - r.bbox.yMin;
+                  const aspect = Math.max(ww, hh) / Math.max(1, Math.min(ww, hh));
+                  console.log(
+                    `[extract/s28-tour25-debug] plan ${plan.id} ${r.label} bbox w=${ww.toFixed(0)} h=${hh.toFixed(0)} aspect=${aspect.toFixed(2)} pdf=${r.pdfSurfaceM2 ?? "?"}`,
+                  );
                   builders_face.push({
                     name: r.label,
                     roomType: inferRoomTypeFromName(r.label),
