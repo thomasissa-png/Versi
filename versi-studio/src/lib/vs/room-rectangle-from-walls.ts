@@ -1582,18 +1582,25 @@ function translateToTouchExteriorWalls(
   }
 
   let totalTranslated = 0;
+  // s28 tour 24 — translate UNE seule fois par axe (pas N+S simultanément qui s'auto-annulent).
+  // Tour 23 itérait sur 4 directions et appliquait chaque translate compatible. Bug RDC :
+  // Séjour N APPLIED delta=83 puis S APPLIED delta=106 → net -23px (déplacé S de 23, perd 83 du N).
+  // Solution : pour chaque axe (Y / X), choisir la direction avec le mur le plus PROCHE,
+  // appliquer UNE translation, skip l'autre direction sur cet axe.
   for (let i = 0; i < result.length; i++) {
     const a = result[i].bbox;
     const lbl = result[i].label;
-    // Pour chaque direction, si bord libre + mur extérieur proche → TRANSLATE
+    // Précompute candidates par direction
+    type DirInfo = { dir: "N" | "S" | "E" | "W"; delta: number; reason: string };
+    const dirs: DirInfo[] = [];
     for (const dir of ["N", "S", "E", "W"] as const) {
       if (hasNeighbor(a, i, dir, neighborGapPx)) {
-        if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} skip:hasNeighbor`);
+        dirs.push({ dir, delta: 0, reason: "skip:hasNeighbor" });
         continue;
       }
       const wallPos = nearestExteriorWallStrict(a, dir, lbl);
       if (wallPos === null) {
-        if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} skip:noWall`);
+        dirs.push({ dir, delta: 0, reason: "skip:noWall" });
         continue;
       }
       let delta = 0;
@@ -1602,21 +1609,44 @@ function translateToTouchExteriorWalls(
       else if (dir === "W") delta = a.xMin - (wallPos + 1);
       else if (dir === "E") delta = (wallPos - 1) - a.xMax;
       if (delta < 3) {
-        if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} skip:smallDelta=${delta.toFixed(0)}`);
+        dirs.push({ dir, delta: 0, reason: `skip:smallDelta=${delta.toFixed(0)}` });
         continue;
       }
-      // Vérifier collision : la translation rapprocherait-elle d'un voisin ?
       if (wouldCollide(a, i, dir, delta)) {
-        if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} skip:collision delta=${delta.toFixed(0)}`);
+        dirs.push({ dir, delta: 0, reason: `skip:collision delta=${delta.toFixed(0)}` });
         continue;
       }
-      // Appliquer translation (préserve dimensions = surface PRÉSERVÉE)
+      dirs.push({ dir, delta, reason: "candidate" });
+    }
+    // Pour Y et X : sélectionner UN candidat (delta > 0), prefer le plus petit delta
+    // (mur le plus proche) qui correspond à un bord vraiment libre.
+    function pickAxis(d1: "N" | "S" | "E" | "W", d2: "N" | "S" | "E" | "W"): DirInfo | null {
+      const c1 = dirs.find((d) => d.dir === d1);
+      const c2 = dirs.find((d) => d.dir === d2);
+      const cand1 = c1 && c1.delta > 0 ? c1 : null;
+      const cand2 = c2 && c2.delta > 0 ? c2 : null;
+      if (cand1 && cand2) {
+        // Choisir la direction avec le delta le plus PETIT (mur le plus proche).
+        return cand1.delta <= cand2.delta ? cand1 : cand2;
+      }
+      return cand1 ?? cand2 ?? null;
+    }
+    const yPick = pickAxis("N", "S");
+    const xPick = pickAxis("W", "E");
+    for (const pick of [yPick, xPick]) {
+      if (!pick) continue;
+      const { dir, delta } = pick;
       if (dir === "N") { a.yMin -= delta; a.yMax -= delta; }
       else if (dir === "S") { a.yMin += delta; a.yMax += delta; }
       else if (dir === "W") { a.xMin -= delta; a.xMax -= delta; }
       else if (dir === "E") { a.xMin += delta; a.xMax += delta; }
       totalTranslated++;
       if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} APPLIED delta=${delta.toFixed(0)}`);
+    }
+    if (process.env.VS_TRANSLATE_DEBUG === "true") {
+      for (const d of dirs) {
+        if (d.reason !== "candidate") console.log(`[translate-debug] ${lbl} ${d.dir} ${d.reason}`);
+      }
     }
   }
   for (const r of result) {
