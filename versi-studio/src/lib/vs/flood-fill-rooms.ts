@@ -1453,7 +1453,11 @@ export async function extractRoomsByQuotaFloodFill(
           }
         }
         let area = seal3Trial.area;
-        const maxAreaExpand = Math.round(s.quotaPx2 * 1.10);
+        // s28 tour 15 fix5 — borne expand à 1.05× : on cherche à récupérer les
+        // pixels du seuil (~14% de quota), donc on plafonne à ratio 1.05 (=
+        // moyenne entre 0.86 cible-erreur et 1.20 explosion). Au-delà, c'est
+        // une fuite. Le ratio runaway sera < 1.10 (= acceptable [0.88, 1.12]).
+        const maxAreaExpand = Math.round(s.quotaPx2 * 1.05);
         let bx0 = seal3Trial.bbox.minX, by0 = seal3Trial.bbox.minY;
         let bx1 = seal3Trial.bbox.maxX, by1 = seal3Trial.bbox.maxY;
         while (stack.length > 0 && area < maxAreaExpand) {
@@ -1485,8 +1489,15 @@ export async function extractRoomsByQuotaFloodFill(
           }
         }
         const trialName = "seal3+strictExpand";
-        trials.push({ area, runaway: area >= maxAreaExpand, region: expanded, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 }, name: trialName });
-        console.log(`[s28-tour15-WA-${trialName}] seed=${s.text} area=${area} ratio=${(area / s.quotaPx2).toFixed(3)} runaway=${area >= maxAreaExpand}`);
+        // s28 tour 15 fix5 — runaway flag pour strictExpand : si on a atteint
+        // exactement maxAreaExpand sans plus de pixels possibles → c'est une
+        // FUITE (le BFS aurait continué). Si area < maxAreaExpand → arrêt
+        // naturel sur un mur (légitime).
+        // Pour distinguer : on pop le stack et regarde si arrêt naturel.
+        // Implémentation simple : si stack.length === 0 → arrêt naturel.
+        const runawayStrict = stack.length > 0; // stack non-vide = on a coupé sur la borne
+        trials.push({ area, runaway: runawayStrict, region: expanded, bbox: { minX: bx0, minY: by0, maxX: bx1, maxY: by1 }, name: trialName });
+        console.log(`[s28-tour15-WA-${trialName}] seed=${s.text} area=${area} ratio=${(area / s.quotaPx2).toFixed(3)} runaway=${runawayStrict} stackRemaining=${stack.length}`);
       }
 
       // Sélection : tier dont ratio est le plus proche de 1.0, en filtrant les
