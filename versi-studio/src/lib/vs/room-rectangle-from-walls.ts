@@ -833,50 +833,63 @@ function growUnderSized(
       vWalls.push({ pos: wallX(w), lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
     }
   }
-  function nearestWallN(a: typeof result[0]["bbox"]): number {
+  // s28 tour 20 — pour les GROSSES pièces (PDF ≥ 20m²), exiger 60% de
+  // coverage perpendiculaire pour qu'un mur compte comme bornage. Évite
+  // que des murs courts (cloisons SDB, frames de portes) bloquent un grand
+  // séjour de s'étendre jusqu'au vrai mur architectural lointain.
+  function minOverlap(a: { xMin: number; yMin: number; xMax: number; yMax: number }, isHorizontal: boolean, isBig: boolean): number {
+    const len = isHorizontal ? a.xMax - a.xMin : a.yMax - a.yMin;
+    if (isBig) return Math.max(20, len * 0.6);
+    return Math.min(20, len * 0.25);
+  }
+  function nearestWallN(a: typeof result[0]["bbox"], isBig = false): number {
     let best = lotBbox.yMin;
+    const need = minOverlap(a, true, isBig);
     for (const w of hWalls) {
       if (w.pos >= a.yMin - 2) continue;
       const ovLo = Math.max(a.xMin, w.lo);
       const ovHi = Math.min(a.xMax, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      if (ov < Math.min(20, (a.xMax - a.xMin) * 0.25)) continue;
+      if (ov < need) continue;
       if (w.pos > best) best = w.pos;
     }
     return best;
   }
-  function nearestWallS(a: typeof result[0]["bbox"]): number {
+  function nearestWallS(a: typeof result[0]["bbox"], isBig = false): number {
     let best = lotBbox.yMax;
+    const need = minOverlap(a, true, isBig);
     for (const w of hWalls) {
       if (w.pos <= a.yMax + 2) continue;
       const ovLo = Math.max(a.xMin, w.lo);
       const ovHi = Math.min(a.xMax, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      if (ov < Math.min(20, (a.xMax - a.xMin) * 0.25)) continue;
+      if (ov < need) continue;
       if (w.pos < best) best = w.pos;
     }
     return best;
   }
-  function nearestWallW(a: typeof result[0]["bbox"]): number {
+  function nearestWallW(a: typeof result[0]["bbox"], isBig = false): number {
     let best = lotBbox.xMin;
+    const need = minOverlap(a, false, isBig);
     for (const w of vWalls) {
       if (w.pos >= a.xMin - 2) continue;
       const ovLo = Math.max(a.yMin, w.lo);
       const ovHi = Math.min(a.yMax, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      if (ov < Math.min(20, (a.yMax - a.yMin) * 0.25)) continue;
+      if (ov < need) continue;
       if (w.pos > best) best = w.pos;
     }
     return best;
   }
-  function nearestWallE(a: typeof result[0]["bbox"]): number {
+  function nearestWallE(a: typeof result[0]["bbox"], isBig = false): number {
     let best = lotBbox.xMax;
+    const need = minOverlap(a, false, isBig);
     for (const w of vWalls) {
       if (w.pos <= a.xMax + 2) continue;
       const ovLo = Math.max(a.yMin, w.lo);
       const ovHi = Math.min(a.yMax, w.hi);
       const ov = Math.max(0, ovHi - ovLo);
-      if (ov < Math.min(20, (a.yMax - a.yMin) * 0.25)) continue;
+      if (ov < need) continue;
       if (w.pos < best) best = w.pos;
     }
     return best;
@@ -955,15 +968,19 @@ function growUnderSized(
       const currentArea = (r.bbox.xMax - r.bbox.xMin) * (r.bbox.yMax - r.bbox.yMin);
       if (currentArea >= targetArea * 0.97) continue; // assez grand (≥ 0.97 cible)
       const a = r.bbox;
+      // s28 tour 20 — pour les BIG rooms (PDF ≥ 20m²), on relâche le filtre
+      // de coverage perpendiculaire (60% au lieu de 25%) pour passer outre
+      // les cloisons courtes qui bornent un grand séjour.
+      const isBig = r.pdfSurfaceM2 >= 20;
       // Calcule la "marge" libre dans chaque direction = min(neighbor, wall) - bord
       const nN = nearestNeighborN(i, a);
       const nS = nearestNeighborS(i, a);
       const nW = nearestNeighborW(i, a);
       const nE = nearestNeighborE(i, a);
-      const wN = nearestWallN(a);
-      const wS = nearestWallS(a);
-      const wW = nearestWallW(a);
-      const wE = nearestWallE(a);
+      const wN = nearestWallN(a, isBig);
+      const wS = nearestWallS(a, isBig);
+      const wW = nearestWallW(a, isBig);
+      const wE = nearestWallE(a, isBig);
       // Marge dispo = (limite la plus proche entre voisin et mur) - bord courant
       const limN = Math.max(nN === -Infinity ? lotBbox.yMin : nN, wN);
       const limS = Math.min(nS === Infinity ? lotBbox.yMax : nS, wS);
