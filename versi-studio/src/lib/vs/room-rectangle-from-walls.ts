@@ -1159,6 +1159,37 @@ function extendToBuildingExteriorWalls(
   const maxExtendPx = options.maxExtendPx ?? 200;
   const lotEdgeTolPx = options.lotEdgeTolPx ?? 8;
   if (rooms.length === 0) return rooms;
+  // ─── PRECOMP : scale (m² par px²) pour CAP les extensions ─────────
+  // Cible : aucun rectangle ne dépasse 1.15× sa pdfSurfaceM2 après extension
+  // (limite haute Inv A audit). Pour les pièces SANS PDF (ECS placard), on
+  // limite à 1/3 de la médiane PDF (= 3-5m² typique).
+  const scaleCands = rooms
+    .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+    .map((r) => r.pdfSurfaceM2! / r.areaPx2)
+    .sort((a, b) => a - b);
+  const scale = scaleCands.length >= 2
+    ? scaleCands[Math.floor(scaleCands.length / 2)]
+    : null;
+  const pdfList = rooms
+    .map((r) => r.pdfSurfaceM2)
+    .filter((s): s is number => s != null && s > 0)
+    .sort((a, b) => a - b);
+  const medianPdfM2 = pdfList.length > 0
+    ? pdfList[Math.floor(pdfList.length / 2)]
+    : 0;
+  // Plafond surface px² par pièce (pour cap les extensions)
+  function maxAreaPx2(idx: number): number | null {
+    if (scale === null || scale <= 0) return null;
+    const pdf = rooms[idx].pdfSurfaceM2;
+    if (pdf != null && pdf > 0) {
+      // Ratio audit max = 1.15 → on prend 1.14 pour rester inside PASS
+      return (pdf * 1.14) / scale;
+    }
+    if (medianPdfM2 > 0) {
+      return (medianPdfM2 / 3) / scale;
+    }
+    return null;
+  }
   // ─── Étape 1 : identifier murs extérieurs du bâtiment ─────────────
   // Murs LONGS internes au lot (pas sur le bord du lot).
   type WI = { pos: number; lo: number; hi: number };
@@ -1293,22 +1324,60 @@ function extendToBuildingExteriorWalls(
   let totalExtended = 0;
   for (let i = 0; i < result.length; i++) {
     const a = result[i].bbox;
+    const cap = maxAreaPx2(i);
     for (const dir of ["N", "S", "E", "W"] as const) {
       if (hasNeighborInDir(a, i, dir, NEIGHBOR_MAX_GAP_PX)) continue;
       const wallPos = nearestExteriorWall(a, dir);
       if (wallPos === null) continue;
-      // Étendre le bord vers ce mur (avec marge 1px)
+      // Étendre le bord vers ce mur (avec marge 1px) — MAIS respecter cap PDF
+      let proposedYMin = a.yMin;
+      let proposedYMax = a.yMax;
+      let proposedXMin = a.xMin;
+      let proposedXMax = a.xMax;
       if (dir === "N" && wallPos < a.yMin) {
-        a.yMin = wallPos + 1;
-        totalExtended++;
+        proposedYMin = wallPos + 1;
       } else if (dir === "S" && wallPos > a.yMax) {
-        a.yMax = wallPos - 1;
-        totalExtended++;
+        proposedYMax = wallPos - 1;
       } else if (dir === "W" && wallPos < a.xMin) {
-        a.xMin = wallPos + 1;
-        totalExtended++;
+        proposedXMin = wallPos + 1;
       } else if (dir === "E" && wallPos > a.xMax) {
-        a.xMax = wallPos - 1;
+        proposedXMax = wallPos - 1;
+      } else {
+        continue;
+      }
+      const proposedArea = (proposedXMax - proposedXMin) * (proposedYMax - proposedYMin);
+      if (cap !== null && proposedArea > cap) {
+        // Limiter l'extension pour ne pas dépasser le cap
+        // On garde la même surface max → on réduit la course dans cette dir
+        const otherArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
+        if (otherArea >= cap) continue; // déjà au cap, skip
+        const slack = cap - otherArea;
+        if (dir === "N") {
+          const maxDeltaY = slack / (a.xMax - a.xMin);
+          proposedYMin = a.yMin - maxDeltaY;
+          // ne pas aller au-delà du mur extérieur
+          proposedYMin = Math.max(proposedYMin, wallPos + 1);
+        } else if (dir === "S") {
+          const maxDeltaY = slack / (a.xMax - a.xMin);
+          proposedYMax = a.yMax + maxDeltaY;
+          proposedYMax = Math.min(proposedYMax, wallPos - 1);
+        } else if (dir === "W") {
+          const maxDeltaX = slack / (a.yMax - a.yMin);
+          proposedXMin = a.xMin - maxDeltaX;
+          proposedXMin = Math.max(proposedXMin, wallPos + 1);
+        } else if (dir === "E") {
+          const maxDeltaX = slack / (a.yMax - a.yMin);
+          proposedXMax = a.xMax + maxDeltaX;
+          proposedXMax = Math.min(proposedXMax, wallPos - 1);
+        }
+      }
+      // Écrire seulement si différence significative (>2px)
+      if (Math.abs(proposedYMin - a.yMin) > 1 || Math.abs(proposedYMax - a.yMax) > 1
+          || Math.abs(proposedXMin - a.xMin) > 1 || Math.abs(proposedXMax - a.xMax) > 1) {
+        a.yMin = proposedYMin;
+        a.yMax = proposedYMax;
+        a.xMin = proposedXMin;
+        a.xMax = proposedXMax;
         totalExtended++;
       }
     }
