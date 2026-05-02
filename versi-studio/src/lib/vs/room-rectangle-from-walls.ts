@@ -1480,7 +1480,14 @@ export function extractRoomsAsRectangles(
     const TOL_LOT = 4;
     const STRONG_WALL_LEN = 80;
     const STRONG_OVERLAP = 0.4; // bord doit être couvert ≥40% par mur fort
-    // Pré-index murs strong H/V
+    // s28 tour 21 — EXCLURE les bords du lot du test "strong wall" :
+    // le lotPolygonAsWalls est ajouté au pool walls, ce qui rend les bords
+    // du lot eligible. Mais ces bords ne sont PAS des murs architecturaux
+    // (ils englobent les terrasses sur Muguets RDC). Si on les acceptait, le
+    // test "strong wall at lot edge" passerait toujours et aucun clip ne se
+    // ferait. On filtre donc tout segment dont la position correspond
+    // exactement à lotBbox.{xMin,xMax,yMin,yMax} (±3px).
+    const LOT_EDGE_TOL = 3;
     type StrongW = { pos: number; lo: number; hi: number };
     const sH: StrongW[] = [];
     const sV: StrongW[] = [];
@@ -1488,8 +1495,18 @@ export function extractRoomsAsRectangles(
       const cls = classifyWall(w, opts.angleTolDeg);
       const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
       if (wlen < STRONG_WALL_LEN) continue;
-      if (cls === "H") sH.push({ pos: wallY(w), lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
-      else if (cls === "V") sV.push({ pos: wallX(w), lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+      if (cls === "H") {
+        const wy = wallY(w);
+        // Ignore bords lot N/S
+        if (Math.abs(wy - lotBbox.yMin) <= LOT_EDGE_TOL) continue;
+        if (Math.abs(wy - lotBbox.yMax) <= LOT_EDGE_TOL) continue;
+        sH.push({ pos: wy, lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
+      } else if (cls === "V") {
+        const wx = wallX(w);
+        if (Math.abs(wx - lotBbox.xMin) <= LOT_EDGE_TOL) continue;
+        if (Math.abs(wx - lotBbox.xMax) <= LOT_EDGE_TOL) continue;
+        sV.push({ pos: wx, lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+      }
     }
     function hasStrongWallAt(pos: number, lo: number, hi: number, isH: boolean): boolean {
       const list = isH ? sH : sV;
@@ -1555,6 +1572,7 @@ export function extractRoomsAsRectangles(
         }
       }
       if (!modified) return r;
+      console.log(`[s28-tour21-clip] ${r.label}: clipped ${r.bbox.yMin.toFixed(0)},${r.bbox.yMax.toFixed(0)},${r.bbox.xMin.toFixed(0)},${r.bbox.xMax.toFixed(0)} → ${a.yMin.toFixed(0)},${a.yMax.toFixed(0)},${a.xMin.toFixed(0)},${a.xMax.toFixed(0)}`);
       const newPoly = buildRectangle(a.yMin, a.yMax, a.xMax, a.xMin);
       return { ...r, polygon: newPoly, areaPx2: polygonArea(newPoly), bbox: a };
     });
