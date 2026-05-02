@@ -1413,75 +1413,9 @@ export async function POST(
                   );
                 }
 
-                // ─── s28 tour 15 fix11 — DP simplification finale (post-snap) ───
-                // Cause : ring expand génère des vertices "isolés" sur la
-                // couronne (à 5-30px du polygone original) qui sont à >5px de
-                // tout mur vectorisé → fail Inv C audit. Solution : DP avec
-                // tolerance 6px supprime les vertices colinéaires/redondants
-                // tout en préservant les coins (qui ont distance >6px de la
-                // ligne entre voisins). Cela ne casse PAS Inv A car DP
-                // préserve la forme générale (perte d'aire <2% à eps=6).
-                {
-                  const simplifyDPInline = (points: Array<{ x: number; y: number }>, tolerance: number) => {
-                    if (points.length <= 3 || tolerance <= 0) return points;
-                    const dist = (p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
-                      const dx = b.x - a.x, dy = b.y - a.y;
-                      const len = Math.sqrt(dx * dx + dy * dy);
-                      if (len === 0) return Math.hypot(p.x - a.x, p.y - a.y);
-                      return Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len;
-                    };
-                    const keep = [0];
-                    const recurse = (s: number, e: number) => {
-                      let mD = 0, mI = s;
-                      for (let i = s + 1; i < e; i++) {
-                        const d = dist(points[i], points[s], points[e]);
-                        if (d > mD) { mD = d; mI = i; }
-                      }
-                      if (mD > tolerance) {
-                        recurse(s, mI);
-                        keep.push(mI);
-                        recurse(mI, e);
-                      }
-                    };
-                    recurse(0, points.length - 1);
-                    keep.push(points.length - 1);
-                    return keep.sort((a, b) => a - b).map((i) => points[i]);
-                  };
-                  let dpReducedTotal = 0;
-                  let dpAffectedRooms = 0;
-                  for (let ri = 0; ri < cleanRooms.length; ri++) {
-                    const r = cleanRooms[ri];
-                    if (r.polygon.length < 5) continue; // pas la peine de simplifier
-                    const before = r.polygon.length;
-                    const simplified = simplifyDPInline(r.polygon, 6);
-                    if (simplified.length >= 4 && simplified.length < before) {
-                      // Garde-fou Inv A : ne pas accepter si l'aire dérive >3%
-                      const areaBefore = (() => {
-                        let s = 0;
-                        for (let i = 0; i < r.polygon.length; i++) {
-                          const j = (i + 1) % r.polygon.length;
-                          s += r.polygon[i].x * r.polygon[j].y - r.polygon[j].x * r.polygon[i].y;
-                        }
-                        return Math.abs(s / 2);
-                      })();
-                      const areaAfter = (() => {
-                        let s = 0;
-                        for (let i = 0; i < simplified.length; i++) {
-                          const j = (i + 1) % simplified.length;
-                          s += simplified[i].x * simplified[j].y - simplified[j].x * simplified[i].y;
-                        }
-                        return Math.abs(s / 2);
-                      })();
-                      const drift = areaBefore > 0 ? Math.abs(areaAfter - areaBefore) / areaBefore : 0;
-                      if (drift < 0.03) {
-                        cleanRooms[ri] = { ...r, polygon: simplified };
-                        dpReducedTotal += (before - simplified.length);
-                        dpAffectedRooms++;
-                      }
-                    }
-                  }
-                  console.log(`[extract/s28-tour15-dp-final] plan ${plan.id} : ${dpAffectedRooms} pièces simplifiées, -${dpReducedTotal} vertices`);
-                }
+                // s28 tour 15 fix12 reverted : DP final supprimait des bons
+                // vertices (ratio good/total dégradait F0 et n'améliorait pas
+                // F1/F3). Pivot abandonné.
 
                 // Step 10 : push dans builders_face
                 // Surface = polygonAreaM2(finalPolygon, scaleM2PerPx2) — SOURCE UNIQUE.
