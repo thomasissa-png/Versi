@@ -1461,6 +1461,105 @@ export function extractRoomsAsRectangles(
   // Évite Séjour stuck à 30 m² alors que PDF = 40.
   resolved = growUnderSized(resolved, lotBbox, walls, opts.angleTolDeg);
 
+  // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL.
+  //
+  // Bug visuel résiduel tour 20 : sur le RDC Muguets, le lot polygon englobe
+  // terrasse + bâtiment, ce qui fait que les pièces du nord (Chambre, SdB)
+  // s'étendent jusqu'à y=0% du lot (= bord polygone englobant terrasse) au
+  // lieu de s'arrêter au mur extérieur du bâtiment.
+  //
+  // Stratégie : pour chaque bord d'un rectangle qui touche le lot bbox (≤4px),
+  // si ce bord N'EST PAS supporté par un mur architectural FORT (≥80px de long,
+  // bien aligné), alors on TRONQUE ce bord à la position de la bbox label + une
+  // marge proportionnelle à sqrt(PDF_surface).
+  //
+  // Sans cette passe, les rectangles "touche-lot" s'étendent dans la terrasse
+  // (zone vide entre mur extérieur et bord lot). Avec, ils s'arrêtent à une
+  // distance raisonnable du label.
+  {
+    const TOL_LOT = 4;
+    const STRONG_WALL_LEN = 80;
+    const STRONG_OVERLAP = 0.4; // bord doit être couvert ≥40% par mur fort
+    // Pré-index murs strong H/V
+    type StrongW = { pos: number; lo: number; hi: number };
+    const sH: StrongW[] = [];
+    const sV: StrongW[] = [];
+    for (const w of walls) {
+      const cls = classifyWall(w, opts.angleTolDeg);
+      const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+      if (wlen < STRONG_WALL_LEN) continue;
+      if (cls === "H") sH.push({ pos: wallY(w), lo: Math.min(w.x1, w.x2), hi: Math.max(w.x1, w.x2) });
+      else if (cls === "V") sV.push({ pos: wallX(w), lo: Math.min(w.y1, w.y2), hi: Math.max(w.y1, w.y2) });
+    }
+    function hasStrongWallAt(pos: number, lo: number, hi: number, isH: boolean): boolean {
+      const list = isH ? sH : sV;
+      const need = (hi - lo) * STRONG_OVERLAP;
+      for (const w of list) {
+        if (Math.abs(w.pos - pos) > 6) continue;
+        const ovLo = Math.max(lo, w.lo);
+        const ovHi = Math.min(hi, w.hi);
+        if (ovHi - ovLo >= need) return true;
+      }
+      return false;
+    }
+    const PDF_TO_PX_HEURISTIC = (() => {
+      // scale médian px/m (linéaire) calibré sur pièces avec PDF
+      const cands = resolved
+        .filter(r => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+        .map(r => Math.sqrt(r.areaPx2 / r.pdfSurfaceM2!));
+      if (cands.length < 2) return null;
+      cands.sort((a, b) => a - b);
+      return cands[Math.floor(cands.length / 2)];
+    })();
+
+    resolved = resolved.map((r, idx) => {
+      const labelBbox = labels[idx]?.labelBbox ?? null;
+      if (!labelBbox || PDF_TO_PX_HEURISTIC === null) return r;
+      if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) return r;
+      const a = { ...r.bbox };
+      // Marge max autour du label = sqrt(PDF_m²) × pxPerM × 0.5 (= demi-côté
+      // d'un carré équivalent en surface). On capera chaque bord à
+      // label_bbox ± marge_demiCarre, garantissant que le rectangle reste
+      // d'une taille raisonnable proportionnelle à sa surface PDF.
+      const demiCarre = Math.sqrt(r.pdfSurfaceM2) * PDF_TO_PX_HEURISTIC * 0.5;
+      // Marge sécurité = 1.3× pour permettre rectangles non-carrés
+      const safetyMargin = demiCarre * 1.3;
+      let modified = false;
+      // Bord N : si touche lot ET pas de mur strong à yMin → cap à
+      // label_bbox.yMin - safetyMargin
+      if (Math.abs(a.yMin - lotBbox.yMin) <= TOL_LOT) {
+        if (!hasStrongWallAt(a.yMin, a.xMin, a.xMax, true)) {
+          const newYMin = Math.max(a.yMin, labelBbox.yMin - safetyMargin);
+          if (newYMin > a.yMin + 2) { a.yMin = newYMin; modified = true; }
+        }
+      }
+      // Bord S : si touche lot ET pas de mur strong à yMax
+      if (Math.abs(a.yMax - lotBbox.yMax) <= TOL_LOT) {
+        if (!hasStrongWallAt(a.yMax, a.xMin, a.xMax, true)) {
+          const newYMax = Math.min(a.yMax, labelBbox.yMax + safetyMargin);
+          if (newYMax < a.yMax - 2) { a.yMax = newYMax; modified = true; }
+        }
+      }
+      // Bord W
+      if (Math.abs(a.xMin - lotBbox.xMin) <= TOL_LOT) {
+        if (!hasStrongWallAt(a.xMin, a.yMin, a.yMax, false)) {
+          const newXMin = Math.max(a.xMin, labelBbox.xMin - safetyMargin);
+          if (newXMin > a.xMin + 2) { a.xMin = newXMin; modified = true; }
+        }
+      }
+      // Bord E
+      if (Math.abs(a.xMax - lotBbox.xMax) <= TOL_LOT) {
+        if (!hasStrongWallAt(a.xMax, a.yMin, a.yMax, false)) {
+          const newXMax = Math.min(a.xMax, labelBbox.xMax + safetyMargin);
+          if (newXMax < a.xMax - 2) { a.xMax = newXMax; modified = true; }
+        }
+      }
+      if (!modified) return r;
+      const newPoly = buildRectangle(a.yMin, a.yMax, a.xMax, a.xMin);
+      return { ...r, polygon: newPoly, areaPx2: polygonArea(newPoly), bbox: a };
+    });
+  }
+
   // Note : snapBordersToWalls testé et REJETÉ — le snap mid-pipeline ré-ouvrait
   // des chevauchements (les bords mitoyens claquaient sur 2 murs voisins
   // différents) et déplaçait le bord opposé hors zone, faisant régresser
