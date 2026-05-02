@@ -1121,6 +1121,211 @@ function growUnderSized(
 }
 
 /**
+ * s28 tour 22 — EXTEND BORDERS TO BUILDING EXTERIOR WALLS.
+ *
+ * Problème observé tour 21 : les rectangles ont la bonne SURFACE (audit Inv A
+ * 4/4 PASS) mais ne s'étendent pas jusqu'aux vrais murs extérieurs du bâtiment.
+ * Cause : le raycast s'arrête sur des cotes/meubles internes (segments 30-80px
+ * survivants au filtre) au lieu des murs extérieurs (≥120px) du bâtiment.
+ *
+ * Conséquence visuelle : bandes vides INTÉRIEURES au bâtiment (zone habitable
+ * non couverte) entre les rectangles et les vrais murs extérieurs.
+ *
+ * Algo :
+ *   1. Identifier les "murs extérieurs du bâtiment" = murs LONGS (≥120px)
+ *      qui sont à l'intérieur du LOT (pas sur le bord à <8px).
+ *      Ces murs forment l'enveloppe du bâtiment habitable.
+ *   2. Pour chaque rectangle ET chaque direction (N/S/E/W) :
+ *      a. Vérifier qu'il n'y a PAS de voisin direct dans cette direction.
+ *      b. Chercher le mur extérieur du bâtiment le plus proche dans la
+ *         direction (avec overlap perpendiculaire ≥ 25%).
+ *      c. Si trouvé à <maxExtendPx (par défaut 200px) → étendre jusqu'au mur.
+ *   3. Ne JAMAIS rétrécir un rectangle (extension uniquement).
+ *
+ * Cette passe corrige les bandes vides sans toucher aux pièces déjà bien
+ * placées. Le cap par PDF surface (1.3×) n'est PAS appliqué ici car ces
+ * extensions visent à remplir l'enveloppe réelle du bâtiment, pas à
+ * augmenter artificiellement les surfaces calculées (qui restent calibrées).
+ */
+function extendToBuildingExteriorWalls(
+  rooms: RectangleRoom[],
+  walls: Wall[],
+  lotPolygon: Pt[],
+  lotBbox: { xMin: number; yMin: number; xMax: number; yMax: number },
+  angleTolDeg: number,
+  options: { minWallLen?: number; maxExtendPx?: number; lotEdgeTolPx?: number } = {},
+): RectangleRoom[] {
+  const minWallLen = options.minWallLen ?? 120;
+  const maxExtendPx = options.maxExtendPx ?? 200;
+  const lotEdgeTolPx = options.lotEdgeTolPx ?? 8;
+  if (rooms.length === 0) return rooms;
+  // ─── Étape 1 : identifier murs extérieurs du bâtiment ─────────────
+  // Murs LONGS internes au lot (pas sur le bord du lot).
+  type WI = { pos: number; lo: number; hi: number };
+  const hWallsExt: WI[] = []; // y, [xLo, xHi]
+  const vWallsExt: WI[] = [];
+  for (const w of walls) {
+    const cls = classifyWall(w, angleTolDeg);
+    const wlen = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    if (wlen < minWallLen) continue;
+    if (cls === "H") {
+      const wy = wallY(w);
+      // Exclure murs collés au bord du lot (segments du contour)
+      if (Math.abs(wy - lotBbox.yMin) <= lotEdgeTolPx) continue;
+      if (Math.abs(wy - lotBbox.yMax) <= lotEdgeTolPx) continue;
+      hWallsExt.push({
+        pos: wy,
+        lo: Math.min(w.x1, w.x2),
+        hi: Math.max(w.x1, w.x2),
+      });
+    } else if (cls === "V") {
+      const wx = wallX(w);
+      if (Math.abs(wx - lotBbox.xMin) <= lotEdgeTolPx) continue;
+      if (Math.abs(wx - lotBbox.xMax) <= lotEdgeTolPx) continue;
+      vWallsExt.push({
+        pos: wx,
+        lo: Math.min(w.y1, w.y2),
+        hi: Math.max(w.y1, w.y2),
+      });
+    }
+  }
+  // Le contour du lot DOIT aussi être candidat (mur du bâtiment = bord du lot)
+  void lotPolygon;
+  hWallsExt.push({ pos: lotBbox.yMin, lo: lotBbox.xMin, hi: lotBbox.xMax });
+  hWallsExt.push({ pos: lotBbox.yMax, lo: lotBbox.xMin, hi: lotBbox.xMax });
+  vWallsExt.push({ pos: lotBbox.xMin, lo: lotBbox.yMin, hi: lotBbox.yMax });
+  vWallsExt.push({ pos: lotBbox.xMax, lo: lotBbox.yMin, hi: lotBbox.yMax });
+
+  const result = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  // ─── Étape 2 : pour chaque rectangle, étendre vers murs extérieurs ─
+  // Helper : un voisin existe-t-il dans la direction `dir` du rectangle a ?
+  function hasNeighborInDir(
+    a: typeof result[0]["bbox"],
+    selfIdx: number,
+    dir: "N" | "S" | "E" | "W",
+    maxDistPx: number,
+  ): boolean {
+    for (let j = 0; j < result.length; j++) {
+      if (j === selfIdx) continue;
+      const b = result[j].bbox;
+      // Overlap perpendiculaire significatif (≥30% du bord)
+      if (dir === "N" || dir === "S") {
+        const ovLo = Math.max(a.xMin, b.xMin);
+        const ovHi = Math.min(a.xMax, b.xMax);
+        const ov = Math.max(0, ovHi - ovLo);
+        const minOv = (a.xMax - a.xMin) * 0.3;
+        if (ov < minOv) continue;
+        if (dir === "N") {
+          // voisin est au-dessus (b.yMax <= a.yMin) ET à <= maxDistPx
+          if (b.yMax <= a.yMin + 2 && a.yMin - b.yMax <= maxDistPx) return true;
+        } else {
+          if (b.yMin >= a.yMax - 2 && b.yMin - a.yMax <= maxDistPx) return true;
+        }
+      } else {
+        const ovLo = Math.max(a.yMin, b.yMin);
+        const ovHi = Math.min(a.yMax, b.yMax);
+        const ov = Math.max(0, ovHi - ovLo);
+        const minOv = (a.yMax - a.yMin) * 0.3;
+        if (ov < minOv) continue;
+        if (dir === "W") {
+          if (b.xMax <= a.xMin + 2 && a.xMin - b.xMax <= maxDistPx) return true;
+        } else {
+          if (b.xMin >= a.xMax - 2 && b.xMin - a.xMax <= maxDistPx) return true;
+        }
+      }
+    }
+    return false;
+  }
+  // Helper : trouver mur extérieur le plus proche dans la direction
+  function nearestExteriorWall(
+    a: typeof result[0]["bbox"],
+    dir: "N" | "S" | "E" | "W",
+  ): number | null {
+    const minOvFrac = 0.25;
+    if (dir === "N" || dir === "S") {
+      const reqLo = a.xMin, reqHi = a.xMax;
+      const minOv = Math.min(20, (reqHi - reqLo) * minOvFrac);
+      let best: number | null = null;
+      let bestDist = Infinity;
+      for (const w of hWallsExt) {
+        if (dir === "N") {
+          if (w.pos >= a.yMin - 2) continue;
+        } else {
+          if (w.pos <= a.yMax + 2) continue;
+        }
+        const ovLo = Math.max(reqLo, w.lo);
+        const ovHi = Math.min(reqHi, w.hi);
+        const ov = Math.max(0, ovHi - ovLo);
+        if (ov < minOv) continue;
+        const d = dir === "N" ? a.yMin - w.pos : w.pos - a.yMax;
+        if (d > maxExtendPx) continue;
+        if (d < bestDist) { bestDist = d; best = w.pos; }
+      }
+      return best;
+    } else {
+      const reqLo = a.yMin, reqHi = a.yMax;
+      const minOv = Math.min(20, (reqHi - reqLo) * minOvFrac);
+      let best: number | null = null;
+      let bestDist = Infinity;
+      for (const w of vWallsExt) {
+        if (dir === "W") {
+          if (w.pos >= a.xMin - 2) continue;
+        } else {
+          if (w.pos <= a.xMax + 2) continue;
+        }
+        const ovLo = Math.max(reqLo, w.lo);
+        const ovHi = Math.min(reqHi, w.hi);
+        const ov = Math.max(0, ovHi - ovLo);
+        if (ov < minOv) continue;
+        const d = dir === "W" ? a.xMin - w.pos : w.pos - a.xMax;
+        if (d > maxExtendPx) continue;
+        if (d < bestDist) { bestDist = d; best = w.pos; }
+      }
+      return best;
+    }
+  }
+  const NEIGHBOR_MAX_GAP_PX = 60;
+  let totalExtended = 0;
+  for (let i = 0; i < result.length; i++) {
+    const a = result[i].bbox;
+    for (const dir of ["N", "S", "E", "W"] as const) {
+      if (hasNeighborInDir(a, i, dir, NEIGHBOR_MAX_GAP_PX)) continue;
+      const wallPos = nearestExteriorWall(a, dir);
+      if (wallPos === null) continue;
+      // Étendre le bord vers ce mur (avec marge 1px)
+      if (dir === "N" && wallPos < a.yMin) {
+        a.yMin = wallPos + 1;
+        totalExtended++;
+      } else if (dir === "S" && wallPos > a.yMax) {
+        a.yMax = wallPos - 1;
+        totalExtended++;
+      } else if (dir === "W" && wallPos < a.xMin) {
+        a.xMin = wallPos + 1;
+        totalExtended++;
+      } else if (dir === "E" && wallPos > a.xMax) {
+        a.xMax = wallPos - 1;
+        totalExtended++;
+      }
+    }
+  }
+  for (const r of result) {
+    r.polygon = buildRectangle(r.bbox.yMin, r.bbox.yMax, r.bbox.xMax, r.bbox.xMin);
+    r.areaPx2 = polygonArea(r.polygon);
+  }
+  if (totalExtended > 0) {
+    console.log(
+      `[extendToBuildingExteriorWalls] ${totalExtended} bord(s) étendu(s) vers murs extérieurs`,
+    );
+  }
+  return result;
+}
+
+/**
  * s28 tour 20 — SNAP des 4 bords du rectangle aux murs architecturaux.
  *
  * Pour chaque bord (N/S/E/O), on cherche dans une fenêtre de ±tolPx un mur
@@ -1460,6 +1665,21 @@ export function extractRoomsAsRectangles(
   // les voisins, jusqu'à atteindre le bord du lot ou un voisin proche.
   // Évite Séjour stuck à 30 m² alors que PDF = 40.
   resolved = growUnderSized(resolved, lotBbox, walls, opts.angleTolDeg);
+
+  // Étape 2.65 — s28 tour 22 : EXTEND BORDERS TO BUILDING EXTERIOR WALLS.
+  // Les rectangles ont la bonne SURFACE (Inv A 4/4 PASS) mais ne s'étendent
+  // pas jusqu'aux vrais murs extérieurs du bâtiment → bandes vides intérieures
+  // visibles sur RDC (haut entre SdB/Chambre + droite Séjour). Cette passe
+  // étend chaque bord libre vers le mur extérieur du bâtiment le plus proche
+  // (≥120px, à <200px) sans contracter aucun rectangle.
+  resolved = extendToBuildingExteriorWalls(
+    resolved,
+    walls,
+    lotPolygon,
+    lotBbox,
+    opts.angleTolDeg,
+    { minWallLen: 120, maxExtendPx: 200, lotEdgeTolPx: 8 },
+  );
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
