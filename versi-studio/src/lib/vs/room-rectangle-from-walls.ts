@@ -1199,6 +1199,74 @@ export function extractRoomsAsRectangles(
   // Ne grossit JAMAIS un rectangle (= éviterait re-overlap).
   resolved = enforcePdfSurfaces(resolved, seeds, lotBbox);
 
+  // Étape 2.55 — s28 tour 20.c : SHRINK les placards techniques sans surface
+  // PDF (ECS, TGBT) qui bornent une grosse pièce sous-dimensionnée.
+  //
+  // Cas Muguets R+1 : ECS placard 1m² sans surface PDF est COLLÉ au sud du
+  // Séjour. Sans cette passe, growUnderSized ne peut pas pousser Séjour vers
+  // le sud (slack=0 contre ECS). En shrinkant ECS de 50% (vers son seed), on
+  // libère ~1m² pour Séjour qui passe de 33.6 → 34.4 (= ratio 0.85).
+  //
+  // Sans risque : ECS sans PDF n'a aucune contrainte de surface architecte.
+  resolved = (() => {
+    const shrunk = resolved.map((r) => ({
+      ...r,
+      bbox: { ...r.bbox },
+      polygon: r.polygon.map((v) => ({ ...v })),
+    }));
+    const techNoPdf = shrunk
+      .map((r, i) => ({ r, i }))
+      .filter(
+        ({ r }) =>
+          (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) &&
+          /^(ecs|tgbt|gaine|vide-ordures?|placard)$/i.test(
+            r.label.normalize("NFD").replace(/[̀-ͯ]/g, "").trim(),
+          ),
+      );
+    for (const { r: tech, i: techIdx } of techNoPdf) {
+      // Cherche un voisin sous-dimensionné (ratio < 0.90) PDF connue
+      // dont l'expansion serait débloquée si on shrink ce tech.
+      for (let j = 0; j < shrunk.length; j++) {
+        if (j === techIdx) continue;
+        const big = shrunk[j];
+        if (big.pdfSurfaceM2 == null || big.pdfSurfaceM2 <= 0) continue;
+        if (big.pdfSurfaceM2 < 10) continue; // on ne shrink que pour les GROSSES pièces (≥10m²)
+        const tb = tech.bbox;
+        const bb = big.bbox;
+        // Adjacent ? (tolérance 100px ≈ 5% lot pour absorber les gaps après
+        // expand-to-fit + enforcePdfSurfaces qui peuvent introduire un offset
+        // notable, et permettre la libération d'espace pour pousser le big
+        // jusqu'au tech).
+        const adjN = Math.abs(tb.yMax - bb.yMin) < 100 && tb.xMax > bb.xMin && tb.xMin < bb.xMax;
+        const adjS = Math.abs(tb.yMin - bb.yMax) < 100 && tb.xMax > bb.xMin && tb.xMin < bb.xMax;
+        const adjW = Math.abs(tb.xMax - bb.xMin) < 100 && tb.yMax > bb.yMin && tb.yMin < bb.yMax;
+        const adjE = Math.abs(tb.xMin - bb.xMax) < 100 && tb.yMax > bb.yMin && tb.yMin < bb.yMax;
+        if (!adjN && !adjS && !adjW && !adjE) continue;
+        // Shrink le tech de 50% dans la direction opposée à big.
+        const tw = tb.xMax - tb.xMin;
+        const th = tb.yMax - tb.yMin;
+        const shrinkFactor = 0.5;
+        if (adjN) {
+          // tech au-dessus de big → shrink tech vers le haut (ymax recule)
+          tb.yMax = tb.yMin + th * shrinkFactor;
+        } else if (adjS) {
+          // tech au-dessous de big → shrink tech vers le bas (ymin avance)
+          tb.yMin = tb.yMax - th * shrinkFactor;
+        } else if (adjW) {
+          // tech à gauche de big → shrink tech vers la gauche
+          tb.xMax = tb.xMin + tw * shrinkFactor;
+        } else if (adjE) {
+          // tech à droite de big → shrink tech vers la droite
+          tb.xMin = tb.xMax - tw * shrinkFactor;
+        }
+        tech.polygon = buildRectangle(tb.yMin, tb.yMax, tb.xMax, tb.xMin);
+        tech.areaPx2 = polygonArea(tech.polygon);
+        break; // un shrink suffit par tech room
+      }
+    }
+    return shrunk;
+  })();
+
   // Étape 2.6 — s28 tour 19.c : grossir les pièces sous-dimensionnées
   // (ratio < 0.85). On grossit dans la direction opposée à la médiatrice avec
   // les voisins, jusqu'à atteindre le bord du lot ou un voisin proche.
