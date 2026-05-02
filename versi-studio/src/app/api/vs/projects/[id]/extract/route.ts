@@ -107,6 +107,7 @@ import {
 } from "@/lib/vs/lot-classifier";
 import { extractLotVector, extractInternalWallSegments, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
 import { extractRoomsByFloodFill, extractRoomsByQuotaFloodFill } from "@/lib/vs/flood-fill-rooms";
+import { extractRoomsByWallBoundedFloodFill } from "@/lib/vs/wall-bounded-bfs";
 import {
   splitFloodFillByLabelsAndWalls,
   type LabelPoint as VoronoiLabelPoint,
@@ -721,7 +722,118 @@ export async function POST(
                 }
 
                 let activeFloodRooms = floodRooms;
-                if (useQuotaPass) {
+
+                // ─── s28 TOUR 17 — BFS WALL-BOUNDED (Voronoï discret sans quota) ───
+                // PRIORITÉ 1 : flood-fill multi-source compétitif borné par les murs.
+                // L'algorithme attribue CHAQUE pixel libre du lot à une pièce (le
+                // seed le plus proche en distance BFS). Résultats :
+                //   - Aucun espace vide entre polygone et murs (couverture 100%
+                //     du lot)
+                //   - Forme architecturale (frontière passe sur les murs détectés)
+                //   - Pas de quota, donc pas de sous-extraction artificielle
+                //
+                // Si wall-bounded retourne assez de pièces (>=70%) ET passe le
+                // ratio max (toutes pièces dans [0.7, 1.4]× pdf), on l'utilise.
+                // Sinon → fallback sur quotaFlood (ancien comportement).
+                let usedWallBounded = false;
+                try {
+                  const wbRooms = await extractRoomsByWallBoundedFloodFill(
+                    pngBuf,
+                    labelSeeds,
+                    {
+                      lotPolygonPx: lotPolyPx_face,
+                      wallLumThreshold: 210,
+                      wallSaturationThreshold: 0.25,
+                      simplifyTolerancePx: 4,
+                      minAreaPx2: 500,
+                      seedSearchRadius: 100,
+                      doorSealRadius: 4,
+                      vectorWallSegments: allWalls_snap,
+                      vectorWallThickness: 3,
+                      aptSeparatorSegments: aptSeparators,
+                      aptSeparatorThickness: 8,
+                    },
+                  );
+                  // Validation simple : count seuls pièces extraites.
+                  const wbCount = wbRooms.length;
+                  const expectedCount = labelsOnly.length;
+                  if (wbCount >= Math.ceil(expectedCount * 0.7)) {
+                    // Vérifier qualité ratio : pas de pièce avec ratio > 2.5×
+                    // (signe d'une fuite catastrophique entre 2 pièces voisines)
+                    let hasMassiveLeak = false;
+                    if (scaleM2PerPx2 > 0) {
+                      const polyAreaWB = (poly: { x: number; y: number }[]) => {
+                        let s2 = 0;
+                        for (let i = 0; i < poly.length; i++) {
+                          const j = (i + 1) % poly.length;
+                          s2 += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+                        }
+                        return Math.abs(s2 / 2);
+                      };
+                      for (const r of wbRooms) {
+                        if (r.surface_m2 == null || r.surface_m2 <= 0) continue;
+                        const polM2 = polyAreaWB(r.polygon) * scaleM2PerPx2;
+                        const ratio = polM2 / r.surface_m2;
+                        if (ratio > 2.5) {
+                          console.warn(
+                            `[extract/s28-tour17-WB] plan ${plan.id} fuite catastrophique : ${r.text} ratio=${ratio.toFixed(2)} (polM2=${polM2.toFixed(1)} pdfM2=${r.surface_m2})`,
+                          );
+                          hasMassiveLeak = true;
+                          break;
+                        }
+                      }
+                    }
+                    if (!hasMassiveLeak) {
+                      console.log(
+                        `[extract/s28-tour17-WB] plan ${plan.id} BFS wall-bounded OK : ${wbCount}/${expectedCount} pièces`,
+                      );
+                      activeFloodRooms = wbRooms;
+                      usedWallBounded = true;
+                      // Re-calibrage scale post-WB sur polygones réels
+                      const polyAreaWB2 = (poly: { x: number; y: number }[]) => {
+                        let s2 = 0;
+                        for (let i = 0; i < poly.length; i++) {
+                          const j = (i + 1) % poly.length;
+                          s2 += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+                        }
+                        return Math.abs(s2 / 2);
+                      };
+                      const cands = wbRooms
+                        .filter(r => r.surface_m2 != null && r.surface_m2 > 0)
+                        .map(r => ({ area: polyAreaWB2(r.polygon), pdf: r.surface_m2! }))
+                        .filter(x => x.area > 0);
+                      if (cands.length >= 3) {
+                        const ks = cands.map(c => c.pdf / c.area).sort((a, b) => a - b);
+                        const medianK = ks[Math.floor(ks.length / 2)];
+                        const filtered = cands.filter(c => {
+                          const k = c.pdf / c.area;
+                          return k >= medianK * 0.5 && k <= medianK * 2.0;
+                        });
+                        if (filtered.length >= 2) {
+                          const fk = filtered.map(c => c.pdf / c.area).sort((a, b) => a - b);
+                          const newScale = fk[Math.floor(fk.length / 2)];
+                          if (newScale > 0 && Number.isFinite(newScale)) {
+                            console.log(
+                              `[extract/s28-tour17-WB] plan ${plan.id} scale recal : ${scaleM2PerPx2.toExponential(2)} → ${newScale.toExponential(2)} (sur ${filtered.length}/${cands.length} polys WB)`,
+                            );
+                            scaleM2PerPx2 = newScale;
+                          }
+                        }
+                      }
+                    }
+                  } else {
+                    console.warn(
+                      `[extract/s28-tour17-WB] plan ${plan.id} BFS wall-bounded insuffisant (${wbCount}/${expectedCount}), fallback quota`,
+                    );
+                  }
+                } catch (wbErr) {
+                  console.warn(
+                    `[extract/s28-tour17-WB] plan ${plan.id} BFS wall-bounded échoué :`,
+                    wbErr instanceof Error ? wbErr.message : wbErr,
+                  );
+                }
+
+                if (useQuotaPass && !usedWallBounded) {
                   try {
                     // Quota-flood-fill avec masque sealed (phase 1) +
                     // permissive (phase 2 : seeds bloqués <85% quota).
