@@ -220,92 +220,51 @@ export function cleanupOutliers(
     if (bestWallDist(v, walls) > opts.snapThresholdPx) outliersBefore++;
   }
 
+  // ATTENTION : chaque étape doit garder la nouvelle aire dans la fenêtre
+  // [origArea*(1-driftMax), origArea*(1+driftMax)]. On ne réinitialise jamais
+  // origArea entre les étapes — sinon le drift cumulé peut > driftMax.
+  const driftCheck = (poly: Pt[]): boolean => {
+    if (origArea <= 0) return true;
+    const a = polygonAreaPx(poly);
+    return Math.abs(a - origArea) / origArea <= opts.areaDriftMax;
+  };
+
   // Étape 1 : Pruning conservatif
   let cleaned = pruneOutliers(polygon, walls, opts.snapThresholdPx, opts.areaDriftMax);
+  if (!driftCheck(cleaned)) cleaned = polygon.map(p => ({ ...p }));
 
-  // Étape 2 : Snap progressif (4 paliers)
+  // Étape 2 : Snap progressif (4 paliers) — drift cumulé strict
   for (const tol of [5, 10, 15, 20]) {
     const snapped = snapToWallsAtTolerance(cleaned, walls, tol);
-    const snappedArea = polygonAreaPx(snapped);
-    const drift = origArea > 0 ? Math.abs(snappedArea - origArea) / origArea : 0;
-    if (drift <= opts.areaDriftMax) cleaned = snapped;
+    if (driftCheck(snapped)) cleaned = snapped;
   }
 
   // Étape 3 : Re-pruning post-snap
-  cleaned = pruneOutliers(cleaned, walls, opts.snapThresholdPx, opts.areaDriftMax);
+  const reprune1 = pruneOutliers(cleaned, walls, opts.snapThresholdPx, opts.areaDriftMax);
+  if (driftCheck(reprune1)) cleaned = reprune1;
 
   // Étape 4 : Projection des outliers résiduels (fenêtres décroissantes)
   for (const dragMax of opts.projectionWindows) {
     const trial = projectOutliersToWalls(cleaned, walls, opts.snapThresholdPx, dragMax, opts.areaDriftMax);
-    const trialArea = polygonAreaPx(trial);
-    const drift = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
-    if (drift <= opts.areaDriftMax) {
+    if (driftCheck(trial)) {
       cleaned = trial;
       break;
     }
   }
 
   // Étape 5 : Re-pruning final
-  cleaned = pruneOutliers(cleaned, walls, opts.snapThresholdPx, opts.areaDriftMax);
+  const reprune2 = pruneOutliers(cleaned, walls, opts.snapThresholdPx, opts.areaDriftMax);
+  if (driftCheck(reprune2)) cleaned = reprune2;
 
-  // Étape 6 : Snap forcé INCRÉMENTAL des outliers à 6-10px.
-  // Cas Cellier F1 : 9/16 outliers sont à 6-10px d'un mur. Faire un snap
-  // GLOBAL "tout ou rien" rejette par drift cumulé. On itère vertex par
-  // vertex : on snap le vertex avec la plus petite distance (proche-frontière)
-  // d'abord, on vérifie drift cumulé, on accepte/rejette.
-  // Order by ascending dist : on commence par les vertices les plus proches
-  // de leur mur (gain Inv C maxi pour drift mini).
-  type IndexedDist = { idx: number; dist: number; bestProj: Pt };
-  const indexed: IndexedDist[] = cleaned.map((v, idx) => {
-    let bestD = Infinity;
-    let bestProj: Pt = { x: v.x, y: v.y };
-    for (const w of walls) {
-      const d = distPointToSegment(v.x, v.y, w);
-      if (d < bestD) {
-        bestD = d;
-        if (d > opts.snapThresholdPx && d <= 10) {
-          bestProj = projectOnSegment(v, w);
-        } else if (d <= opts.snapThresholdPx) {
-          bestProj = { x: v.x, y: v.y };
-        }
-      }
-    }
-    return { idx, dist: bestD, bestProj };
-  });
-  // Trier par distance croissante (snap les plus proches d'abord = drift mini)
-  const outlierCandidates = indexed.filter(x => x.dist > opts.snapThresholdPx && x.dist <= 10);
-  outlierCandidates.sort((a, b) => a.dist - b.dist);
-  // Itérer : pour chaque candidat, tenter le snap, vérifier drift cumulé
-  // ET garde-fou ratio PDF si fourni (priorité Inv A audit).
-  const pdfTargetM2 = options.pdfTargetM2 ?? null;
-  const scaleM2PerPx2 = options.scaleM2PerPx2 ?? 0;
-  // Pré-check : si la pièce est déjà à ratio hors [0.90, 1.10] vs PDF,
-  // mieux vaut NE PAS faire le snap-forcé (risque pousser hors audit).
-  let allowForcedSnap = true;
-  if (pdfTargetM2 != null && pdfTargetM2 > 0 && scaleM2PerPx2 > 0) {
-    const initRatio = (polygonAreaPx(cleaned) * scaleM2PerPx2) / pdfTargetM2;
-    if (initRatio < 0.92 || initRatio > 1.08) {
-      allowForcedSnap = false;
-    }
-  }
-  if (!allowForcedSnap) outlierCandidates.length = 0;
-  for (const cand of outlierCandidates) {
-    const trial = cleaned.map((v, i) => i === cand.idx ? cand.bestProj : { ...v });
-    const trialArea = polygonAreaPx(trial);
-    const driftCum = origArea > 0 ? Math.abs(trialArea - origArea) / origArea : 0;
-    if (driftCum > opts.areaDriftMax) continue;
-    // Garde-fou PDF strict — marge 5pp vs audit [0.85, 1.15] → [0.90, 1.10]
-    // Justification : le scale scaleM2PerPx2 est global (médiane lot), peut
-    // diverger de 5% du scale audit (médiane par-pièce) pour des pièces
-    // particulières. Marge 5pp absorbe cet écart pour ne pas pousser
-    // une pièce déjà près des bornes hors tolérance audit.
-    if (pdfTargetM2 != null && pdfTargetM2 > 0 && scaleM2PerPx2 > 0) {
-      const trialAreaM2 = trialArea * scaleM2PerPx2;
-      const ratio = trialAreaM2 / pdfTargetM2;
-      if (ratio < 0.90 || ratio > 1.10) continue;
-    }
-    cleaned = trial;
-  }
+  // Étape 6 : Snap forcé incrémental des outliers à 6-10px — DÉSACTIVÉ
+  // (Tour 16 fix7) : malgré garde-fou ratio PDF strict, le scale global
+  // diverge du scale audit par-pièce → snap d'un vertex peut pousser une
+  // pièce déjà près de [0.85, 1.15] hors tolérance audit. Le gain Inv C
+  // marginal ne justifie pas la régression Inv A.
+  // Conserver le module sans Étape 6 : score 18/20 reproductible.
+  void options.pdfTargetM2;
+  void options.scaleM2PerPx2;
+  void projectOnSegment;
 
   let outliersAfter = 0;
   for (const v of cleaned) {
