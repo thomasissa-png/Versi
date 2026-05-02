@@ -2031,6 +2031,13 @@ export function extractRoomsAsRectangles(
     resolved = [...translated, ...techRooms];
   }
 
+  // Étape 2.67 — s28 tour 24 : normalize aspect ratio tech rooms (TESTED, REVERTED).
+  // Tested: élargir bande ECS pour aspect ratio max 2.5. Mais expansion empiète
+  // sur Séjour/Chambre voisins → resolveOverlaps shrink les voisins → audit FAIL.
+  // Conclusion : si on veut normaliser ECS, il faut re-shrink Séjour/Chambre via
+  // une autre stratégie (pas resolveOverlaps qui prend la moitié de l'overlap).
+  // ECS bande horizontale = compromis acceptable : surface 0.4m² conforme, label visible.
+
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
   // Tested but disabled : trop agressif sur les pièces non-carrées (ex: Séjour
