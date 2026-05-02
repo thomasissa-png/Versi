@@ -1380,16 +1380,22 @@ export async function POST(
                       });
                       if (p3.snappedCount > 0) { currentPoly = p3.polygon; cumSnapped += p3.snappedCount; }
 
-                      // s28 tour 15 fix9 — Passe 4 ULTRA-LARGE (100px) pour
-                      // vertices très isolés (Cellier F1 à snap5=0/16, SDE F3
-                      // à snap5=4/17). Drift 4% max = ne déplace QUE les
-                      // vertices vraiment isolés (loin de tout mur).
+                      // s28 tour 15 fix10 — Passe 4 ULTRA-LARGE (150px) +
+                      // passe 5 max-large (250px) pour vertices très isolés
+                      // (Cellier F1 snap5=0/16, SDE F3 snap5=0/11). Drift cumulé
+                      // 4-6% = vertices vraiment isolés uniquement.
                       const p4 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
                         snapTolPdfPx: 5,
-                        maxSearchPx: 100,
+                        maxSearchPx: 150,
                         maxAreaDriftRatio: 0.04,
                       });
                       if (p4.snappedCount > 0) { currentPoly = p4.polygon; cumSnapped += p4.snappedCount; }
+                      const p5 = snapPolygonToPngWalls(currentPoly, wallMaskPng, Wp, Hp, wallsForPng, {
+                        snapTolPdfPx: 5,
+                        maxSearchPx: 250,
+                        maxAreaDriftRatio: 0.06,
+                      });
+                      if (p5.snappedCount > 0) { currentPoly = p5.polygon; cumSnapped += p5.snappedCount; }
                     }
 
                     if (cumSnapped > 0) {
