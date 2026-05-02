@@ -1447,9 +1447,6 @@ function translateToTouchExteriorWalls(
   vWallsExt.push({ pos: lotBbox.xMin, lo: lotBbox.yMin, hi: lotBbox.yMax });
   vWallsExt.push({ pos: lotBbox.xMax, lo: lotBbox.yMin, hi: lotBbox.yMax });
 
-  if (process.env.VS_TRANSLATE_DEBUG === "true") {
-    console.log(`[translate-debug] lotBbox=${JSON.stringify(lotBbox)} hWallsExt.len=${hWallsExt.length} vWallsExt.len=${vWallsExt.length} (lot edges only)`);
-  }
   // Garder ces variables pour éviter unused-warnings du compilateur.
   void minWallLen;
   void lotEdgeTolPx;
@@ -1504,18 +1501,13 @@ function translateToTouchExteriorWalls(
   function nearestExteriorWallStrict(
     a: typeof result[0]["bbox"],
     dir: "N" | "S" | "E" | "W",
-    label?: string,
   ): number | null {
     const minOvFrac = 0.3;
-    const dbg = process.env.VS_TRANSLATE_DEBUG === "true" && (label === "Séjour / cuisine" || label === "Chambre 02" || label === "Chambre 01");
     if (dir === "N" || dir === "S") {
       const reqLo = a.xMin, reqHi = a.xMax;
       const minOv = (reqHi - reqLo) * minOvFrac;
       let best: number | null = null;
       let bestDist = Infinity;
-      let nbCandidates = 0;
-      let maxOv = 0;
-      let bestD = Infinity;
       for (const w of hWallsExt) {
         if (dir === "N") {
           if (w.pos >= a.yMin - 2) continue;
@@ -1525,15 +1517,11 @@ function translateToTouchExteriorWalls(
         const ovLo = Math.max(reqLo, w.lo);
         const ovHi = Math.min(reqHi, w.hi);
         const ov = Math.max(0, ovHi - ovLo);
-        nbCandidates++;
-        if (ov > maxOv) maxOv = ov;
         if (ov < minOv) continue;
         const d = dir === "N" ? a.yMin - w.pos : w.pos - a.yMax;
-        if (d < bestD) bestD = d;
         if (d > maxTranslatePx) continue;
         if (d < bestDist) { bestDist = d; best = w.pos; }
       }
-      if (dbg) console.log(`[translate-debug-detail] ${label} ${dir} a.yMin=${a.yMin.toFixed(0)} a.yMax=${a.yMax.toFixed(0)} a.x=[${a.xMin.toFixed(0)}..${a.xMax.toFixed(0)}] minOv=${minOv.toFixed(0)} candidates=${nbCandidates} maxOv=${maxOv.toFixed(0)} bestD=${bestD.toFixed(0)} → ${best === null ? "null" : best.toFixed(0)}`);
       return best;
     } else {
       const reqLo = a.yMin, reqHi = a.yMax;
@@ -1589,7 +1577,6 @@ function translateToTouchExteriorWalls(
   // appliquer UNE translation, skip l'autre direction sur cet axe.
   for (let i = 0; i < result.length; i++) {
     const a = result[i].bbox;
-    const lbl = result[i].label;
     // Précompute candidates par direction
     type DirInfo = { dir: "N" | "S" | "E" | "W"; delta: number; reason: string };
     const dirs: DirInfo[] = [];
@@ -1598,7 +1585,7 @@ function translateToTouchExteriorWalls(
         dirs.push({ dir, delta: 0, reason: "skip:hasNeighbor" });
         continue;
       }
-      const wallPos = nearestExteriorWallStrict(a, dir, lbl);
+      const wallPos = nearestExteriorWallStrict(a, dir);
       if (wallPos === null) {
         dirs.push({ dir, delta: 0, reason: "skip:noWall" });
         continue;
@@ -1641,12 +1628,6 @@ function translateToTouchExteriorWalls(
       else if (dir === "W") { a.xMin -= delta; a.xMax -= delta; }
       else if (dir === "E") { a.xMin += delta; a.xMax += delta; }
       totalTranslated++;
-      if (process.env.VS_TRANSLATE_DEBUG === "true") console.log(`[translate-debug] ${lbl} ${dir} APPLIED delta=${delta.toFixed(0)}`);
-    }
-    if (process.env.VS_TRANSLATE_DEBUG === "true") {
-      for (const d of dirs) {
-        if (d.reason !== "candidate") console.log(`[translate-debug] ${lbl} ${d.dir} ${d.reason}`);
-      }
     }
   }
   for (const r of result) {
