@@ -35,11 +35,9 @@ export const TOUCH_TOL_PX = 5;
 
 /** Cap dur sur surface : si extension >= MAX_OVER_INITIAL × bbox_initiale → revert.
  *  L'invariant TOUCHE est PRIORITAIRE sur le cap PDF (consigne tour 29).
- *  Cap très large à 4.0 — uniquement un garde-fou anti-explosion en cas de
- *  label PDF mal lu (qui ferait grandir hors zone habitable). En pratique,
- *  les extensions normales ne dépassent pas 1.5-2.0 (1 ou 2 bords étendus
- *  jusqu'au mur lot). Au-delà de 4.0 c'est anormal. */
-const MAX_OVER_INITIAL = 4.0;
+ *  Cap très permissif à 6.0 (priorité absolue à toucher). Un cap est gardé
+ *  uniquement comme garde-fou anti-explosion en cas de label PDF mal lu. */
+const MAX_OVER_INITIAL = 6.0;
 
 /** Itérations max de la passe (convergence par fixed-point). */
 const MAX_ITERATIONS = 8;
@@ -441,9 +439,6 @@ export function enforceTouchInvariant(
       for (const dir of ["N", "S", "W", "E"] as Direction[]) {
         const delta = distanceToTouch(room, dir, others, lotBbox, lotWalls, lotPolygon);
         if (delta <= 0) continue;
-        if (iter === 0) {
-          console.log(`[touchInv-debug] iter=0 ${room.label} dir=${dir} delta=${delta.toFixed(0)}px`);
-        }
 
         // Tentative d'extension : on construit la bbox candidate.
         const candidate: Bbox = { ...room.bbox };
@@ -536,21 +531,104 @@ export function enforceTouchInvariant(
     console.log(
       `[enforceTouchInvariant] ${totalExtended} extension(s) de bord pour respecter "chaque bord touche"`,
     );
-    // Log détaillé : pour chaque pièce, comparer bbox initiale vs finale.
-    for (let i = 0; i < next.length; i++) {
-      const before = initialBbox[i];
-      const after = next[i].bbox;
-      const dN = Math.round(before.yMin - after.yMin);
-      const dS = Math.round(after.yMax - before.yMax);
-      const dW = Math.round(before.xMin - after.xMin);
-      const dE = Math.round(after.xMax - before.xMax);
-      if (dN > 1 || dS > 1 || dW > 1 || dE > 1) {
-        console.log(
-          `[touchInv] ${next[i].label} extended N=${dN} S=${dS} W=${dW} E=${dE} px`,
-        );
+  }
+
+  // Audit final : liste les bords qui ne touchent rien (gap > 5px).
+  // CRITIQUE : on utilise un seuil overlap 1px (vs 35% pendant extension) car
+  // ici on veut savoir si un bord est "visuellement collé" à QUELQUE CHOSE,
+  // peu importe que ce soit un voisin partiel ou un mur lot.
+  const remainingGaps: string[] = [];
+  for (let i = 0; i < next.length; i++) {
+    const room = next[i];
+    const others = next.filter((_, j) => j !== i);
+    for (const dir of ["N", "S", "W", "E"] as Direction[]) {
+      const remaining = auditDistanceToTouch(room, dir, others, lotBbox, lotWalls, lotPolygon);
+      if (remaining > 5) {
+        remainingGaps.push(`${room.label}/${dir}=${Math.round(remaining)}px`);
       }
     }
   }
+  if (remainingGaps.length > 0) {
+    console.log(`[touchInv-audit] gaps restants : ${remainingGaps.join(", ")}`);
+  } else {
+    console.log(`[touchInv-audit] OK — tous les bords touchent quelque chose (gap ≤ 5px)`);
+  }
 
   return next;
+}
+
+/**
+ * Variante audit de distanceToTouch : seuil overlap 1px (vs 35% pour
+ * extension). Utilisée pour savoir si un bord est visuellement collé à
+ * QUELQUE CHOSE — peu importe la couverture perpendiculaire.
+ */
+function auditDistanceToTouch(
+  room: RectangleRoom,
+  dir: Direction,
+  others: RectangleRoom[],
+  lotBbox: Bbox,
+  lotWalls: Wall[],
+  lotPolygon: Pt[],
+): number {
+  const a = room.bbox;
+  const horizOverlapWith = (b: Bbox) =>
+    Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+  const vertOverlapWith = (b: Bbox) =>
+    Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+
+  const roomCenter = { x: (a.xMin + a.xMax) / 2, y: (a.yMin + a.yMax) / 2 };
+  let limit: number;
+  if (dir === "N") {
+    limit = lotBorderInDirection(lotPolygon, "N", a.xMin, a.xMax, roomCenter, lotBbox.yMin);
+  } else if (dir === "S") {
+    limit = lotBorderInDirection(lotPolygon, "S", a.xMin, a.xMax, roomCenter, lotBbox.yMax);
+  } else if (dir === "W") {
+    limit = lotBorderInDirection(lotPolygon, "W", a.yMin, a.yMax, roomCenter, lotBbox.xMin);
+  } else {
+    limit = lotBorderInDirection(lotPolygon, "E", a.yMin, a.yMax, roomCenter, lotBbox.xMax);
+  }
+
+  // Voisins (seuil overlap 1px en mode audit)
+  for (const o of others) {
+    const b = o.bbox;
+    if (dir === "N" || dir === "S") {
+      if (horizOverlapWith(b) <= 1) continue;
+      if (dir === "N" && b.yMax <= a.yMin + 1 && b.yMax > limit) limit = b.yMax;
+      if (dir === "S" && b.yMin >= a.yMax - 1 && b.yMin < limit) limit = b.yMin;
+    } else {
+      if (vertOverlapWith(b) <= 1) continue;
+      if (dir === "W" && b.xMax <= a.xMin + 1 && b.xMax > limit) limit = b.xMax;
+      if (dir === "E" && b.xMin >= a.xMax - 1 && b.xMin < limit) limit = b.xMin;
+    }
+  }
+
+  // Murs lot/longs
+  for (const w of lotWalls) {
+    if (dir === "N" || dir === "S") {
+      if (!isHorizontal(w, 6)) continue;
+      const wy = (w.y1 + w.y2) / 2;
+      const wxLo = Math.min(w.x1, w.x2);
+      const wxHi = Math.max(w.x1, w.x2);
+      const ovx = Math.min(a.xMax, wxHi) - Math.max(a.xMin, wxLo);
+      if (ovx <= 1) continue;
+      if (dir === "N" && wy <= a.yMin + 1 && wy > limit) limit = wy;
+      if (dir === "S" && wy >= a.yMax - 1 && wy < limit) limit = wy;
+    } else {
+      if (!isVertical(w, 6)) continue;
+      const wx = (w.x1 + w.x2) / 2;
+      const wyLo = Math.min(w.y1, w.y2);
+      const wyHi = Math.max(w.y1, w.y2);
+      const ovy = Math.min(a.yMax, wyHi) - Math.max(a.yMin, wyLo);
+      if (ovy <= 1) continue;
+      if (dir === "W" && wx <= a.xMin + 1 && wx > limit) limit = wx;
+      if (dir === "E" && wx >= a.xMax - 1 && wx < limit) limit = wx;
+    }
+  }
+
+  let delta: number;
+  if (dir === "N") delta = a.yMin - limit;
+  else if (dir === "S") delta = limit - a.yMax;
+  else if (dir === "W") delta = a.xMin - limit;
+  else delta = limit - a.xMax;
+  return Math.max(0, delta);
 }
