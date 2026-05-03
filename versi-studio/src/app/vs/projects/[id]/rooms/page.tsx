@@ -220,13 +220,19 @@ export default function RoomsPage({
     lots.every((l) => l.status === "validated") &&
     lots.every((l) => (roomsByLot[l.id]?.length ?? 0) > 0);
 
-  // Trouver le premier plan (pour le canvas background)
+  // s28 fix Bug PDF par étage — le plan affiché en background DOIT correspondre
+  // à l'étage du lot sélectionné. Sinon les polygones du R+1/R+2/R+3 sont rendus
+  // sur le plan du RDC, ce qui produit un décalage visuel apparent (bug Thomas
+  // s28 « polygones décalés de 4m trop haut » = polygones sur mauvais PDF).
+  // Matching via floor_number (relation lot ↔ plan dans le schéma vs_*).
   // s25 — affiche le plan canonicalisé (backend) si disponible,
   // sinon fallback sur l'original. Les polygones IA ont été calculés sur le
   // plan affiché dans le canvas.
-  const firstPlan = plans.length > 0 ? plans[0] : null;
-  const planImageUrl = firstPlan
-    ? `/api/vs/files?path=${encodeURIComponent(firstPlan.canonicalized_image_path ?? firstPlan.file_path)}`
+  const currentPlan = currentLot
+    ? plans.find((p) => p.floor_number === currentLot.floor_number) ?? plans[0] ?? null
+    : plans[0] ?? null;
+  const planImageUrl = currentPlan
+    ? `/api/vs/files?path=${encodeURIComponent(currentPlan.canonicalized_image_path ?? currentPlan.file_path)}`
     : null;
 
   const defaultZone: ZoneRect = {
