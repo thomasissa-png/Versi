@@ -671,7 +671,13 @@ function enforcePdfSurfaces(
     if (r.areaPx2 <= 0) return r;
     const currentM2 = r.areaPx2 * scale;
     const ratio = currentM2 / r.pdfSurfaceM2;
-    if (ratio <= 1.20) return r; // OK ou trop petit (on ne grossit pas)
+    // s28 tour 25b — cap resserré 1.20 → 1.10 pour pièces principales
+    // (Séjour/cuisine, Chambre, ≥ 10 m² PDF). Tour 24 R+1 Séjour finit à 41 m²
+    // alors que PDF 33 m² (ratio 1.24) → toléré par cap 1.20 mais visuellement
+    // trop grand. Cap 1.10 force le shrink à 36.3 m² max.
+    const isMainRoom = r.pdfSurfaceM2 >= 10;
+    const capRatio = isMainRoom ? 1.10 : 1.20;
+    if (ratio <= capRatio) return r; // OK ou trop petit (on ne grossit pas)
     const targetArea = r.pdfSurfaceM2 / scale;
     const seed = seeds[idx];
     const labelBbox = labelBboxes?.[idx] ?? null;
@@ -1569,6 +1575,9 @@ function translateToTouchExteriorWalls(
     return false;
   }
 
+  // s28 tour 25b — sauvegarde des aires originales pour garde anti-shrink.
+  const originalAreas = result.map((r) => (r.bbox.xMax - r.bbox.xMin) * (r.bbox.yMax - r.bbox.yMin));
+
   let totalTranslated = 0;
   // s28 tour 24 — translate UNE seule fois par axe (pas N+S simultanément qui s'auto-annulent).
   // Tour 23 itérait sur 4 directions et appliquait chaque translate compatible. Bug RDC :
@@ -1628,6 +1637,21 @@ function translateToTouchExteriorWalls(
       else if (dir === "W") { a.xMin -= delta; a.xMax -= delta; }
       else if (dir === "E") { a.xMin += delta; a.xMax += delta; }
       totalTranslated++;
+    }
+  }
+  // s28 tour 25b — GARDE ANTI-SHRINK : si la translate a réduit la surface
+  // (ex: bord du lot a clip une partie), revert au polygone original.
+  // Translate est censé être surface-preserving, mais en cas de bord du lot
+  // ou de borne neighbor, on perd parfois des pixels.
+  for (let i = 0; i < result.length; i++) {
+    const newArea = (result[i].bbox.xMax - result[i].bbox.xMin) * (result[i].bbox.yMax - result[i].bbox.yMin);
+    if (newArea < originalAreas[i] * 0.95) {
+      // Revert : remplacer par bbox/polygon initiaux.
+      result[i].bbox = { ...rooms[i].bbox };
+      result[i].polygon = rooms[i].polygon.map((v) => ({ ...v }));
+      console.log(
+        `[translateToTouchExteriorWalls] REVERT ${result[i].label} : new area ${newArea.toFixed(0)} < 95% original ${originalAreas[i].toFixed(0)}`,
+      );
     }
   }
   for (const r of result) {
@@ -2141,6 +2165,136 @@ export function extractRoomsAsRectangles(
       console.log(
         `[normalizeTechAspect] ${r.label} : ${aspect.toFixed(1)} → ${newAspect.toFixed(1)}`,
       );
+    }
+    return next;
+  })();
+
+  // Étape 2.68 — s28 tour 25b : FINAL RE-GROW PIÈCES SOUS-DIMENSIONNÉES.
+  //
+  // Bug Chambre RDC tour 24 : passe de 12 → 10 m² (régression). Pipeline tour 24
+  // restreint translateToTouchExteriorWalls aux bords du LOT — la Chambre n'est
+  // plus translatée vers le N (mur architectural interne), reste à sa position
+  // initiale. growUnderSized (passe précédente) a déjà tourné mais cap à 0.97×
+  // target ET tour 24 ECS shrink avait débloqué Séjour, pas Chambre.
+  //
+  // Solution : passe FINALE qui ré-étend les pièces principales (PDF >= 10 m²)
+  // si ratio < 0.92 vers les bords libres (pas de voisin direct). Cap à 1.05 ×
+  // PDF pour ne pas dépasser cap surface global. Surface preservée si pas
+  // d'espace libre. C'est une passe "best-effort" non destructive.
+  resolved = (() => {
+    const next = resolved.map((r) => ({
+      ...r,
+      bbox: { ...r.bbox },
+      polygon: r.polygon.map((v) => ({ ...v })),
+    }));
+    // Recalculer scale médian local (cohérent avec les autres passes)
+    const cands = next
+      .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+      .map((r) => r.pdfSurfaceM2! / r.areaPx2)
+      .sort((a, b) => a - b);
+    if (cands.length < 2) return next;
+    const scale = cands[Math.floor(cands.length / 2)];
+
+    // Pour chaque pièce principale (PDF ≥ 10 m²) sous-dimensionnée
+    for (let i = 0; i < next.length; i++) {
+      const r = next[i];
+      if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 < 10) continue;
+      const currentM2 = r.areaPx2 * scale;
+      const ratio = currentM2 / r.pdfSurfaceM2;
+      if (ratio >= 0.92) continue; // déjà OK
+      const targetArea = (r.pdfSurfaceM2 * 1.0) / scale;
+      const a = r.bbox;
+
+      // Marge libre dans chaque direction = distance jusqu'au voisin OU lot bbox
+      function gapInDir(dir: "N" | "S" | "W" | "E"): number {
+        let limit: number;
+        if (dir === "N") limit = lotBbox.yMin;
+        else if (dir === "S") limit = lotBbox.yMax;
+        else if (dir === "W") limit = lotBbox.xMin;
+        else limit = lotBbox.xMax;
+
+        for (let j = 0; j < next.length; j++) {
+          if (j === i) continue;
+          const b = next[j].bbox;
+          const overlapX = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+          const overlapY = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+          if (dir === "N" || dir === "S") {
+            if (overlapX <= 1) continue;
+            if (dir === "N" && b.yMax <= a.yMin && b.yMax > limit) limit = b.yMax;
+            if (dir === "S" && b.yMin >= a.yMax && b.yMin < limit) limit = b.yMin;
+          } else {
+            if (overlapY <= 1) continue;
+            if (dir === "W" && b.xMax <= a.xMin && b.xMax > limit) limit = b.xMax;
+            if (dir === "E" && b.xMin >= a.xMax && b.xMin < limit) limit = b.xMin;
+          }
+        }
+        if (dir === "N") return Math.max(0, a.yMin - limit - 2);
+        if (dir === "S") return Math.max(0, limit - a.yMax - 2);
+        if (dir === "W") return Math.max(0, a.xMin - limit - 2);
+        return Math.max(0, limit - a.xMax - 2);
+      }
+
+      const gN = gapInDir("N");
+      const gS = gapInDir("S");
+      const gW = gapInDir("W");
+      const gE = gapInDir("E");
+
+      // Étendre proportionnellement aux gaps disponibles, jusqu'à atteindre
+      // targetArea (ratio 1.0). Cap : ne pas dépasser ratio 1.05 PDF.
+      const maxArea = (r.pdfSurfaceM2 * 1.05) / scale;
+      const wA = a.xMax - a.xMin;
+      const hA = a.yMax - a.yMin;
+
+      // Étendre N+S si gap dispo
+      if (gN > 5 || gS > 5) {
+        const targetH = Math.min(targetArea / wA, hA + gN + gS);
+        const totalGrow = Math.max(0, targetH - hA);
+        const totalAvail = gN + gS;
+        if (totalAvail > 0) {
+          const growN = (gN / totalAvail) * totalGrow;
+          const growS = (gS / totalAvail) * totalGrow;
+          a.yMin -= Math.min(gN, growN);
+          a.yMax += Math.min(gS, growS);
+        }
+      }
+
+      // Recalc current area, étendre W+E si encore sous-dimensionné
+      const newH = a.yMax - a.yMin;
+      const currentAreaAfter = wA * newH;
+      if (currentAreaAfter < targetArea && (gW > 5 || gE > 5)) {
+        const targetW = Math.min(targetArea / newH, wA + gW + gE);
+        const totalGrowW = Math.max(0, targetW - wA);
+        const totalAvailW = gW + gE;
+        if (totalAvailW > 0) {
+          const growW = (gW / totalAvailW) * totalGrowW;
+          const growE = (gE / totalAvailW) * totalGrowW;
+          a.xMin -= Math.min(gW, growW);
+          a.xMax += Math.min(gE, growE);
+        }
+      }
+
+      // Cap final 1.05 PDF : si on a dépassé, shrink équitablement
+      const finalArea = (a.xMax - a.xMin) * (a.yMax - a.yMin);
+      if (finalArea > maxArea) {
+        const shrinkF = Math.sqrt(maxArea / finalArea);
+        const cx = (a.xMin + a.xMax) / 2;
+        const cy = (a.yMin + a.yMax) / 2;
+        const halfW = ((a.xMax - a.xMin) / 2) * shrinkF;
+        const halfH = ((a.yMax - a.yMin) / 2) * shrinkF;
+        a.xMin = cx - halfW;
+        a.xMax = cx + halfW;
+        a.yMin = cy - halfH;
+        a.yMax = cy + halfH;
+      }
+
+      r.polygon = buildRectangle(a.yMin, a.yMax, a.xMax, a.xMin);
+      r.areaPx2 = polygonArea(r.polygon);
+      const newRatio = (r.areaPx2 * scale) / r.pdfSurfaceM2;
+      if (Math.abs(newRatio - ratio) > 0.02) {
+        console.log(
+          `[finalReGrow] ${r.label} ratio ${ratio.toFixed(2)} → ${newRatio.toFixed(2)} (PDF ${r.pdfSurfaceM2}m²)`,
+        );
+      }
     }
     return next;
   })();
