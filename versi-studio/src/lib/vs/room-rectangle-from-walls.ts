@@ -2065,7 +2065,6 @@ export function extractRoomsAsRectangles(
       const h = r.bbox.yMax - r.bbox.yMin;
       if (w <= 0 || h <= 0) continue;
       const aspect = Math.max(w, h) / Math.max(1, Math.min(w, h));
-      console.log(`[normalizeTechAspect-DEBUG] ${r.label} w=${w.toFixed(0)} h=${h.toFixed(0)} aspect=${aspect.toFixed(2)}`);
       if (aspect <= ASPECT_THRESHOLD) continue;
 
       // Carré-cible centré, surface préservée.
