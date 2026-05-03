@@ -96,6 +96,115 @@ function lotBoundingBox(lotPolygon: Pt[]): Bbox {
   return { xMin, yMin, xMax, yMax };
 }
 
+/**
+ * Renvoie la borne du polygone lot dans la direction `dir` pour l'intervalle
+ * perpendiculaire [lo, hi] (lo,hi sur l'axe x si dir N/S, sur l'axe y si W/E).
+ *
+ * Pour dir=N : pour chaque x ∈ [lo, hi], trouver max(y) tel que (x, y) soit
+ * sur une arête du polygone ET y < a.yMin. Renvoie le y MAX trouvé (= bord
+ * N du polygone le plus bas dans cet intervalle = limite la plus haute pour
+ * extension N).
+ *
+ * Approche simple : on parcourt les arêtes du polygone, pour chaque arête,
+ * on calcule l'intersection avec les segments verticaux x=lo et x=hi (et
+ * tous les x intermédiaires intéressants = sommets dans l'intervalle).
+ * Pour V1 simple : on échantillonne 5 valeurs x dans [lo, hi] et on prend
+ * pour chacune le y MAX (au-dessus du roomCenter) atteint via PIP-walk.
+ */
+function lotBorderInDirection(
+  lotPolygon: Pt[],
+  dir: Direction,
+  perpLo: number,
+  perpHi: number,
+  roomCenter: { x: number; y: number },
+  fallback: number,
+): number {
+  // Échantillonne 7 positions perpendiculaires dans [perpLo, perpHi]
+  const SAMPLES = 7;
+  let bestLimit = fallback;
+  for (let s = 0; s < SAMPLES; s++) {
+    const t = s / (SAMPLES - 1);
+    const perp = perpLo + t * (perpHi - perpLo);
+    // Pour chaque arête du polygone, intersection avec ligne perpendiculaire
+    let edgeLimit: number | null = null;
+    for (let i = 0; i < lotPolygon.length; i++) {
+      const p = lotPolygon[i];
+      const q = lotPolygon[(i + 1) % lotPolygon.length];
+      let t_seg: number;
+      let yIntersect: number | null = null;
+      let xIntersect: number | null = null;
+      if (dir === "N" || dir === "S") {
+        // ligne x = perp, on cherche y sur l'arête
+        const dx = q.x - p.x;
+        if (Math.abs(dx) < 1e-6) {
+          // arête verticale : couvre x=p.x; si perp ≈ p.x, l'arête entière est candidat
+          if (Math.abs(p.x - perp) > 2) continue;
+          // prendre le y le plus proche du centre vers la direction
+          const yLo = Math.min(p.y, q.y);
+          const yHi = Math.max(p.y, q.y);
+          if (dir === "N" && yLo < roomCenter.y) {
+            // candidat = yHi (dernier point visible vers le bas, donc bord N du polygon le plus haut)
+            // Non, pour dir=N on veut y < center, le plus PROCHE du center par le haut → max(y) avec y<center
+            const y = Math.min(yHi, roomCenter.y);
+            yIntersect = y;
+          } else if (dir === "S" && yHi > roomCenter.y) {
+            const y = Math.max(yLo, roomCenter.y);
+            yIntersect = y;
+          } else {
+            continue;
+          }
+        } else {
+          t_seg = (perp - p.x) / dx;
+          if (t_seg < -0.001 || t_seg > 1.001) continue;
+          yIntersect = p.y + t_seg * (q.y - p.y);
+        }
+        if (yIntersect == null) continue;
+        if (dir === "N" && yIntersect < roomCenter.y) {
+          if (edgeLimit == null || yIntersect > edgeLimit) edgeLimit = yIntersect;
+        }
+        if (dir === "S" && yIntersect > roomCenter.y) {
+          if (edgeLimit == null || yIntersect < edgeLimit) edgeLimit = yIntersect;
+        }
+      } else {
+        // ligne y = perp
+        const dy = q.y - p.y;
+        if (Math.abs(dy) < 1e-6) {
+          if (Math.abs(p.y - perp) > 2) continue;
+          const xLo = Math.min(p.x, q.x);
+          const xHi = Math.max(p.x, q.x);
+          if (dir === "W" && xLo < roomCenter.x) {
+            const x = Math.min(xHi, roomCenter.x);
+            xIntersect = x;
+          } else if (dir === "E" && xHi > roomCenter.x) {
+            const x = Math.max(xLo, roomCenter.x);
+            xIntersect = x;
+          } else {
+            continue;
+          }
+        } else {
+          t_seg = (perp - p.y) / dy;
+          if (t_seg < -0.001 || t_seg > 1.001) continue;
+          xIntersect = p.x + t_seg * (q.x - p.x);
+        }
+        if (xIntersect == null) continue;
+        if (dir === "W" && xIntersect < roomCenter.x) {
+          if (edgeLimit == null || xIntersect > edgeLimit) edgeLimit = xIntersect;
+        }
+        if (dir === "E" && xIntersect > roomCenter.x) {
+          if (edgeLimit == null || xIntersect < edgeLimit) edgeLimit = xIntersect;
+        }
+      }
+    }
+    if (edgeLimit != null) {
+      if (dir === "N" && edgeLimit > bestLimit) bestLimit = edgeLimit;
+      if (dir === "W" && edgeLimit > bestLimit) bestLimit = edgeLimit;
+      if (dir === "S" && edgeLimit < bestLimit) bestLimit = edgeLimit;
+      if (dir === "E" && edgeLimit < bestLimit) bestLimit = edgeLimit;
+    }
+  }
+  return bestLimit;
+}
+
 /** True si segment [u,v] horizontal (le segment est ~horizontal). */
 function isHorizontal(w: Wall, tolPx = 4): boolean {
   return Math.abs(w.y1 - w.y2) <= tolPx;
@@ -127,6 +236,7 @@ function distanceToTouch(
   others: RectangleRoom[],
   lotBbox: Bbox,
   lotWalls: Wall[],
+  lotPolygon: Pt[],
 ): number {
   const a = room.bbox;
 
@@ -137,12 +247,30 @@ function distanceToTouch(
   const vertOverlapWith = (b: Bbox) =>
     Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
 
-  // Limite du lot bbox dans cette direction (sert de plafond absolu).
+  // Limite du POLYGONE LOT dans cette direction (= bord visible orange).
+  // C'est le bord visible que l'utilisateur attend que les pièces touchent.
+  // Le bbox englobant peut être plus large (cotes/légendes en bord PDF).
+  const roomCenter = { x: (a.xMin + a.xMax) / 2, y: (a.yMin + a.yMax) / 2 };
   let limit: number;
-  if (dir === "N") limit = lotBbox.yMin;
-  else if (dir === "S") limit = lotBbox.yMax;
-  else if (dir === "W") limit = lotBbox.xMin;
-  else limit = lotBbox.xMax;
+  if (dir === "N") {
+    // Pour bord N : on cherche dans l'intervalle x = [a.xMin, a.xMax] le bord
+    // du polygone le plus bas (max y) qui soit au-dessus du centre.
+    limit = lotBorderInDirection(
+      lotPolygon, "N", a.xMin, a.xMax, roomCenter, lotBbox.yMin,
+    );
+  } else if (dir === "S") {
+    limit = lotBorderInDirection(
+      lotPolygon, "S", a.xMin, a.xMax, roomCenter, lotBbox.yMax,
+    );
+  } else if (dir === "W") {
+    limit = lotBorderInDirection(
+      lotPolygon, "W", a.yMin, a.yMax, roomCenter, lotBbox.xMin,
+    );
+  } else {
+    limit = lotBorderInDirection(
+      lotPolygon, "E", a.yMin, a.yMax, roomCenter, lotBbox.xMax,
+    );
+  }
 
   // 1) Voisin le plus proche dans la direction.
   // Pour qu'un voisin "bloque" notre extension, il faut un recouvrement
@@ -264,19 +392,27 @@ export function enforceTouchInvariant(
   if (rooms.length === 0) return rooms;
   const lotBbox = lotBoundingBox(lotPolygon);
 
-  // Pool des "murs lot" = bords du polygone lot (les seuls "vrais" murs
-  // extérieurs du lot). On NE prend PAS walls[] complet pour éviter que des
-  // murs internes serviront de "touche" dans la phase d'invariant —
-  // l'invariant ne concerne QUE les bords du lot et les pièces voisines.
-  const lotWalls: Wall[] = [];
+  // Pool de murs utilisable pour "toucher" :
+  //   1) Bords du polygone lot (visibles en orange dashed)
+  //   2) Murs vectoriels long (>= 60px) du pool complet — captent les murs
+  //      extérieurs du BÂTIMENT (différents du lot polygon qui peut inclure
+  //      des bandes de cotes ou terrasses).
+  //
+  // Pour Muguets, lotPolygon est un rectangle large qui englobe les cotes
+  // PDF. Le vrai "mur extérieur du bâtiment habitable" est dans walls[],
+  // c'est un long segment H ou V à ~25% du lotBbox.
+  const lotEdges: Wall[] = [];
   for (let i = 0; i < lotPolygon.length; i++) {
     const p = lotPolygon[i];
     const q = lotPolygon[(i + 1) % lotPolygon.length];
-    lotWalls.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
+    lotEdges.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
   }
-  // Note : walls[] est passé par cohérence d'API mais non consommé pour
-  // l'instant. En V2, on pourrait exploiter walls vectoriels comme bornes.
-  void walls;
+  // Murs longs (>= 60px) : candidats murs extérieurs bâtiment
+  const longWalls: Wall[] = walls.filter((w) => {
+    const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    return len >= 60;
+  });
+  const lotWalls: Wall[] = [...lotEdges, ...longWalls];
 
   // Travail sur copie profonde
   const next: RectangleRoom[] = rooms.map((r) => ({
@@ -298,7 +434,7 @@ export function enforceTouchInvariant(
       const others = next.filter((_, j) => j !== i);
 
       for (const dir of ["N", "S", "W", "E"] as Direction[]) {
-        const delta = distanceToTouch(room, dir, others, lotBbox, lotWalls);
+        const delta = distanceToTouch(room, dir, others, lotBbox, lotWalls, lotPolygon);
         if (delta <= 0) continue;
         if (iter === 0) {
           console.log(`[touchInv-debug] iter=0 ${room.label} dir=${dir} delta=${delta.toFixed(0)}px`);
