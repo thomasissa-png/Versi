@@ -465,6 +465,7 @@
 | @data-analyst | 2026-04-17 | `docs/analytics/vs-s21-clustering-events.md` | 4 events clustering IA spécifiés (lot_auto_created, lot_auto_validated, lot_manually_adjusted, ia_fallback_triggered). Helper centralisé `analytics.ts` typé TypeScript (isomorphe server/client). Code exact d'insertion fourni pour chaque event avec fichier:ligne. KPI dérivés documentés (taux validation 1-clic ≥ 80% cible North Star, taux ajustement manuel ≤ 20%, taux fallback ≤ 15%). Approche logging structuré JSON (MVP, pas de SDK externe). | Logging structuré JSON retenu vs SDK analytics externe (PostHog, Mixpanel) : V1 interne, pas de données persistées côté client, pas de RGPD supplémentaire, aucun bandeau cookie requis. Évolutivité prévue : route /api/vs/analytics en s22 pour centraliser les events client→serveur. lot_manually_adjusted émet aussi sur suppression d'un lot IA (adjustment_type='deleted') — décision clé : une suppression est un signal d'ajustement au même titre qu'un redessinage. Guard `lot.source === 'ai'` obligatoire sur tous les events "adjusted/validated" — les handlers manuels n'ont pas de sémantique IA. Capture de `targetLot` avant optimistic update dans confirmDeleteLot identifiée comme point d'attention critique pour @fullstack. |
 | @ux | 2026-04-20 | `docs/ux/s23-etape2-pieces-non-assignees.md` | Décision UX s23 — bloc "Pièces non assignées" Étape 2. Recommandation : Option A (supprimer le bloc JSX de LotPanel.tsx lignes 410-427). Rationale : zéro action disponible à l'Étape 2 = H8 Nielsen FAIL (élément sans raison d'être). Thomas valide des lots, pas des pièces orphelines. Le bloc ECS/palier crée un bruit cognitif sur une information non actionnelle. Données conservées en DB et dans le state page.tsx pour usage futur Étape 3. | Paradoxe s21 résolu : le bloc avait été ajouté en réponse à un P0 audit it1 ("pièces orphelines disparaissent silencieusement") — il était pertinent comme preuve de transparence IA. Thomas a maintenant demandé à challenger sa valeur après usage réel (ECS = bruit, pas signal). La décision inverse le P0 it1 de façon assumée : à l'Étape 2 le focus = lots, pas pièces. L'info reste accessible côté données pour l'Étape 3 si besoin. Fichier copy commandé en parallèle (`docs/copy/s23-etape2-pieces-non-assignees-copy.md`) devient caduc si Option A validée. |
 | @infrastructure (s26 — fix DNS cache overflow 503 versi.fr + versi-immobilier.fr) | 2026-04-24 | `docs/infra/fix-dns-cache-overflow-s26.md` (135 L) + patches `versi-immobilier/server.js` (route `/api/live` ultra-précoce + binding `0.0.0.0` explicite + `autoSeed` détaché non-bloquant + `scheduleBlogCron` try/catch) + `versi-invest-site/server.js` (route `/api/live`) + `scripts/check-sites-status.sh` (monitoring bash 4 domaines avec détection body "DNS cache overflow"). | Cause racine : **incident Replit Autoscale intermittent**, pas notre code. String "DNS cache overflow" = signature proxy Replit quand backend injoignable. Flapping confirmé en session (versi-invest.fr est passé 503→200 sans intervention, puis les 3 sites sont repassés OK pendant le diagnostic). Architecture réelle documentée : `versi-immobilier/server.js` sert versi.fr + versi-immobilier.fr via host routing (même process Node, même déploiement Replit) → si ce process est down, les 2 domaines tombent ensemble (d'où les timestamps identiques). versi-invest.fr = déploiement séparé. versi-studio.fr = non déployé (à statuer retrait DNS). Fixes appliqués sont préventifs + améliorent résilience future (proxy Replit reçoit 200 sur `/api/live` en <100ms même pendant autoSeed lourd). | Option écartée : modifier `src/server.js` — il n'est pas utilisé en prod (versi-immobilier prend le relais via host routing), risque de régression inutile. Option écartée : bypass Replit Autoscale pour mode reserved-VM — coût 10×, hors budget. Option retenue : fixes minimaux côté app + script monitoring + recommandation UptimeRobot free tier + documentation claire pour ticket support Replit si récidive. Actions Thomas : redeploy Replit + vérifier logs + curl `/api/live` pour confirmer fix + statuer sur versi-studio.fr (retirer DNS si domaine inutile). |
+| @orchestrator + @fullstack (s28 — bugs Étape 3 Versi Studio + 33 tours placement architectural pièces) | 2026-05-03 | `versi-studio/src/app/api/vs/projects/[id]/extract/route.ts` (wire pipeline NEW v6 + filtre PDF par étage) + `versi-studio/src/app/vs/projects/[id]/rooms/page.tsx` (fix `firstPlan = plans[0]` → matching `floor_number`) + `versi-studio/src/lib/vs/room-rectangle-from-walls.ts` (~750L bbox-from-walls) + `versi-studio/src/lib/vs/touch-invariant.ts` (invariant + force-main + filter-hallucinated + fill-gaps) + `versi-studio/src/lib/vs/raster-walls-vectorize.ts` (vectorise murs PNG) + `versi-studio/src/lib/vs/wall-bounded-voronoi.ts` + `versi-studio/src/lib/vs/orthogonal-regularizer.ts` + `versi-studio/src/lib/vs/clean-walls-filter.ts` + `versi-studio/src/lib/vs/inter-room-walls.ts` + `versi-studio/src/lib/vs/smart-line-snap.ts` + 30+ scripts diagnostic + screenshots tour18-tour33 par plan. | (1) Bug Étape 3 #1 (extraction IA pièces) fixé `261d182` : wire pipeline NEW v6 vectoriel s27 oubliait l'extraction sémantique des pièces — coexistence vectoriel (lot polygone pixel-perfect) + IA vision GPT-4.1 (pièces) implémentée. (2) Bug #2 (bouton régénération) fixé : `allLotsValidated` requiert `rooms.length > 0` par lot + fallback 1 lot/étage dans /regenerate. (3) Bug critique tour 27 : `firstPlan = plans[0]` affichait toujours PDF du RDC quel que soit l'étage sélectionné — invalidait 26 tours d'audit. (4) **Pivot architectural majeur tour 18** : abandon BFS quota (formes biscornues blob) → `bbox-from-walls` (rectangles propres). (5) Tour 27-28 : mock obsolète détecté (`plan-extractor-mock.ts` T2/T3 hardcodé inexistant). (6) Tour 29-32 : invariant « chaque bord touche mur lot ou autre pièce » + force pièces principales (≥15m²) à toucher murs lot avec override cap PDF. (7) Tour 33 final validé visuellement par Thomas : 4/4 plans count exact (5/8/6/5), Salon R+1 descend jusqu'au bas, ECS récupérée, ratios WC fixés (4.81→1.22). | Trajectoire honnête : plateau structurel BFS+post-traitement (tours 8-17) à 17/20 → seul un pivot architectural a débloqué (tour 18 bbox-from-walls). Pattern « audit qui passe pour mauvaises raisons » détecté tour 17 (k constant trompeur). Bug PDF par étage (tour 27) n'aurait pas dû passer 26 tours d'audit → orchestrator-side : pattern « as-tu seulement vérifié » à propager pour orchestrator role. Mock obsolète : à supprimer ou resync. Reste 6 pièces avec ratios résiduels [0.82-0.84] ou [1.20-1.24] hors strict — acceptable visuellement, polish s29 si demandé. Branche `claude/versi-s28-sanity-check-NqK4S` HEAD `b4b5969` à pull en prod après validation Replit Secrets (`VS_USE_RECTANGLE_ROOMS=true` + `VS_USE_MOCK_EXTRACTOR=false` + `OPENAI_API_KEY`). |
 
 ---
 
@@ -498,6 +499,99 @@
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ## Mémo de reprise — dernière session
+
+### Mémo de reprise versi-s28 → s29
+
+**Branche dernière clôturée** : `claude/versi-s28-sanity-check-NqK4S` (HEAD `b4b5969`)
+**Date de clôture** : 2026-05-03
+**Numéro de session** : 28 (session 29 à venir)
+**Statut s28** : CLÔTURÉE — session marathon **33 tours** sur les bugs Étape 3 Versi Studio (extraction pièces + bouton régénération + placement architectural). Verdict final Thomas : *« ça paraît beaucoup mieux ouo »* — résultat 8/10 stable validé sur 4 plans (RDC/R+1/R+2/R+3).
+
+**Résumé session s28** :
+1. **Sanity check + propagation 9 learnings P0/P1 s27.2** (commit `c69eb76`) — propagés dans 7 agents + lessons-learned.
+2. **Bugs Étape 3 fixés (commit `261d182`)** : extraction pièces IA (wire route prod oubliait `extractPlanData`) + bouton régénération (`allLotsValidated` + filtre overlap). DB : 29 vs_rooms insérées sur 4 plans Muguets.
+3. **33 tours d'itération sur le placement architectural des pièces** :
+   - Tour 5 pivot full vectoriel (faces graphe planaire) — plateau 14/20 (cycles graphe non fermés)
+   - Tour 6-7 multi-couleur + flood-fill + smart-line-snap — 16/20
+   - Tour 8-12 polish post-traitement — plateau 17/20 (trade-off Inv A↔C irréductible)
+   - Tour 13 raster-walls-vectorize + snap-to-PNG — 17/20 stable
+   - **Tour 18 PIVOT ARCHITECTURAL : abandon flood-fill → bbox-from-walls** (rectangles propres au lieu de blobs)
+   - Tour 19-22 fixes incrémentaux (snap, position, extension murs lot)
+   - **Tour 27 BUG CRITIQUE FIXÉ** : `rooms/page.tsx ligne 227 firstPlan = plans[0]` → l'UI affichait toujours le PDF du RDC quel que soit l'étage sélectionné. Invalide les 26 tours d'audit visuel précédents.
+   - Tour 28 révèle MOCK obsolète (`plan-extractor-mock.ts` hardcodé T2/T3 inexistants vs vrai PDF Muguets).
+   - Tour 29 invariant « chaque bord touche mur lot ou autre pièce »
+   - Tour 30-32 force pièces principales toucher murs lot (override cap PDF)
+   - **Tour 33 final** : audit rigoureux + fix défauts résiduels — 4/4 plans count exact (5/8/6/5), Salon R+1 descend jusqu'au bas, ECS récupérée, WC ratios fixés (4.81→1.22).
+
+**Commits clés s28** : `c69eb76` (propagation P0/P1), `261d182` (bugs Étape 3), `2549cbe` (fix PDF par étage tour 27), `4f40c00` (synthèse murs inter-pièces), `25260d3` (smart-line-snap), `4ccbe01` (override cap pièces principales), `b4b5969` (final tour 33 validé).
+
+**Décisions clés s28** :
+- **Bug PDF par étage critique** : `firstPlan = plans[0]` partout est piège multi-étage. Fix dans `rooms/page.tsx` matching `floor_number`.
+- **Mock obsolète détecté** : `plan-extractor-mock.ts` ne reflète pas le vrai PDF Muguets — à supprimer ou resynchroniser pour éviter régressions.
+- **Pivot architectural BFS quota → bbox-from-walls** = saut qualitatif majeur (formes rectangulaires propres au lieu de blobs biscornus).
+- **Invariant « chaque bord touche »** = critère architectural supérieur à « surface ratio PDF » seul. Pour pièces principales (≥ 15 m²), bypass total cap PDF si nécessaire pour atteindre les murs du lot.
+- **Audit visuel orchestrator** = pattern « as-tu seulement vérifié ? » s'applique aussi à l'orchestrator. 21+ tours d'audit faux faute de comparaison rigoureuse PDF original vs polygones rendus. Pattern à propager.
+
+**Travaux en cours (côté agents)** : AUCUN — tous les livrables s28 commitent et passent pre-push hook.
+
+**Actions Thomas en attente (post-clôture s28)** :
+
+— **PROD Versi Studio (CRITIQUE pour valider la session)** —
+- ⏳ **Pull HEAD `b4b5969`** sur Replit + redéploiement (Next.js prod)
+- ⏳ **Vérifier Replit Secrets** : `VS_NEW_PIPELINE=true` + `VS_USE_RECTANGLE_ROOMS=true` + `VS_USE_MOCK_EXTRACTOR=false` + `OPENAI_API_KEY` présente
+- ⏳ **Re-déclencher l'extraction** sur un projet Muguets en prod → valider que les 4 plans produisent les pièces propres (5/8/6/5)
+- ⏳ **Vérifier UI** : sélecteur étage affiche le bon PDF en background pour chaque lot
+
+— **Héritage Versi Studio s27 toujours en attente** —
+- ⏳ Pull `05d0998` validation prod pivot vectoriel (déjà inclus dans `b4b5969`)
+- ⏳ 8 hypothèses property_photos R2 migration (héritage s26→s27)
+- 🔍 versi-studio.fr DNS (héritage s26)
+
+**Prochaines actions recommandées s29** :
+1. **[P0] Validation prod Versi Studio** par Thomas (pull `b4b5969` + checklist 4 points)
+2. **[P1] Suppression / resync `plan-extractor-mock.ts`** — actuellement contient données T2/T3 inexistantes dans vrai PDF Muguets
+3. **[P1] Polish ratios résiduels Étape 3** : 6 pièces avec ratio dans [0.82-0.84] ou [1.20-1.24] hors strict — pour atteindre 9-10/10 strict
+4. **[P1] Migration R2 property_photos** (héritage s27)
+5. **[P2] Fallback bitmap pipeline NEW M1→M5** pour PDF scannés (héritage s27)
+
+**Blockers éventuels** :
+- **PROD non-validée** : si Thomas constate des défauts en prod après redeploy → root cause possible : env vars Replit manquantes (`VS_USE_RECTANGLE_ROOMS=true` notamment)
+- **Mock obsolète** : si quelqu'un réactive `VS_USE_MOCK_EXTRACTOR=true` → régression (mock T2/T3 hardcodé)
+- versi-studio.fr DNS toujours irrésolu (héritage s26)
+
+**Caps framework respectés** :
+- CLAUDE.md 116/125 ✓
+- lessons-learned.md à recap après ajouts s28 (cap 80)
+- project-context.md : audit volumineux nécessaire (873+ L pré-mémo s28)
+- founder-preferences.md 265 L (alerte > 180, dédoublonnage à programmer s29)
+
+**Nom de branche recommandé pour s29** : `claude/versi-s29-vs-prod-validation-<suffix>` (si P0 validation prod prioritaire) OU `claude/versi-s29-mock-cleanup-<suffix>` (si P1 mock cleanup retenu)
+
+**Commande de reprise suggérée pour s29** :
+
+```
+@orchestrator session versi-s29. Lire project-context.md mémo reprise s28→s29.
+
+Gate de reprise obligatoire :
+1. Demander à Thomas si la validation prod Versi Studio Étape 3 est faite (4 points
+   checklist mémo s28→s29 section "Actions Thomas en attente PROD"). Si NON →
+   priorité absolue = débugger ce qui empêche la validation.
+2. Vérifier que le mock obsolète plan-extractor-mock.ts n'a pas été réactivé.
+
+Quelle priorité s29 parmi :
+- P0 Validation prod Versi Studio Étape 3 (si pas faite) — investigation @fullstack
+- P1 Suppression / resync mock plan-extractor-mock.ts (T2/T3 hardcodé inexistant)
+- P1 Polish ratios résiduels Étape 3 (9-10/10 strict)
+- P1 Migration property_photos vers Cloudflare R2 (héritage s27)
+- P2 Fallback bitmap pipeline pour PDF scannés (héritage s27)
+- versi-studio.fr DNS (héritage s26)
+- Autre priorité Thomas
+
+Compteur Task initial : 0/15. Contraintes : anti-timeout cmd n°3, cap
+CLAUDE.md 125 L, propagation P0/P1 close (rien à propager).
+```
+
+---
 
 ### Mémo de reprise versi-s27 → s28
 

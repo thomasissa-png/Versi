@@ -4,6 +4,19 @@ Archive des sessions > 5 sessions ou > 90 jours (TTL commandement n°8 CLAUDE.md
 
 Rotation : à chaque clôture de session, les entrées dont le TTL expire sont déplacées ici. L'historique git garde tout.
 
+## Archive s28 (2026-05-03) — net-zero cmd n°8 : 5 patterns s22-s23 promus stables
+
+| Session | P | Pattern | Statut | Action prochaine |
+|---|---|---|---|---|
+| s22 | P0 | Reality check E2E avant GO PRODUCTION | promu `@qa` + `@moi` + `@reviewer` (s26) | Stable (P0 garde-fou) — archivé s28 |
+| s22 | P0 | Découvrabilité UI : feature invisible = inexistante | promu `@ux` + `@design` (s26) | Stable (P0 garde-fou) — archivé s28 |
+| s22 | P0 | Validation "10/10" visuelle obligatoire (comparaison pixel-par-pixel) | promu `@qa` + `@reviewer` (s26) | Stable (P0 garde-fou) — archivé s28 |
+| s23 | P0 | Reality check E2E : UI ou DB read obligatoire (renforcée) | promu `@qa` (s26) | Stable (P0 garde-fou) — archivé s28 |
+| s23 | P0 | Agrégats calculés sur données RAFFINÉES (jamais brutes) | promu `@fullstack` + `@ia` (s26) | Stable (P0 garde-fou) — archivé s28 |
+
+---
+
+
 ---
 
 ## Session 2026-04-09 — Versi (site institutionnel one-page)
