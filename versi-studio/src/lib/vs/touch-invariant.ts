@@ -1706,3 +1706,157 @@ export function forceMainRoomsTouchLotWalls(
   }
   return next;
 }
+
+// ─── s28 tour 33 — Cap final PDF pour pièces secondaires ─────────────
+//
+// Auto-critique tour 32 : les passes touch-invariant + forceMainRooms
+// peuvent enfler une pièce secondaire (WC, Cellier, Entrée) jusqu'à 4-5×
+// sa surface PDF (ratio observé : WC R+1=3.82, WC R+2=4.81). Le label PDF
+// est un INDICATEUR pour ces pièces, mais ratio > 2.0 = défaut visuel
+// évident.
+//
+// Cette passe FINALE shrink les secondaires (PDF < 15 m²) au-delà d'un
+// cap PDF strict, EN PRESERVANT le label PDF inscrit dans la bbox.
+//
+// Stratégie :
+//   1. Pour chaque secondaire, si ratio actuel > cap → cible = bbox PDF
+//      réduite anisotropiquement vers le label.
+//   2. Cap par taille :
+//      - PDF < 5 m² (très petit : WC, Cell, ECS) : cap 1.20
+//      - PDF 5-15 m² (moyen : SDB, Entrée) : cap 1.25
+//   3. Shrink uniquement les bords NON adjacents aux pièces voisines
+//      (= bords libres ou touchant lot). Si tous bords adjacents → revert.
+//   4. Pas de shrink si bbox label ne tient plus dedans.
+//
+// Verbatim Thomas tour 32 : « WC ratios 2.64 et 4.18 (effets de bord du
+// bypass cap PDF) ». Cette passe corrige cet effet de bord.
+const FINAL_CAP_SMALL = 1.20; // PDF < 5 m²
+const FINAL_CAP_MEDIUM = 1.25; // PDF 5-15 m²
+const FINAL_LABEL_MARGIN = 5;  // px : marge autour bbox label à préserver
+
+export function enforceFinalPdfCapForSecondaries(
+  rooms: RectangleRoom[],
+  scaleM2PerPx2: number,
+  labelBboxes: Array<{ xMin: number; yMin: number; xMax: number; yMax: number } | null>,
+): RectangleRoom[] {
+  if (rooms.length === 0) return rooms;
+  const next = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  let totalShrunk = 0;
+
+  for (let i = 0; i < next.length; i++) {
+    const room = next[i];
+    const pdf = room.pdfSurfaceM2 ?? 0;
+    if (pdf <= 0) continue;
+    if (pdf >= MAIN_ROOM_PDF_THRESHOLD) continue; // skip principales
+
+    const currentM2 = room.areaPx2 * scaleM2PerPx2;
+    const ratio = currentM2 / pdf;
+    const cap = pdf < 5 ? FINAL_CAP_SMALL : FINAL_CAP_MEDIUM;
+    if (ratio <= cap) continue;
+
+    // Cible aire en px² : pdf * cap / scale
+    const targetAreaPx2 = (pdf * cap) / scaleM2PerPx2;
+    const a = room.bbox;
+    const currentAreaPx2 = (a.xMax - a.xMin) * (a.yMax - a.yMin);
+    if (currentAreaPx2 <= 0) continue;
+    const shrinkRatio = Math.sqrt(targetAreaPx2 / currentAreaPx2);
+    if (shrinkRatio >= 0.99) continue; // pas besoin
+
+    // Identifier les bords libres (pas adjacents à une autre pièce ≤2px)
+    let freeN = true, freeS = true, freeW = true, freeE = true;
+    for (let j = 0; j < next.length; j++) {
+      if (j === i) continue;
+      const b = next[j].bbox;
+      const ovX = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+      const ovY = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+      if (ovX > 1 && Math.abs(b.yMax - a.yMin) <= 2) freeN = false;
+      if (ovX > 1 && Math.abs(b.yMin - a.yMax) <= 2) freeS = false;
+      if (ovY > 1 && Math.abs(b.xMax - a.xMin) <= 2) freeW = false;
+      if (ovY > 1 && Math.abs(b.xMin - a.xMax) <= 2) freeE = false;
+    }
+
+    // Limite : bbox label DOIT rester inscrite (avec marge)
+    const lb = labelBboxes[i];
+    const minXMin = lb ? lb.xMin - FINAL_LABEL_MARGIN : a.xMin + (a.xMax - a.xMin) * 0.4;
+    const minXMax = lb ? lb.xMax + FINAL_LABEL_MARGIN : a.xMin + (a.xMax - a.xMin) * 0.6;
+    const minYMin = lb ? lb.yMin - FINAL_LABEL_MARGIN : a.yMin + (a.yMax - a.yMin) * 0.4;
+    const minYMax = lb ? lb.yMax + FINAL_LABEL_MARGIN : a.yMin + (a.yMax - a.yMin) * 0.6;
+
+    // Surplus à shrinker en px² (largeur+hauteur target)
+    const targetW = (a.xMax - a.xMin) * shrinkRatio;
+    const targetH = (a.yMax - a.yMin) * shrinkRatio;
+    const surplusW = (a.xMax - a.xMin) - targetW;
+    const surplusH = (a.yMax - a.yMin) - targetH;
+
+    // Distribuer surplusW : si freeW et freeE, split 50/50 ; sinon shrink le bord libre
+    const newBbox = { ...a };
+    if (surplusW > 1) {
+      if (freeW && freeE) {
+        newBbox.xMin = Math.min(a.xMin + surplusW / 2, minXMin);
+        newBbox.xMax = Math.max(a.xMax - surplusW / 2, minXMax);
+      } else if (freeW) {
+        newBbox.xMin = Math.min(a.xMin + surplusW, minXMin);
+      } else if (freeE) {
+        newBbox.xMax = Math.max(a.xMax - surplusW, minXMax);
+      }
+      // sinon : aucun bord libre en X → ne shrink pas en X
+    }
+    if (surplusH > 1) {
+      if (freeN && freeS) {
+        newBbox.yMin = Math.min(a.yMin + surplusH / 2, minYMin);
+        newBbox.yMax = Math.max(a.yMax - surplusH / 2, minYMax);
+      } else if (freeN) {
+        newBbox.yMin = Math.min(a.yMin + surplusH, minYMin);
+      } else if (freeS) {
+        newBbox.yMax = Math.max(a.yMax - surplusH, minYMax);
+      }
+    }
+
+    // Sanity : bbox label inscrite
+    if (lb) {
+      newBbox.xMin = Math.min(newBbox.xMin, lb.xMin - FINAL_LABEL_MARGIN);
+      newBbox.xMax = Math.max(newBbox.xMax, lb.xMax + FINAL_LABEL_MARGIN);
+      newBbox.yMin = Math.min(newBbox.yMin, lb.yMin - FINAL_LABEL_MARGIN);
+      newBbox.yMax = Math.max(newBbox.yMax, lb.yMax + FINAL_LABEL_MARGIN);
+    }
+
+    // Vérif mouvement >= 2px sur au moins un bord
+    const moved =
+      Math.abs(newBbox.xMin - a.xMin) > 2 ||
+      Math.abs(newBbox.xMax - a.xMax) > 2 ||
+      Math.abs(newBbox.yMin - a.yMin) > 2 ||
+      Math.abs(newBbox.yMax - a.yMax) > 2;
+    if (!moved) continue;
+
+    // Anti-chevauchement : si nouveau bbox crée un overlap → revert
+    let overlap = false;
+    for (let j = 0; j < next.length; j++) {
+      if (j === i) continue;
+      const b = next[j].bbox;
+      if (
+        newBbox.xMin < b.xMax && newBbox.xMax > b.xMin &&
+        newBbox.yMin < b.yMax && newBbox.yMax > b.yMin
+      ) { overlap = true; break; }
+    }
+    if (overlap) continue;
+
+    room.bbox = newBbox;
+    room.polygon = buildRectVerts(newBbox);
+    room.areaPx2 = polyArea(room.polygon);
+    const newM2 = room.areaPx2 * scaleM2PerPx2;
+    totalShrunk++;
+    console.log(
+      `[finalCapPdf] ${room.label} shrink ratio ${ratio.toFixed(2)} → ${(newM2/pdf).toFixed(2)} (PDF=${pdf.toFixed(1)}m², cap=${cap})`,
+    );
+  }
+
+  if (totalShrunk > 0) {
+    console.log(`[enforceFinalPdfCapForSecondaries] ${totalShrunk} pièce(s) secondaire(s) shrinkée(s) au cap PDF`);
+  }
+  return next;
+}

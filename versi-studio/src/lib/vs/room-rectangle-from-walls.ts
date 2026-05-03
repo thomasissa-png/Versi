@@ -46,6 +46,7 @@ import {
   fillRemainingGaps,
   enforceLabelOwnership,
   forceMainRoomsTouchLotWalls,
+  enforceFinalPdfCapForSecondaries,
   type LabelCenter,
 } from "./touch-invariant";
 
@@ -2604,6 +2605,34 @@ export function extractRoomsAsRectangles(
   // Re-enforce une dernière fois pour absorber les éventuels gaps
   // résiduels créés par les shrinks de bloqueurs.
   resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
+
+  // s28 tour 33 — CAP FINAL PDF POUR SECONDAIRES (auto-critique tour 32).
+  // forceMainRoomsTouchLotWalls + enforceTouchInvariant peuvent enfler les
+  // secondaires (WC, Cellier, Entrée) jusqu'à 4-5× leur PDF surface.
+  // Cette passe FINALE shrink ces secondaires au cap PDF strict (1.20-1.25),
+  // tout en préservant la bbox label PDF. Ne touche pas aux principales.
+  {
+    // Recalcul du scale m²/px² basé sur la médiane des pièces fiables.
+    const candidates = resolved
+      .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0);
+    if (candidates.length >= 2) {
+      const ks = candidates.map((c) => c.pdfSurfaceM2! / c.areaPx2).sort((a, b) => a - b);
+      const medianK = ks[Math.floor(ks.length / 2)];
+      const filtered = candidates.filter((c) => {
+        const k = c.pdfSurfaceM2! / c.areaPx2;
+        return k >= medianK * 0.5 && k <= medianK * 2.0;
+      });
+      const scale = filtered.length >= 2
+        ? filtered.map((c) => c.pdfSurfaceM2! / c.areaPx2).sort((a, b) => a - b)[Math.floor(filtered.length / 2)]
+        : medianK;
+
+      // Récupère les bbox des labels PDF pour préserver la zone label.
+      const labelBboxesArr: Array<{ xMin: number; yMin: number; xMax: number; yMax: number } | null> =
+        resolved.map((r) => r.labelBbox ?? null);
+
+      resolved = enforceFinalPdfCapForSecondaries(resolved, scale, labelBboxesArr);
+    }
+  }
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
