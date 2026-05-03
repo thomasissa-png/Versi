@@ -726,21 +726,23 @@ export function filterHallucinatedRooms(
   const filtered = rooms.filter((room, idx) => {
     // Pièces avec surface PDF : jamais filtrées (vérité architecte)
     if (room.pdfSurfaceM2 != null && room.pdfSurfaceM2 > 0) {
-      console.log(`[filterHallucinated] ${room.label} GARDÉ (PDF=${room.pdfSurfaceM2}m²)`);
       return true;
     }
 
-    // Pièces sans surface PDF : tester si halluci
+    // Pièces sans surface PDF : tester si halluci.
+    // Critère simple : si le gap max sur un bord > 200px, c'est qu'aucun
+    // voisin ni mur lot ne touche cette pièce → elle flotte → halluci.
+    // (le critère "best_overlap" était mauvais : une pièce peut avoir overlap
+    // perpendiculaire 100% avec un voisin et rester flottante sur ses 4 bords).
     const others = rooms.filter((_, j) => j !== idx);
     const maxGap = computeMaxBoundaryGap(room, others, lotPolygon, lotWalls);
-    const bestOverlap = maxPerpendicularOverlap(room, others);
     console.log(
-      `[filterHallucinated] ${room.label} sans PDF — gap_max=${Math.round(maxGap)}px, best_overlap=${(bestOverlap * 100).toFixed(0)}%`,
+      `[filterHallucinated] ${room.label} sans PDF — gap_max=${Math.round(maxGap)}px`,
     );
 
-    if (maxGap > HALLUCINATION_GAP_PX && bestOverlap < HALLUCINATION_OVERLAP_RATIO) {
+    if (maxGap > HALLUCINATION_GAP_PX) {
       console.log(
-        `[filterHallucinated] ${room.label} RETIRÉE — gap_max=${Math.round(maxGap)}px, best_overlap=${(bestOverlap * 100).toFixed(0)}%`,
+        `[filterHallucinated] ${room.label} RETIRÉE — gap_max=${Math.round(maxGap)}px > ${HALLUCINATION_GAP_PX}px`,
       );
       return false;
     }
@@ -829,6 +831,12 @@ function findExpandableNeighbor(
  * `targetCoord` = coord cible où le bord doit aller (image px).
  * Cap : 8x bbox initiale.
  *
+ * NOUVEAU tour 30 : clamping anti-overlap intelligent — si l'extension
+ * candidate chevauche un voisin, on TRONQUE jusqu'à juste avant le voisin
+ * (au lieu de fail). Le bord ira aussi loin qu'il peut SANS chevauchement.
+ *
+ * Renvoie true si le bord a effectivement bougé (>1px), false sinon.
+ *
  * Ex : extendRoomEdge(neighbor, "E", room.bbox.xMin) → étend xMax de neighbor
  * jusqu'à room.bbox.xMin (couvre le gap latéralement).
  */
@@ -837,8 +845,10 @@ function extendRoomEdge(
   expandDir: Direction,
   targetCoord: number,
   initialBbox: Bbox,
+  others: RectangleRoom[] = [],
 ): boolean {
   const candidate: Bbox = { ...room.bbox };
+  const orig = { ...room.bbox };
   if (expandDir === "N") {
     if (targetCoord >= candidate.yMin) return false;
     candidate.yMin = targetCoord;
@@ -852,12 +862,53 @@ function extendRoomEdge(
     if (targetCoord <= candidate.xMax) return false;
     candidate.xMax = targetCoord;
   }
-  // Cap surface : 8x bbox initiale
+
+  // Clamping anti-overlap : si chevauche un voisin, tronquer jusqu'à
+  // juste avant le voisin (1px de marge).
+  for (const o of others) {
+    const b = o.bbox;
+    if (!bboxesOverlap(candidate, b)) continue;
+    if (expandDir === "N") {
+      // candidate.yMin a baissé. Tronquer à b.yMax + 1
+      // mais seulement si b est dans la zone X de candidate
+      const xOv = Math.min(candidate.xMax, b.xMax) - Math.max(candidate.xMin, b.xMin);
+      if (xOv <= 1) continue;
+      candidate.yMin = Math.max(candidate.yMin, b.yMax + 1);
+    } else if (expandDir === "S") {
+      const xOv = Math.min(candidate.xMax, b.xMax) - Math.max(candidate.xMin, b.xMin);
+      if (xOv <= 1) continue;
+      candidate.yMax = Math.min(candidate.yMax, b.yMin - 1);
+    } else if (expandDir === "W") {
+      const yOv = Math.min(candidate.yMax, b.yMax) - Math.max(candidate.yMin, b.yMin);
+      if (yOv <= 1) continue;
+      candidate.xMin = Math.max(candidate.xMin, b.xMax + 1);
+    } else {
+      const yOv = Math.min(candidate.yMax, b.yMax) - Math.max(candidate.yMin, b.yMin);
+      if (yOv <= 1) continue;
+      candidate.xMax = Math.min(candidate.xMax, b.xMin - 1);
+    }
+  }
+
+  // Vérifier qu'il y a vraiment eu mouvement (>1px) après clamping
+  const moved =
+    Math.abs(candidate.xMin - orig.xMin) > 1 ||
+    Math.abs(candidate.yMin - orig.yMin) > 1 ||
+    Math.abs(candidate.xMax - orig.xMax) > 1 ||
+    Math.abs(candidate.yMax - orig.yMax) > 1;
+  if (!moved) return false;
+
+  // Cap surface : 8x bbox initiale (anti-explosion en cas de label PDF aberrant)
   const newArea = (candidate.xMax - candidate.xMin) * (candidate.yMax - candidate.yMin);
   const initArea = (initialBbox.xMax - initialBbox.xMin) * (initialBbox.yMax - initialBbox.yMin);
   if (initArea > 0 && newArea > initArea * FILL_GAP_MAX_OVER_INITIAL) {
     return false;
   }
+
+  // Vérification finale anti-overlap (au cas où clamping insuffisant)
+  for (const o of others) {
+    if (bboxesOverlap(candidate, o.bbox)) return false;
+  }
+
   room.bbox = candidate;
   room.polygon = buildRectVerts(candidate);
   room.areaPx2 = polyArea(room.polygon);
@@ -924,46 +975,28 @@ export function fillRemainingGaps(
         else if (dir === "W") target = a.xMin - gap;
         else target = a.xMax + gap;
 
-        // Tentative 1 : étendre la pièce elle-même (cap 8x).
-        // Sauvegarde bbox avant tentative pour pouvoir rollback proprement.
-        const savedBbox: Bbox = { ...room.bbox };
-        const savedPolygon = room.polygon.map((v) => ({ ...v }));
-        const savedArea = room.areaPx2;
+        // Clamper target dans lotBbox
+        if (dir === "N" && target < lotBbox.yMin) target = lotBbox.yMin;
+        else if (dir === "S" && target > lotBbox.yMax) target = lotBbox.yMax;
+        else if (dir === "W" && target < lotBbox.xMin) target = lotBbox.xMin;
+        else if (dir === "E" && target > lotBbox.xMax) target = lotBbox.xMax;
 
-        const extended = extendRoomEdge(room, dir, target, initialBboxes[i]);
+        // Tentative 1 : étendre la pièce elle-même (cap 8x, clamping anti-overlap).
+        const extended = extendRoomEdge(room, dir, target, initialBboxes[i], others);
         if (extended) {
-          let overlap = false;
-          for (const o of others) {
-            if (bboxesOverlap(room.bbox, o.bbox)) { overlap = true; break; }
-          }
-          if (overlap) {
-            // Rollback proprement
-            room.bbox = savedBbox;
-            room.polygon = savedPolygon;
-            room.areaPx2 = savedArea;
-            console.log(
-              `[fillGaps] ${room.label}/${dir} ROLLBACK overlap voisin (gap=${Math.round(gap)}px)`,
-            );
-            // Tomber dans tentative 2 (voisin)
-          } else {
-            changedThisIter = true;
-            totalFills++;
-            console.log(
-              `[fillGaps] ${room.label}/${dir} étendue de ${Math.round(gap)}px (cible=${Math.round(target)})`,
-            );
-            continue;
-          }
-        } else {
+          changedThisIter = true;
+          totalFills++;
           console.log(
-            `[fillGaps] ${room.label}/${dir} extendRoomEdge bloqué par cap (gap=${Math.round(gap)}px)`,
+            `[fillGaps] ${room.label}/${dir} étendue (gap=${Math.round(gap)}px)`,
           );
+          continue;
         }
 
         // Tentative 2 : étendre un voisin perpendiculaire pour combler.
         const expandable = findExpandableNeighbor(room, dir, others);
         if (!expandable) {
           console.log(
-            `[fillGaps] ${room.label}/${dir} no expandable neighbor (gap=${Math.round(gap)}px)`,
+            `[fillGaps] ${room.label}/${dir} aucune action possible (gap=${Math.round(gap)}px)`,
           );
           continue;
         }
@@ -976,25 +1009,14 @@ export function fillRemainingGaps(
         else if (expandDir === "S") neighborTarget = a.yMin;
         else neighborTarget = a.yMax;
 
-        const savedNb: Bbox = { ...neighbor.bbox };
-        const savedNbPoly = neighbor.polygon.map((v) => ({ ...v }));
-        const savedNbArea = neighbor.areaPx2;
-        const ok = extendRoomEdge(neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx]);
+        // Important : pour le voisin, "others" doit exclure le voisin lui-même
+        // mais inclure room (qui n'est PAS dans `others` actuel — on l'a filtré).
+        // On reconstruit la liste "tous sauf voisin" :
+        const othersForNeighbor = next.filter((_, j) => j !== neighborIdx);
+        const ok = extendRoomEdge(
+          neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx], othersForNeighbor,
+        );
         if (ok) {
-          let overlap = false;
-          for (let k = 0; k < next.length; k++) {
-            if (k === neighborIdx) continue;
-            if (bboxesOverlap(neighbor.bbox, next[k].bbox)) { overlap = true; break; }
-          }
-          if (overlap) {
-            neighbor.bbox = savedNb;
-            neighbor.polygon = savedNbPoly;
-            neighbor.areaPx2 = savedNbArea;
-            console.log(
-              `[fillGaps] voisin ${neighbor.label}/${expandDir} ROLLBACK (overlap)`,
-            );
-            continue;
-          }
           changedThisIter = true;
           totalFills++;
           console.log(
@@ -1002,7 +1024,7 @@ export function fillRemainingGaps(
           );
         } else {
           console.log(
-            `[fillGaps] voisin ${neighbor.label}/${expandDir} extendRoomEdge bloqué par cap`,
+            `[fillGaps] voisin ${neighbor.label}/${expandDir} bloqué (cap ou clamp) — gap résiduel ${Math.round(gap)}px`,
           );
         }
       }
