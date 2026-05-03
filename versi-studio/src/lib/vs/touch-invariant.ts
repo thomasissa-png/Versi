@@ -1767,21 +1767,34 @@ export function enforceFinalPdfCapForSecondaries(
     const shrinkRatio = Math.sqrt(targetAreaPx2 / currentAreaPx2);
     if (shrinkRatio >= 0.99) continue; // pas besoin
 
-    // Identifier les bords libres (pas adjacents à une autre pièce ≤2px)
-    let freeN = true, freeS = true, freeW = true, freeE = true;
-    for (let j = 0; j < next.length; j++) {
-      if (j === i) continue;
-      const b = next[j].bbox;
-      const ovX = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
-      const ovY = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
-      if (ovX > 1 && Math.abs(b.yMax - a.yMin) <= 2) freeN = false;
-      if (ovX > 1 && Math.abs(b.yMin - a.yMax) <= 2) freeS = false;
-      if (ovY > 1 && Math.abs(b.xMax - a.xMin) <= 2) freeW = false;
-      if (ovY > 1 && Math.abs(b.xMin - a.xMax) <= 2) freeE = false;
-    }
+    // s28 tour 33 — TOUS les bords sont éligibles au shrink (pas seulement
+    // ceux libres). Quand un voisin est adjacent, le shrink LIBÈRE de
+    // l'espace que le voisin pourra absorber via re-enforce ultérieur.
+    // Sans cette permissivité, les secondaires entourées de voisins
+    // (cas WC/Cellier collés à Entrée + Séjour) ne peuvent pas rétrécir.
+    const freeN = true, freeS = true, freeW = true, freeE = true;
 
     // Limite : bbox label DOIT rester inscrite (avec marge)
-    const lb = labelBboxes[i];
+    // s28 tour 33 — Si la bbox label est elle-même plus large que la cible
+    // (cas WC où "WC 1.3 m²" est groupé en un label de 50×20px alors que
+    // PDF=1.3m² ↔ targetArea peut être 35×15px), on RELÂCHE la contrainte :
+    // on utilise le centre du label avec une marge fixe (10×10px) pour ne
+    // pas sur-contraindre le shrink.
+    const lbRaw = labelBboxes[i];
+    const lbAreaPx2 = lbRaw
+      ? (lbRaw.xMax - lbRaw.xMin) * (lbRaw.yMax - lbRaw.yMin)
+      : 0;
+    const lbTooLarge = lbRaw && lbAreaPx2 > targetAreaPx2 * 0.6;
+    const lb = lbTooLarge && lbRaw
+      ? {
+          // Centre du label avec marge fixe 10×10px (zone label minimum
+          // garantie même si bbox PDF aberrante)
+          xMin: (lbRaw.xMin + lbRaw.xMax) / 2 - 10,
+          yMin: (lbRaw.yMin + lbRaw.yMax) / 2 - 10,
+          xMax: (lbRaw.xMin + lbRaw.xMax) / 2 + 10,
+          yMax: (lbRaw.yMin + lbRaw.yMax) / 2 + 10,
+        }
+      : lbRaw;
     const minXMin = lb ? lb.xMin - FINAL_LABEL_MARGIN : a.xMin + (a.xMax - a.xMin) * 0.4;
     const minXMax = lb ? lb.xMax + FINAL_LABEL_MARGIN : a.xMin + (a.xMax - a.xMin) * 0.6;
     const minYMin = lb ? lb.yMin - FINAL_LABEL_MARGIN : a.yMin + (a.yMax - a.yMin) * 0.4;
@@ -1794,36 +1807,43 @@ export function enforceFinalPdfCapForSecondaries(
     const surplusH = (a.yMax - a.yMin) - targetH;
 
     // Distribuer surplusW : si freeW et freeE, split 50/50 ; sinon shrink le bord libre
+    // s28 tour 33 — Logique correcte :
+    //   xMin shrink = INCRÉMENTER xMin (réduire taille à gauche).
+    //   target_xMin = a.xMin + surplus (où on veut arriver)
+    //   On cap par minXMin (borne maximale = label margin) → ne pas dépasser.
+    //   On cap par a.xMin (jamais ÉLARGIR vers la gauche).
+    // Soit : newXMin = clamp(target_xMin, a.xMin, minXMin).
+    // Si minXMin < a.xMin (label déjà très à gauche), pas de shrink possible.
     const newBbox = { ...a };
     if (surplusW > 1) {
       if (freeW && freeE) {
-        newBbox.xMin = Math.min(a.xMin + surplusW / 2, minXMin);
-        newBbox.xMax = Math.max(a.xMax - surplusW / 2, minXMax);
+        const targetXMin = a.xMin + surplusW / 2;
+        const targetXMax = a.xMax - surplusW / 2;
+        if (minXMin > a.xMin) newBbox.xMin = Math.min(targetXMin, minXMin);
+        if (minXMax < a.xMax) newBbox.xMax = Math.max(targetXMax, minXMax);
       } else if (freeW) {
-        newBbox.xMin = Math.min(a.xMin + surplusW, minXMin);
+        const targetXMin = a.xMin + surplusW;
+        if (minXMin > a.xMin) newBbox.xMin = Math.min(targetXMin, minXMin);
       } else if (freeE) {
-        newBbox.xMax = Math.max(a.xMax - surplusW, minXMax);
+        const targetXMax = a.xMax - surplusW;
+        if (minXMax < a.xMax) newBbox.xMax = Math.max(targetXMax, minXMax);
       }
-      // sinon : aucun bord libre en X → ne shrink pas en X
     }
     if (surplusH > 1) {
       if (freeN && freeS) {
-        newBbox.yMin = Math.min(a.yMin + surplusH / 2, minYMin);
-        newBbox.yMax = Math.max(a.yMax - surplusH / 2, minYMax);
+        const targetYMin = a.yMin + surplusH / 2;
+        const targetYMax = a.yMax - surplusH / 2;
+        if (minYMin > a.yMin) newBbox.yMin = Math.min(targetYMin, minYMin);
+        if (minYMax < a.yMax) newBbox.yMax = Math.max(targetYMax, minYMax);
       } else if (freeN) {
-        newBbox.yMin = Math.min(a.yMin + surplusH, minYMin);
+        const targetYMin = a.yMin + surplusH;
+        if (minYMin > a.yMin) newBbox.yMin = Math.min(targetYMin, minYMin);
       } else if (freeS) {
-        newBbox.yMax = Math.max(a.yMax - surplusH, minYMax);
+        const targetYMax = a.yMax - surplusH;
+        if (minYMax < a.yMax) newBbox.yMax = Math.max(targetYMax, minYMax);
       }
     }
-
-    // Sanity : bbox label inscrite
-    if (lb) {
-      newBbox.xMin = Math.min(newBbox.xMin, lb.xMin - FINAL_LABEL_MARGIN);
-      newBbox.xMax = Math.max(newBbox.xMax, lb.xMax + FINAL_LABEL_MARGIN);
-      newBbox.yMin = Math.min(newBbox.yMin, lb.yMin - FINAL_LABEL_MARGIN);
-      newBbox.yMax = Math.max(newBbox.yMax, lb.yMax + FINAL_LABEL_MARGIN);
-    }
+    // (sanity label déjà géré par les bornes minXMin/minXMax/minYMin/minYMax)
 
     // Vérif mouvement >= 2px sur au moins un bord
     const moved =
@@ -1845,6 +1865,12 @@ export function enforceFinalPdfCapForSecondaries(
     }
     if (overlap) continue;
 
+    // Capture deltas pour extension des voisins
+    const deltaXMin = newBbox.xMin - a.xMin; // > 0 si shrink à gauche
+    const deltaXMax = a.xMax - newBbox.xMax; // > 0 si shrink à droite
+    const deltaYMin = newBbox.yMin - a.yMin;
+    const deltaYMax = a.yMax - newBbox.yMax;
+
     room.bbox = newBbox;
     room.polygon = buildRectVerts(newBbox);
     room.areaPx2 = polyArea(room.polygon);
@@ -1853,6 +1879,119 @@ export function enforceFinalPdfCapForSecondaries(
     console.log(
       `[finalCapPdf] ${room.label} shrink ratio ${ratio.toFixed(2)} → ${(newM2/pdf).toFixed(2)} (PDF=${pdf.toFixed(1)}m², cap=${cap})`,
     );
+
+    // s28 tour 33 — Étendre les voisins pour combler l'espace libéré.
+    // Pour chaque bord shrinké, identifier le voisin adjacent à ce bord
+    // (ancienne adjacency) et étendre son bord opposé du delta.
+    if (deltaXMin > 1) {
+      // Bord W de room s'est déplacé vers la droite de deltaXMin → étendre
+      // le voisin dont le bord E touchait l'ancien xMin de room (=a.xMin).
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const nb = next[j].bbox;
+        // Voisin avec bord E à ≤3px de a.xMin et overlap Y avec room
+        if (Math.abs(nb.xMax - a.xMin) <= 3) {
+          const ovY = Math.min(nb.yMax, a.yMax) - Math.max(nb.yMin, a.yMin);
+          if (ovY > 1) {
+            // Étendre xMax du voisin jusqu'à newBbox.xMin
+            const nbExtended = { ...nb, xMax: newBbox.xMin };
+            // Anti-overlap avec d'autres voisins
+            let canExtend = true;
+            for (let k = 0; k < next.length; k++) {
+              if (k === j || k === i) continue;
+              const c = next[k].bbox;
+              if (
+                nbExtended.xMin < c.xMax && nbExtended.xMax > c.xMin &&
+                nbExtended.yMin < c.yMax && nbExtended.yMax > c.yMin
+              ) { canExtend = false; break; }
+            }
+            if (canExtend) {
+              next[j].bbox = nbExtended;
+              next[j].polygon = buildRectVerts(nbExtended);
+              next[j].areaPx2 = polyArea(next[j].polygon);
+            }
+          }
+        }
+      }
+    }
+    if (deltaXMax > 1) {
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const nb = next[j].bbox;
+        if (Math.abs(nb.xMin - a.xMax) <= 3) {
+          const ovY = Math.min(nb.yMax, a.yMax) - Math.max(nb.yMin, a.yMin);
+          if (ovY > 1) {
+            const nbExtended = { ...nb, xMin: newBbox.xMax };
+            let canExtend = true;
+            for (let k = 0; k < next.length; k++) {
+              if (k === j || k === i) continue;
+              const c = next[k].bbox;
+              if (
+                nbExtended.xMin < c.xMax && nbExtended.xMax > c.xMin &&
+                nbExtended.yMin < c.yMax && nbExtended.yMax > c.yMin
+              ) { canExtend = false; break; }
+            }
+            if (canExtend) {
+              next[j].bbox = nbExtended;
+              next[j].polygon = buildRectVerts(nbExtended);
+              next[j].areaPx2 = polyArea(next[j].polygon);
+            }
+          }
+        }
+      }
+    }
+    if (deltaYMin > 1) {
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const nb = next[j].bbox;
+        if (Math.abs(nb.yMax - a.yMin) <= 3) {
+          const ovX = Math.min(nb.xMax, a.xMax) - Math.max(nb.xMin, a.xMin);
+          if (ovX > 1) {
+            const nbExtended = { ...nb, yMax: newBbox.yMin };
+            let canExtend = true;
+            for (let k = 0; k < next.length; k++) {
+              if (k === j || k === i) continue;
+              const c = next[k].bbox;
+              if (
+                nbExtended.xMin < c.xMax && nbExtended.xMax > c.xMin &&
+                nbExtended.yMin < c.yMax && nbExtended.yMax > c.yMin
+              ) { canExtend = false; break; }
+            }
+            if (canExtend) {
+              next[j].bbox = nbExtended;
+              next[j].polygon = buildRectVerts(nbExtended);
+              next[j].areaPx2 = polyArea(next[j].polygon);
+            }
+          }
+        }
+      }
+    }
+    if (deltaYMax > 1) {
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const nb = next[j].bbox;
+        if (Math.abs(nb.yMin - a.yMax) <= 3) {
+          const ovX = Math.min(nb.xMax, a.xMax) - Math.max(nb.xMin, a.xMin);
+          if (ovX > 1) {
+            const nbExtended = { ...nb, yMin: newBbox.yMax };
+            let canExtend = true;
+            for (let k = 0; k < next.length; k++) {
+              if (k === j || k === i) continue;
+              const c = next[k].bbox;
+              if (
+                nbExtended.xMin < c.xMax && nbExtended.xMax > c.xMin &&
+                nbExtended.yMin < c.yMax && nbExtended.yMax > c.yMin
+              ) { canExtend = false; break; }
+            }
+            if (canExtend) {
+              next[j].bbox = nbExtended;
+              next[j].polygon = buildRectVerts(nbExtended);
+              next[j].areaPx2 = polyArea(next[j].polygon);
+            }
+          }
+        }
+      }
+    }
   }
 
   if (totalShrunk > 0) {
