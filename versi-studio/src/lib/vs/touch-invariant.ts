@@ -1061,17 +1061,31 @@ export function filterHallucinatedRooms(
   });
   const lotWalls: Wall[] = [...lotEdges, ...longWalls];
 
+  // s28 tour 33 — Whitelist labels techniques connus (ECS, TGBT, gaines).
+  // Ces pièces existent vraiment sur le plan PDF sans surface annotée.
+  // On les conserve même avec gap résiduel élevé — elles seront re-touch
+  // à la passe enforceTouchInvariant suivante.
+  const TECH_LABELS_WHITELIST = ["ecs", "tgbt", "gaine", "placard", "ec"];
+  const isTechLabel = (label: string): boolean => {
+    const l = label.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "");
+    return TECH_LABELS_WHITELIST.some((w) => l === w || l.startsWith(w));
+  };
+
   const filtered = rooms.filter((room, idx) => {
     // Pièces avec surface PDF : jamais filtrées (vérité architecte)
     if (room.pdfSurfaceM2 != null && room.pdfSurfaceM2 > 0) {
       return true;
     }
 
-    // Pièces sans surface PDF : tester si halluci.
-    // Critère simple : si le gap max sur un bord > 200px, c'est qu'aucun
-    // voisin ni mur lot ne touche cette pièce → elle flotte → halluci.
-    // (le critère "best_overlap" était mauvais : une pièce peut avoir overlap
-    // perpendiculaire 100% avec un voisin et rester flottante sur ses 4 bords).
+    // s28 tour 33 — Labels techniques whitelist : conservés même avec gap.
+    if (isTechLabel(room.label)) {
+      console.log(
+        `[filterHallucinated] ${room.label} CONSERVÉE (label technique whitelist)`,
+      );
+      return true;
+    }
+
+    // Pièces sans surface PDF + label inconnu : tester si halluci.
     const others = rooms.filter((_, j) => j !== idx);
     const maxGap = computeMaxBoundaryGap(room, others, lotPolygon, lotWalls);
     console.log(
