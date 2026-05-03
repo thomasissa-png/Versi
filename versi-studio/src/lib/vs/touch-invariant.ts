@@ -62,11 +62,21 @@ const HALLUCINATION_GAP_PX = 200;
 const FILL_GAP_THRESHOLD_PX = 6;
 const FILL_GAP_MAX_OVER_INITIAL = 8.0;
 
+/** s28 tour 31 — Marge autour du label centroïde d'une AUTRE pièce qu'on
+ *  refuse d'inclure dans la bbox d'une pièce courante. Une pièce ne doit
+ *  JAMAIS s'étendre par-dessus le centroïde du label d'une autre pièce.
+ *  Marge 8px pour absorber les imprécisions d'extraction texte PDF. */
+const LABEL_BARRIER_MARGIN_PX = 8;
+
 // ─── Types ─────────────────────────────────────────────────────────
 
 type Bbox = { xMin: number; yMin: number; xMax: number; yMax: number };
 
 type Direction = "N" | "S" | "E" | "W";
+
+/** s28 tour 31 — centroïde du label d'une pièce. Utilisé comme barrière :
+ *  aucune AUTRE pièce ne peut étendre sa bbox par-dessus ce point. */
+export type LabelCenter = { x: number; y: number };
 
 // ─── Helpers géométriques ──────────────────────────────────────────
 
@@ -378,6 +388,176 @@ function distanceToTouch(
   return Math.min(delta, MAX_EXTEND_PER_ITER_PX);
 }
 
+// ─── s28 tour 31 — Barrière label : pas d'extension par-dessus un label étranger ───
+
+/**
+ * Vérifie si la bbox `b` contient le centroïde du label `lc` (avec marge).
+ * Renvoie true si la bbox englobe le label.
+ */
+function bboxContainsLabel(b: Bbox, lc: LabelCenter): boolean {
+  return (
+    lc.x >= b.xMin - LABEL_BARRIER_MARGIN_PX &&
+    lc.x <= b.xMax + LABEL_BARRIER_MARGIN_PX &&
+    lc.y >= b.yMin - LABEL_BARRIER_MARGIN_PX &&
+    lc.y <= b.yMax + LABEL_BARRIER_MARGIN_PX
+  );
+}
+
+/**
+ * Étant donné une bbox `candidate` étendue dans la direction `dir`, et la
+ * bbox d'origine `original`, ajuste `candidate` pour qu'elle ne contienne
+ * AUCUN des labels `foreignLabels`. Si l'extension franchit un label
+ * étranger, on stoppe le bord juste avant ce label (marge 8px).
+ *
+ * Renvoie true si la bbox a été modifiée (clampée par un label).
+ */
+function clampToForeignLabels(
+  candidate: Bbox,
+  original: Bbox,
+  dir: Direction,
+  foreignLabels: LabelCenter[],
+): boolean {
+  if (foreignLabels.length === 0) return false;
+  let clamped = false;
+  for (const lc of foreignLabels) {
+    if (!bboxContainsLabel(candidate, lc)) continue;
+    // Le label est à l'intérieur de la bbox candidate → c'est une violation.
+    // Vérifier que ce label n'était PAS dans l'original (sinon situation
+    // pré-existante, on n'aggrave pas mais on ne peut pas réparer ici).
+    if (bboxContainsLabel(original, lc)) continue;
+    // On a franchi le label en étendant dans la direction `dir`.
+    // Reculer le bord d'extension juste avant le label (marge 8px).
+    if (dir === "N") {
+      // bord nord descendu (yMin baissé). Si label.y < candidate.yMax et
+      // label.y > original.yMin → reculer yMin à label.y + marge
+      if (lc.y > candidate.yMin && lc.y < original.yMin) {
+        candidate.yMin = lc.y + LABEL_BARRIER_MARGIN_PX;
+        clamped = true;
+      }
+    } else if (dir === "S") {
+      if (lc.y < candidate.yMax && lc.y > original.yMax) {
+        candidate.yMax = lc.y - LABEL_BARRIER_MARGIN_PX;
+        clamped = true;
+      }
+    } else if (dir === "W") {
+      if (lc.x > candidate.xMin && lc.x < original.xMin) {
+        candidate.xMin = lc.x + LABEL_BARRIER_MARGIN_PX;
+        clamped = true;
+      }
+    } else {
+      if (lc.x < candidate.xMax && lc.x > original.xMax) {
+        candidate.xMax = lc.x - LABEL_BARRIER_MARGIN_PX;
+        clamped = true;
+      }
+    }
+  }
+  return clamped;
+}
+
+/**
+ * s28 tour 31 — Pré-passe : pour chaque pièce A dont la bbox contient le
+ * centroïde du label d'une AUTRE pièce B, on shrink la bbox de A dans la
+ * direction la plus courte pour exclure le centroïde de B (marge 8px).
+ *
+ * Cas R+1 tour 30 : Entrée (label x=23%, y=93%) finit avec bbox xMax=70%
+ * incluant Salon (label x=77%, y=30%). Erreur : Entrée englobe le label
+ * Salon — la pièce attribuée à "Entrée" couvre une zone qui appartient
+ * en réalité au Salon.
+ *
+ * Cette passe corrige : Entrée.xMax sera ramené à 77%-marge.
+ */
+export function enforceLabelOwnership(
+  rooms: RectangleRoom[],
+  labelCenters: LabelCenter[],
+): RectangleRoom[] {
+  if (rooms.length === 0 || labelCenters.length !== rooms.length) return rooms;
+  const next: RectangleRoom[] = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  let totalShrunk = 0;
+  for (let i = 0; i < next.length; i++) {
+    const r = next[i];
+    const myLabel = labelCenters[i];
+    for (let j = 0; j < labelCenters.length; j++) {
+      if (j === i) continue;
+      const lc = labelCenters[j];
+      if (!bboxContainsLabel(r.bbox, lc)) continue;
+
+      // Le label de la pièce j est dans la bbox de la pièce i. Shrink i
+      // dans la direction où le label de j est le plus proche du bord de i,
+      // de manière à exclure ce label.
+      // Calculer les 4 distances du label aux 4 bords de la bbox.
+      const dN = lc.y - r.bbox.yMin; // distance bord nord
+      const dS = r.bbox.yMax - lc.y; // distance bord sud
+      const dW = lc.x - r.bbox.xMin;
+      const dE = r.bbox.xMax - lc.x;
+
+      // Eviter la direction qui coupe le label de la pièce courante (myLabel).
+      // Si on shrink dans la direction `dir`, le nouveau bord doit rester du
+      // bon côté de myLabel. Filtrer les directions qui couperaient myLabel.
+      const candidates: Array<{ dir: Direction; cost: number }> = [];
+      if (lc.y + LABEL_BARRIER_MARGIN_PX < myLabel.y) {
+        // label étranger AU-DESSUS de mon label → shrink N (yMin↓→haut)
+        candidates.push({ dir: "N", cost: dN });
+      }
+      if (lc.y - LABEL_BARRIER_MARGIN_PX > myLabel.y) {
+        // label étranger EN-DESSOUS de mon label → shrink S
+        candidates.push({ dir: "S", cost: dS });
+      }
+      if (lc.x + LABEL_BARRIER_MARGIN_PX < myLabel.x) {
+        // label étranger À GAUCHE de mon label → shrink W
+        candidates.push({ dir: "W", cost: dW });
+      }
+      if (lc.x - LABEL_BARRIER_MARGIN_PX > myLabel.x) {
+        candidates.push({ dir: "E", cost: dE });
+      }
+      if (candidates.length === 0) continue; // labels alignés → on ne sait pas couper proprement
+
+      // Choisir la direction avec le coût (= distance bord-label) le plus
+      // petit (moins de surface perdue).
+      candidates.sort((a, b) => a.cost - b.cost);
+      const { dir } = candidates[0];
+
+      const before = { ...r.bbox };
+      if (dir === "N") r.bbox.yMin = lc.y + LABEL_BARRIER_MARGIN_PX;
+      else if (dir === "S") r.bbox.yMax = lc.y - LABEL_BARRIER_MARGIN_PX;
+      else if (dir === "W") r.bbox.xMin = lc.x + LABEL_BARRIER_MARGIN_PX;
+      else r.bbox.xMax = lc.x - LABEL_BARRIER_MARGIN_PX;
+
+      // Sécurité : si shrink rend la bbox dégénérée ou ne contient plus
+      // myLabel, rollback.
+      const stillValid =
+        r.bbox.xMax - r.bbox.xMin > 5 &&
+        r.bbox.yMax - r.bbox.yMin > 5 &&
+        myLabel.x >= r.bbox.xMin - 1 &&
+        myLabel.x <= r.bbox.xMax + 1 &&
+        myLabel.y >= r.bbox.yMin - 1 &&
+        myLabel.y <= r.bbox.yMax + 1;
+      if (!stillValid) {
+        r.bbox = before;
+        continue;
+      }
+
+      r.polygon = buildRectVerts(r.bbox);
+      r.areaPx2 = polyArea(r.polygon);
+      totalShrunk++;
+      console.log(
+        `[labelOwnership] ${r.label}/${dir} shrink (englobe label "${rooms[j].label}" en (${Math.round(lc.x)},${Math.round(lc.y)}))`,
+      );
+    }
+  }
+
+  if (totalShrunk > 0) {
+    console.log(
+      `[enforceLabelOwnership] ${totalShrunk} shrink(s) pour exclure labels étrangers`,
+    );
+  }
+  return next;
+}
+
 // ─── Détection chevauchement bbox ──────────────────────────────────
 
 function bboxesOverlap(a: Bbox, b: Bbox): boolean {
@@ -403,6 +583,7 @@ export function enforceTouchInvariant(
   rooms: RectangleRoom[],
   lotPolygon: Pt[],
   walls: Wall[],
+  labelCenters: LabelCenter[] = [],
 ): RectangleRoom[] {
   if (rooms.length === 0) return rooms;
   const lotBbox = lotBoundingBox(lotPolygon);
@@ -467,6 +648,14 @@ export function enforceTouchInvariant(
         if (candidate.yMin < lotBbox.yMin - 1) candidate.yMin = lotBbox.yMin;
         if (candidate.xMax > lotBbox.xMax + 1) candidate.xMax = lotBbox.xMax;
         if (candidate.yMax > lotBbox.yMax + 1) candidate.yMax = lotBbox.yMax;
+
+        // Anti-régression 1.5 (s28 tour 31) : NE PAS franchir le label
+        // d'une autre pièce. Si l'extension fait inclure le label étranger
+        // dans la bbox, on stoppe le bord juste avant ce label.
+        if (labelCenters.length === next.length) {
+          const foreignLabels = labelCenters.filter((_, j) => j !== i);
+          clampToForeignLabels(candidate, room.bbox, dir, foreignLabels);
+        }
 
         // Anti-régression 2 : NE PAS chevaucher un voisin (avec marge 2px).
         // Si chevauchement : s'arrêter à mi-chemin entre le bord actuel et le
@@ -820,6 +1009,7 @@ function extendRoomEdge(
   targetCoord: number,
   initialBbox: Bbox,
   others: RectangleRoom[] = [],
+  foreignLabels: LabelCenter[] = [],
 ): boolean {
   const candidate: Bbox = { ...room.bbox };
   const orig = { ...room.bbox };
@@ -863,6 +1053,12 @@ function extendRoomEdge(
     }
   }
 
+  // s28 tour 31 — Barrière label : ne JAMAIS franchir le centroïde du label
+  // d'une autre pièce. Stoppe le bord juste avant (marge 8px).
+  if (foreignLabels.length > 0) {
+    clampToForeignLabels(candidate, orig, expandDir, foreignLabels);
+  }
+
   // Vérifier qu'il y a vraiment eu mouvement (>1px) après clamping
   const moved =
     Math.abs(candidate.xMin - orig.xMin) > 1 ||
@@ -904,6 +1100,7 @@ export function fillRemainingGaps(
   rooms: RectangleRoom[],
   lotPolygon: Pt[],
   walls: Wall[],
+  labelCenters: LabelCenter[] = [],
 ): RectangleRoom[] {
   console.log(`[fillRemainingGaps] ENTRY rooms=${rooms.length}`);
   if (rooms.length === 0) return rooms;
@@ -955,8 +1152,16 @@ export function fillRemainingGaps(
         else if (dir === "W" && target < lotBbox.xMin) target = lotBbox.xMin;
         else if (dir === "E" && target > lotBbox.xMax) target = lotBbox.xMax;
 
+        // s28 tour 31 — labels étrangers pour barrière
+        const foreignLabelsForRoom =
+          labelCenters.length === next.length
+            ? labelCenters.filter((_, j) => j !== i)
+            : [];
+
         // Tentative 1 : étendre la pièce elle-même (cap 8x, clamping anti-overlap).
-        const extended = extendRoomEdge(room, dir, target, initialBboxes[i], others);
+        const extended = extendRoomEdge(
+          room, dir, target, initialBboxes[i], others, foreignLabelsForRoom,
+        );
         if (extended) {
           changedThisIter = true;
           totalFills++;
@@ -987,8 +1192,13 @@ export function fillRemainingGaps(
         // mais inclure room (qui n'est PAS dans `others` actuel — on l'a filtré).
         // On reconstruit la liste "tous sauf voisin" :
         const othersForNeighbor = next.filter((_, j) => j !== neighborIdx);
+        const foreignLabelsForNeighbor =
+          labelCenters.length === next.length
+            ? labelCenters.filter((_, j) => j !== neighborIdx)
+            : [];
         const ok = extendRoomEdge(
           neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx], othersForNeighbor,
+          foreignLabelsForNeighbor,
         );
         if (ok) {
           changedThisIter = true;

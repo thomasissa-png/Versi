@@ -40,7 +40,13 @@
  */
 
 import type { Pt } from "./lot-vector-extractor";
-import { enforceTouchInvariant, filterHallucinatedRooms, fillRemainingGaps } from "./touch-invariant";
+import {
+  enforceTouchInvariant,
+  filterHallucinatedRooms,
+  fillRemainingGaps,
+  enforceLabelOwnership,
+  type LabelCenter,
+} from "./touch-invariant";
 
 export type Wall = { x1: number; y1: number; x2: number; y2: number };
 
@@ -2518,6 +2524,31 @@ export function extractRoomsAsRectangles(
     });
   })();
 
+  // s28 tour 31 — calcul des centroïdes des labels pour barrière "label
+  // ownership" : aucune pièce ne peut s'étendre par-dessus le label d'une
+  // autre pièce. Source : labelBbox stocké dans chaque RectangleRoom (extrait
+  // depuis pdf-text-extractor en amont). Fallback : centre de la bbox courante.
+  const computeLabelCenters = (rs: RectangleRoom[]): LabelCenter[] =>
+    rs.map((r) => {
+      if (r.labelBbox) {
+        return {
+          x: (r.labelBbox.xMin + r.labelBbox.xMax) / 2,
+          y: (r.labelBbox.yMin + r.labelBbox.yMax) / 2,
+        };
+      }
+      return {
+        x: (r.bbox.xMin + r.bbox.xMax) / 2,
+        y: (r.bbox.yMin + r.bbox.yMax) / 2,
+      };
+    });
+
+  // Étape 2.694 — s28 tour 31 : LABEL OWNERSHIP.
+  // Pour chaque pièce dont la bbox englobe le centroïde du label d'une AUTRE
+  // pièce, shrink dans la direction la plus courte pour exclure ce label.
+  // Cas R+1 tour 30 : Entrée (label x=23%, y=93%) finit avec bbox xMax=70%
+  // englobant Salon (label x=77%, y=30%). On ramène Entrée.xMax à 77%-marge.
+  resolved = enforceLabelOwnership(resolved, computeLabelCenters(resolved));
+
   // Étape 2.695 — s28 tour 29 : INVARIANT « chaque bord touche quelque chose ».
   //
   // Verbatim Thomas tour 28 : « y a encore des espaces trop vides dans
@@ -2530,8 +2561,10 @@ export function extractRoomsAsRectangles(
   // dépassement). Override le cap PDF 1.10 d'enforcePdfSurfaces — l'invariant
   // touche est PRIORITAIRE sur le cap surface architecte.
   //
+  // s28 tour 31 : labelCenters passés pour bloquer toute extension qui
+  // englobe le label d'une autre pièce.
   // Itération max 5 (convergence par fixed-point).
-  resolved = enforceTouchInvariant(resolved, lotPolygon, walls);
+  resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
 
   // s28 tour 30 : APRÈS enforce, filtrer les pièces hallucinées qui ont
   // toujours un gap > 200px (cas R+3 ECS=580px). Les pièces avec surface
@@ -2541,11 +2574,12 @@ export function extractRoomsAsRectangles(
   // s28 tour 30 : passe finale agressive pour combler les gaps résiduels
   // (cas R+2 Séjour cuisine/W=99px, Entrée/N=94px, /E=122px). Étend les
   // pièces ou leurs voisins perpendiculaires (cap 8x bbox initiale).
-  resolved = fillRemainingGaps(resolved, lotPolygon, walls);
+  // s28 tour 31 : avec barrière labels.
+  resolved = fillRemainingGaps(resolved, lotPolygon, walls, computeLabelCenters(resolved));
 
   // Re-enforce après fill : les extensions des voisins peuvent permettre à
   // l'invariant de boucler ce qui restait inatteignable.
-  resolved = enforceTouchInvariant(resolved, lotPolygon, walls);
+  resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
