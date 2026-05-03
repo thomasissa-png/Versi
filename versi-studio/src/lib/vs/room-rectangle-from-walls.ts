@@ -72,6 +72,12 @@ export type RectangleRoom = {
   pdfSurfaceM2: number | null;
   /** Bbox du rectangle initial (avant détection L/T). */
   bbox: { xMin: number; yMin: number; xMax: number; yMax: number };
+  /** s28 tour 26 — Bbox du label texte source (image-px). Utile pour aspectCap
+   * et autres passes qui doivent re-centrer sur le label original.
+   * Critique : les passes qui split-resolved-en-visible+tech (ex étape 2.66
+   * translateToTouchExteriorWalls) cassent l'ordre, donc accéder via
+   * labels[idx] devient incorrect → toujours stocker dans la room elle-même. */
+  labelBbox?: { xMin: number; yMin: number; xMax: number; yMax: number } | null;
 };
 
 export type ExtractOptions = {
@@ -1906,6 +1912,7 @@ export function extractRoomsAsRectangles(
       areaPx2: polygonArea(rect),
       pdfSurfaceM2: label.surface_m2,
       bbox,
+      labelBbox: label.labelBbox ?? null,
     };
   });
 
@@ -2355,8 +2362,11 @@ export function extractRoomsAsRectangles(
         ? Math.sqrt(targetArea / TARGET_ASPECT)
         : Math.sqrt(targetArea * TARGET_ASPECT);
 
-      // Centre nouveau rect = centroïde label si dispo, sinon centre actuel
-      const labelBbox = labels[idx]?.labelBbox ?? null;
+      // Centre nouveau rect = centroïde label si dispo, sinon centre actuel.
+      // s28 tour 26 — TOUJOURS lire depuis r.labelBbox (stocké dans la room),
+      // jamais labels[idx] qui peut être désaligné après les passes qui
+      // réordonnent (ex étape 2.66 split visible+tech).
+      const labelBbox = r.labelBbox ?? null;
       const cx = labelBbox
         ? (labelBbox.xMin + labelBbox.xMax) / 2
         : (a.xMin + a.xMax) / 2;
@@ -2415,6 +2425,83 @@ export function extractRoomsAsRectangles(
       const newAspect = Math.max(nXMax - nXMin, nYMax - nYMin) /
         Math.max(1, Math.min(nXMax - nXMin, nYMax - nYMin));
       if (newAspect >= aspect) return r;
+
+      // s28 tour 26 — Si l'aire après contraintes < 85% de la cible PDF,
+      // étendre dans les directions libres (pas de voisin / pas lot bord) pour
+      // récupérer l'aire. Évite de produire un carré minuscule alors qu'il y
+      // a de l'espace libre adjacent (cas Entrée R+1 collée au mur sud du lot
+      // mais voisins SDB+Cellier+WC en haut → étendre seulement vers W ou E
+      // si pas de voisin).
+      let nArea = (nXMax - nXMin) * (nYMax - nYMin);
+      if (nArea < targetArea * 0.85) {
+        // gap dans chaque direction = distance jusqu'au voisin OU lot bbox
+        const computeGap = (dir: "N" | "S" | "W" | "E"): number => {
+          let limit: number;
+          if (dir === "N") limit = lotBbox.yMin + 1;
+          else if (dir === "S") limit = lotBbox.yMax - 1;
+          else if (dir === "W") limit = lotBbox.xMin + 1;
+          else limit = lotBbox.xMax - 1;
+          for (const ob of others) {
+            const horizOv = Math.min(nXMax, ob.xMax) - Math.max(nXMin, ob.xMin);
+            const vertOv = Math.min(nYMax, ob.yMax) - Math.max(nYMin, ob.yMin);
+            if (dir === "N" || dir === "S") {
+              if (horizOv <= 1) continue;
+              if (dir === "N" && ob.yMax <= nYMin && ob.yMax > limit) limit = ob.yMax;
+              if (dir === "S" && ob.yMin >= nYMax && ob.yMin < limit) limit = ob.yMin;
+            } else {
+              if (vertOv <= 1) continue;
+              if (dir === "W" && ob.xMax <= nXMin && ob.xMax > limit) limit = ob.xMax;
+              if (dir === "E" && ob.xMin >= nXMax && ob.xMin < limit) limit = ob.xMin;
+            }
+          }
+          if (dir === "N") return Math.max(0, nYMin - limit - 4);
+          if (dir === "S") return Math.max(0, limit - nYMax - 4);
+          if (dir === "W") return Math.max(0, nXMin - limit - 4);
+          return Math.max(0, limit - nXMax - 4);
+        };
+        const gN = computeGap("N");
+        const gS = computeGap("S");
+        const gW = computeGap("W");
+        const gE = computeGap("E");
+        // Étendre proportionnellement aux gaps disponibles, jusqu'à atteindre
+        // 0.95 × target (cap pour ne pas dépasser).
+        const targetW = targetArea / Math.max(1, nYMax - nYMin);
+        const currentW = nXMax - nXMin;
+        const wGrowNeeded = Math.max(0, targetW - currentW);
+        const wAvail = gW + gE;
+        if (wGrowNeeded > 0 && wAvail > 0) {
+          const ratio = Math.min(1, wGrowNeeded / wAvail);
+          nXMin -= gW * ratio;
+          nXMax += gE * ratio;
+        }
+        // Re-check H si encore sous-dimensionné
+        nArea = (nXMax - nXMin) * (nYMax - nYMin);
+        if (nArea < targetArea * 0.85) {
+          const targetH = targetArea / Math.max(1, nXMax - nXMin);
+          const currentH = nYMax - nYMin;
+          const hGrowNeeded = Math.max(0, targetH - currentH);
+          const hAvail = gN + gS;
+          if (hGrowNeeded > 0 && hAvail > 0) {
+            const ratio = Math.min(1, hGrowNeeded / hAvail);
+            nYMin -= gN * ratio;
+            nYMax += gS * ratio;
+          }
+        }
+        // Re-borner à lot bbox
+        nXMin = Math.max(nXMin, lotBbox.xMin + 1);
+        nXMax = Math.min(nXMax, lotBbox.xMax - 1);
+        nYMin = Math.max(nYMin, lotBbox.yMin + 1);
+        nYMax = Math.min(nYMax, lotBbox.yMax - 1);
+      }
+      // Final : si malgré tout l'aire est < 70% target, rollback (visuel >
+      // forme ; mieux vaut bande avec bonne surface que micro-carré).
+      const finalArea = (nXMax - nXMin) * (nYMax - nYMin);
+      if (finalArea < targetArea * 0.7) {
+        console.log(
+          `[aspectCap-rollback] ${r.label} aire perdue : ${(finalArea/targetArea*100).toFixed(0)}% de target → garde ancien rect`,
+        );
+        return r;
+      }
 
       const newBbox = { xMin: nXMin, yMin: nYMin, xMax: nXMax, yMax: nYMax };
       const newPoly = buildRectangle(newBbox.yMin, newBbox.yMax, newBbox.xMax, newBbox.xMin);
