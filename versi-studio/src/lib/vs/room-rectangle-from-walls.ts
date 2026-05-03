@@ -2376,13 +2376,32 @@ export function extractRoomsAsRectangles(
         if (nYMax < labelBbox.yMax + 5) nYMax = labelBbox.yMax + 5;
       }
 
-      // Contrainte 2 : reste dans le bounding du rect actuel (= ne déborde pas
-      // vers une zone qui n'était pas couverte). Évite que le shrink horizontal
-      // crée une expansion verticale dépassant les voisins.
-      nXMin = Math.max(nXMin, a.xMin);
-      nXMax = Math.min(nXMax, a.xMax);
-      nYMin = Math.max(nYMin, a.yMin);
-      nYMax = Math.min(nYMax, a.yMax);
+      // Contrainte 2 : ne pas chevaucher les voisins (en respectant leur bord).
+      // Marge 4px. Pour chaque voisin qui couperait le nouveau rect dans une
+      // direction donnée, ramener le bord du rect au bord du voisin.
+      const others = resolved.filter((_, j) => j !== idx).map((o) => o.bbox);
+      // Pour direction N : si voisin au-dessus du centroïde label avec
+      // recouvrement horizontal, contraindre nYMin au yMax du voisin + 4.
+      for (const ob of others) {
+        const horizOverlap = Math.min(nXMax, ob.xMax) - Math.max(nXMin, ob.xMin);
+        const vertOverlap = Math.min(nYMax, ob.yMax) - Math.max(nYMin, ob.yMin);
+        // N : voisin AU-DESSUS (ob.yMax <= cy) avec recouvrement horizontal
+        if (horizOverlap > 1 && ob.yMax <= cy && ob.yMax > nYMin) {
+          nYMin = Math.max(nYMin, ob.yMax + 4);
+        }
+        // S : voisin EN DESSOUS (ob.yMin >= cy) avec recouvrement horizontal
+        if (horizOverlap > 1 && ob.yMin >= cy && ob.yMin < nYMax) {
+          nYMax = Math.min(nYMax, ob.yMin - 4);
+        }
+        // W : voisin À GAUCHE (ob.xMax <= cx) avec recouvrement vertical
+        if (vertOverlap > 1 && ob.xMax <= cx && ob.xMax > nXMin) {
+          nXMin = Math.max(nXMin, ob.xMax + 4);
+        }
+        // E : voisin À DROITE (ob.xMin >= cx) avec recouvrement vertical
+        if (vertOverlap > 1 && ob.xMin >= cx && ob.xMin < nXMax) {
+          nXMax = Math.min(nXMax, ob.xMin - 4);
+        }
+      }
 
       // Contrainte 3 : reste dans le lot bbox
       nXMin = Math.max(nXMin, lotBbox.xMin + 1);
