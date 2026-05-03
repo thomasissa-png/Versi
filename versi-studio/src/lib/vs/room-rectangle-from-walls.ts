@@ -671,7 +671,13 @@ function enforcePdfSurfaces(
     if (r.areaPx2 <= 0) return r;
     const currentM2 = r.areaPx2 * scale;
     const ratio = currentM2 / r.pdfSurfaceM2;
-    if (ratio <= 1.20) return r; // OK ou trop petit (on ne grossit pas)
+    // s28 tour 25b — cap resserré 1.20 → 1.10 pour pièces principales
+    // (Séjour/cuisine, Chambre, ≥ 10 m² PDF). Tour 24 R+1 Séjour finit à 41 m²
+    // alors que PDF 33 m² (ratio 1.24) → toléré par cap 1.20 mais visuellement
+    // trop grand. Cap 1.10 force le shrink à 36.3 m² max.
+    const isMainRoom = r.pdfSurfaceM2 >= 10;
+    const capRatio = isMainRoom ? 1.10 : 1.20;
+    if (ratio <= capRatio) return r; // OK ou trop petit (on ne grossit pas)
     const targetArea = r.pdfSurfaceM2 / scale;
     const seed = seeds[idx];
     const labelBbox = labelBboxes?.[idx] ?? null;
@@ -1569,6 +1575,9 @@ function translateToTouchExteriorWalls(
     return false;
   }
 
+  // s28 tour 25b — sauvegarde des aires originales pour garde anti-shrink.
+  const originalAreas = result.map((r) => (r.bbox.xMax - r.bbox.xMin) * (r.bbox.yMax - r.bbox.yMin));
+
   let totalTranslated = 0;
   // s28 tour 24 — translate UNE seule fois par axe (pas N+S simultanément qui s'auto-annulent).
   // Tour 23 itérait sur 4 directions et appliquait chaque translate compatible. Bug RDC :
@@ -1628,6 +1637,21 @@ function translateToTouchExteriorWalls(
       else if (dir === "W") { a.xMin -= delta; a.xMax -= delta; }
       else if (dir === "E") { a.xMin += delta; a.xMax += delta; }
       totalTranslated++;
+    }
+  }
+  // s28 tour 25b — GARDE ANTI-SHRINK : si la translate a réduit la surface
+  // (ex: bord du lot a clip une partie), revert au polygone original.
+  // Translate est censé être surface-preserving, mais en cas de bord du lot
+  // ou de borne neighbor, on perd parfois des pixels.
+  for (let i = 0; i < result.length; i++) {
+    const newArea = (result[i].bbox.xMax - result[i].bbox.xMin) * (result[i].bbox.yMax - result[i].bbox.yMin);
+    if (newArea < originalAreas[i] * 0.95) {
+      // Revert : remplacer par bbox/polygon initiaux.
+      result[i].bbox = { ...rooms[i].bbox };
+      result[i].polygon = rooms[i].polygon.map((v) => ({ ...v }));
+      console.log(
+        `[translateToTouchExteriorWalls] REVERT ${result[i].label} : new area ${newArea.toFixed(0)} < 95% original ${originalAreas[i].toFixed(0)}`,
+      );
     }
   }
   for (const r of result) {
