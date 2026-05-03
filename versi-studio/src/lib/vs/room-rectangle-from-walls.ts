@@ -40,7 +40,7 @@
  */
 
 import type { Pt } from "./lot-vector-extractor";
-import { enforceTouchInvariant } from "./touch-invariant";
+import { enforceTouchInvariant, filterHallucinatedRooms, fillRemainingGaps } from "./touch-invariant";
 
 export type Wall = { x1: number; y1: number; x2: number; y2: number };
 
@@ -2531,7 +2531,18 @@ export function extractRoomsAsRectangles(
   // touche est PRIORITAIRE sur le cap surface architecte.
   //
   // Itération max 5 (convergence par fixed-point).
+  //
+  // s28 tour 30 : avant l'invariant, FILTRER les pièces hallucinées (sans
+  // surface PDF, qui flottent dans le vide). Cas R+3 ECS : pièce ECS
+  // hallucinée à 580px du voisin le plus proche → on la retire.
+  resolved = filterHallucinatedRooms(resolved, lotPolygon, walls);
+
   resolved = enforceTouchInvariant(resolved, lotPolygon, walls);
+
+  // s28 tour 30 : passe finale agressive pour combler les gaps résiduels
+  // (cas R+2 Séjour cuisine/W=99px, Entrée/N=94px, /E=122px). Étend les
+  // pièces ou leurs voisins perpendiculaires (cap 8x bbox initiale).
+  resolved = fillRemainingGaps(resolved, lotPolygon, walls);
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //

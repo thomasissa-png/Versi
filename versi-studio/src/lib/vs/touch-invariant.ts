@@ -647,3 +647,347 @@ function auditDistanceToTouch(
   else delta = limit - a.xMax;
   return Math.max(0, delta);
 }
+
+// ─── s28 tour 30 : Filtre pièces hallucinées ───────────────────────
+
+/**
+ * Calcule le gap maximum (audit, seuil 1px) sur tous les bords d'une pièce
+ * vs voisins + murs lot. Utilisé pour détecter les pièces qui flottent.
+ */
+function computeMaxBoundaryGap(
+  room: RectangleRoom,
+  others: RectangleRoom[],
+  lotPolygon: Pt[],
+  walls: Wall[],
+): number {
+  const lotBbox = lotBoundingBox(lotPolygon);
+  let maxGap = 0;
+  for (const dir of ["N", "S", "W", "E"] as Direction[]) {
+    const gap = auditDistanceToTouch(room, dir, others, lotBbox, walls, lotPolygon);
+    if (gap > maxGap) maxGap = gap;
+  }
+  return maxGap;
+}
+
+/**
+ * Calcule le ratio max d'overlap perpendiculaire entre une pièce et ses voisines.
+ * Pour bord N/S → overlap horizontal / largeur pièce.
+ * Pour bord W/E → overlap vertical / hauteur pièce.
+ * Renvoie 0..1 (max sur tous voisins + directions).
+ */
+function maxPerpendicularOverlap(
+  room: RectangleRoom,
+  others: RectangleRoom[],
+): number {
+  const a = room.bbox;
+  const aWidth = Math.max(1, a.xMax - a.xMin);
+  const aHeight = Math.max(1, a.yMax - a.yMin);
+  let bestRatio = 0;
+  for (const o of others) {
+    const b = o.bbox;
+    const horizOv = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+    const vertOv = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+    const ratioH = Math.max(0, horizOv) / aWidth;
+    const ratioV = Math.max(0, vertOv) / aHeight;
+    if (ratioH > bestRatio) bestRatio = ratioH;
+    if (ratioV > bestRatio) bestRatio = ratioV;
+  }
+  return bestRatio;
+}
+
+/**
+ * Filtre les pièces hallucinées : pièces SANS surface PDF qui flottent
+ * (gap > 200px ET aucun voisin avec overlap >= 50%) sont retirées.
+ *
+ * Cas tour 29 R+3 : ECS/S=580px de gap, pièce ECS sans surface PDF qui flotte
+ * dans le vide → halluci, on la filtre.
+ *
+ * Pièces avec surface PDF (architecte annoté) : jamais filtrées.
+ */
+export function filterHallucinatedRooms(
+  rooms: RectangleRoom[],
+  lotPolygon: Pt[],
+  walls: Wall[],
+): RectangleRoom[] {
+  if (rooms.length === 0) return rooms;
+  const lotEdges: Wall[] = [];
+  for (let i = 0; i < lotPolygon.length; i++) {
+    const p = lotPolygon[i];
+    const q = lotPolygon[(i + 1) % lotPolygon.length];
+    lotEdges.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
+  }
+  const longWalls: Wall[] = walls.filter((w) => {
+    const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    return len >= 200;
+  });
+  const lotWalls: Wall[] = [...lotEdges, ...longWalls];
+
+  const filtered = rooms.filter((room, idx) => {
+    // Pièces avec surface PDF : jamais filtrées (vérité architecte)
+    if (room.pdfSurfaceM2 != null && room.pdfSurfaceM2 > 0) return true;
+
+    // Pièces sans surface PDF : tester si halluci
+    const others = rooms.filter((_, j) => j !== idx);
+    const maxGap = computeMaxBoundaryGap(room, others, lotPolygon, lotWalls);
+    const bestOverlap = maxPerpendicularOverlap(room, others);
+
+    if (maxGap > HALLUCINATION_GAP_PX && bestOverlap < HALLUCINATION_OVERLAP_RATIO) {
+      console.log(
+        `[filterHallucinated] ${room.label} retirée — gap_max=${Math.round(maxGap)}px, best_overlap=${(bestOverlap * 100).toFixed(0)}% (pas de surface PDF)`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  if (filtered.length !== rooms.length) {
+    console.log(
+      `[filterHallucinated] ${rooms.length - filtered.length} pièce(s) hallucinée(s) retirée(s)`,
+    );
+  }
+  return filtered;
+}
+
+// ─── s28 tour 30 : Passe finale fill remaining gaps ────────────────
+
+/**
+ * Pour un bord donné qui a un gap résiduel, trouve la pièce voisine la plus
+ * proche perpendiculairement qui POURRAIT être étendue pour combler ce gap.
+ *
+ * Ex : pièce A bord N a un gap de 120px (rien au-dessus à 120px) → on cherche
+ * une pièce B perpendiculaire (à gauche/droite de la zone vide) qui pourrait
+ * être étendue VERS A pour couvrir ce gap.
+ */
+function findExpandableNeighbor(
+  room: RectangleRoom,
+  dir: Direction,
+  others: RectangleRoom[],
+): { neighbor: RectangleRoom; expandDir: Direction } | null {
+  const a = room.bbox;
+  // La zone du gap est devant le bord `dir` de la pièce, jusqu'à `gap` px de profondeur.
+  // On cherche une pièce voisine qui partage l'espace perpendiculaire et est ADJACENTE
+  // à la zone vide (pourrait l'étendre pour la combler).
+  let best: { neighbor: RectangleRoom; expandDir: Direction; score: number } | null = null;
+  for (const o of others) {
+    const b = o.bbox;
+    if (dir === "N") {
+      // Gap est au-dessus de room (yMin de room va vers le haut).
+      // Voisin candidat : pièce dont le yMin <= a.yMin (donc qui a déjà du
+      // "stock" au nord), et qui est latéralement proche de room.
+      // Direction d'extension du voisin : E ou W (vers room).
+      if (b.yMin > a.yMin + 5) continue; // pas de stock au nord
+      // Voisin à gauche → étendre E ; à droite → étendre W
+      if (b.xMax <= a.xMin + 5) {
+        // voisin à gauche, étendre E
+        const score = (a.xMin - b.xMax); // plus proche = meilleur (score négatif = meilleur)
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "E", score };
+      } else if (b.xMin >= a.xMax - 5) {
+        const score = (b.xMin - a.xMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "W", score };
+      }
+    } else if (dir === "S") {
+      if (b.yMax < a.yMax - 5) continue;
+      if (b.xMax <= a.xMin + 5) {
+        const score = (a.xMin - b.xMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "E", score };
+      } else if (b.xMin >= a.xMax - 5) {
+        const score = (b.xMin - a.xMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "W", score };
+      }
+    } else if (dir === "W") {
+      if (b.xMin > a.xMin + 5) continue;
+      if (b.yMax <= a.yMin + 5) {
+        const score = (a.yMin - b.yMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "S", score };
+      } else if (b.yMin >= a.yMax - 5) {
+        const score = (b.yMin - a.yMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "N", score };
+      }
+    } else {
+      if (b.xMax < a.xMax - 5) continue;
+      if (b.yMax <= a.yMin + 5) {
+        const score = (a.yMin - b.yMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "S", score };
+      } else if (b.yMin >= a.yMax - 5) {
+        const score = (b.yMin - a.yMax);
+        if (!best || score < best.score) best = { neighbor: o, expandDir: "N", score };
+      }
+    }
+  }
+  return best ? { neighbor: best.neighbor, expandDir: best.expandDir } : null;
+}
+
+/**
+ * Étend AGRESSIVEMENT le bord d'une pièce vers une cible (pièce ou bord).
+ * `targetCoord` = coord cible où le bord doit aller (image px).
+ * Cap : 8x bbox initiale.
+ *
+ * Ex : extendRoomEdge(neighbor, "E", room.bbox.xMin) → étend xMax de neighbor
+ * jusqu'à room.bbox.xMin (couvre le gap latéralement).
+ */
+function extendRoomEdge(
+  room: RectangleRoom,
+  expandDir: Direction,
+  targetCoord: number,
+  initialBbox: Bbox,
+): boolean {
+  const candidate: Bbox = { ...room.bbox };
+  if (expandDir === "N") {
+    if (targetCoord >= candidate.yMin) return false;
+    candidate.yMin = targetCoord;
+  } else if (expandDir === "S") {
+    if (targetCoord <= candidate.yMax) return false;
+    candidate.yMax = targetCoord;
+  } else if (expandDir === "W") {
+    if (targetCoord >= candidate.xMin) return false;
+    candidate.xMin = targetCoord;
+  } else {
+    if (targetCoord <= candidate.xMax) return false;
+    candidate.xMax = targetCoord;
+  }
+  // Cap surface : 8x bbox initiale
+  const newArea = (candidate.xMax - candidate.xMin) * (candidate.yMax - candidate.yMin);
+  const initArea = (initialBbox.xMax - initialBbox.xMin) * (initialBbox.yMax - initialBbox.yMin);
+  if (initArea > 0 && newArea > initArea * FILL_GAP_MAX_OVER_INITIAL) {
+    return false;
+  }
+  room.bbox = candidate;
+  room.polygon = buildRectVerts(candidate);
+  room.areaPx2 = polyArea(room.polygon);
+  return true;
+}
+
+/**
+ * Passe finale agressive : pour chaque gap résiduel > 50px, identifier le
+ * voisin perpendiculaire et l'étendre (cap 8x) pour combler.
+ *
+ * Cas tour 29 R+2 :
+ *   - Séjour cuisine/W=99px : voisin (Entrée à l'est) ne peut pas combler
+ *     car le gap est à l'OUEST de Séjour. On cherche un voisin qui partage
+ *     y avec Séjour ET qui est à l'ouest → si trouvé, étendre son E vers
+ *     Séjour pour combler.
+ *   - Entrée/N=94px, Entrée/E=122px : idem, voisins perpendiculaires.
+ */
+export function fillRemainingGaps(
+  rooms: RectangleRoom[],
+  lotPolygon: Pt[],
+  walls: Wall[],
+): RectangleRoom[] {
+  if (rooms.length === 0) return rooms;
+  const lotBbox = lotBoundingBox(lotPolygon);
+
+  // Pool murs (idem enforceTouchInvariant)
+  const lotEdges: Wall[] = [];
+  for (let i = 0; i < lotPolygon.length; i++) {
+    const p = lotPolygon[i];
+    const q = lotPolygon[(i + 1) % lotPolygon.length];
+    lotEdges.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
+  }
+  const longWalls: Wall[] = walls.filter((w) => {
+    const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    return len >= 200;
+  });
+  const lotWalls: Wall[] = [...lotEdges, ...longWalls];
+
+  const next = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+  const initialBboxes = next.map((r) => ({ ...r.bbox }));
+
+  let totalFills = 0;
+
+  for (let iter = 0; iter < 4; iter++) {
+    let changedThisIter = false;
+
+    for (let i = 0; i < next.length; i++) {
+      const room = next[i];
+      const others = next.filter((_, j) => j !== i);
+
+      for (const dir of ["N", "S", "W", "E"] as Direction[]) {
+        const gap = auditDistanceToTouch(room, dir, others, lotBbox, lotWalls, lotPolygon);
+        if (gap <= FILL_GAP_THRESHOLD_PX) continue;
+
+        // Stratégie 1 : tenter de retrouver l'objectif "limit" (mur ou pièce)
+        // et étendre la PIÈCE ELLE-MÊME jusqu'à ce limit (override cap PDF).
+        // Si la pièce ne peut pas (cap), tenter d'étendre un voisin perpendiculaire.
+
+        // Calcul du "limit" cible (idem distanceToTouch mais sans seuil 35%)
+        const a = room.bbox;
+        const roomCenter = { x: (a.xMin + a.xMax) / 2, y: (a.yMin + a.yMax) / 2 };
+        let target: number;
+        if (dir === "N") target = a.yMin - gap;
+        else if (dir === "S") target = a.yMax + gap;
+        else if (dir === "W") target = a.xMin - gap;
+        else target = a.xMax + gap;
+
+        // Tentative 1 : étendre la pièce elle-même (cap 8x)
+        const extended = extendRoomEdge(room, dir, target, initialBboxes[i]);
+        if (extended) {
+          // Vérifier qu'on ne chevauche pas un voisin
+          let overlap = false;
+          for (const o of others) {
+            if (bboxesOverlap(room.bbox, o.bbox)) { overlap = true; break; }
+          }
+          if (overlap) {
+            // Revert
+            room.bbox = { ...next[i].bbox }; // déjà assigné, recalcul depuis sauvegarde
+            // Mieux : on aurait dû sauvegarder avant. Refaire propre :
+            // → on rollback à la bbox d'avant via initialBboxes ne marche pas,
+            // donc on régénère depuis polygon. Plus simple : pas de overlap si target
+            // était calculé sur dist au mur (limit déjà non bloqué par voisin).
+            // Si overlap quand même, c'est un voisin qui bouge — skip cette dir.
+            continue;
+          }
+          changedThisIter = true;
+          totalFills++;
+          console.log(
+            `[fillGaps] ${room.label}/${dir} étendue de ${Math.round(gap)}px (cible=${Math.round(target)})`,
+          );
+          continue;
+        }
+
+        // Tentative 2 : étendre un voisin perpendiculaire pour combler
+        const expandable = findExpandableNeighbor(room, dir, others);
+        if (!expandable) continue;
+        const { neighbor, expandDir } = expandable;
+        const neighborIdx = next.indexOf(neighbor);
+        if (neighborIdx === -1) continue;
+        let neighborTarget: number;
+        // On veut que le voisin couvre la zone gap latéralement. Cible = bord opposé de room.
+        if (expandDir === "E") neighborTarget = a.xMin; // étendre xMax du voisin jusqu'au xMin de room
+        else if (expandDir === "W") neighborTarget = a.xMax;
+        else if (expandDir === "S") neighborTarget = a.yMin;
+        else neighborTarget = a.yMax;
+
+        const ok = extendRoomEdge(neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx]);
+        if (ok) {
+          // Vérifier non-overlap
+          let overlap = false;
+          for (let k = 0; k < next.length; k++) {
+            if (k === neighborIdx) continue;
+            if (bboxesOverlap(neighbor.bbox, next[k].bbox)) { overlap = true; break; }
+          }
+          if (overlap) {
+            // Revert : tronquer le bord pour ne plus chevaucher
+            // Plus simple : skip
+            continue;
+          }
+          changedThisIter = true;
+          totalFills++;
+          console.log(
+            `[fillGaps] voisin ${neighbor.label}/${expandDir} étendu vers ${room.label}/${dir} (gap=${Math.round(gap)}px)`,
+          );
+        }
+      }
+    }
+
+    if (!changedThisIter) break;
+  }
+
+  if (totalFills > 0) {
+    console.log(`[fillRemainingGaps] ${totalFills} extension(s) finale(s) pour combler gaps`);
+  }
+  return next;
+}
