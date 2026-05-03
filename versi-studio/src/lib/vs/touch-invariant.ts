@@ -459,55 +459,9 @@ function clampToForeignLabels(
   }
 
   // RÈGLE 2 — Voronoï midpoint (1D selon la direction d'extension).
-  // Pour dir=E : si un autre label a x > myLabel.x, le candidate.xMax doit
-  // <= midpoint (myLabel.x + otherLabel.x) / 2.
-  if (myLabel) {
-    if (dir === "E") {
-      let cap = candidate.xMax;
-      for (const lc of foreignLabels) {
-        if (lc.x <= myLabel.x) continue; // pas du côté est
-        const mid = (myLabel.x + lc.x) / 2;
-        if (mid < cap) cap = mid;
-      }
-      if (cap < candidate.xMax) {
-        candidate.xMax = cap;
-        clamped = true;
-      }
-    } else if (dir === "W") {
-      let cap = candidate.xMin;
-      for (const lc of foreignLabels) {
-        if (lc.x >= myLabel.x) continue;
-        const mid = (myLabel.x + lc.x) / 2;
-        if (mid > cap) cap = mid;
-      }
-      if (cap > candidate.xMin) {
-        candidate.xMin = cap;
-        clamped = true;
-      }
-    } else if (dir === "S") {
-      let cap = candidate.yMax;
-      for (const lc of foreignLabels) {
-        if (lc.y <= myLabel.y) continue;
-        const mid = (myLabel.y + lc.y) / 2;
-        if (mid < cap) cap = mid;
-      }
-      if (cap < candidate.yMax) {
-        candidate.yMax = cap;
-        clamped = true;
-      }
-    } else if (dir === "N") {
-      let cap = candidate.yMin;
-      for (const lc of foreignLabels) {
-        if (lc.y >= myLabel.y) continue;
-        const mid = (myLabel.y + lc.y) / 2;
-        if (mid > cap) cap = mid;
-      }
-      if (cap > candidate.yMin) {
-        candidate.yMin = cap;
-        clamped = true;
-      }
-    }
-  }
+  // Désactivée ici : la passe enforceLabelOwnership applique déjà le
+  // weighted Voronoï 1D. clampToForeignLabels conserve uniquement Règle 1
+  // (label-inside) pour empêcher l'extension de franchir un label étranger.
 
   return clamped;
 }
@@ -537,37 +491,63 @@ export function enforceLabelOwnership(
 
   let totalShrunk = 0;
 
-  // PASSE 1 — Voronoï midpoint cap (1D selon chaque axe).
-  // Pour chaque pièce r, pour chaque autre label lc, on cap le bord de r
-  // dans la direction de lc au midpoint (myLabel + lc) / 2.
-  // Ceci évite que la pièce déborde dans le territoire d'une voisine selon
-  // une partition Voronoï approximative.
+  // PASSE 1 — WEIGHTED Voronoï 1D selon chaque axe.
+  //
+  // Idée : pour chaque pièce r et chaque autre label lc, on calcule la
+  // frontière de partage selon X et Y séparément, pondérée par sqrt(surface)
+  // pour donner plus de territoire aux grandes pièces. Le cap n'est appliqué
+  // que si l'axe perpendiculaire est "compatible" (les deux labels sont dans
+  // une bande commune perpendiculaire).
+  //
+  // Compatibilité perpendiculaire : pour cap E/W (axe X), les deux labels
+  // doivent être dans une bande Y commune ; pour cap N/S, dans une bande X.
+  // "Bande commune" = projection des bboxes initiales BBOX_BAND_FACTOR (1.5)
+  // se chevauche sur l'axe perpendiculaire.
+  //
+  // Pondération : sqrt(surface) — Salon 40m² claim 6.3/(6.3+2.6) = 71% du
+  // segment Salon-Entrée vs Entrée 30%. Standard "additively weighted Voronoï".
   for (let i = 0; i < next.length; i++) {
     const r = next[i];
     const myLabel = labelCenters[i];
+    const myWeight = Math.sqrt(Math.max(0.5, r.pdfSurfaceM2 ?? 1.0));
     const before = { ...r.bbox };
     for (let j = 0; j < labelCenters.length; j++) {
       if (j === i) continue;
       const lc = labelCenters[j];
-      // EAST : si lc.x > myLabel.x avec écart significatif, cap r.xMax au midpoint
-      if (lc.x > myLabel.x + LABEL_BARRIER_MARGIN_PX) {
-        const mid = (myLabel.x + lc.x) / 2;
-        if (mid < r.bbox.xMax) r.bbox.xMax = mid;
+      const otherSurf = next[j].pdfSurfaceM2 ?? 1.0;
+      const otherWeight = Math.sqrt(Math.max(0.5, otherSurf));
+      const totalW = myWeight + otherWeight;
+
+      // Boundary X (entre les deux labels) :
+      //   boundaryX = myLabel.x + (lc.x - myLabel.x) × myWeight / totalW
+      // Si lc.x > myLabel.x (lc à droite), boundaryX > myLabel.x.
+      // r.bbox.xMax doit être ≤ boundaryX si la bande Y est compatible.
+      // r.bbox.xMin doit être ≥ boundaryX si lc.x < myLabel.x.
+
+      // Compatibilité Y : myLabel.y et lc.y dans la même "bande" architecturale.
+      // Approche conservatrice : seuil dist_y < CROSS_BAND_PX (200px ≈ 4m).
+      // Si les labels sont à plus de 4m perpendiculairement, ils ne sont pas
+      // en compétition pour le même territoire X.
+      const CROSS_BAND_PX = 200;
+
+      // Cap X — uniquement si labels alignés en Y dans la bande.
+      if (Math.abs(lc.y - myLabel.y) < CROSS_BAND_PX) {
+        const boundaryX = myLabel.x + (lc.x - myLabel.x) * myWeight / totalW;
+        if (lc.x > myLabel.x + LABEL_BARRIER_MARGIN_PX) {
+          // lc à droite → cap r.bbox.xMax
+          if (boundaryX < r.bbox.xMax) r.bbox.xMax = boundaryX;
+        } else if (lc.x < myLabel.x - LABEL_BARRIER_MARGIN_PX) {
+          if (boundaryX > r.bbox.xMin) r.bbox.xMin = boundaryX;
+        }
       }
-      // WEST
-      if (lc.x < myLabel.x - LABEL_BARRIER_MARGIN_PX) {
-        const mid = (myLabel.x + lc.x) / 2;
-        if (mid > r.bbox.xMin) r.bbox.xMin = mid;
-      }
-      // SOUTH
-      if (lc.y > myLabel.y + LABEL_BARRIER_MARGIN_PX) {
-        const mid = (myLabel.y + lc.y) / 2;
-        if (mid < r.bbox.yMax) r.bbox.yMax = mid;
-      }
-      // NORTH
-      if (lc.y < myLabel.y - LABEL_BARRIER_MARGIN_PX) {
-        const mid = (myLabel.y + lc.y) / 2;
-        if (mid > r.bbox.yMin) r.bbox.yMin = mid;
+      // Cap Y — uniquement si labels alignés en X dans la bande.
+      if (Math.abs(lc.x - myLabel.x) < CROSS_BAND_PX) {
+        const boundaryY = myLabel.y + (lc.y - myLabel.y) * myWeight / totalW;
+        if (lc.y > myLabel.y + LABEL_BARRIER_MARGIN_PX) {
+          if (boundaryY < r.bbox.yMax) r.bbox.yMax = boundaryY;
+        } else if (lc.y < myLabel.y - LABEL_BARRIER_MARGIN_PX) {
+          if (boundaryY > r.bbox.yMin) r.bbox.yMin = boundaryY;
+        }
       }
     }
     // Sécurité : si shrink rend bbox dégénérée OU exclut myLabel, rollback.
