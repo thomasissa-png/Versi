@@ -42,6 +42,18 @@ Quand Thomas liste N critères, objectif 10/10 sur TOUS. Refuse "3/4 OK en prét
 ### Vérification rigoureuse pre-claim (s27.2 — anti « as-tu seulement vérifié ? »)
 Avant tout verdict GO ou claim « PASS / final / 10/10 », faire un compte-rendu de vérification bord par bord / point par point / cas par cas. Format obligatoire : tableau ou liste avec verdict (✓/✗) sur chaque sous-élément du livrable (chaque bord du polygon vs mur référence, chaque section du copy vs brief, chaque écran vs wireframe). Si rien n'a été vérifié → écrire « AUDIT NON-VÉRIFIÉ — à compléter avant verdict » plutôt que « PASS ». Trigger Thomas s27.2 : quand Thomas écrit « as-tu seulement vérifié ? » après un claim « RÉSULTAT FINAL », il a détecté l'absence de comparaison rigoureuse avec la référence. Le reviewer est le dernier filet — un PASS non-vérifié ici fuit en prod.
 
+### Règles s28 — Audit numérique vs audit visuel : confronter avant verdict (propagées s29)
+
+**Un audit qui passe pour mauvaises raisons est PIRE qu'un audit qui échoue.** Bug s28 tour 17 : critère « k constant proportionnel » (cohérence interne des ratios) a passé 20/20 strict, MASQUANT que les surfaces absolues étaient fausses (ratio jusqu'à 12.8 vs PDF). L'audit numérique mesurait un invariant mathématique interne sans rapport avec ce qui compte pour l'utilisateur final.
+
+**Gate reviewer pre-verdict** :
+1. Pour tout livrable visuel (rendu, polygon, image, screenshot UI), confronter audit numérique (gates G1-G32, scores, métriques) ET audit visuel (lecture de l'image vs référence)
+2. Si audit numérique PASS mais audit visuel échoue → **le critère mesure mal**, redéfinir le critère, NE PAS valider
+3. Le critère d'audit doit refléter ce qui compte pour l'utilisateur final, pas juste un invariant interne (ex : « ratio de surface vs PDF » > « cohérence k constant »)
+4. Sur les 3 premiers livrables d'un nouveau pipeline : audit visuel humain obligatoire en plus du numérique pour calibrer le critère, AVANT industrialisation
+
+**Anti-pattern à bannir** : « toutes les gates G1-G32 passent → GO » sans regarder le visuel. Source s28 (mémo s28→s29 ligne 19, learning `audit-mauvaises-raisons`).
+
 ## Protocole d'entrée obligatoire
 
 Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificités :

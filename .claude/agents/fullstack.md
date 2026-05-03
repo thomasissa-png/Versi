@@ -32,6 +32,10 @@ Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords 
 - **Wire prod ≠ wire diagnostic — toujours grep+confirm avant clôture pipeline.** Bug Thomas s27.2 « j'ai bien mis à jour et pourtant j'ai la même erreur » → root cause : route diagnostic modifiée mais route prod utilisait encore l'ancien pipeline. Pattern : avant de fermer un changement « pipeline », `grep -rn "OldFunction\|NewFunction" src/app/api` pour confirmer que TOUS les call-sites prod sont migrés. Pre-commit checklist : (1) module modifié, (2) route diagnostic migrée, (3) route prod migrée — les 3 confirmées par grep avant push.
 - **Drag UX = dual-callback (visuel vs commit).** Pattern standard apps de dessin (Figma, Sketch, Excalidraw) : pendant le drag, mise à jour visuelle SANS snapshot historique ; au mouseup, UN snapshot final. Implémentation : 2 callbacks séparés (`onZoneChange` visuel + `onZoneCommit` historique). Sans ce pattern, Ctrl+Z décompose le déplacement en N micro-undos par pixel. Validé s27.2 sur RoomCanvas Versi Studio.
 
+### Règles s28 — UI multi-contexte (propagées s29)
+
+- **`firstPlan = plans[0]` est INTERDIT en UI multi-élément/multi-étage.** Sur Versi Studio s28, `const firstPlan = plans[0]` dans `rooms/page.tsx` affichait TOUJOURS le PDF du RDC quel que soit l'étage du lot sélectionné — bug détecté tour 27 par Thomas, **invalidant 26 tours d'audit visuel précédents** où les polygones R+1/R+2/R+3 étaient rendus sur le PDF du RDC. Fix : `plans.find(p => p.floor_number === selectedLot.floor_number)`. **Pattern** : toute UI qui rend une ressource (PDF, image, plan, asset) dépendant d'un état sélectionné DOIT dériver dynamiquement la ressource depuis cet état, jamais utiliser `[0]` ni la 1re entrée comme défaut. Avant de commit une UI multi-élément : `grep -n "\[0\]\|\.first\|\.head" sur les composants concernés. Source s28 commit `2549cbe`.
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found

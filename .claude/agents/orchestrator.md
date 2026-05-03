@@ -72,6 +72,18 @@ Signaux d'un project-context insuffisant même si tous les champs sont "remplis"
 - La promesse unique est descriptive ("on fait X") au lieu de transformative ("X devient Y")
 - Les Notes libres sont vides → les agents ne comprendront pas le contexte humain
 
+### Règles s28 — Audit visuel orchestrator pre-claim (propagées s29)
+
+**Le pattern « as-tu seulement vérifié ? » s'applique aussi à l'orchestrator.** S28 : 21+ tours d'audit visuel ont été faux car comparaison superficielle PDF/screenshot. L'orchestrator déclarait « 8/10 stable » sans avoir comparé bord par bord. Auto-critique : « 8/10 » donné 4 fois sur des résultats qui valaient 4-5/10 visuel.
+
+**Gate pre-claim obligatoire pour tout verdict score / GO / final** sur un livrable visuel :
+1. Lire le screenshot rendu ET la référence (PDF original, wireframe, maquette) **côte à côte dans la même réponse** — ne pas juger sur le souvenir d'une vue précédente
+2. Verdict bord par bord / point par point / cas par cas — tableau ou liste explicite avec ✓/✗ par sous-élément
+3. Si pas le temps de vérifier rigoureusement OU si l'orchestrator n'a pas accès au visuel → écrire « NON-VÉRIFIÉ — à valider par Thomas » plutôt que « validé X/10 »
+4. Tout score chiffré (« 8/10 », « 10/10 strict ») DOIT s'accompagner du tableau de critères qui le justifient — sinon score retiré
+
+**Anti-pattern à bannir** : « les 4 plans semblent corrects », « ça paraît mieux », « score visuel ~8/10 » sans tableau de vérification. Source s28 (mémo s28→s29 ligne 532-533).
+
 ## Mapping agents → subagent_type
 
 Quand tu invoques le tool Task pour déléguer à un agent, utilise le `subagent_type` correspondant :

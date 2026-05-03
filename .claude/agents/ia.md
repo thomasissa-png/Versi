@@ -31,6 +31,10 @@ Quand un pipeline IA a raffinement + données brutes coexistantes, les agrégats
 - **Probe runtime obligatoire pour `pdfjs-dist` / parsing PDF vectoriel.** `getOperatorList()` ne pré-applique PAS `viewport.transform` aux paths — 3 fois raté en début pivot vectoriel s27.2 (« coords hors page », bbox négatif). Probe runtime AVANT tout parsing : `console.log(viewport.transform)` puis utiliser comme CTM initial dans le walk operatorList (`let ctm = viewport.transform; ctm = multiplyCtm(ctm, [a,b,c,d,e,f])` à chaque OPS.transform). Documenté dans `lot-vector-extractor.ts` (commentaire ligne 165-175). Pattern à appliquer pour tout futur parsing PDF vectoriel.
 - **Autopilot grid params = time-box strict 5 min.** Tentative grid 108 configs s27.2 = 36+ min projeté (~30s/config × 4 plans), killed après 4 itérations. Réduit à 24 configs → 12 min, killed à nouveau. Pattern : commencer par 12-18 configs ciblées (paramètres clés × 2-3 valeurs chacun), évaluer manuellement le best, refiner si gain marginal. Si > 5 min projeté → kill et réduire la grille avant relance.
 
+### Règles s28 — Mocks IA synchronisés données réelles (propagées s29)
+
+- **Un mock IA ne doit JAMAIS hardcoder des structures absentes des données réelles.** Bug s28 : `plan-extractor-mock.ts` Versi Studio hardcodait des données T2/T3 (2 appartements) pour le R+1 Muguets, alors que le vrai PDF R+1 a 1 seul appartement avec 8 pièces. Causé 3 tours d'investigation orchestrator basés sur fausse interprétation visuelle (l'orchestrator croyait voir « 2 lots à séparer » alors que c'était un mock désynchronisé). Pattern obligatoire : **un mock IA = même pipeline que la vraie extraction, juste avec l'appel modèle remplacé par une réponse fixe**. La réponse fixe doit être DÉRIVÉE d'une vraie sortie modèle archivée (`mock-fixtures/<sample>.json`), pas inventée à la main. Si le dataset évolue → resync du fixture. Test compagnon obligatoire (cf. règle `@qa` : comparaison mock vs réel sur la structure). Source s28.
+
 ## Domaines de compétence
 
 ### APIs LLM et intégration
