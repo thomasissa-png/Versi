@@ -2607,12 +2607,9 @@ export function extractRoomsAsRectangles(
   resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
 
   // s28 tour 33 — CAP FINAL PDF POUR SECONDAIRES (auto-critique tour 32).
-  // forceMainRoomsTouchLotWalls + enforceTouchInvariant peuvent enfler les
-  // secondaires (WC, Cellier, Entrée) jusqu'à 4-5× leur PDF surface.
-  // Cette passe FINALE shrink ces secondaires au cap PDF strict (1.20-1.25),
-  // tout en préservant la bbox label PDF. Ne touche pas aux principales.
+  // NB : appliqué une 1ère fois ici avec scale médian local. Sera RE-appliqué
+  // dans extract/route.ts après recalibration finale du scale (qui peut différer).
   {
-    // Recalcul du scale m²/px² basé sur la médiane des pièces fiables.
     const candidates = resolved
       .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0);
     if (candidates.length >= 2) {
@@ -2626,7 +2623,6 @@ export function extractRoomsAsRectangles(
         ? filtered.map((c) => c.pdfSurfaceM2! / c.areaPx2).sort((a, b) => a - b)[Math.floor(filtered.length / 2)]
         : medianK;
 
-      // Récupère les bbox des labels PDF pour préserver la zone label.
       const labelBboxesArr: Array<{ xMin: number; yMin: number; xMax: number; yMax: number } | null> =
         resolved.map((r) => r.labelBbox ?? null);
 

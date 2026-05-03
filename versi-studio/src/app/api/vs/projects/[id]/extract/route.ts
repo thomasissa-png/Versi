@@ -131,6 +131,7 @@ import {
   lotPolygonAsWalls,
   type Wall as RectWall,
 } from "@/lib/vs/room-rectangle-from-walls";
+import { enforceFinalPdfCapForSecondaries } from "@/lib/vs/touch-invariant";
 import { filterRealWalls } from "@/lib/vs/clean-walls-filter";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -723,6 +724,50 @@ export async function POST(
                         console.log(
                           `[extract/s28-tour18-rect] plan ${plan.id} scale calibré : ${oldScale.toExponential(2)} → ${scaleM2PerPx2.toExponential(2)} (médiane sur ${filtered.length}/${cands.length} rooms PDF)`,
                         );
+                      }
+                    }
+                  }
+                }
+
+                // 5b) s28 tour 33 — CAP FINAL PDF POUR SECONDAIRES avec scale RECALIBRÉ.
+                // Boucle 3 itérations cap+recalibration : la recalibration filtrée
+                // peut augmenter le scale (donc m²) → après cap des outliers, la
+                // médiane se déplace → le scale change → re-cap nécessaire jusqu'à
+                // convergence du ratio sous le cap PDF.
+                {
+                  const labelBboxesArr = rectRooms.map((r) => r.labelBbox ?? null);
+                  for (let iter = 0; iter < 3; iter++) {
+                    const finalRooms = enforceFinalPdfCapForSecondaries(
+                      rectRooms, scaleM2PerPx2, labelBboxesArr,
+                    );
+                    let changed = false;
+                    for (let i = 0; i < rectRooms.length; i++) {
+                      if (rectRooms[i].areaPx2 !== finalRooms[i].areaPx2) changed = true;
+                      rectRooms[i].bbox = finalRooms[i].bbox;
+                      rectRooms[i].polygon = finalRooms[i].polygon;
+                      rectRooms[i].areaPx2 = finalRooms[i].areaPx2;
+                    }
+                    if (!changed) {
+                      console.log(`[extract/s28-tour33] cap final convergé en ${iter+1} itération(s)`);
+                      break;
+                    }
+                    // Recalibration scale après chaque passe (les surfaces ont
+                    // changé → la médiane K = pdf/area se déplace).
+                    const cands = rectRooms
+                      .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0);
+                    if (cands.length >= 2) {
+                      const ks = cands.map((c) => c.pdfSurfaceM2! / c.areaPx2).sort((a, b) => a - b);
+                      const medianK = ks[Math.floor(ks.length / 2)];
+                      const filtered = cands.filter((c) => {
+                        const k = c.pdfSurfaceM2! / c.areaPx2;
+                        return k >= medianK * 0.5 && k <= medianK * 2.0;
+                      });
+                      if (filtered.length >= 2) {
+                        const fk = filtered.map((c) => c.pdfSurfaceM2! / c.areaPx2).sort((a, b) => a - b);
+                        const newScale = fk[Math.floor(fk.length / 2)];
+                        if (newScale > 0 && Number.isFinite(newScale)) {
+                          scaleM2PerPx2 = newScale;
+                        }
                       }
                     }
                   }
