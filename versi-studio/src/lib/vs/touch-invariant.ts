@@ -405,9 +405,19 @@ function bboxContainsLabel(b: Bbox, lc: LabelCenter): boolean {
 
 /**
  * Étant donné une bbox `candidate` étendue dans la direction `dir`, et la
- * bbox d'origine `original`, ajuste `candidate` pour qu'elle ne contienne
- * AUCUN des labels `foreignLabels`. Si l'extension franchit un label
- * étranger, on stoppe le bord juste avant ce label (marge 8px).
+ * bbox d'origine `original`, ajuste `candidate` pour respecter deux règles
+ * label-barrière :
+ *
+ * RÈGLE 1 (label-inside) : la bbox candidate ne doit JAMAIS contenir le
+ *   centroïde du label d'une autre pièce. Si extension franchit ce centroïde,
+ *   stopper juste avant (marge 8px).
+ *
+ * RÈGLE 2 (Voronoï midpoint) : pour la direction d'extension `dir` et `myLabel`
+ *   (le label de la pièce courante), la bbox candidate ne doit pas dépasser
+ *   le MIDPOINT entre `myLabel` et tout autre label situé du même côté de la
+ *   pièce. Ex pour dir=E avec myLabel.x=23%, autre label à x=77% → xMax cap à 50%.
+ *   Cette règle empêche une petite pièce de s'étendre dans le territoire
+ *   d'une grande pièce voisine selon une partition Voronoï 1D.
  *
  * Renvoie true si la bbox a été modifiée (clampée par un label).
  */
@@ -416,20 +426,16 @@ function clampToForeignLabels(
   original: Bbox,
   dir: Direction,
   foreignLabels: LabelCenter[],
+  myLabel?: LabelCenter,
 ): boolean {
   if (foreignLabels.length === 0) return false;
   let clamped = false;
+
+  // RÈGLE 1 — label-inside barrier
   for (const lc of foreignLabels) {
     if (!bboxContainsLabel(candidate, lc)) continue;
-    // Le label est à l'intérieur de la bbox candidate → c'est une violation.
-    // Vérifier que ce label n'était PAS dans l'original (sinon situation
-    // pré-existante, on n'aggrave pas mais on ne peut pas réparer ici).
     if (bboxContainsLabel(original, lc)) continue;
-    // On a franchi le label en étendant dans la direction `dir`.
-    // Reculer le bord d'extension juste avant le label (marge 8px).
     if (dir === "N") {
-      // bord nord descendu (yMin baissé). Si label.y < candidate.yMax et
-      // label.y > original.yMin → reculer yMin à label.y + marge
       if (lc.y > candidate.yMin && lc.y < original.yMin) {
         candidate.yMin = lc.y + LABEL_BARRIER_MARGIN_PX;
         clamped = true;
@@ -451,6 +457,58 @@ function clampToForeignLabels(
       }
     }
   }
+
+  // RÈGLE 2 — Voronoï midpoint (1D selon la direction d'extension).
+  // Pour dir=E : si un autre label a x > myLabel.x, le candidate.xMax doit
+  // <= midpoint (myLabel.x + otherLabel.x) / 2.
+  if (myLabel) {
+    if (dir === "E") {
+      let cap = candidate.xMax;
+      for (const lc of foreignLabels) {
+        if (lc.x <= myLabel.x) continue; // pas du côté est
+        const mid = (myLabel.x + lc.x) / 2;
+        if (mid < cap) cap = mid;
+      }
+      if (cap < candidate.xMax) {
+        candidate.xMax = cap;
+        clamped = true;
+      }
+    } else if (dir === "W") {
+      let cap = candidate.xMin;
+      for (const lc of foreignLabels) {
+        if (lc.x >= myLabel.x) continue;
+        const mid = (myLabel.x + lc.x) / 2;
+        if (mid > cap) cap = mid;
+      }
+      if (cap > candidate.xMin) {
+        candidate.xMin = cap;
+        clamped = true;
+      }
+    } else if (dir === "S") {
+      let cap = candidate.yMax;
+      for (const lc of foreignLabels) {
+        if (lc.y <= myLabel.y) continue;
+        const mid = (myLabel.y + lc.y) / 2;
+        if (mid < cap) cap = mid;
+      }
+      if (cap < candidate.yMax) {
+        candidate.yMax = cap;
+        clamped = true;
+      }
+    } else if (dir === "N") {
+      let cap = candidate.yMin;
+      for (const lc of foreignLabels) {
+        if (lc.y >= myLabel.y) continue;
+        const mid = (myLabel.y + lc.y) / 2;
+        if (mid > cap) cap = mid;
+      }
+      if (cap > candidate.yMin) {
+        candidate.yMin = cap;
+        clamped = true;
+      }
+    }
+  }
+
   return clamped;
 }
 
@@ -478,6 +536,69 @@ export function enforceLabelOwnership(
   }));
 
   let totalShrunk = 0;
+
+  // PASSE 1 — Voronoï midpoint cap (1D selon chaque axe).
+  // Pour chaque pièce r, pour chaque autre label lc, on cap le bord de r
+  // dans la direction de lc au midpoint (myLabel + lc) / 2.
+  // Ceci évite que la pièce déborde dans le territoire d'une voisine selon
+  // une partition Voronoï approximative.
+  for (let i = 0; i < next.length; i++) {
+    const r = next[i];
+    const myLabel = labelCenters[i];
+    const before = { ...r.bbox };
+    for (let j = 0; j < labelCenters.length; j++) {
+      if (j === i) continue;
+      const lc = labelCenters[j];
+      // EAST : si lc.x > myLabel.x avec écart significatif, cap r.xMax au midpoint
+      if (lc.x > myLabel.x + LABEL_BARRIER_MARGIN_PX) {
+        const mid = (myLabel.x + lc.x) / 2;
+        if (mid < r.bbox.xMax) r.bbox.xMax = mid;
+      }
+      // WEST
+      if (lc.x < myLabel.x - LABEL_BARRIER_MARGIN_PX) {
+        const mid = (myLabel.x + lc.x) / 2;
+        if (mid > r.bbox.xMin) r.bbox.xMin = mid;
+      }
+      // SOUTH
+      if (lc.y > myLabel.y + LABEL_BARRIER_MARGIN_PX) {
+        const mid = (myLabel.y + lc.y) / 2;
+        if (mid < r.bbox.yMax) r.bbox.yMax = mid;
+      }
+      // NORTH
+      if (lc.y < myLabel.y - LABEL_BARRIER_MARGIN_PX) {
+        const mid = (myLabel.y + lc.y) / 2;
+        if (mid > r.bbox.yMin) r.bbox.yMin = mid;
+      }
+    }
+    // Sécurité : si shrink rend bbox dégénérée OU exclut myLabel, rollback.
+    const stillValid =
+      r.bbox.xMax - r.bbox.xMin > 5 &&
+      r.bbox.yMax - r.bbox.yMin > 5 &&
+      myLabel.x >= r.bbox.xMin - 1 &&
+      myLabel.x <= r.bbox.xMax + 1 &&
+      myLabel.y >= r.bbox.yMin - 1 &&
+      myLabel.y <= r.bbox.yMax + 1;
+    if (!stillValid) {
+      r.bbox = before;
+      continue;
+    }
+    const moved =
+      Math.abs(before.xMin - r.bbox.xMin) > 1 ||
+      Math.abs(before.yMin - r.bbox.yMin) > 1 ||
+      Math.abs(before.xMax - r.bbox.xMax) > 1 ||
+      Math.abs(before.yMax - r.bbox.yMax) > 1;
+    if (moved) {
+      r.polygon = buildRectVerts(r.bbox);
+      r.areaPx2 = polyArea(r.polygon);
+      totalShrunk++;
+      console.log(
+        `[labelOwnership-voronoi] ${r.label} bbox shrink (${(before.xMax - before.xMin).toFixed(0)}x${(before.yMax - before.yMin).toFixed(0)} → ${(r.bbox.xMax - r.bbox.xMin).toFixed(0)}x${(r.bbox.yMax - r.bbox.yMin).toFixed(0)})`,
+      );
+    }
+  }
+
+  // PASSE 2 — label-inside (filet de sécurité au cas où Voronoï a laissé
+  // passer une violation, p.ex. labels alignés sur un axe).
   for (let i = 0; i < next.length; i++) {
     const r = next[i];
     const myLabel = labelCenters[i];
@@ -650,11 +771,10 @@ export function enforceTouchInvariant(
         if (candidate.yMax > lotBbox.yMax + 1) candidate.yMax = lotBbox.yMax;
 
         // Anti-régression 1.5 (s28 tour 31) : NE PAS franchir le label
-        // d'une autre pièce. Si l'extension fait inclure le label étranger
-        // dans la bbox, on stoppe le bord juste avant ce label.
+        // d'une autre pièce + Voronoï midpoint cap.
         if (labelCenters.length === next.length) {
           const foreignLabels = labelCenters.filter((_, j) => j !== i);
-          clampToForeignLabels(candidate, room.bbox, dir, foreignLabels);
+          clampToForeignLabels(candidate, room.bbox, dir, foreignLabels, labelCenters[i]);
         }
 
         // Anti-régression 2 : NE PAS chevaucher un voisin (avec marge 2px).
@@ -1010,6 +1130,7 @@ function extendRoomEdge(
   initialBbox: Bbox,
   others: RectangleRoom[] = [],
   foreignLabels: LabelCenter[] = [],
+  myLabel?: LabelCenter,
 ): boolean {
   const candidate: Bbox = { ...room.bbox };
   const orig = { ...room.bbox };
@@ -1054,9 +1175,9 @@ function extendRoomEdge(
   }
 
   // s28 tour 31 — Barrière label : ne JAMAIS franchir le centroïde du label
-  // d'une autre pièce. Stoppe le bord juste avant (marge 8px).
+  // d'une autre pièce + Voronoï midpoint cap.
   if (foreignLabels.length > 0) {
-    clampToForeignLabels(candidate, orig, expandDir, foreignLabels);
+    clampToForeignLabels(candidate, orig, expandDir, foreignLabels, myLabel);
   }
 
   // Vérifier qu'il y a vraiment eu mouvement (>1px) après clamping
@@ -1158,9 +1279,11 @@ export function fillRemainingGaps(
             ? labelCenters.filter((_, j) => j !== i)
             : [];
 
+        const myLabel = labelCenters.length === next.length ? labelCenters[i] : undefined;
+
         // Tentative 1 : étendre la pièce elle-même (cap 8x, clamping anti-overlap).
         const extended = extendRoomEdge(
-          room, dir, target, initialBboxes[i], others, foreignLabelsForRoom,
+          room, dir, target, initialBboxes[i], others, foreignLabelsForRoom, myLabel,
         );
         if (extended) {
           changedThisIter = true;
@@ -1196,9 +1319,11 @@ export function fillRemainingGaps(
           labelCenters.length === next.length
             ? labelCenters.filter((_, j) => j !== neighborIdx)
             : [];
+        const neighborLabel =
+          labelCenters.length === next.length ? labelCenters[neighborIdx] : undefined;
         const ok = extendRoomEdge(
           neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx], othersForNeighbor,
-          foreignLabelsForNeighbor,
+          foreignLabelsForNeighbor, neighborLabel,
         );
         if (ok) {
           changedThisIter = true;
