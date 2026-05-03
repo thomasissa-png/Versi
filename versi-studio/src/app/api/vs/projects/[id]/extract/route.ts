@@ -131,7 +131,7 @@ import {
   lotPolygonAsWalls,
   type Wall as RectWall,
 } from "@/lib/vs/room-rectangle-from-walls";
-import { enforceFinalPdfCapForSecondaries } from "@/lib/vs/touch-invariant";
+import { enforceFinalPdfCapForSecondaries, growUnderSizedRooms } from "@/lib/vs/touch-invariant";
 import { filterRealWalls } from "@/lib/vs/clean-walls-filter";
 import { detectAptSeparators, calibrateScaleFromPdfLabels } from "@/lib/vs/apt-separators";
 import { WALL_EXTRACTION_CONFIG } from "@/lib/vs/wall-extraction-config";
@@ -770,6 +770,31 @@ export async function POST(
                         }
                       }
                     }
+                  }
+                }
+
+                // 5c) s28 tour 33 — RE-GROW pièces sous-dimensionnées (ratio < 0.85).
+                // Le cap final a libéré de l'espace via shrink des secondaires.
+                // Cette passe étend les pièces toujours sous-dim vers cet espace
+                // libre. Boucle 2 itérations pour chaîner les libérations.
+                {
+                  const labelCenters = rectRooms.map((r) => {
+                    const lb = r.labelBbox;
+                    if (lb) return { x: (lb.xMin + lb.xMax) / 2, y: (lb.yMin + lb.yMax) / 2 };
+                    return { x: (r.bbox.xMin + r.bbox.xMax) / 2, y: (r.bbox.yMin + r.bbox.yMax) / 2 };
+                  });
+                  for (let iter = 0; iter < 2; iter++) {
+                    const grown = growUnderSizedRooms(
+                      rectRooms, scaleM2PerPx2, lotPolyPx_face, labelCenters,
+                    );
+                    let changed = false;
+                    for (let i = 0; i < rectRooms.length; i++) {
+                      if (rectRooms[i].areaPx2 !== grown[i].areaPx2) changed = true;
+                      rectRooms[i].bbox = grown[i].bbox;
+                      rectRooms[i].polygon = grown[i].polygon;
+                      rectRooms[i].areaPx2 = grown[i].areaPx2;
+                    }
+                    if (!changed) break;
                   }
                 }
 

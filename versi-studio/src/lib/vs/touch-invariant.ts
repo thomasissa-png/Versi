@@ -1999,3 +1999,161 @@ export function enforceFinalPdfCapForSecondaries(
   }
   return next;
 }
+
+// ─── s28 tour 33 — Re-grow pour pièces sous-dimensionnées ────────────
+//
+// Auto-critique tour 32 : SdB RDC ratio 0.70 et Chambre 02 R+3 ratio 0.78
+// sont sous-dimensionnées (< 0.85 cap-bas audit). Cause : enforceLabelOwnership
+// (Voronoï) a shrinké leur bbox pour exclure un label voisin.
+//
+// Cette passe re-grow chaque pièce avec ratio < 0.85 :
+//   1. Calcule le gap dans chaque direction (vers voisin ou lot bbox)
+//   2. Étend les bords avec gap > 3px proportionnellement
+//   3. Cap : ratio cible 0.95 (sous le seuil 1.0 pour éviter cap-haut)
+//   4. Anti-overlap : ne franchit JAMAIS le label (zone label élargie 5px)
+//      d'une autre pièce.
+const REGROW_TARGET_RATIO = 0.95;
+const REGROW_MIN_RATIO_TRIGGER = 0.85;
+
+export function growUnderSizedRooms(
+  rooms: RectangleRoom[],
+  scaleM2PerPx2: number,
+  lotPolygon: Pt[],
+  labelCenters: LabelCenter[] = [],
+): RectangleRoom[] {
+  if (rooms.length === 0) return rooms;
+  const lotBbox = lotBoundingBox(lotPolygon);
+  const next = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  let totalGrown = 0;
+
+  for (let i = 0; i < next.length; i++) {
+    const room = next[i];
+    const pdf = room.pdfSurfaceM2 ?? 0;
+    if (pdf <= 0) continue;
+
+    const currentM2 = room.areaPx2 * scaleM2PerPx2;
+    const ratio = currentM2 / pdf;
+    if (ratio >= REGROW_MIN_RATIO_TRIGGER) continue;
+
+    const targetArea = (pdf * REGROW_TARGET_RATIO) / scaleM2PerPx2;
+    const a = room.bbox;
+    const wA = a.xMax - a.xMin;
+    const hA = a.yMax - a.yMin;
+
+    // Gap dans chaque direction = distance jusqu'au voisin ou lot bbox
+    function gapInDir(dir: "N" | "S" | "W" | "E"): number {
+      let limit: number;
+      if (dir === "N") limit = lotBbox.yMin;
+      else if (dir === "S") limit = lotBbox.yMax;
+      else if (dir === "W") limit = lotBbox.xMin;
+      else limit = lotBbox.xMax;
+
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const b = next[j].bbox;
+        const ovX = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+        const ovY = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+        if (dir === "N" || dir === "S") {
+          if (ovX <= 1) continue;
+          if (dir === "N" && b.yMax <= a.yMin + 1 && b.yMax > limit) limit = b.yMax;
+          if (dir === "S" && b.yMin >= a.yMax - 1 && b.yMin < limit) limit = b.yMin;
+        } else {
+          if (ovY <= 1) continue;
+          if (dir === "W" && b.xMax <= a.xMin + 1 && b.xMax > limit) limit = b.xMax;
+          if (dir === "E" && b.xMin >= a.xMax - 1 && b.xMin < limit) limit = b.xMin;
+        }
+      }
+      if (dir === "N") return Math.max(0, a.yMin - limit - 2);
+      if (dir === "S") return Math.max(0, limit - a.yMax - 2);
+      if (dir === "W") return Math.max(0, a.xMin - limit - 2);
+      return Math.max(0, limit - a.xMax - 2);
+    }
+
+    const gN = gapInDir("N");
+    const gS = gapInDir("S");
+    const gW = gapInDir("W");
+    const gE = gapInDir("E");
+
+    if (gN < 3 && gS < 3 && gW < 3 && gE < 3) continue; // pas d'espace libre
+
+    // Cible : grandir vers targetArea en distribuant aux bords libres.
+    const newBbox = { ...a };
+
+    // Étendre H (N+S) si gap dispo
+    if (gN > 3 || gS > 3) {
+      const targetH = Math.min(targetArea / wA, hA + gN + gS);
+      const totalGrow = Math.max(0, targetH - hA);
+      const totalAvail = gN + gS;
+      if (totalAvail > 0) {
+        const growN = (gN / totalAvail) * totalGrow;
+        const growS = (gS / totalAvail) * totalGrow;
+        newBbox.yMin -= Math.min(gN, growN);
+        newBbox.yMax += Math.min(gS, growS);
+      }
+    }
+
+    // Si encore sous-dim, étendre W+E
+    const newH = newBbox.yMax - newBbox.yMin;
+    const currentAreaAfter = wA * newH;
+    if (currentAreaAfter < targetArea && (gW > 3 || gE > 3)) {
+      const targetW = Math.min(targetArea / newH, wA + gW + gE);
+      const totalGrowW = Math.max(0, targetW - wA);
+      const totalAvailW = gW + gE;
+      if (totalAvailW > 0) {
+        const growW = (gW / totalAvailW) * totalGrowW;
+        const growE = (gE / totalAvailW) * totalGrowW;
+        newBbox.xMin -= Math.min(gW, growW);
+        newBbox.xMax += Math.min(gE, growE);
+      }
+    }
+
+    // Anti-franchissement labels d'autres pièces
+    let labelClash = false;
+    for (let j = 0; j < labelCenters.length; j++) {
+      if (j === i) continue;
+      const lc = labelCenters[j];
+      if (
+        lc.x > newBbox.xMin - LABEL_BARRIER_MARGIN_PX &&
+        lc.x < newBbox.xMax + LABEL_BARRIER_MARGIN_PX &&
+        lc.y > newBbox.yMin - LABEL_BARRIER_MARGIN_PX &&
+        lc.y < newBbox.yMax + LABEL_BARRIER_MARGIN_PX
+      ) { labelClash = true; break; }
+    }
+    if (labelClash) continue;
+
+    // Anti-overlap final
+    let overlap = false;
+    for (let j = 0; j < next.length; j++) {
+      if (j === i) continue;
+      const b = next[j].bbox;
+      if (
+        newBbox.xMin < b.xMax - 1 && newBbox.xMax > b.xMin + 1 &&
+        newBbox.yMin < b.yMax - 1 && newBbox.yMax > b.yMin + 1
+      ) { overlap = true; break; }
+    }
+    if (overlap) continue;
+
+    const newArea = (newBbox.xMax - newBbox.xMin) * (newBbox.yMax - newBbox.yMin);
+    const oldArea = wA * hA;
+    if (newArea / oldArea < 1.02) continue; // pas de mouvement significatif
+
+    room.bbox = newBbox;
+    room.polygon = buildRectVerts(newBbox);
+    room.areaPx2 = polyArea(room.polygon);
+    const newM2 = room.areaPx2 * scaleM2PerPx2;
+    totalGrown++;
+    console.log(
+      `[growUnderSized] ${room.label} ratio ${ratio.toFixed(2)} → ${(newM2/pdf).toFixed(2)} (PDF=${pdf.toFixed(1)}m²)`,
+    );
+  }
+
+  if (totalGrown > 0) {
+    console.log(`[growUnderSizedRooms] ${totalGrown} pièce(s) re-grandie(s) (ratio < ${REGROW_MIN_RATIO_TRIGGER})`);
+  }
+  return next;
+}
