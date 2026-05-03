@@ -40,6 +40,7 @@
  */
 
 import type { Pt } from "./lot-vector-extractor";
+import { enforceTouchInvariant } from "./touch-invariant";
 
 export type Wall = { x1: number; y1: number; x2: number; y2: number };
 
@@ -2516,6 +2517,21 @@ export function extractRoomsAsRectangles(
       };
     });
   })();
+
+  // Étape 2.695 — s28 tour 29 : INVARIANT « chaque bord touche quelque chose ».
+  //
+  // Verbatim Thomas tour 28 : « y a encore des espaces trop vides dans
+  // certaines pièces majeurs. Je comprends pas non plus ce qui est compliqué
+  // à chaque pièce de forcément toucher une autre pièce ou le mur du lot ».
+  //
+  // Cette passe est le DERNIER passage avant clip+inset. Pour chaque pièce,
+  // pour chaque bord (N/S/E/W), si le bord est à >5px du mur du lot ET d'une
+  // autre pièce voisine → on étend le bord. Cap surface 1.30 × PDF (revert si
+  // dépassement). Override le cap PDF 1.10 d'enforcePdfSurfaces — l'invariant
+  // touche est PRIORITAIRE sur le cap surface architecte.
+  //
+  // Itération max 5 (convergence par fixed-point).
+  resolved = enforceTouchInvariant(resolved, lotPolygon, walls);
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
