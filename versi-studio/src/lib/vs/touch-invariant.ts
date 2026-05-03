@@ -48,18 +48,18 @@ const MAX_ITERATIONS = 8;
 const MAX_EXTEND_PER_ITER_PX = 800;
 
 /** s28 tour 30 — Filtre pièces hallucinées :
- *  Pour les pièces SANS surface PDF (ECS, TGBT, gaine), si elles flottent
- *  (gap > HALLUCINATION_GAP_PX sur un bord) ET aucun voisin avec overlap
- *  perpendiculaire >= HALLUCINATION_OVERLAP_RATIO → on les filtre.
- *  Cas typique tour 29 R+3 : ECS/S=580px → pièce ECS hallucinée flotte. */
+ *  Pour les pièces SANS surface PDF (ECS, TGBT, gaine), si le gap maximum
+ *  sur un bord > HALLUCINATION_GAP_PX → la pièce flotte → halluci, on filtre.
+ *  Cas typique tour 29 R+3 : ECS/S=580px → pièce ECS hallucinée. */
 const HALLUCINATION_GAP_PX = 200;
-const HALLUCINATION_OVERLAP_RATIO = 0.5;
 
 /** s28 tour 30 — Fill remaining gaps : passe finale agressive.
  *  Pour chaque bord avec gap > FILL_GAP_THRESHOLD_PX après enforceTouchInvariant,
  *  on identifie le voisin le plus proche perpendiculaire, et on l'étend
  *  AGRESSIVEMENT (cap 8x bbox initiale) pour combler le gap. */
-const FILL_GAP_THRESHOLD_PX = 50;
+/** s28 tour 30 — Seuil 6px (juste au-dessus de TOUCH_TOL_PX=5) pour combler
+ *  même les petits gaps borderline (cas RDC ECS=10px qui flotte). */
+const FILL_GAP_THRESHOLD_PX = 6;
 const FILL_GAP_MAX_OVER_INITIAL = 8.0;
 
 // ─── Types ─────────────────────────────────────────────────────────
@@ -667,32 +667,6 @@ function computeMaxBoundaryGap(
     if (gap > maxGap) maxGap = gap;
   }
   return maxGap;
-}
-
-/**
- * Calcule le ratio max d'overlap perpendiculaire entre une pièce et ses voisines.
- * Pour bord N/S → overlap horizontal / largeur pièce.
- * Pour bord W/E → overlap vertical / hauteur pièce.
- * Renvoie 0..1 (max sur tous voisins + directions).
- */
-function maxPerpendicularOverlap(
-  room: RectangleRoom,
-  others: RectangleRoom[],
-): number {
-  const a = room.bbox;
-  const aWidth = Math.max(1, a.xMax - a.xMin);
-  const aHeight = Math.max(1, a.yMax - a.yMin);
-  let bestRatio = 0;
-  for (const o of others) {
-    const b = o.bbox;
-    const horizOv = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
-    const vertOv = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
-    const ratioH = Math.max(0, horizOv) / aWidth;
-    const ratioV = Math.max(0, vertOv) / aHeight;
-    if (ratioH > bestRatio) bestRatio = ratioH;
-    if (ratioV > bestRatio) bestRatio = ratioV;
-  }
-  return bestRatio;
 }
 
 /**
