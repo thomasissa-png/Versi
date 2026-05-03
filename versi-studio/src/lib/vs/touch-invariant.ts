@@ -1415,3 +1415,294 @@ export function fillRemainingGaps(
   }
   return next;
 }
+
+// ─── s28 tour 32 — FORCE MAIN ROOMS TOUCH LOT WALLS ────────────────────
+//
+// Verbatim Thomas tour 31 :
+//   « As tu l'impression que la zone séjour touche le bas du lot? Et qu'il
+//     n'y a pas un énorme espace vide? »
+//
+// Pour chaque pièce principale (PDF ≥ 15 m²), pour chaque direction (N/S/E/W) :
+//   1) Trouver le mur du lot dans cette direction (lotBorderInDirection).
+//   2) Si le bord de la pièce est à plus de TOUCH_TOL_PX de ce mur ET que
+//      le mur est à moins de FORCE_MAX_DIST_PX → étendre la pièce jusqu'au
+//      mur du lot, en SHRINKANT les pièces secondaires bloquantes.
+//
+// Les pièces principales (≥15 m²) ont PRIORITÉ ABSOLUE sur les secondaires
+// (<15 m²). Une pièce secondaire qui bloque le passage est shrinkée jusqu'à
+// libérer le chemin (mais pas effacée — surface min conservée).
+//
+// Cette passe TOURNE APRÈS enforceTouchInvariant et fillRemainingGaps.
+// Elle override TOUS les caps surface intermédiaires.
+
+const FORCE_MAX_DIST_PX = 400;
+/** Surface min en px² qu'on conserve pour une pièce secondaire shrinkée
+ *  pour libérer le chemin. ≈ 50% de sa bbox initiale. */
+const SECONDARY_MIN_AREA_RATIO = 0.5;
+/** Seuil PDF pour qu'une pièce soit considérée "principale". */
+const MAIN_ROOM_PDF_THRESHOLD = 15;
+
+/**
+ * Pour chaque pièce principale (PDF ≥ 15 m²), force chaque bord à toucher
+ * le mur du lot dans cette direction, en shrinkant les bloqueurs secondaires.
+ *
+ * Principe :
+ *  - Pour chaque direction, calculer la cible (mur du lot dans cette direction).
+ *  - Identifier les pièces secondaires (PDF < 15 m²) dans le chemin.
+ *  - Shrinker ces secondaires (côté opposé à la pièce principale) pour
+ *    libérer le passage.
+ *  - Étendre la pièce principale jusqu'au mur du lot.
+ */
+export function forceMainRoomsTouchLotWalls(
+  rooms: RectangleRoom[],
+  lotPolygon: Pt[],
+): RectangleRoom[] {
+  if (rooms.length === 0) return rooms;
+  const lotBbox = lotBoundingBox(lotPolygon);
+  const next = rooms.map((r) => ({
+    ...r,
+    bbox: { ...r.bbox },
+    polygon: r.polygon.map((v) => ({ ...v })),
+  }));
+
+  // Index des pièces principales (PDF ≥ 15 m²)
+  const mainIdxs: number[] = [];
+  for (let i = 0; i < next.length; i++) {
+    if ((next[i].pdfSurfaceM2 ?? 0) >= MAIN_ROOM_PDF_THRESHOLD) mainIdxs.push(i);
+  }
+  if (mainIdxs.length === 0) {
+    console.log(`[forceMainRoomsTouchLotWalls] aucune pièce principale ≥${MAIN_ROOM_PDF_THRESHOLD}m²`);
+    return next;
+  }
+
+  // Sauver les bbox initiales des secondaires (pour cap shrink min surface)
+  const initialBboxes: Bbox[] = next.map((r) => ({ ...r.bbox }));
+
+  let totalExtensions = 0;
+
+  // Pour chaque pièce principale, pour chaque direction
+  for (const i of mainIdxs) {
+    const main = next[i];
+    const a = main.bbox;
+    const roomCenter = { x: (a.xMin + a.xMax) / 2, y: (a.yMin + a.yMax) / 2 };
+
+    for (const dir of ["N", "S", "E", "W"] as Direction[]) {
+      // Cible = mur du lot dans cette direction
+      let lotTarget: number;
+      if (dir === "N") {
+        lotTarget = lotBorderInDirection(lotPolygon, "N", a.xMin, a.xMax, roomCenter, lotBbox.yMin);
+      } else if (dir === "S") {
+        lotTarget = lotBorderInDirection(lotPolygon, "S", a.xMin, a.xMax, roomCenter, lotBbox.yMax);
+      } else if (dir === "W") {
+        lotTarget = lotBorderInDirection(lotPolygon, "W", a.yMin, a.yMax, roomCenter, lotBbox.xMin);
+      } else {
+        lotTarget = lotBorderInDirection(lotPolygon, "E", a.yMin, a.yMax, roomCenter, lotBbox.xMax);
+      }
+
+      // Distance signée du bord courant au mur lot
+      let dist: number;
+      if (dir === "N") dist = a.yMin - lotTarget;
+      else if (dir === "S") dist = lotTarget - a.yMax;
+      else if (dir === "W") dist = a.xMin - lotTarget;
+      else dist = lotTarget - a.xMax;
+
+      // Déjà touche ou trop loin pour forcer (>400px = la pièce n'est
+      // pas censée toucher ce mur, ex Séjour vs mur nord opposé)
+      if (dist <= TOUCH_TOL_PX) continue;
+      if (dist > FORCE_MAX_DIST_PX) continue;
+
+      // Identifier les pièces secondaires bloquantes dans le chemin.
+      // "Dans le chemin" = recouvrement perpendiculaire ET situé entre
+      // le bord courant et la cible.
+      const blockers: number[] = [];
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const b = next[j].bbox;
+        // Pièce principale = jamais shrinkée
+        if ((next[j].pdfSurfaceM2 ?? 0) >= MAIN_ROOM_PDF_THRESHOLD) continue;
+
+        let inPath = false;
+        if (dir === "N") {
+          // Recouvrement X significatif
+          const xOv = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+          if (xOv <= 1) continue;
+          // Bloqueur = situé entre lotTarget (au nord) et a.yMin (bord courant)
+          inPath = b.yMax > lotTarget && b.yMin < a.yMin;
+        } else if (dir === "S") {
+          const xOv = Math.min(a.xMax, b.xMax) - Math.max(a.xMin, b.xMin);
+          if (xOv <= 1) continue;
+          inPath = b.yMin < lotTarget && b.yMax > a.yMax;
+        } else if (dir === "W") {
+          const yOv = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+          if (yOv <= 1) continue;
+          inPath = b.xMax > lotTarget && b.xMin < a.xMin;
+        } else {
+          const yOv = Math.min(a.yMax, b.yMax) - Math.max(a.yMin, b.yMin);
+          if (yOv <= 1) continue;
+          inPath = b.xMin < lotTarget && b.xMax > a.xMax;
+        }
+        if (inPath) blockers.push(j);
+      }
+
+      // Shrinker chaque bloqueur côté opposé à main, pour libérer
+      // le chemin. Cap : ne pas descendre sous SECONDARY_MIN_AREA_RATIO
+      // de la bbox initiale du bloqueur.
+      let pathClear = true;
+      for (const bIdx of blockers) {
+        const blocker = next[bIdx];
+        const bb = blocker.bbox;
+        const initB = initialBboxes[bIdx];
+        const initArea = (initB.xMax - initB.xMin) * (initB.yMax - initB.yMin);
+        const minArea = initArea * SECONDARY_MIN_AREA_RATIO;
+
+        // Direction opposée à main pour pousser le bloqueur
+        // (ex : main étend vers S → blocker pousse son yMin vers le sud,
+        // côté opposé à main au nord. Mais si blocker est entre main et
+        // la cible sud, on pousse son yMax vers la cible (=lotTarget) pour
+        // qu'il se compresse contre la cible).
+        // Stratégie simple : on collapse le bloqueur dans la direction
+        // perpendiculaire à `dir`, en le poussant CONTRE le mur du lot
+        // (= libère le chemin pour main).
+        const newBlockerBbox = { ...bb };
+        if (dir === "N") {
+          // Main veut yMin → lotTarget (au nord). Bloqueur entre les deux.
+          // On compresse le bloqueur contre lotTarget : son yMax = lotTarget (collé au mur N),
+          // son yMin = lotTarget + epsilon ; pas de surface.
+          // Approche meilleure : pousser blocker au nord (yMax = a.yMin original
+          // = ne change pas) mais réduire son yMin au-dessus pour libérer.
+          // En réalité : on veut main.yMin descendre, donc le bloqueur doit
+          // aller vers le N (collé au mur N). Son yMax devient juste au-dessus
+          // de la nouvelle position visée pour main.yMin, mais comme main.yMin
+          // = lotTarget, le bloqueur est COMPLÈTEMENT mangé. Mauvais.
+          //
+          // Stratégie correcte : déplacer le bloqueur sur le côté (E ou W),
+          // hors du chemin de main. Identifier de quel côté de main le
+          // centroïde du bloqueur est plus proche, puis pousser hors zone.
+          const blockerCx = (bb.xMin + bb.xMax) / 2;
+          const blockerCy = (bb.yMin + bb.yMax) / 2;
+          // Pousser vers le côté E ou W
+          if (blockerCx < (a.xMin + a.xMax) / 2) {
+            // Bloqueur à gauche du centre de main → pousser à gauche
+            newBlockerBbox.xMax = Math.min(bb.xMax, a.xMin - 2);
+          } else {
+            newBlockerBbox.xMin = Math.max(bb.xMin, a.xMax + 2);
+          }
+          void blockerCy;
+        } else if (dir === "S") {
+          const blockerCx = (bb.xMin + bb.xMax) / 2;
+          if (blockerCx < (a.xMin + a.xMax) / 2) {
+            newBlockerBbox.xMax = Math.min(bb.xMax, a.xMin - 2);
+          } else {
+            newBlockerBbox.xMin = Math.max(bb.xMin, a.xMax + 2);
+          }
+        } else if (dir === "W") {
+          const blockerCy = (bb.yMin + bb.yMax) / 2;
+          if (blockerCy < (a.yMin + a.yMax) / 2) {
+            newBlockerBbox.yMax = Math.min(bb.yMax, a.yMin - 2);
+          } else {
+            newBlockerBbox.yMin = Math.max(bb.yMin, a.yMax + 2);
+          }
+        } else {
+          const blockerCy = (bb.yMin + bb.yMax) / 2;
+          if (blockerCy < (a.yMin + a.yMax) / 2) {
+            newBlockerBbox.yMax = Math.min(bb.yMax, a.yMin - 2);
+          } else {
+            newBlockerBbox.yMin = Math.max(bb.yMin, a.yMax + 2);
+          }
+        }
+
+        const newW = newBlockerBbox.xMax - newBlockerBbox.xMin;
+        const newH = newBlockerBbox.yMax - newBlockerBbox.yMin;
+        const newArea = newW * newH;
+
+        // Garde-fou : si le shrink fait passer sous minArea ou rend
+        // une dimension <5px, on abandonne (chemin pas libérable
+        // sans détruire le bloqueur).
+        if (newW < 5 || newH < 5 || newArea < minArea) {
+          console.log(
+            `[forceMain] ${main.label}/${dir} : bloqueur ${blocker.label} non-shrinkable (newArea=${newArea.toFixed(0)}, min=${minArea.toFixed(0)}) — chemin non libéré`,
+          );
+          pathClear = false;
+          break;
+        }
+
+        blocker.bbox = newBlockerBbox;
+        blocker.polygon = buildRectVerts(newBlockerBbox);
+        blocker.areaPx2 = polyArea(blocker.polygon);
+        console.log(
+          `[forceMain] ${main.label}/${dir} : shrink bloqueur ${blocker.label} (${(newArea/initArea*100).toFixed(0)}% bbox initiale)`,
+        );
+      }
+
+      if (!pathClear) continue;
+
+      // Étendre la pièce principale jusqu'au mur du lot
+      const newMainBbox = { ...a };
+      if (dir === "N") newMainBbox.yMin = lotTarget;
+      else if (dir === "S") newMainBbox.yMax = lotTarget;
+      else if (dir === "W") newMainBbox.xMin = lotTarget;
+      else newMainBbox.xMax = lotTarget;
+
+      // Vérifier qu'on ne chevauche plus aucune pièce après shrink
+      let overlapAfter = false;
+      for (let j = 0; j < next.length; j++) {
+        if (j === i) continue;
+        const b = next[j].bbox;
+        if (bboxesOverlap(newMainBbox, b)) {
+          // Si le voisin est aussi une pièce principale, on respecte (overlap = NO-GO).
+          // Si secondaire, on devrait avoir shrinké → si overlap subsiste,
+          // on cap l'extension de main au bord du voisin.
+          if ((next[j].pdfSurfaceM2 ?? 0) >= MAIN_ROOM_PDF_THRESHOLD) {
+            overlapAfter = true;
+            break;
+          }
+          // Cap au voisin secondaire (qui a survécu)
+          if (dir === "N" && b.yMax > newMainBbox.yMin) {
+            newMainBbox.yMin = Math.max(newMainBbox.yMin, b.yMax + 2);
+          } else if (dir === "S" && b.yMin < newMainBbox.yMax) {
+            newMainBbox.yMax = Math.min(newMainBbox.yMax, b.yMin - 2);
+          } else if (dir === "W" && b.xMax > newMainBbox.xMin) {
+            newMainBbox.xMin = Math.max(newMainBbox.xMin, b.xMax + 2);
+          } else if (dir === "E" && b.xMin < newMainBbox.xMax) {
+            newMainBbox.xMax = Math.min(newMainBbox.xMax, b.xMin - 2);
+          }
+        }
+      }
+
+      if (overlapAfter) {
+        console.log(
+          `[forceMain] ${main.label}/${dir} : extension annulée (overlap pièce principale)`,
+        );
+        continue;
+      }
+
+      // Vérifier que le bord a effectivement bougé
+      const moved = Math.abs(newMainBbox.yMin - a.yMin) > 1 ||
+                    Math.abs(newMainBbox.yMax - a.yMax) > 1 ||
+                    Math.abs(newMainBbox.xMin - a.xMin) > 1 ||
+                    Math.abs(newMainBbox.xMax - a.xMax) > 1;
+      if (!moved) continue;
+
+      main.bbox = newMainBbox;
+      main.polygon = buildRectVerts(newMainBbox);
+      main.areaPx2 = polyArea(main.polygon);
+      totalExtensions++;
+      console.log(
+        `[forceMain] ${main.label}/${dir} ÉTENDU (dist=${dist.toFixed(0)}px → 0px, blockers=${blockers.length})`,
+      );
+
+      // Re-update center pour les itérations suivantes (même pièce, autre dir)
+      // (a est une référence à main.bbox courante, on doit re-créer)
+      const a2 = main.bbox;
+      roomCenter.x = (a2.xMin + a2.xMax) / 2;
+      roomCenter.y = (a2.yMin + a2.yMax) / 2;
+    }
+  }
+
+  if (totalExtensions > 0) {
+    console.log(
+      `[forceMainRoomsTouchLotWalls] ${totalExtensions} extension(s) forcée(s) vers murs lot`,
+    );
+  }
+  return next;
+}

@@ -45,6 +45,7 @@ import {
   filterHallucinatedRooms,
   fillRemainingGaps,
   enforceLabelOwnership,
+  forceMainRoomsTouchLotWalls,
   type LabelCenter,
 } from "./touch-invariant";
 
@@ -2588,6 +2589,20 @@ export function extractRoomsAsRectangles(
 
   // Re-enforce après fill : les extensions des voisins peuvent permettre à
   // l'invariant de boucler ce qui restait inatteignable.
+  resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
+
+  // s28 tour 32 — FORCE MAIN ROOMS TOUCH LOT WALLS.
+  // Verbatim Thomas tour 31 : « As tu l'impression que la zone séjour
+  // touche le bas du lot? Et qu'il n'y a pas un énorme espace vide? ».
+  //
+  // Pour chaque pièce principale (PDF ≥ 15 m²), si un mur du lot est à
+  // <400px d'un bord, étendre ce bord jusqu'au mur en shrinkant les
+  // pièces secondaires (<15m²) bloquantes (cap 50% bbox initiale).
+  // Override TOUS les caps surface intermédiaires.
+  resolved = forceMainRoomsTouchLotWalls(resolved, lotPolygon);
+
+  // Re-enforce une dernière fois pour absorber les éventuels gaps
+  // résiduels créés par les shrinks de bloqueurs.
   resolved = enforceTouchInvariant(resolved, lotPolygon, walls, computeLabelCenters(resolved));
 
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
