@@ -2299,6 +2299,118 @@ export function extractRoomsAsRectangles(
     return next;
   })();
 
+  // Étape 2.69 — s28 tour 26 : ASPECT-RATIO CAP pour pièces principales.
+  //
+  // Bug R+1 Entrée tour 25b : bbox finit à 50.69% × 11.65% lot-local (aspect
+  // 4.35:1). Visuellement = bande horizontale traversant tout le bas du lot
+  // alors que l'Entrée 7.3 m² est un petit espace carré au centre-bas.
+  //
+  // Cause : raycast trouve mur sud à yMax (mur extérieur) et raycast E s'étend
+  // jusqu'au mur SDB, mais sans voisin à hauteur Entrée (y=93%), x_max grossit
+  // jusqu'à 50%. growUnderSized + extendBuildingWalls ne contraint que les
+  // grosses pièces (>=10 m²), pas les pièces moyennes (5-10 m²).
+  //
+  // Solution : pour toute pièce avec PDF surface ET aspect ratio > 3:1, on
+  // contracte le grand côté à surface préservée vers le centroïde du label.
+  // Préserve la surface (= pdfSurfaceM2/scale) et garde le label inscrit.
+  //
+  // Cap permissif : aspect 3:1 → on shrink à 2.5:1 (compromis entre pièces
+  // rectangulaires légitimes types 2:1 et bandes aberrantes 4:1+).
+  resolved = (() => {
+    const ASPECT_THRESHOLD = 3.0;
+    const TARGET_ASPECT = 2.0;
+    // Recalc scale médian
+    const cands = resolved
+      .filter((r) => r.pdfSurfaceM2 != null && r.pdfSurfaceM2 > 0 && r.areaPx2 > 0)
+      .map((r) => r.pdfSurfaceM2! / r.areaPx2)
+      .sort((a, b) => a - b);
+    if (cands.length < 2) return resolved;
+    const scale = cands[Math.floor(cands.length / 2)];
+
+    return resolved.map((r, idx) => {
+      // Skip pièces sans PDF (techniques)
+      if (r.pdfSurfaceM2 == null || r.pdfSurfaceM2 <= 0) return r;
+      // Skip très petites pièces (PDF < 2m²) — leur bbox naturellement carrée
+      if (r.pdfSurfaceM2 < 2) return r;
+      const a = r.bbox;
+      const w = a.xMax - a.xMin;
+      const h = a.yMax - a.yMin;
+      if (w <= 0 || h <= 0) return r;
+      const aspect = Math.max(w, h) / Math.max(1, Math.min(w, h));
+      if (aspect <= ASPECT_THRESHOLD) return r;
+
+      // Cible : aspect TARGET_ASPECT, surface préservée à pdfSurface (cap 1.10).
+      // targetArea = currentArea (surface preserved) — on ne change que la forme.
+      const targetArea = (r.pdfSurfaceM2 / scale) * 1.0;
+      // Pour aspect TARGET_ASPECT et area targetArea :
+      //   targetW × targetH = targetArea
+      //   max/min = TARGET_ASPECT
+      // Si w > h (horizontal), targetW = sqrt(targetArea × TARGET_ASPECT),
+      //                         targetH = sqrt(targetArea / TARGET_ASPECT)
+      const isHorizontal = w > h;
+      const newW = isHorizontal
+        ? Math.sqrt(targetArea * TARGET_ASPECT)
+        : Math.sqrt(targetArea / TARGET_ASPECT);
+      const newH = isHorizontal
+        ? Math.sqrt(targetArea / TARGET_ASPECT)
+        : Math.sqrt(targetArea * TARGET_ASPECT);
+
+      // Centre nouveau rect = centroïde label si dispo, sinon centre actuel
+      const labelBbox = labels[idx]?.labelBbox ?? null;
+      const cx = labelBbox
+        ? (labelBbox.xMin + labelBbox.xMax) / 2
+        : (a.xMin + a.xMax) / 2;
+      const cy = labelBbox
+        ? (labelBbox.yMin + labelBbox.yMax) / 2
+        : (a.yMin + a.yMax) / 2;
+      let nXMin = cx - newW / 2;
+      let nXMax = cx + newW / 2;
+      let nYMin = cy - newH / 2;
+      let nYMax = cy + newH / 2;
+
+      // Contrainte 1 : label inscrit (marge 5px)
+      if (labelBbox) {
+        if (nXMin > labelBbox.xMin - 5) nXMin = labelBbox.xMin - 5;
+        if (nXMax < labelBbox.xMax + 5) nXMax = labelBbox.xMax + 5;
+        if (nYMin > labelBbox.yMin - 5) nYMin = labelBbox.yMin - 5;
+        if (nYMax < labelBbox.yMax + 5) nYMax = labelBbox.yMax + 5;
+      }
+
+      // Contrainte 2 : reste dans le bounding du rect actuel (= ne déborde pas
+      // vers une zone qui n'était pas couverte). Évite que le shrink horizontal
+      // crée une expansion verticale dépassant les voisins.
+      nXMin = Math.max(nXMin, a.xMin);
+      nXMax = Math.min(nXMax, a.xMax);
+      nYMin = Math.max(nYMin, a.yMin);
+      nYMax = Math.min(nYMax, a.yMax);
+
+      // Contrainte 3 : reste dans le lot bbox
+      nXMin = Math.max(nXMin, lotBbox.xMin + 1);
+      nXMax = Math.min(nXMax, lotBbox.xMax - 1);
+      nYMin = Math.max(nYMin, lotBbox.yMin + 1);
+      nYMax = Math.min(nYMax, lotBbox.yMax - 1);
+
+      // Sécurité : si dimensions négatives ou trop petites, garder l'ancienne bbox
+      if (nXMax - nXMin < 5 || nYMax - nYMin < 5) return r;
+      // Aspect après contraintes : si on n'a pas amélioré, on garde l'ancien
+      const newAspect = Math.max(nXMax - nXMin, nYMax - nYMin) /
+        Math.max(1, Math.min(nXMax - nXMin, nYMax - nYMin));
+      if (newAspect >= aspect) return r;
+
+      const newBbox = { xMin: nXMin, yMin: nYMin, xMax: nXMax, yMax: nYMax };
+      const newPoly = buildRectangle(newBbox.yMin, newBbox.yMax, newBbox.xMax, newBbox.xMin);
+      console.log(
+        `[aspectCap] ${r.label} aspect ${aspect.toFixed(1)}:1 → ${newAspect.toFixed(1)}:1 (PDF ${r.pdfSurfaceM2}m²)`,
+      );
+      return {
+        ...r,
+        polygon: newPoly,
+        areaPx2: polygonArea(newPoly),
+        bbox: newBbox,
+      };
+    });
+  })();
+
   // Étape 2.7 — s28 tour 21 : CLIP-TO-WALL-OR-LABEL — DISABLED.
   //
   // Tested but disabled : trop agressif sur les pièces non-carrées (ex: Séjour
