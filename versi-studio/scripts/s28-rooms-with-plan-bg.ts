@@ -21,7 +21,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { Pool } from "pg";
 
-const BASE_URL = "http://127.0.0.1:5000";
+const BASE_URL = process.env.VS_BASE_URL ?? "http://127.0.0.1:5000";
 const DB_URL =
   process.env.DATABASE_URL ||
   "postgres://versi:versi@127.0.0.1:5432/versi_studio";
