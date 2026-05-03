@@ -45,10 +45,9 @@ const MAX_OVER_INITIAL = 4.0;
 const MAX_ITERATIONS = 8;
 
 /** Cap d'extension par direction et par itération (px image). Évite des
- *  expansions sauvages mais doit permettre d'atteindre les murs du lot
- *  (les gaps observés sur Muguets vont jusqu'à ~150-200px sur lot 800px).
- *  500px = ~25% du lot, suffisant pour combler en 1-2 itérations. */
-const MAX_EXTEND_PER_ITER_PX = 500;
+ *  expansions sauvages mais doit permettre d'atteindre les murs du lot.
+ *  800px = couvre tous les lots normaux. */
+const MAX_EXTEND_PER_ITER_PX = 800;
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -285,8 +284,11 @@ function distanceToTouch(
   // alors que la vraie cible est le mur N du lot.
   const aWidth = Math.max(1, a.xMax - a.xMin);
   const aHeight = Math.max(1, a.yMax - a.yMin);
-  const minOverlapH = aWidth * 0.20;
-  const minOverlapV = aHeight * 0.20;
+  // Seuil 35% : un vrai voisin "en face" doit recouvrir au moins 35% de la
+  // dimension perpendiculaire. Sinon, c'est un voisin diagonal qui ne doit
+  // pas bloquer l'extension vers le mur du lot.
+  const minOverlapH = aWidth * 0.35;
+  const minOverlapV = aHeight * 0.35;
 
   for (const o of others) {
     const b = o.bbox;
@@ -407,10 +409,13 @@ export function enforceTouchInvariant(
     const q = lotPolygon[(i + 1) % lotPolygon.length];
     lotEdges.push({ x1: p.x, y1: p.y, x2: q.x, y2: q.y });
   }
-  // Murs longs (>= 60px) : candidats murs extérieurs bâtiment
+  // Murs TRÈS longs (>= 200px) : candidats murs extérieurs bâtiment.
+  // Seuil 200px (plutôt que 60px) pour éviter de capter des cloisons internes
+  // qui bloqueraient à tort l'extension. Un vrai mur extérieur fait toujours
+  // au moins 200px sur un plan d'archi (Muguets : ~600px).
   const longWalls: Wall[] = walls.filter((w) => {
     const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
-    return len >= 60;
+    return len >= 200;
   });
   const lotWalls: Wall[] = [...lotEdges, ...longWalls];
 
