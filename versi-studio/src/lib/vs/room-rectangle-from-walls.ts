@@ -684,12 +684,21 @@ function enforcePdfSurfaces(
     if (r.areaPx2 <= 0) return r;
     const currentM2 = r.areaPx2 * scale;
     const ratio = currentM2 / r.pdfSurfaceM2;
-    // s28 tour 25b — cap resserré 1.20 → 1.10 pour pièces principales
-    // (Séjour/cuisine, Chambre, ≥ 10 m² PDF). Tour 24 R+1 Séjour finit à 41 m²
-    // alors que PDF 33 m² (ratio 1.24) → toléré par cap 1.20 mais visuellement
-    // trop grand. Cap 1.10 force le shrink à 36.3 m² max.
-    const isMainRoom = r.pdfSurfaceM2 >= 10;
-    const capRatio = isMainRoom ? 1.10 : 1.20;
+    // s28 tour 32 — BYPASS TOTAL DU CAP PDF pour pièces principales (≥15 m²).
+    // Verbatim Thomas tour 31 : « As tu l'impression que la zone séjour
+    // touche le bas du lot? Et qu'il n'y a pas un énorme espace vide? ».
+    // Le cap 1.10 bloque l'extension vers les murs du lot (Séjour 40.5 m²
+    // R+1 limité à 44.5 m² → ne touche pas le mur sud du bâtiment).
+    // La valeur PDF est un INDICATEUR, pas une CONTRAINTE pour les pièces
+    // principales. L'invariant "toucher" est PRIORITAIRE.
+    // Pièces secondaires (<15 m²) : cap normal 1.20 conservé pour éviter
+    // qu'un WC / Cellier / Entrée explose au-delà.
+    const isMainRoom = r.pdfSurfaceM2 >= 15;
+    if (isMainRoom) {
+      // Pas de cap — on laisse la pièce principale grossir librement.
+      return r;
+    }
+    const capRatio = 1.20;
     if (ratio <= capRatio) return r; // OK ou trop petit (on ne grossit pas)
     const targetArea = r.pdfSurfaceM2 / scale;
     const seed = seeds[idx];
