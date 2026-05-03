@@ -427,6 +427,8 @@ function clampToForeignLabels(
   dir: Direction,
   foreignLabels: LabelCenter[],
   myLabel?: LabelCenter,
+  mySurface?: number,
+  foreignSurfaces?: number[],
 ): boolean {
   if (foreignLabels.length === 0) return false;
   let clamped = false;
@@ -458,10 +460,77 @@ function clampToForeignLabels(
     }
   }
 
-  // RÈGLE 2 — Voronoï midpoint (1D selon la direction d'extension).
-  // Désactivée ici : la passe enforceLabelOwnership applique déjà le
-  // weighted Voronoï 1D. clampToForeignLabels conserve uniquement Règle 1
-  // (label-inside) pour empêcher l'extension de franchir un label étranger.
+  // RÈGLE 2 — Weighted Voronoï 1D pendant l'extension.
+  // Pour chaque direction d'extension, on cap au boundary pondéré sqrt(surface)
+  // entre myLabel et tout label étranger COMPATIBLE perpendiculairement.
+  // "Compatible" = écart perpendiculaire < CROSS_BAND_PX (200px ≈ 4m).
+  // C'est crucial pour empêcher Entrée de s'étendre E à travers tout le lot
+  // alors qu'il y a SDB, ECS, etc. plus à l'est dans des bandes Y proches.
+  const CROSS_BAND_PX = 200;
+  if (myLabel) {
+    const myWeight = Math.sqrt(Math.max(0.5, mySurface ?? 1.0));
+    if (dir === "E") {
+      let cap = candidate.xMax;
+      for (let k = 0; k < foreignLabels.length; k++) {
+        const lc = foreignLabels[k];
+        if (lc.x <= myLabel.x + LABEL_BARRIER_MARGIN_PX) continue;
+        if (Math.abs(lc.y - myLabel.y) >= CROSS_BAND_PX) continue;
+        const lcSurf = foreignSurfaces?.[k] ?? 1.0;
+        const ow = Math.sqrt(Math.max(0.5, lcSurf));
+        const boundary = myLabel.x + (lc.x - myLabel.x) * myWeight / (myWeight + ow);
+        if (boundary < cap) cap = boundary;
+      }
+      if (cap < candidate.xMax) {
+        candidate.xMax = cap;
+        clamped = true;
+      }
+    } else if (dir === "W") {
+      let cap = candidate.xMin;
+      for (let k = 0; k < foreignLabels.length; k++) {
+        const lc = foreignLabels[k];
+        if (lc.x >= myLabel.x - LABEL_BARRIER_MARGIN_PX) continue;
+        if (Math.abs(lc.y - myLabel.y) >= CROSS_BAND_PX) continue;
+        const lcSurf = foreignSurfaces?.[k] ?? 1.0;
+        const ow = Math.sqrt(Math.max(0.5, lcSurf));
+        const boundary = myLabel.x + (lc.x - myLabel.x) * myWeight / (myWeight + ow);
+        if (boundary > cap) cap = boundary;
+      }
+      if (cap > candidate.xMin) {
+        candidate.xMin = cap;
+        clamped = true;
+      }
+    } else if (dir === "S") {
+      let cap = candidate.yMax;
+      for (let k = 0; k < foreignLabels.length; k++) {
+        const lc = foreignLabels[k];
+        if (lc.y <= myLabel.y + LABEL_BARRIER_MARGIN_PX) continue;
+        if (Math.abs(lc.x - myLabel.x) >= CROSS_BAND_PX) continue;
+        const lcSurf = foreignSurfaces?.[k] ?? 1.0;
+        const ow = Math.sqrt(Math.max(0.5, lcSurf));
+        const boundary = myLabel.y + (lc.y - myLabel.y) * myWeight / (myWeight + ow);
+        if (boundary < cap) cap = boundary;
+      }
+      if (cap < candidate.yMax) {
+        candidate.yMax = cap;
+        clamped = true;
+      }
+    } else if (dir === "N") {
+      let cap = candidate.yMin;
+      for (let k = 0; k < foreignLabels.length; k++) {
+        const lc = foreignLabels[k];
+        if (lc.y >= myLabel.y - LABEL_BARRIER_MARGIN_PX) continue;
+        if (Math.abs(lc.x - myLabel.x) >= CROSS_BAND_PX) continue;
+        const lcSurf = foreignSurfaces?.[k] ?? 1.0;
+        const ow = Math.sqrt(Math.max(0.5, lcSurf));
+        const boundary = myLabel.y + (lc.y - myLabel.y) * myWeight / (myWeight + ow);
+        if (boundary > cap) cap = boundary;
+      }
+      if (cap > candidate.yMin) {
+        candidate.yMin = cap;
+        clamped = true;
+      }
+    }
+  }
 
   return clamped;
 }
@@ -751,10 +820,16 @@ export function enforceTouchInvariant(
         if (candidate.yMax > lotBbox.yMax + 1) candidate.yMax = lotBbox.yMax;
 
         // Anti-régression 1.5 (s28 tour 31) : NE PAS franchir le label
-        // d'une autre pièce + Voronoï midpoint cap.
+        // d'une autre pièce + Voronoï midpoint cap pondéré sqrt(surface).
         if (labelCenters.length === next.length) {
           const foreignLabels = labelCenters.filter((_, j) => j !== i);
-          clampToForeignLabels(candidate, room.bbox, dir, foreignLabels, labelCenters[i]);
+          const foreignSurfs = next
+            .filter((_, j) => j !== i)
+            .map((rr) => rr.pdfSurfaceM2 ?? 1.0);
+          clampToForeignLabels(
+            candidate, room.bbox, dir, foreignLabels, labelCenters[i],
+            room.pdfSurfaceM2 ?? 1.0, foreignSurfs,
+          );
         }
 
         // Anti-régression 2 : NE PAS chevaucher un voisin (avec marge 2px).
@@ -1111,6 +1186,8 @@ function extendRoomEdge(
   others: RectangleRoom[] = [],
   foreignLabels: LabelCenter[] = [],
   myLabel?: LabelCenter,
+  mySurface?: number,
+  foreignSurfaces?: number[],
 ): boolean {
   const candidate: Bbox = { ...room.bbox };
   const orig = { ...room.bbox };
@@ -1155,9 +1232,11 @@ function extendRoomEdge(
   }
 
   // s28 tour 31 — Barrière label : ne JAMAIS franchir le centroïde du label
-  // d'une autre pièce + Voronoï midpoint cap.
+  // d'une autre pièce + Voronoï midpoint cap pondéré sqrt(surface).
   if (foreignLabels.length > 0) {
-    clampToForeignLabels(candidate, orig, expandDir, foreignLabels, myLabel);
+    clampToForeignLabels(
+      candidate, orig, expandDir, foreignLabels, myLabel, mySurface, foreignSurfaces,
+    );
   }
 
   // Vérifier qu'il y a vraiment eu mouvement (>1px) après clamping
@@ -1260,10 +1339,15 @@ export function fillRemainingGaps(
             : [];
 
         const myLabel = labelCenters.length === next.length ? labelCenters[i] : undefined;
+        const foreignSurfs = labelCenters.length === next.length
+          ? next.filter((_, j) => j !== i).map((rr) => rr.pdfSurfaceM2 ?? 1.0)
+          : undefined;
+        const mySurf = room.pdfSurfaceM2 ?? 1.0;
 
         // Tentative 1 : étendre la pièce elle-même (cap 8x, clamping anti-overlap).
         const extended = extendRoomEdge(
           room, dir, target, initialBboxes[i], others, foreignLabelsForRoom, myLabel,
+          mySurf, foreignSurfs,
         );
         if (extended) {
           changedThisIter = true;
@@ -1301,9 +1385,13 @@ export function fillRemainingGaps(
             : [];
         const neighborLabel =
           labelCenters.length === next.length ? labelCenters[neighborIdx] : undefined;
+        const neighborForeignSurfs = labelCenters.length === next.length
+          ? next.filter((_, j) => j !== neighborIdx).map((rr) => rr.pdfSurfaceM2 ?? 1.0)
+          : undefined;
+        const neighborSurf = neighbor.pdfSurfaceM2 ?? 1.0;
         const ok = extendRoomEdge(
           neighbor, expandDir, neighborTarget, initialBboxes[neighborIdx], othersForNeighbor,
-          foreignLabelsForNeighbor, neighborLabel,
+          foreignLabelsForNeighbor, neighborLabel, neighborSurf, neighborForeignSurfs,
         );
         if (ok) {
           changedThisIter = true;
