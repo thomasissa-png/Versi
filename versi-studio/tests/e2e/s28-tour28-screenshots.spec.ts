@@ -21,7 +21,7 @@ for (const floor of FLOORS) {
     if (await button.count() > 0) await button.first().click();
     await page.waitForTimeout(2500);
     await page.screenshot({
-      path: `/home/user/Versi/versi-studio/tests/screenshots/s28-tour28-floor-${floor}.png`,
+      path: `../../tests/screenshots/s28-tour28-floor-${floor}.png`,
       fullPage: true,
     });
   });

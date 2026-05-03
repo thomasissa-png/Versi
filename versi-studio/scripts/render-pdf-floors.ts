@@ -15,7 +15,7 @@ async function main() {
     const pages = await pdf(buf, { scale: 2 });
     for await (const page of pages) {
       await writeFile(
-        `/home/user/Versi/versi-studio/tests/screenshots/s28-pdf-floor-${floor}.png`,
+        `../tests/screenshots/s28-pdf-floor-${floor}.png`,
         page,
       );
       console.log(`floor ${floor} OK`);

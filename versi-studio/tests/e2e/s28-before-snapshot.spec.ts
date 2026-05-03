@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 const PROJECT_ID = process.env.VS_E2E_PROJECT_ID;
 if (!PROJECT_ID) throw new Error("VS_E2E_PROJECT_ID requis");
 const BASE_URL = process.env.VS_E2E_BASE_URL || "http://127.0.0.1:5000";
-const SCREENSHOT_DIR = "/home/user/Versi/versi-studio/tests/screenshots";
+const SCREENSHOT_DIR = "../../tests/screenshots";
 
 test.describe("s28 — Étape 3 (Pièces) BEFORE-fix snapshot", () => {
   test("RDC — état pré-fix (rooms vides, message hors-sujet)", async ({

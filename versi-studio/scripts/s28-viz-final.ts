@@ -22,7 +22,7 @@ interface Pt { x_percent: number; y_percent: number }
 
 async function main() {
   const pool = new Pool({ connectionString: "postgres://versi:versi@127.0.0.1:5432/versi_studio" });
-  const planDir = "/home/user/Versi/versi-studio/reference-existant/plans-test/";
+  const planDir = "../reference-existant/plans-test/";
 
   for (const plan of PLANS) {
     const pdfBuffer = readFileSync(planDir + plan.file);
@@ -94,7 +94,7 @@ async function main() {
     for await (const page of pages) { pngBuffer = Buffer.from(page); break; }
     if (!pngBuffer) continue;
 
-    const out = `/home/user/Versi/versi-studio/tests/screenshots/s28-final-floor-${plan.floor}.png`;
+    const out = `../tests/screenshots/s28-final-floor-${plan.floor}.png`;
     await sharp(pngBuffer)
       .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
       .toFile(out);

@@ -11,7 +11,7 @@ if (!PROJECT_ID) {
 }
 
 const BASE_URL = "http://127.0.0.1:5000";
-const SCREENSHOT_DIR = "/home/user/Versi/versi-studio/tests/screenshots";
+const SCREENSHOT_DIR = "../tests/screenshots";
 
 async function captureFloor(page: Page, floor: number) {
   console.log(`\n[Floor ${floor}] navigation...`);

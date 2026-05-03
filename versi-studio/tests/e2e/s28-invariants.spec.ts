@@ -17,7 +17,7 @@ if (!PROJECT_ID) {
 }
 
 const BASE_URL = process.env.VS_E2E_BASE_URL || "http://127.0.0.1:5000";
-const SCREENSHOT_DIR = "/home/user/Versi/versi-studio/tests/screenshots";
+const SCREENSHOT_DIR = "../../tests/screenshots";
 
 // 3 minutes par test (turbopack peut être très lent en cold)
 test.setTimeout(180_000);

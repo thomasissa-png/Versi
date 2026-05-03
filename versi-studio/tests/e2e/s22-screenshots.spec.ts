@@ -6,7 +6,7 @@ import { test, expect } from "@playwright/test";
 
 const PROJECT_ID = "63ad6de2-9df8-4acd-b4df-5e1889c03a18";
 const BASE_URL = "http://localhost:5000";
-const SCREENSHOT_DIR = "/home/user/Versi/docs/screenshots/s22";
+const SCREENSHOT_DIR = "../../../docs/screenshots/s22";
 
 test("stepper lots page — completedSteps dynamique", async ({ page }) => {
   await page.goto(`${BASE_URL}/vs/projects/${PROJECT_ID}/lots`, {

@@ -16,8 +16,8 @@ import * as path from 'path';
 
 const BASE_URL = process.env.VS_BASE_URL ?? 'http://localhost:3100';
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://versi:versi@127.0.0.1:5432/versi_test';
-const SCREENSHOT_DIR = '/home/user/Versi/docs/screenshots/s25/round-3';
-const PLANS_DIR = '/home/user/Versi/versi-studio/reference-existant/plans-test';
+const SCREENSHOT_DIR = '../../docs/screenshots/s25/round-3';
+const PLANS_DIR = '../reference-existant/plans-test';
 
 type PlanCase = { id: string; filename: string; floor: number; expectedLots: number; expectedRoomsMin: number };
 const PLANS: PlanCase[] = [

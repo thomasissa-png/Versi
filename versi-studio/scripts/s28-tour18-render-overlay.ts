@@ -22,7 +22,7 @@ if (!PROJECT_ID) {
 }
 
 const DB_URL = process.env.DATABASE_URL || "postgres://versi:versi@127.0.0.1:5432/versi_studio";
-const SCREENSHOT_DIR = "/home/user/Versi/versi-studio/tests/screenshots";
+const SCREENSHOT_DIR = "../tests/screenshots";
 
 // Couleurs cycliques pour les pièces (roomType → color)
 const COLORS = [

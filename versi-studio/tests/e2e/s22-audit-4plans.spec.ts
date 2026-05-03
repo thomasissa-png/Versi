@@ -7,7 +7,7 @@
 
 import { test } from "@playwright/test";
 
-const SCREENSHOT_DIR = "/home/user/Versi/docs/screenshots/s22";
+const SCREENSHOT_DIR = "../../../docs/screenshots/s22";
 
 const TEST_PROJECTS = [
   { id: "63ad6de2-9df8-4acd-b4df-5e1889c03a18", name: "P00" },

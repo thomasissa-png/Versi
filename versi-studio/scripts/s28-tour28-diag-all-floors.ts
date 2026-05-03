@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { extractTextItems, filterRoomLabels } from '/home/user/Versi/versi-studio/src/lib/vs/pdf-text-extractor';
+import { extractTextItems, filterRoomLabels } from '../src/lib/vs/pdf-text-extractor';
 
 const PLANS = [
   { file: 'P 00 - Pr2_plan RDC_ projet2.pdf', floor: 0 },
@@ -10,7 +10,7 @@ const PLANS = [
 
 async function main() {
   for (const plan of PLANS) {
-    const buf = fs.readFileSync(`/home/user/Versi/versi-studio/reference-existant/plans-test/${plan.file}`);
+    const buf = fs.readFileSync(`../reference-existant/plans-test/${plan.file}`);
     const lotPolygon = [
       {x:0,y:0},{x:10000,y:0},{x:10000,y:10000},{x:0,y:10000}
     ];

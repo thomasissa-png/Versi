@@ -22,8 +22,8 @@ import * as path from 'path';
 
 const BASE_URL = process.env.VS_BASE_URL ?? 'http://localhost:3100';
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://versi:versi@127.0.0.1:5432/versi_test';
-const SCREENSHOT_DIR = '/home/user/Versi/docs/screenshots/s25/round-c';
-const PLANS_DIR = '/home/user/Versi/versi-studio/reference-existant/plans-test';
+const SCREENSHOT_DIR = '../../docs/screenshots/s25/round-c';
+const PLANS_DIR = '../reference-existant/plans-test';
 
 type PlanCase = { id: 'P00' | 'P01' | 'P02' | 'P03'; filename: string; floor: number };
 type CriterionScore = { c1: boolean; c2: boolean; c3: boolean; c4: boolean };

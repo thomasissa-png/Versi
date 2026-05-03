@@ -16,7 +16,7 @@ const DB_URL =
   "postgres://versi:versi@127.0.0.1:5432/versi_studio";
 
 const PLANS_DIR =
-  "/home/user/Versi/versi-studio/reference-existant/plans-test";
+  "../reference-existant/plans-test";
 const PLANS = [
   { file: "P 00 - Pr2_plan RDC_ projet2.pdf", floor: 0 },
   { file: "P 01 - Pr2_plan R+1_ projet2.pdf", floor: 1 },

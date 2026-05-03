@@ -8,7 +8,7 @@ import * as fs from 'fs';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgres://versi:versi@127.0.0.1:5432/versi_test';
-const SCREENSHOT_DIR = '/home/user/Versi/docs/screenshots/s25/round-e';
+const SCREENSHOT_DIR = '../../docs/screenshots/s25/round-e';
 
 type PlanCase = { id: string; floor: number; expectedLots: number; expectedRoomsMin: number };
 const EXPECTED: Record<number, PlanCase> = {

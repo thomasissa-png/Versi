@@ -21,7 +21,7 @@ if (!PROJECT_ID) {
 }
 
 const BASE_URL = process.env.VS_E2E_BASE_URL || "http://127.0.0.1:5000";
-const SCREENSHOT_DIR = "/home/user/Versi/versi-studio/tests/screenshots";
+const SCREENSHOT_DIR = "../../tests/screenshots";
 
 // Test timeout global 90s (turbopack + pdf-to-img)
 test.setTimeout(90_000);

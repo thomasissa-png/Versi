@@ -12,7 +12,7 @@ import { test, expect } from "@playwright/test";
 
 const PROJECT_ID = "63ad6de2-9df8-4acd-b4df-5e1889c03a18";
 const ROOMS_URL = `/vs/projects/${PROJECT_ID}/rooms`;
-const SCREENSHOT_DIR = "/home/user/Versi/docs/screenshots/s22";
+const SCREENSHOT_DIR = "../../../docs/screenshots/s22";
 
 test.describe("S22 — Polygones + Option C", () => {
   test("1. Vue complète polygones IA semi-transparents", async ({ page }) => {
