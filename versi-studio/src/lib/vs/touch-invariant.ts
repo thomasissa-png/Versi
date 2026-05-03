@@ -47,6 +47,21 @@ const MAX_ITERATIONS = 8;
  *  800px = couvre tous les lots normaux. */
 const MAX_EXTEND_PER_ITER_PX = 800;
 
+/** s28 tour 30 — Filtre pièces hallucinées :
+ *  Pour les pièces SANS surface PDF (ECS, TGBT, gaine), si elles flottent
+ *  (gap > HALLUCINATION_GAP_PX sur un bord) ET aucun voisin avec overlap
+ *  perpendiculaire >= HALLUCINATION_OVERLAP_RATIO → on les filtre.
+ *  Cas typique tour 29 R+3 : ECS/S=580px → pièce ECS hallucinée flotte. */
+const HALLUCINATION_GAP_PX = 200;
+const HALLUCINATION_OVERLAP_RATIO = 0.5;
+
+/** s28 tour 30 — Fill remaining gaps : passe finale agressive.
+ *  Pour chaque bord avec gap > FILL_GAP_THRESHOLD_PX après enforceTouchInvariant,
+ *  on identifie le voisin le plus proche perpendiculaire, et on l'étend
+ *  AGRESSIVEMENT (cap 8x bbox initiale) pour combler le gap. */
+const FILL_GAP_THRESHOLD_PX = 50;
+const FILL_GAP_MAX_OVER_INITIAL = 8.0;
+
 // ─── Types ─────────────────────────────────────────────────────────
 
 type Bbox = { xMin: number; yMin: number; xMax: number; yMax: number };
