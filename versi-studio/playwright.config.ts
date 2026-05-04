@@ -39,6 +39,34 @@ export default defineConfig({
       name: "Desktop Chrome",
       use: { ...devices["Desktop Chrome"] },
     },
+    // ─── Matrice s30 — Étape 4 v2 (visuals-step-v2-*.spec.ts) ──────────
+    // Pattern s28 : tester device réel, pas juste viewport.
+    // Mobile Safari et Mobile Chrome divergent sur events touch.
+    {
+      name: "desktop-chrome",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1920, height: 1080 },
+      },
+      testMatch: /visuals-step-v2-.*\.spec\.ts/,
+    },
+    {
+      name: "tablet-ipad",
+      use: {
+        ...devices["iPad (gen 7)"],
+        hasTouch: true,
+      },
+      testMatch: /visuals-step-v2-.*\.spec\.ts/,
+    },
+    {
+      name: "mobile-iphone",
+      use: {
+        ...devices["iPhone 13"],
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /visuals-step-v2-.*\.spec\.ts/,
+    },
   ],
 
   webServer: {
