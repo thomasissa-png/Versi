@@ -97,8 +97,29 @@ export interface VsPhoto {
   id: string;
   room_id: string;
   file_path: string;
+  /** @deprecated v2 — use angle_degrees (FLOAT 0-359). Sera supprimé v3. */
   angle_description: string | null;
+  /** s29 — position normalisée du centre photo sur le canvas plan (0.0-1.0). */
+  position_x: number | null;
+  position_y: number | null;
+  /** s29 — angle de vue photographe (0 = nord, sens horaire, 0-359). */
+  angle_degrees: number | null;
+  /** s29 — true si Thomas a placé la photo sur un polygone du plan. */
+  is_placed_on_plan: boolean;
+  /** s29 — DateTimeOriginal EXIF (ISO string), utilisé par T4. */
+  taken_at: string | null;
+  /** s29 — EXIF brut conservé pour usage futur. */
+  exif_raw: Record<string, unknown> | null;
+  /** s29 — warnings de pré-traitement (low_light, blurry, ...). */
+  preprocessing_warnings: PhotoPreprocessingWarning[] | null;
   created_at: string;
+}
+
+/** s29 — warning de pré-traitement photo (sidebar UI). */
+export interface PhotoPreprocessingWarning {
+  code: "low_light" | "blurry" | "too_small" | "low_resolution" | "unsupported_format";
+  severity: "info" | "warning";
+  message: string;
 }
 
 export interface VsVisual {
@@ -111,7 +132,54 @@ export interface VsVisual {
   iteration_count: number;
   parent_visual_id: string | null;
   error_message: string | null;
+  /** s29 — référence au visuel ancre (NULL si CE visuel EST l'ancre). */
+  anchor_visual_id: string | null;
+  /** s29 — signature visuelle JSON (palette, meubles, ...). Présent uniquement sur ancres. */
+  visual_signature_json: VsVisualSignature | null;
+  /** s29 — mode de cohérence (NULL pour ancres). */
+  coherence_mode: "multi_image_native" | "textual_signature" | null;
+  /** s29 — version du prompt utilisée (v1.x.x ou v2.x.x). */
+  prompt_version: string | null;
   created_at: string;
+}
+
+/** s29 — signature visuelle extraite de l'ancre (réinjectée dans secondaires). */
+export interface VsVisualSignature {
+  palette: string[];
+  meubles: string[];
+  sols_murs: string;
+  lumiere: string;
+}
+
+/** s29 — paramètres visuels par pièce (slider visuels + commentaire libre). */
+export interface VsRoomSettings {
+  room_id: string;
+  comment_text: string | null;
+  /** Nombre de visuels souhaités (0-5). 0 = pièce désactivée. */
+  target_visual_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** s29 — type de trigger d'ambiguïté (T1-T5). */
+export type VsAmbiguityTrigger =
+  | "surface_aberrante"      // T1
+  | "photo_manquante"        // T2
+  | "conflit_style_commentaire" // T3
+  | "photos_incoherentes"    // T4
+  | "surface_inconnue";      // T5
+
+/** s29 — question bloquante posée par l'IA avant génération. */
+export interface VsVisualQuestion {
+  id: string;
+  project_id: string;
+  room_id: string | null;
+  trigger_type: VsAmbiguityTrigger;
+  question_text: string;
+  user_answer: string | null;
+  status: "asked" | "answered" | "expired";
+  asked_at: string;
+  answered_at: string | null;
 }
 
 // ─── Zone Data (coordonnées % pour le canvas) ────────────────────

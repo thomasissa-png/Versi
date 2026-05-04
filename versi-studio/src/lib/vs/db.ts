@@ -247,6 +247,72 @@ export async function ensureVsTables(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_vs_visuals_photo ON vs_visuals(photo_id);
     CREATE INDEX IF NOT EXISTS idx_vs_visuals_status ON vs_visuals(status);
+
+    -- ─── Migrations s29 — Étape 4 v2 (Vague 1 backend) ──────────────
+
+    -- 002_s29_photo_placement : positionnement des photos sur le plan
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS position_x FLOAT;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS position_y FLOAT;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS angle_degrees FLOAT;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS is_placed_on_plan BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS taken_at TIMESTAMPTZ;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS exif_raw JSONB;
+    ALTER TABLE vs_photos ADD COLUMN IF NOT EXISTS preprocessing_warnings JSONB;
+    CREATE INDEX IF NOT EXISTS idx_vs_photos_placed
+      ON vs_photos(room_id) WHERE is_placed_on_plan = true;
+    -- Contrainte angle dans [0,360) — idempotent via DROP IF EXISTS
+    DO $migration_s29_angle$
+    BEGIN
+      ALTER TABLE vs_photos DROP CONSTRAINT IF EXISTS vs_photos_angle_check;
+      ALTER TABLE vs_photos ADD CONSTRAINT vs_photos_angle_check
+        CHECK (angle_degrees IS NULL OR (angle_degrees >= 0 AND angle_degrees < 360));
+    END
+    $migration_s29_angle$;
+
+    -- 003_s29_room_settings : paramètres visuels par pièce
+    CREATE TABLE IF NOT EXISTS vs_room_settings (
+      room_id              UUID         PRIMARY KEY REFERENCES vs_rooms(id) ON DELETE CASCADE,
+      comment_text         TEXT,
+      target_visual_count  INT          NOT NULL DEFAULT 1
+                                        CHECK (target_visual_count BETWEEN 0 AND 5),
+      created_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      updated_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    );
+    CREATE OR REPLACE FUNCTION vs_room_settings_set_updated_at()
+    RETURNS TRIGGER AS $vs_rs_upd$
+    BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+    $vs_rs_upd$ LANGUAGE plpgsql;
+    DROP TRIGGER IF EXISTS trg_vs_room_settings_updated_at ON vs_room_settings;
+    CREATE TRIGGER trg_vs_room_settings_updated_at
+      BEFORE UPDATE ON vs_room_settings
+      FOR EACH ROW EXECUTE FUNCTION vs_room_settings_set_updated_at();
+
+    -- 004_s29_visual_questions : questions bloquantes IA (T1-T5)
+    CREATE TABLE IF NOT EXISTS vs_visual_questions (
+      id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id    UUID         NOT NULL REFERENCES vs_projects(id) ON DELETE CASCADE,
+      room_id       UUID         REFERENCES vs_rooms(id) ON DELETE CASCADE,
+      trigger_type  VARCHAR(40)  NOT NULL,
+      question_text TEXT         NOT NULL,
+      user_answer   TEXT,
+      status        VARCHAR(20)  NOT NULL DEFAULT 'asked'
+                                 CHECK (status IN ('asked','answered','expired')),
+      asked_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      answered_at   TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_vs_visual_questions_unanswered
+      ON vs_visual_questions(project_id, asked_at)
+      WHERE status = 'asked';
+    CREATE INDEX IF NOT EXISTS idx_vs_visual_questions_room
+      ON vs_visual_questions(room_id) WHERE room_id IS NOT NULL;
+
+    -- 005_s29_visuals_coherence : extension vs_visuals
+    ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS anchor_visual_id UUID REFERENCES vs_visuals(id);
+    ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS visual_signature_json JSONB;
+    ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS coherence_mode VARCHAR(30);
+    ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS prompt_version VARCHAR(20);
+    CREATE INDEX IF NOT EXISTS idx_vs_visuals_anchor
+      ON vs_visuals(anchor_visual_id) WHERE anchor_visual_id IS NOT NULL;
   `;
 
   try {

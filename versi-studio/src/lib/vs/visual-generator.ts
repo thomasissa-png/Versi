@@ -13,6 +13,7 @@
  */
 import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
+import { imagesEditLimiter } from "@/lib/vs/openai-rate-limiter";
 
 // ─── Singleton OpenAI ──────────────────────────────────────────────
 let _openaiClient: OpenAI | null = null;
@@ -33,6 +34,38 @@ export interface VisualGenerationResult {
 export type VisualGenerationOutcome =
   | { ok: true; image_base64: string; prompt_used: string }
   | { ok: false; error: string };
+
+// ─── Types V2 (Étape 4 v2 — pipeline cohérent) ────────────────────
+
+/** Paramètres communs pour build prompt ancre OU secondaire. */
+export interface AnchorPromptParams {
+  roomType: string;
+  styleId: string;
+  surfaceM2: number | null;
+  /** Angle de vue du photographe en degrés (0-359, 0 = nord). NULL si non placé. */
+  angleDegrees: number | null;
+  /** Commentaire libre Thomas (vs_room_settings.comment_text). */
+  commentText: string | null;
+  /** Réponses utilisateur aux questions T1-T5 (concaténées). */
+  userAnswers: string[];
+  structuralInstructions: string | null;
+}
+
+/** Signature visuelle extraite de l'ancre — sert à uniformiser les secondaires. */
+export interface VisualSignature {
+  /** Couleurs hex dominantes : ["#F5EDE2", ...]. */
+  palette: string[];
+  /** Meubles principaux avec matériau/couleur. */
+  meubles: string[];
+  /** Revêtement sol + finition murs. */
+  sols_murs: string;
+  /** Ambiance lumineuse. */
+  lumiere: string;
+}
+
+export interface SecondaryPromptParams extends AnchorPromptParams {
+  anchorSignature: VisualSignature;
+}
 
 // ─── Prompt builder ────────────────────────────────────────────────
 
@@ -157,6 +190,10 @@ async function callImageGeneration(
   const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "png";
   const imageFile = await toFile(photoBuffer, `photo.${ext}`, { type: mimeType });
 
+  // s29 — rate limit token bucket vers gpt-image-2 images.edit
+  // Évite le 429 quand plusieurs pièces génèrent en parallèle
+  await imagesEditLimiter.acquireToken();
+
   const response = await openai.images.edit({
     model: "gpt-image-2",
     image: imageFile,
@@ -252,4 +289,186 @@ ${structuralRule}
     ? "Apply the structural modifications as described."
     : "Keep all structural elements.";
   return `Modify this ${roomLabel} image: ${instruction}. Keep the ${styleName} style (${styleHint}). ${fallbackStructural} Photorealistic result.`;
+}
+
+// ─── V2 (s29) — Helpers communs prompts cohérents ─────────────────
+
+type SurfaceQualifier = "compact" | "standard" | "généreux";
+
+function qualifySurface(m2: number): SurfaceQualifier {
+  if (m2 < 12) return "compact";
+  if (m2 < 25) return "standard";
+  return "généreux";
+}
+
+function furnitureGuidance(qualifier: SurfaceQualifier): string {
+  return ({
+    compact: "compact furniture — 2-seat sofa, side table, optimized layout",
+    standard: "standard furniture — 3-seat sofa, coffee table, accent chair",
+    "généreux": "generous furniture — corner sofa, lounge chair, 120cm coffee table",
+  } as const)[qualifier];
+}
+
+/**
+ * Convertit un angle en degrés (0 = nord, sens horaire) en libellé cardinal
+ * pour injection prompt. 8 secteurs de 45°.
+ */
+export function angleDegreesToCardinal(deg: number): string {
+  const sectors = [
+    "from the north", "from the north-east", "from the east", "from the south-east",
+    "from the south", "from the south-west", "from the west", "from the north-west",
+  ];
+  const idx = Math.round(((deg % 360) + 360) % 360 / 45) % 8;
+  return `view ${sectors[idx]} of the room`;
+}
+
+// ─── V2 (s29) — buildVisualPromptAnchor ───────────────────────────
+
+/**
+ * Construit le prompt pour le visuel "ancre" (1er visuel d'une pièce).
+ * Servira de base pour la signature visuelle injectée dans les secondaires.
+ *
+ * Diff vs buildVisualPrompt V1 : ajout angleDegrees (cardinal verbalisé),
+ * userAnswers, gestion surface qualifier (compact/standard/généreux).
+ */
+export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
+  const style = getStyle(p.styleId);
+  const roomLabel = getRoomLabel(p.roomType);
+  const styleName = style?.name ?? p.styleId;
+  const styleHint = style?.prompt_hint ?? "";
+
+  const surfaceQual = p.surfaceM2 ? qualifySurface(p.surfaceM2) : "standard";
+  const surfaceLine = p.surfaceM2
+    ? `Surface ${p.surfaceM2}m² (${surfaceQual}) — ${furnitureGuidance(surfaceQual)}.`
+    : "";
+  const angleLine = p.angleDegrees != null
+    ? `Camera angle: ${angleDegreesToCardinal(p.angleDegrees)}.`
+    : "";
+  const commentLine = p.commentText
+    ? `User-specified constraints (MUST respect): ${p.commentText}.`
+    : "";
+  const answersLine = p.userAnswers.length > 0
+    ? `Clarifications from operator: ${p.userAnswers.join(" | ")}.`
+    : "";
+  const hasTransformations = p.structuralInstructions && p.structuralInstructions.trim().length > 0;
+  const structuralBlock = hasTransformations
+    ? `\n\nSTRUCTURAL TRANSFORMATIONS — TOP PRIORITY:\n${p.structuralInstructions!.trim()}`
+    : "";
+  const structuralRule = hasTransformations
+    ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE."
+    : "1. KEEP all structural elements EXACTLY (walls, windows, doors, ceiling, floor shape).";
+
+  return `Transform this empty/raw ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style.${structuralBlock}
+
+STYLE DETAILS: ${styleHint}.
+
+CONTEXT:
+${surfaceLine}
+${angleLine}
+${commentLine}
+${answersLine}
+
+STRICT RULES:
+${structuralRule}
+2. ADD furniture, decorations, lighting consistent with ${styleName} style.
+3. Furniture MUST be PROPORTIONAL to surface (${surfaceQual}).
+4. Result must be a professional interior design photograph — photorealistic, natural lighting.
+5. NO text, watermark, logo, or overlay.
+6. Do NOT change camera perspective.
+7. Walls freshly finished, floor with appropriate material.
+8. Subtle decorative elements appropriate to style.`;
+}
+
+// ─── V2 (s29) — buildVisualPromptSecondary ────────────────────────
+
+/**
+ * Construit le prompt pour un visuel "secondaire" (vue alternative d'une pièce
+ * dont l'ancre a déjà été générée). Réutilise buildVisualPromptAnchor + bloc
+ * de cohérence injectant la signature de l'ancre (palette, meubles, finitions).
+ *
+ * Si gpt-image-2 supporte multi-image en input, l'ancre passe AUSSI comme
+ * image de référence (cf. coherent-visual-generator.ts) — la signature reste
+ * un fallback robuste.
+ */
+export function buildVisualPromptSecondary(p: SecondaryPromptParams): string {
+  const base = buildVisualPromptAnchor(p);
+  const sig = p.anchorSignature;
+  const palette = sig.palette.length > 0 ? sig.palette.join(", ") : "(palette unspecified)";
+  const meubles = sig.meubles.length > 0 ? sig.meubles.join("; ") : "(furniture list unspecified)";
+  const coherenceBlock = `
+
+COHERENCE WITH ANCHOR VISUAL — CRITICAL:
+This image is a DIFFERENT ANGLE of the SAME ROOM as a previously generated anchor visual. Furniture, palette and finishes MUST match the anchor exactly.
+- Color palette (use these hex tones): ${palette}
+- Furniture present in the room (must appear or be visible in this angle if geometrically plausible): ${meubles}
+- Floor and walls: ${sig.sols_murs}
+- Lighting mood: ${sig.lumiere}
+
+Do NOT introduce new furniture types, new colors, or different finishes. This is a second photo of the same finished room from another viewpoint.`;
+  return base + coherenceBlock;
+}
+
+// ─── V2 (s29) — extractVisualSignature ────────────────────────────
+
+/**
+ * Extrait la signature visuelle d'une image (palette, meubles, finitions, lumière)
+ * via gpt-4o-mini vision. Utilisé sur le visuel "ancre" pour injecter la cohérence
+ * dans les prompts secondaires.
+ *
+ * Coût : ~$0.001 par appel. Fallback safe : si parsing JSON échoue ou si l'API
+ * est indisponible, retourne une signature vide — les prompts secondaires resteront
+ * cohérents textuellement mais sans contraintes hex précises (dégradation acceptable
+ * vs throw qui bloquerait toute la pièce).
+ *
+ * @param imageBase64 Image source en base64 (sans préfixe data:)
+ * @returns Signature visuelle structurée
+ */
+export async function extractVisualSignature(imageBase64: string): Promise<VisualSignature> {
+  const fallback: VisualSignature = {
+    palette: [],
+    meubles: [],
+    sols_murs: "(unspecified — coherence based on prompt only)",
+    lumiere: "(unspecified — natural lighting assumed)",
+  };
+
+  const sysPrompt = `Décris cette image d'intérieur en 4 sections JSON courtes:
+1. "palette": 3 à 5 couleurs hex dominantes (format "#RRGGBB")
+2. "meubles": liste des meubles principaux avec leur matériau/couleur (ex: "canapé tissu lin beige")
+3. "sols_murs": revêtement sol + finition murs (ex: "parquet chêne clair, murs blanc cassé")
+4. "lumiere": ambiance lumineuse (ex: "lumière naturelle latérale gauche, chaude")
+Réponds STRICTEMENT en JSON valide, sans markdown ni explication.`;
+
+  try {
+    const openai = getOpenAI();
+    const response = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: [
+        { role: "system", content: sysPrompt },
+        {
+          role: "user",
+          content: [{ type: "input_image", image_url: `data:image/png;base64,${imageBase64}` }],
+        },
+      ],
+    });
+    const textOutput = response.output.find((o: { type: string }) => o.type === "message");
+    if (!textOutput || textOutput.type !== "message") return fallback;
+    const msg = textOutput as { content: Array<{ type: string; text?: string }> };
+    const textContent = msg.content.find((c) => c.type === "output_text");
+    if (!textContent?.text) return fallback;
+
+    const cleaned = textContent.text.trim().replace(/^```json\s*/i, "").replace(/```\s*$/, "");
+    const parsed = JSON.parse(cleaned) as Partial<VisualSignature>;
+    return {
+      palette: Array.isArray(parsed.palette) ? parsed.palette.filter((s) => typeof s === "string") : [],
+      meubles: Array.isArray(parsed.meubles) ? parsed.meubles.filter((s) => typeof s === "string") : [],
+      sols_murs: typeof parsed.sols_murs === "string" ? parsed.sols_murs : fallback.sols_murs,
+      lumiere: typeof parsed.lumiere === "string" ? parsed.lumiere : fallback.lumiere,
+    };
+  } catch (err) {
+    console.warn(
+      "[visual-generator] extractVisualSignature failed, using fallback:",
+      err instanceof Error ? err.message : err
+    );
+    return fallback;
+  }
 }
