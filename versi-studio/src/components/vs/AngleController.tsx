@@ -147,13 +147,13 @@ export default function AngleController({
               : "cursor-pointer"
           }
         >
-          {/* Cercle de base */}
+          {/* Cercle de base — Round 3 s30 fix D4 : tokens design system. */}
           <circle
             cx={CIRCLE_SIZE / 2}
             cy={CIRCLE_SIZE / 2}
             r={CIRCLE_RADIUS}
-            fill="rgba(124,134,145,0.10)"
-            stroke="rgba(124,134,145,0.6)"
+            fill="var(--color-bg-canvas)"
+            stroke="var(--color-border-default)"
             strokeWidth={1.5}
           />
           {/* Repère N (nord) */}
@@ -162,7 +162,7 @@ export default function AngleController({
             y={10}
             textAnchor="middle"
             fontSize="10"
-            fill="#7C8691"
+            fill="var(--color-text-muted)"
           >
             N
           </text>
@@ -172,17 +172,17 @@ export default function AngleController({
             y1={CIRCLE_SIZE / 2}
             x2={indicatorX}
             y2={indicatorY}
-            stroke="#141C28"
+            stroke="var(--color-text-default)"
             strokeWidth={2.5}
             strokeLinecap="round"
           />
-          {/* Pointe */}
+          {/* Pointe — `interactive-primary` = noir-profond Versi (charte calcaire/minéral). */}
           <circle
             cx={indicatorX}
             cy={indicatorY}
             r={5}
-            fill="#2E66DC"
-            stroke="#FFFFFF"
+            fill="var(--color-interactive-primary)"
+            stroke="var(--color-bg-default)"
             strokeWidth={2}
           />
         </svg>

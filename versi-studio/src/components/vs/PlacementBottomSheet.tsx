@@ -94,8 +94,12 @@ export default function PlacementBottomSheet({
         tabIndex={-1}
       />
 
-      {/* Sheet */}
-      <div className="relative w-full sm:max-w-md bg-bg-default rounded-t-2xl sm:rounded-2xl border border-border-default shadow-xl p-lg pb-xl animate-in slide-in-from-bottom duration-200">
+      {/* Sheet — Round 3 s30 fix D2 : pb-xl + safe-area-inset-bottom iOS notch. */}
+      <div
+        className="relative w-full sm:max-w-md bg-bg-default rounded-t-2xl sm:rounded-2xl border border-border-default shadow-xl p-lg animate-in slide-in-from-bottom duration-200"
+        style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
+      >
+        {/* (paddingBottom remplace pb-xl ; safe-area = 0px sur desktop, inchangé) */}
         {/* Drag handle visuel mobile */}
         <div
           className="sm:hidden mx-auto mb-md w-12 h-1 rounded-full bg-border-default"
@@ -182,7 +186,7 @@ export default function PlacementBottomSheet({
             type="button"
             onClick={onCancel}
             disabled={isCommitting}
-            className="flex-1 min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card transition-colors duration-200 disabled:opacity-50"
+            className="flex-1 min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive-primary focus-visible:ring-offset-1"
           >
             Annuler
           </button>
@@ -190,7 +194,7 @@ export default function PlacementBottomSheet({
             type="button"
             onClick={onConfirm}
             disabled={isCommitting}
-            className="flex-1 min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover transition-colors duration-200 disabled:opacity-60 disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            className="flex-1 min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover transition-colors duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
             data-testid="confirm-placement-btn"
           >
             {isCommitting ? "Enregistrement…" : "Confirmer"}

@@ -136,6 +136,7 @@ export default function VisualGallery({
                     <VisualCard
                       key={v.visual_id}
                       roomId={room.id}
+                      roomLabel={label}
                       visual={v}
                       isRegenerating={regenerating.has(v.visual_id)}
                       error={errors.get(v.visual_id) ?? null}
@@ -156,13 +157,15 @@ export default function VisualGallery({
 
 interface VisualCardProps {
   roomId: string;
+  /** Label de la pièce — utilisé pour l'alt descriptif (Round 3 s30 fix D6 WCAG 1.1.1). */
+  roomLabel: string;
   visual: VisualGenerated;
   isRegenerating: boolean;
   error: string | null;
   onRegenerate: (roomId: string, visual: VisualGenerated) => void;
 }
 
-function VisualCard({ roomId, visual, isRegenerating, error, onRegenerate }: VisualCardProps) {
+function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegenerate }: VisualCardProps) {
   const src = visual.file_path
     ? `/api/vs/files?path=${encodeURIComponent(visual.file_path)}`
     : null;
@@ -179,7 +182,7 @@ function VisualCard({ roomId, visual, isRegenerating, error, onRegenerate }: Vis
         {src ? (
           <Image
             src={src}
-            alt={`Visuel ${isAnchor ? "ancre" : "secondaire"}`}
+            alt={`Visuel ${isAnchor ? "ancre" : "secondaire"} — ${roomLabel}`}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             loading="lazy"
@@ -232,7 +235,7 @@ function VisualCard({ roomId, visual, isRegenerating, error, onRegenerate }: Vis
             type="button"
             onClick={() => onRegenerate(roomId, visual)}
             disabled={isRegenerating}
-            className="text-xs text-interactive-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] px-xs"
+            className="text-xs text-interactive-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[44px] px-xs rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive-primary focus-visible:ring-offset-1"
             aria-label="Régénérer ce visuel"
             data-testid={`regenerate-${visual.visual_id}`}
           >

@@ -91,12 +91,32 @@ export default function QuestionsModal({ questions, onCancel, onAnswered }: Ques
     firstInputRef.current?.focus();
   }, []);
 
-  // Empêche Esc de fermer si l'utilisateur a saisi quelque chose
+  // Esc + Focus trap — Round 3 s30 fix D5 (WCAG 2.2 AA 2.1.2 No Keyboard Trap).
+  // Tab/Shift+Tab cyclent dans le dialog, Esc ferme uniquement si non-dirty.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const hasInput = Array.from(fields.values()).some((f) => f.value.trim().length > 0);
-      if (!hasInput) onCancel();
+      if (e.key === "Escape") {
+        const hasInput = Array.from(fields.values()).some((f) => f.value.trim().length > 0);
+        if (!hasInput) onCancel();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]),input:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+          )
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -221,7 +241,7 @@ export default function QuestionsModal({ questions, onCancel, onAnswered }: Ques
                     onChange={(e) => updateField(q.id, { value: e.target.value, saved: false })}
                     placeholder="Ex: 24.5"
                     disabled={f.saving || f.saved}
-                    className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:border-interactive-primary disabled:opacity-50"
+                    className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive-primary focus-visible:ring-offset-1 focus-visible:border-interactive-primary disabled:opacity-50"
                   />
                 )}
 
@@ -292,7 +312,7 @@ export default function QuestionsModal({ questions, onCancel, onAnswered }: Ques
                     maxLength={500}
                     placeholder="Votre réponse…"
                     disabled={f.saving || f.saved}
-                    className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:border-interactive-primary disabled:opacity-50 resize-y"
+                    className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive-primary focus-visible:ring-offset-1 focus-visible:border-interactive-primary disabled:opacity-50 resize-y"
                   />
                 )}
 
@@ -306,7 +326,10 @@ export default function QuestionsModal({ questions, onCancel, onAnswered }: Ques
           })}
         </ul>
 
-        <div className="p-lg border-t border-border-default flex flex-col-reverse sm:flex-row gap-sm justify-end items-stretch sm:items-center">
+        <div
+          className="p-lg border-t border-border-default flex flex-col-reverse sm:flex-row gap-sm justify-end items-stretch sm:items-center"
+          style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}
+        >
           {globalError && (
             <p role="alert" className="text-xs text-error mr-auto" aria-live="polite">
               {globalError}

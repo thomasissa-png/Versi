@@ -254,7 +254,7 @@ export default function RoomSettingsSidebar({
                 rows={2}
                 disabled={disabled}
                 maxLength={500}
-                className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:border-interactive-primary disabled:opacity-50 disabled:cursor-not-allowed resize-y"
+                className="w-full rounded-sm border border-border-default bg-bg-default px-sm py-xs text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive-primary focus-visible:ring-offset-1 focus-visible:border-interactive-primary disabled:opacity-50 disabled:cursor-not-allowed resize-y"
               />
               <div className="flex items-center justify-between text-xs">
                 <span className="text-text-muted" aria-live="polite">

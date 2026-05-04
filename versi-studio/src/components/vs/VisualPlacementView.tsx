@@ -459,11 +459,6 @@ export default function VisualPlacementView({
           </div>
         )}
 
-        {/* Cost estimator (badge top-right canvas — P0 persona) */}
-        <div className="absolute top-md right-md z-10">
-          <CostEstimator roomTargets={roomTargets} />
-        </div>
-
         {/* Toast */}
         {toast && (
           <div
@@ -506,6 +501,12 @@ export default function VisualPlacementView({
             : "w-80 flex-shrink-0 border-l border-border-default bg-bg-card overflow-y-auto flex flex-col"
         }
       >
+        {/* Cost estimator sticky header — Round 3 s30 fix D1 chevauchement.
+            Anciennement absolute sur le canvas (chevauchait AngleController mobile). */}
+        <div className="sticky top-0 z-10 bg-bg-card border-b border-border-default px-md py-sm">
+          <CostEstimator roomTargets={roomTargets} />
+        </div>
+
         <PhotoSidebar
           photos={photos}
           selectedPhotoId={selectedPhotoId}
