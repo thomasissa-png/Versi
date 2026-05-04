@@ -29,6 +29,11 @@ export interface VisualGenerationResult {
   prompt_used: string;
 }
 
+/** Résultat soit succès, soit erreur explicite (avec message OpenAI propagé). */
+export type VisualGenerationOutcome =
+  | { ok: true; image_base64: string; prompt_used: string }
+  | { ok: false; error: string };
+
 // ─── Prompt builder ────────────────────────────────────────────────
 
 /**
@@ -114,14 +119,14 @@ export async function generateVisual(
   surfaceM2: number | null = null,
   angleDescription: string | null = null,
   structuralInstructions: string | null = null
-): Promise<VisualGenerationResult | null> {
+): Promise<VisualGenerationOutcome> {
   const openai = getOpenAI();
   const prompt = buildVisualPrompt(roomType, styleId, surfaceM2, angleDescription, structuralInstructions);
 
   // Premier essai
   try {
     const result = await callImageGeneration(openai, photoBase64, mimeType, prompt);
-    return { image_base64: result, prompt_used: prompt };
+    return { ok: true, image_base64: result, prompt_used: prompt };
   } catch (err) {
     console.warn("[visual-generator] Premier essai échoué, retry dans 5s...", err instanceof Error ? err.message : err);
   }
@@ -130,10 +135,12 @@ export async function generateVisual(
   await new Promise(r => setTimeout(r, 5000));
   try {
     const result = await callImageGeneration(openai, photoBase64, mimeType, prompt);
-    return { image_base64: result, prompt_used: prompt };
+    return { ok: true, image_base64: result, prompt_used: prompt };
   } catch (retryErr) {
-    console.error("[visual-generator] Retry échoué, abandon.", retryErr instanceof Error ? retryErr.message : retryErr);
-    return null;
+    // Propagation du vrai motif d'échec OpenAI (au lieu de null générique)
+    const rawMessage = retryErr instanceof Error ? retryErr.message : String(retryErr);
+    console.error("[visual-generator] Retry échoué, abandon.", rawMessage);
+    return { ok: false, error: rawMessage };
   }
 }
 

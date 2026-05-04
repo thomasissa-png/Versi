@@ -33,17 +33,27 @@ interface VisualResultProps {
 }
 
 // ─── Mapping erreurs OpenAI brutes → messages utilisateur ────────
+// Retourne null si aucun pattern spécifique ne match (évite duplication avec le titre générique).
 
-function translateOpenAIError(raw: string | null | undefined): string {
-  if (!raw) return "La création a échoué — réessayez.";
+function translateOpenAIError(raw: string | null | undefined): string | null {
+  if (!raw) return null;
   const lower = raw.toLowerCase();
-  if (lower.includes("content policy")) return "Image refusée par le filtre de contenu. Modifiez l'instruction.";
-  if (lower.includes("timeout")) return "Délai dépassé. Réessayez dans quelques instants.";
-  if (lower.includes("rate limit")) return "Limite de génération atteinte. Réessayez dans une heure.";
-  if (lower.includes("not found") || lower.includes("model")) return "Modèle de génération indisponible. Contactez le support.";
-  if (lower.includes("billing") || lower.includes("quota") || lower.includes("insufficient")) return "Quota de génération épuisé. Contactez le support.";
+  if (lower.includes("content policy") || lower.includes("safety")) return "Image refusée par le filtre de contenu. Modifiez l'instruction.";
+  if (lower.includes("timeout") || lower.includes("timed out")) return "Délai dépassé. Réessayez dans quelques instants.";
+  if (lower.includes("rate limit") || lower.includes("rate_limit")) return "Limite de génération atteinte. Réessayez dans une heure.";
+  if (lower.includes("not found") || (lower.includes("model") && (lower.includes("does not exist") || lower.includes("invalid")))) {
+    return "Modèle de génération indisponible (gpt-image-2 non accessible avec votre clé OpenAI). Contactez le support.";
+  }
+  if (lower.includes("billing") || lower.includes("quota") || lower.includes("insufficient_quota") || lower.includes("insufficient")) {
+    return "Quota OpenAI épuisé ou facturation à mettre à jour. Contactez le support.";
+  }
   if (lower.includes("invalid") && lower.includes("image")) return "La photo est invalide ou trop petite. Déposez une photo de meilleure qualité.";
-  return "La création a échoué — réessayez.";
+  if (lower.includes("unauthorized") || lower.includes("api key") || lower.includes("authentication")) {
+    return "Clé OpenAI invalide ou expirée. Vérifier OPENAI_API_KEY dans les Replit Secrets.";
+  }
+  // Pas de pattern match : retourner le message brut tronqué (utile pour diagnostic) plutôt que null.
+  if (raw.length > 200) return raw.substring(0, 200) + "…";
+  return raw;
 }
 
 // ─── Timer de progression ────────────────────────────────────────
@@ -170,13 +180,18 @@ export default function VisualResult({
             </svg>
           </div>
           <p className="text-sm text-text-default mb-xs">
-            La création a échoué — réessayez
+            La création a échoué
           </p>
-          {activeVisual.error_message && (
-            <p className="text-xs text-text-muted mb-md max-w-sm text-center">
-              {translateOpenAIError(activeVisual.error_message)}
-            </p>
-          )}
+          {(() => {
+            const detail = translateOpenAIError(activeVisual.error_message);
+            return detail ? (
+              <p className="text-xs text-text-muted mb-md max-w-sm text-center">
+                {detail}
+              </p>
+            ) : (
+              <p className="text-xs text-text-muted mb-md">Réessayez ou contactez le support.</p>
+            );
+          })()}
           <button
             onClick={onRetry}
             className="

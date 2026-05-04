@@ -177,11 +177,13 @@ async function generateVisualAsync(
       structuralInstructions
     );
 
-    if (!result) {
+    if (!result.ok) {
+      // Propage le vrai motif OpenAI (model not found / quota / content policy / billing / etc.)
+      // au lieu d'un message générique. Permet à l'UI d'afficher un diagnostic exploitable.
       await query(
-        `UPDATE vs_visuals SET status = 'failed', error_message = 'La génération a échoué après plusieurs tentatives.'
-         WHERE id = $1`,
-        [visualId]
+        `UPDATE vs_visuals SET status = 'failed', error_message = $1
+         WHERE id = $2`,
+        [result.error, visualId]
       );
       return;
     }
@@ -197,7 +199,7 @@ async function generateVisualAsync(
     const outputPath = join(outputDir, outputFileName);
     await writeFileAsync(outputPath, Buffer.from(result.image_base64, "base64"));
 
-    // Mettre à jour en base
+    // Mettre à jour en base (succès)
     await query(
       `UPDATE vs_visuals SET status = 'generated', file_path = $1, prompt_used = $2
        WHERE id = $3`,
