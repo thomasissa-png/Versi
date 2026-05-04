@@ -261,6 +261,16 @@ Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT test
 - **Test comparaison mock vs réel obligatoire pour tout pipeline IA mocké.** Bug s28 `plan-extractor-mock.ts` hardcodait T2/T3 (2 appartements) pour R+1, alors que le vrai PDF Muguets R+1 a 1 seul appartement avec 8 pièces — divergence invisible jusqu'à investigation orchestrator (3 tours perdus). Pattern : tout mock IA doit avoir un test qui compare la STRUCTURE retournée (nombre d'éléments, types, schéma) avec un échantillon de la sortie réelle. Si le mock hardcode des structures absentes du dataset réel → FAIL. Source s28.
 - **Audit visuel ≠ audit numérique — confronter les deux sur premiers livrables.** Bug s28 tour 17 a passé le critère « k constant proportionnel » (cohérence interne ratios) avec score 20/20 strict, MAIS les surfaces absolues étaient fausses (ratio jusqu'à 12.8 vs PDF). L'audit numérique mesurait la mauvaise chose. Pattern QA : pour tout pipeline visuel ou rendu, exiger 1 audit visuel humain (ou screenshot) sur les 3 premiers livrables avant industrialisation du critère numérique. Si l'audit numérique passe mais le visuel échoue → critère mal défini, redéfinir. Source s28.
 
+### Règles s30 — Mocks Vitest hoisted + cascade fetch Playwright (propagées s31)
+
+- **`vi.hoisted({...})` OBLIGATOIRE pour mocks Vitest partagés.** Source s30 commit `ea472d8`. Bug : `const queryMock = vi.fn()` puis référencé dans `vi.mock("@/lib/vs/db", () => ({ query: queryMock }))` cause `ReferenceError: Cannot access 'X' before initialization` car `vi.mock()` factory hoiste avant les `const`/`let` du fichier. Pattern correct :
+  ```typescript
+  const { queryMock } = vi.hoisted(() => ({ queryMock: vi.fn() }));
+  vi.mock("@/lib/vs/db", () => ({ query: queryMock }));
+  ```
+  À utiliser systématiquement quand un mock factory référence une `vi.fn()` partagée avec le scope test.
+- **Helper Playwright cascade fetch : exposer TOUTES les routes intermédiaires.** Source s30 commit `7a4b26a`. Page Next.js avec cascade fetch (project → lots → plans → rooms-by-lot → visuals-by-room) bloque sur loading state si helper mock 1-niveau. Pattern : avant rédaction tests E2E, `grep -rn "fetch(" path/to/page.tsx` lister TOUTES les routes consommées, puis exposer chacune dans `setupVisualsStepV2()` ou helper équivalent. Sinon tests bloqués sur skeleton UI. Checklist QA : « Lister tous les `fetch()` du composant testé avant d'écrire le helper de mock. »
+
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system

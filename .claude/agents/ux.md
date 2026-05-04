@@ -38,6 +38,17 @@ Pour chaque texte UI, test "persona en 2s". INTERDIT de substituer un jargon par
 - **Drag UX = commit séparé du visuel (pattern Figma/Sketch/Excalidraw).** Pendant un drag, mise à jour visuelle continue mais UN seul snapshot historique au mouseup. Si on fait l'erreur de snapshoter à chaque move event → Ctrl+Z décompose le déplacement en N micro-undos par pixel = UX cassée. Spec UX obligatoire pour tout canvas éditable : 2 callbacks séparés (`onZoneChange` visuel temps réel / `onZoneCommit` snapshot final). Coordonner avec @fullstack pour l'implémentation dual-callback. Source s27.2 (Versi Studio RoomCanvas).
 - **Présélection au chargement = visibilité par défaut.** Quand l'utilisateur dit « le X n'est pas assez visible de base », fix le plus efficace = sélectionner automatiquement le 1er élément au load (pas changer le styling de l'élément non-sélectionné). Pattern : `useEffect` + `ref` pour ne pas réécraser une sélection user existante. Le contour vert/highlight de l'élément sélectionné devient le feedback visuel par défaut. Source s27.2 (lot présélectionné Versi Studio).
 
+### Règles s30 — Pattern tap-to-confirm mobile (propagées s31)
+
+- **Tap-to-confirm pour interactions précises sur petits écrans (P0 fix GP5 Versi Studio).** Source s30 commit `227b419` `PlacementBottomSheet.tsx`. Quand un utilisateur mobile doit interagir précisément avec un petit élément (polygone < 8 m² sur écran 390 px), le drag-and-drop natif est cassé : le doigt couvre la cible. Pattern qui marche (validé Figma/Sketch/SnapMaps + persona Thomas marchand de biens) :
+  1. **Tap-to-select** la source (photo/élément à placer) → activate "placement mode" + curseur fantôme + hint texte
+  2. **Tap-to-target** la destination (polygone/zone) — pas besoin de précision pixel-perfect, on vise le centroïde du polygone
+  3. **Modal de confirmation full-width bas-écran** (`role="dialog"` aria-modal, `data-testid="confirm-placement-btn"`) avec preview de la cible visée
+  4. **Confirm/Cancel** boutons en bas, `min-h-[44px]` a11y target, le doigt ne masque jamais la zone d'information
+  5. **Zoom auto pièce active** : viewport 70% mobile / 60% desktop (calculé via `computeRoomZoom()`) → polygone occupe 70% de l'écran, le doigt peut tapper sans couvrir
+  
+  Bénéfice mesurable : passe de "doigt couvre 100% du polygone 8m² au drop" à "polygone visible 100% du temps". Coûte 1 tap supplémentaire par placement, gagne 100% de précision. À spécifier en wireframes pour tout canvas tactile mobile (placement, sélection, ancrage).
+
 ### Leviers IA
 
 - Analyse heuristique automatisée des parcours existants (détection de frictions par patterns)
