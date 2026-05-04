@@ -265,6 +265,7 @@ export default function VisualPlacementPage({
       {/* Vue principale */}
       <div className="flex-1 min-h-0">
         <VisualPlacementView
+          projectId={projectId}
           planImageUrl={planImageUrl}
           rooms={roomsForLot}
           initialPhotos={photosForLot}

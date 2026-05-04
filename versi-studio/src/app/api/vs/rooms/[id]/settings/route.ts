@@ -32,6 +32,62 @@ interface SettingsResponse {
   warning_pending: boolean;
 }
 
+/**
+ * GET retourne les settings courants d'une pièce (UI Vague 3b — pré-remplir
+ * sidebar). Si la ligne n'existe pas encore, retourne le defaut applicatif
+ * (target=1, comment=null).
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<ApiResponse<SettingsResponse>>> {
+  try {
+    await ensureDbReady();
+    const { id: roomId } = await params;
+    if (!isValidUUID(roomId)) {
+      return NextResponse.json({ success: false, error: "Identifiant pièce invalide." }, { status: 400 });
+    }
+    const row = await query<{
+      target_visual_count: number;
+      comment_text: string | null;
+    }>(
+      `SELECT COALESCE(rs.target_visual_count, 1) AS target_visual_count, rs.comment_text
+         FROM vs_rooms r
+         LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
+        WHERE r.id = $1`,
+      [roomId]
+    );
+    if (row.rows.length === 0) {
+      return NextResponse.json({ success: false, error: "Pièce introuvable." }, { status: 404 });
+    }
+    const target = row.rows[0].target_visual_count;
+    let warningPending = false;
+    if (target > 0) {
+      const photosCount = await query<{ count: string }>(
+        `SELECT COUNT(*)::TEXT AS count FROM vs_photos
+          WHERE room_id = $1 AND is_placed_on_plan = true`,
+        [roomId]
+      );
+      warningPending = Number.parseInt(photosCount.rows[0]?.count ?? "0", 10) === 0;
+    }
+    return NextResponse.json({
+      success: true,
+      data: {
+        room_id: roomId,
+        target_visual_count: target,
+        comment_text: row.rows[0].comment_text,
+        warning_pending: warningPending,
+      },
+    });
+  } catch (err) {
+    console.error("[API] GET /api/vs/rooms/[id]/settings erreur:", err);
+    return NextResponse.json(
+      { success: false, error: "Paramètres non chargés — réessayez." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
