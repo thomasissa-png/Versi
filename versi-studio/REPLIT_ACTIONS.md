@@ -136,10 +136,29 @@ pub/sub si besoin réel multi-instance.
 
 ---
 
-## 6. Vague 3 (UI canvas) — à venir
+## 6. Vague 3 UI Étape 4 v2 — LIVRÉE s30
 
-- Composants drag-drop, modale chat questions, contrôleur d'angle
-- Consommation EventSource sur `/visuals-stream` côté client
-- Investissement tactile mobile (zoom auto, FAB, bottom sheet)
+**Vague 3a (commit `227b419`)** — UI placement canvas + tactile mobile :
+- `VisualPlanCanvas.tsx` (canvas natif HTML5, layers background/polygones/photos/contrôles, zoom auto pièce 70% mobile / 60% desktop, pinch+wheel+pan)
+- `PlacementBottomSheet.tsx` (fix P0 GP5 : tap-to-confirm, le doigt ne couvre jamais le polygone)
+- `AngleController.tsx` (cercle pivotable + slider 0-359°, dual-callback s27.2)
+- `VisualPlacementView.tsx` orchestrateur responsive desktop/mobile
+- Page `/vs/projects/[id]/visuals/placement` (route distincte de `/visuals` legacy)
 
-Aucune action Replit anticipée — sera documenté à la livraison Vague 3.
+**Vague 3b (commit `cff35e1`)** — UI génération + galerie + SSE consumer :
+- `useVisualsStream.ts` (EventSource avec replay + heartbeat 60s + reconnect backoff 3x + cleanup)
+- `RoomSettingsSidebar.tsx` (sliders 0-5 + warning ordre inversé inline)
+- `CostEstimator.tsx` (Σ × $0.21 informatif, JAMAIS bloquant — préf fondateur s29 propagée)
+- `QuestionsModal.tsx` (modale C T1-T5)
+- `GenerationProgressView.tsx` (vue progression streaming)
+- `VisualGallery.tsx` (galerie + badge "Cohérence : réduite" si fallback textual_signature + EC-5 régénération individuelle)
+
+**Tests** :
+- Vitest 107/107 PASS (commit `ea472d8`)
+- Playwright Chromium 18/0/2 PASS (commit `7a4b26a`) — WebKit en CI (`npx playwright install` requis)
+
+**Verdict persona Thomas** : GO 8.5/10 (commit `0ea909b`). GP5 ex-FAIL → PASS confirmé.
+
+**Aucune action Replit additionnelle** : pas de nouveau secret, pas de nouvelle dépendance npm (sauf `@vitest/coverage-v8` optionnel pour CI coverage strict).
+
+---
