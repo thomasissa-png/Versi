@@ -506,6 +506,112 @@
 
 ## Mémo de reprise — dernière session
 
+### Mémo de reprise versi-s29 → s30
+
+**Branche dernière clôturée** : `claude/versi-s29-session-recovery-afBev` (HEAD `ad30b35`)
+**Date de clôture** : 2026-05-04
+**Numéro de session** : 29 (session 30 à venir)
+**Statut s29** : CLÔTURÉE — démarrée en mode reprise (sanity check + propagation 5 P0/P1 s28), enchaînée hotfix prod Replit (chemins absolus + propagation erreur OpenAI), puis refonte Étape 4 v2 Visuels Option D (pipeline 3 phases : specs PM → wireframes UX + pipeline IA en parallèle → audit persona marchand → backend Vague 1 + test plan QA en parallèle).
+
+**Résumé session s29** :
+1. **Sanity check + propagation 5 learnings P0/P1 s28** (commit `2c33424`) : firstPlan piège multi-étage (fullstack+qa), mock-obsolete-detection (ia+qa), audit-visuel-orchestrator-strict (base-protocol+orchestrator), pivot-orthogonal-après-plateau (base-protocol), audit-mauvaises-raisons (reviewer+qa). Branche renommée s29 conforme.
+2. **Hotfix Replit build cassé** (`f8ffc3c`) : 24 fichiers scripts/tests avec chemins absolus `/home/user/...` → relatifs + tsconfig exclude scripts/tests.
+3. **Hotfix propagation erreur OpenAI** (`41b0a41`) : `generateVisual()` retournait `null` perdant motif réel → refactor `VisualGenerationOutcome` (discriminated union ok=true/false), translateOpenAIError dédupliqué (titre + sous-message si pattern match seulement).
+4. **Phase 1 Étape 4 v2 — specs PM** (`bef74b1`) : `docs/product/visuals-step-v2-specs.md` 296L, 8 sections, 0 placeholder. 3 arbitrages Thomas tranchés : T4 sync, angle_description V2, mobile+desktop.
+5. **Phase 2 — wireframes UX + pipeline IA en parallèle** (`fc4dfac`) : `docs/ux/visuals-step-v2-wireframes.md` 497L (4 écrans desktop+mobile, 10 états transverses) + `docs/ia/visuals-step-v2-pipeline.md` 684L (architecture 3 phases, T1-T5, Option A ancre+signature, prompt templates v2.0.0, coûts vérifiés WebSearch $4.25/projet, 5 risques R1-R5). **Décision Thomas s29 : coût $5/projet accepté maximum**, pas de circuit breaker (crédits gérés plus tard V3).
+6. **Audit persona marchand** (`2109538`) : `docs/reviews/persona-thomas-marchand-visuals-v2-avis.md` 107L. Verdict GO avec ajustements (7 PASS / 2 conditionnels / 1 FAIL GP5 mobile placement tactile). 8 recommandations Phase 3 (2 P0, 4 P1, 2 P2).
+7. **Phase 3 Vague 1 — backend + test plan QA** (`ad30b35`) : 14 fichiers @fullstack (4 migrations SQL idempotentes, 4 modules backend `openai-rate-limiter` + `photo-preprocessor` + `ambiguity-detector` + `coherent-visual-generator`, refactor `visual-generator.ts` +200L, types V2, deps heic-convert+exifr, REPLIT_ACTIONS.md) + test plan QA 456L (10 scénarios E2E, 5 modules Vitest, matrice Playwright 3 devices). Cleanup doublon migrations (3 fichiers supprimés `scripts/migrations/00[4-6]*.sql`).
+
+**Commits clés s29** : `2c33424` propagation P0/P1 s28, `f8ffc3c` hotfix chemins absolus, `41b0a41` propagation erreur OpenAI, `bef74b1` specs PM, `fc4dfac` wireframes UX + pipeline IA, `2109538` audit persona, `ad30b35` Vague 1 backend + test plan QA.
+
+**Décisions clés s29** :
+- **3 arbitrages produit Thomas** : T4 SYNC (pas async), `angle_description` TEXT déprécié V2 (remplacé par `angle_degrees` FLOAT), **mobile + desktop obligatoire** (touch events + pinch zoom + sidebar drawer mobile).
+- **Coût $5/projet accepté** : gpt-image-2 high quality maintenu, jusqu'à 5 visuels/pièce, pas de circuit breaker. Crédits utilisateur gérés en V3.
+- **Cohérence inter-visuels OBLIGATOIRE** : Option A ancre img2img + signature visuelle gpt-4o-mini extraite + secondaires conditionnés. Multi-image natif tenté + fallback signature textuelle (R1 mitigé via `coherence_mode` traçé).
+- **Questions IA BLOQUANTES** au clic Générer (pas en cours de génération).
+- **GP5 FAIL persona** : challenge réel sur placement tactile mobile (doigt couvre polygone 8m²). Décision : **investissement spécifique placement tactile en Vague 3** (zoom auto pièce sélectionnée, FAB, bottom sheet précis).
+- **Doublon migrations résolu** : `versi-studio/src/lib/vs/migrations/` est canonique (pattern existant 001_s25), `scripts/migrations/` doublon supprimé.
+- **Pattern timeout briefs** : 4 agents ont timeouté en s29 sur briefs > 8 sections → règle anti-timeout renforcée (skeleton-first explicite + max 5 reads + 1 Edit par section).
+
+**Travaux en cours (côté agents)** : AUCUN — Vague 1 close, Vagues 2 et 3 explicitement reportées s30 dans handoff @fullstack.
+
+**Actions Thomas en attente (post-clôture s29)** :
+
+— **PROD Versi Studio (CRITIQUE pour valider la session)** —
+- ⏳ **Pull HEAD `ad30b35`** sur Replit + `npm install` (pour heic-convert + exifr) + redéploiement (Next.js prod)
+- ⏳ **Vérifier Replit Secrets** : `OPENAI_API_KEY` présente avec accès gpt-image-2
+- ⏳ **Re-tester l'étape Visuels actuelle** : si "Modèle gpt-image-2 non accessible avec votre clé OpenAI" → R3 confirmé (blocker P0 préférence fondateur s27 vs ça ne marche pas) ; sinon partager le motif exact pour diagnostic
+- ⏳ **Lancer migrations** : auto via `db.ts ensureVsTables()` au boot, vérifier dans logs Replit que `vs_room_settings`, `vs_visual_questions` existent
+
+— **Héritage Versi Studio s28 toujours en attente** —
+- ⏳ Validation prod Étape 3 (4 plans Muguets) — pas re-confirmé en s29
+- ⏳ Suppression / resync `plan-extractor-mock.ts` (T2/T3 hardcodé inexistant)
+- ⏳ Polish ratios résiduels Étape 3 (9-10/10 strict)
+- 🔍 Migration property_photos R2 (héritage s27)
+- 🔍 Fallback bitmap pipeline NEW M1→M5 PDF scannés (héritage s27)
+- 🔍 versi-studio.fr DNS (héritage s26)
+
+**🚨 PROPAGATION P0 EN ATTENTE (gate bloquante s30 - cmd n°8)** :
+Les 6 learnings s29 ajoutés à `docs/lessons-learned.md` sont marqués `non-propagé`. À propager DÈS début s30 avant tout autre travail :
+1. P1 `timeout-brief-trop-dense` → `CLAUDE.md` (cmd n°3) + `_base-agent-protocol.md` section anti-timeout — règle "max 8 sections par livrable, sinon découper" + skeleton-first explicite
+2. P1 `persona-validation-arbitrage-fondateur` → `.claude/agents/orchestrator.md` workflow refonte (gate persona pre-implémentation systématique)
+3. P1 `doublon-emplacement-fichier` → `.claude/agents/orchestrator.md` (template brief code : section convention chemins) + `.claude/agents/fullstack.md` (rappel demander si 2 emplacements possibles)
+4. P0 `cost-reality-openai-vs-estimation` → `.claude/agents/ia.md` (règle WebSearch tarifs avant chiffrage)
+5. P0 `pref-fondateur-credits-no-blocage` → `.claude/agents/product-manager.md` + `.claude/agents/fullstack.md` (déjà ajouté dans `docs/founder-preferences.md` ✓)
+6. P0 `pref-fondateur-validation-persona-systematique` → `.claude/agents/orchestrator.md` (déjà ajouté dans `docs/founder-preferences.md` ✓)
+
+**Prochaines actions recommandées s30** :
+1. **[P0 BLOQUANT] Propagation 6 learnings s29 ci-dessus** (édit direct, ~10-15 min, exception cmd n°4)
+2. **[P0] Test prod fix #2** par Thomas (HEAD `ad30b35` + check OpenAI gpt-image-2 access). Confirme R3.
+2. **[P0] Vague 2 routes API** — @fullstack : 6 endpoints (preflight, generate, questions PATCH, photos PATCH place, room settings PUT, régénération individuelle EC-5) + Server-Sent Events streaming + job server-side persistant (P1 persona)
+3. **[P0] Vague 3 UI canvas + tactile mobile** — @ux + @design + @fullstack : canvas plan react-konva + drag-drop photos + contrôleur angle pivotable + investissement tactile mobile (zoom auto, FAB, bottom sheet) + modale chat questions + galerie résultats + badge cohérence si fallback textuel + warning inline anti-flooding T2
+4. **[P1] Tests E2E réels** — @qa : implémenter les 10 scénarios Playwright + 5 modules Vitest (le plan existe doc-only)
+5. **[P1] Validation prod Étape 3 Muguets** (héritage s28)
+
+**Blockers éventuels** :
+- **R3 gpt-image-2 inaccessible** : si Thomas constate "Modèle non accessible" en prod après HEAD `ad30b35` → blocker P0 stratégique (préférence fondateur s27 "no fallback" vs valeur utilisateur "ça marche"). Arbitrage Thomas requis avant Vagues 2/3.
+- **R1 multi-image gpt-image-2** : fallback textuel implémenté, mais validation E2E avec compte Tier 4 réel attendue Vague 2. Si 100% des appels retombent en `textual_signature` → badge UI Vague 3 obligatoire.
+- **Cap project-context.md** : 973 L (cap 250 hors mémo+historique 5 sessions). Audit volumineux toujours nécessaire (signalé en s28, non fait en s29 — priorité moyenne, pas bloquant).
+
+**Caps framework respectés** :
+- CLAUDE.md 116/125 ✓ (inchangé s29)
+- lessons-learned.md 60/80 → après ajout learnings s29 cible 72/80 ✓
+- project-context.md ~1100/250 hors mémo+historique (audit volumineux toujours dû — héritage s28)
+- founder-preferences.md 265 L (alerte > 180 — dédoublonnage à programmer, non bloquant)
+
+**Nom de branche recommandé pour s30** : `claude/versi-s30-vague2-routes-api-<suffix>` (si P0 Vague 2 prioritaire) OU `claude/versi-s30-prod-validation-<suffix>` (si test prod requis d'abord) OU `claude/versi-s30-vague3-ui-canvas-<suffix>` (si Vague 2 reportée et UI prioritaire)
+
+**Commande de reprise suggérée pour s30** :
+
+```
+@orchestrator session versi-s30. Lire project-context.md mémo reprise s29→s30.
+
+Gate de reprise obligatoire :
+1. Demander à Thomas si la validation prod Versi Studio Étape 4 v2 est faite
+   (pull ad30b35 + npm install heic-convert+exifr + redéploiement). Si NON →
+   priorité absolue = débugger ce qui empêche la validation (notamment R3 gpt-image-2).
+2. Vérifier que les 4 migrations s29 sont bien passées en DB Replit
+   (vs_room_settings, vs_visual_questions tables existantes).
+3. Lire docs/lessons-learned.md pour P0/P1 non-propagés s29.
+
+Quelle priorité s30 parmi :
+- P0 Validation prod Étape 4 v2 backend (si pas faite) — investigation @fullstack
+- P0 Vague 2 routes API (6 endpoints + streaming + job persistant) — @fullstack
+- P0 Vague 3 UI canvas + tactile mobile — @ux + @design + @fullstack
+- P1 Tests E2E implémentation Playwright + Vitest — @qa
+- P1 Validation prod Étape 3 Muguets (héritage s28)
+- P1 Suppression/resync plan-extractor-mock.ts (héritage s28)
+- Audit volumineux project-context.md (héritage s28+s29)
+- Autre priorité Thomas
+
+Compteur Task initial : 0/15. Contraintes : anti-timeout cmd n°3 (max 5 reads
++ skeleton-first + 1 Edit par section), cap CLAUDE.md 125 L, cap
+lessons-learned 80 L, propagation P0/P1 close (rien à propager si
+les learnings s29 sont marqués propagés à la clôture).
+```
+
+---
+
 ### Mémo de reprise versi-s28 → s29
 
 **Branche dernière clôturée** : `claude/versi-s28-sanity-check-NqK4S` (HEAD `b4b5969`)
