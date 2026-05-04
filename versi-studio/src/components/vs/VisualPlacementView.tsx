@@ -578,6 +578,7 @@ export default function VisualPlacementView({
         <PlacementBottomSheet
           photo={pendingPhoto}
           targetRoom={pendingRoom}
+          allRoomsOnFloor={rooms}
           isCommitting={isCommitting}
           onConfirm={handleConfirmPlacement}
           onCancel={handleCancelPlacement}
