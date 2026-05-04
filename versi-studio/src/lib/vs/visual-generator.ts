@@ -187,7 +187,11 @@ async function callImageGeneration(
 ): Promise<string> {
   // Convertir base64 en Uploadable file pour le SDK OpenAI
   const photoBuffer = Buffer.from(photoBase64, "base64");
-  const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "png";
+  // s30 fix : ext doit refléter le vrai MIME, sinon OpenAI rejette "Invalid image"
+  // (filename utilisé par l'API pour validation format en plus du Content-Type multipart)
+  const ext = mimeType === "image/png" ? "png"
+            : mimeType === "image/webp" ? "webp"
+            : "jpg";
   const imageFile = await toFile(photoBuffer, `photo.${ext}`, { type: mimeType });
 
   // s29 — rate limit token bucket vers gpt-image-2 images.edit
