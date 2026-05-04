@@ -202,6 +202,10 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
                 iteration_count: 0,
                 parent_visual_id: activeVisual?.parent_visual_id ?? null,
                 error_message,
+                anchor_visual_id: null,
+                visual_signature_json: null,
+                coherence_mode: null,
+                prompt_version: null,
                 created_at: new Date().toISOString(),
               },
               ...prev,
@@ -331,6 +335,10 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
         iteration_count: 0,
         parent_visual_id: null,
         error_message: null,
+        anchor_visual_id: null,
+        visual_signature_json: null,
+        coherence_mode: null,
+        prompt_version: null,
         created_at: new Date().toISOString(),
       };
 
@@ -445,6 +453,10 @@ export default function VisualRoom({ room, onRefreshRoom }: VisualRoomProps) {
           iteration_count: activeVisual.iteration_count + 1,
           parent_visual_id: activeVisual.id,
           error_message: null,
+          anchor_visual_id: null,
+          visual_signature_json: null,
+          coherence_mode: null,
+          prompt_version: null,
           created_at: new Date().toISOString(),
         };
 

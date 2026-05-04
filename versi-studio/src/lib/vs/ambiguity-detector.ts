@@ -196,7 +196,7 @@ async function evaluateT4(ctx: T4Context): Promise<{ coherent: boolean; raison?:
 
   // Charge en parallèle, downscale via sharp pour limiter les tokens vision
   const sharp = (await import("sharp")).default;
-  const imageInputs: Array<{ type: "input_image"; image_url: string }> = [];
+  const imageInputs: Array<{ type: "input_image"; image_url: string; detail: "auto" }> = [];
   for (const photo of placedPhotos) {
     const bytes = await ctx.loadPhotoBytes(photo);
     if (!bytes) continue;
@@ -205,6 +205,7 @@ async function evaluateT4(ctx: T4Context): Promise<{ coherent: boolean; raison?:
       imageInputs.push({
         type: "input_image",
         image_url: `data:image/jpeg;base64,${small.toString("base64")}`,
+        detail: "auto",
       });
     } catch (err) {
       console.warn("[ambiguity-detector] T4 thumbnail failed for photo", photo.id, err);

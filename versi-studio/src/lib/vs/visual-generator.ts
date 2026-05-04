@@ -446,7 +446,7 @@ Réponds STRICTEMENT en JSON valide, sans markdown ni explication.`;
         { role: "system", content: sysPrompt },
         {
           role: "user",
-          content: [{ type: "input_image", image_url: `data:image/png;base64,${imageBase64}` }],
+          content: [{ type: "input_image", image_url: `data:image/png;base64,${imageBase64}`, detail: "auto" }],
         },
       ],
     });
