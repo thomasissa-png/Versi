@@ -313,6 +313,37 @@ export async function ensureVsTables(): Promise<void> {
     ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS prompt_version VARCHAR(20);
     CREATE INDEX IF NOT EXISTS idx_vs_visuals_anchor
       ON vs_visuals(anchor_visual_id) WHERE anchor_visual_id IS NOT NULL;
+
+    -- ─── Migrations s30 — Étape 4 v2 (Vague 2 backend) ──────────────
+
+    -- 006_s30_visual_jobs : job persistant de génération (continuité serveur)
+    CREATE TABLE IF NOT EXISTS vs_visual_jobs (
+      id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id      UUID         NOT NULL REFERENCES vs_projects(id) ON DELETE CASCADE,
+      status          VARCHAR(20)  NOT NULL DEFAULT 'pending'
+                                   CHECK (status IN ('pending','running','done','failed')),
+      expected_count  INT          NOT NULL DEFAULT 0,
+      completed_count INT          NOT NULL DEFAULT 0,
+      failed_count    INT          NOT NULL DEFAULT 0,
+      estimated_cost_usd NUMERIC(6,3) DEFAULT 0,
+      error_message   TEXT,
+      started_at      TIMESTAMPTZ,
+      completed_at    TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_vs_visual_jobs_project_status
+      ON vs_visual_jobs(project_id, status);
+    CREATE UNIQUE INDEX IF NOT EXISTS uniq_vs_visual_jobs_running_per_project
+      ON vs_visual_jobs(project_id) WHERE status = 'running';
+    CREATE OR REPLACE FUNCTION vs_visual_jobs_set_updated_at()
+    RETURNS TRIGGER AS $vs_vj_upd$
+    BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+    $vs_vj_upd$ LANGUAGE plpgsql;
+    DROP TRIGGER IF EXISTS trg_vs_visual_jobs_updated_at ON vs_visual_jobs;
+    CREATE TRIGGER trg_vs_visual_jobs_updated_at
+      BEFORE UPDATE ON vs_visual_jobs
+      FOR EACH ROW EXECUTE FUNCTION vs_visual_jobs_set_updated_at();
   `;
 
   try {

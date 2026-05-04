@@ -92,18 +92,54 @@ Après déploiement Vague 1, vérifier sur Replit :
 
 ---
 
-## 5. Vagues suivantes — actions à anticiper
+## 5. s30 Vague 2 — Routes API + SSE + job persistant (livrée)
 
-**Vague 2 (routes API)** ajoutera :
-- `POST /api/vs/projects/:id/visuals/preflight` — détection T1-T5
-- `POST /api/vs/projects/:id/visuals/generate` — génération cohérente
-- `PATCH /api/vs/visuals/questions/:id` — réponse Thomas
-- `PATCH /api/vs/photos/:id/place` — placement sur plan
-- `PUT /api/vs/rooms/:id/settings` — slider + commentaire
+### 5.1 Migration SQL `006_s30_visual_jobs.sql`
 
-**Vague 3 (UI canvas)** ajoutera :
+Idempotente, appliquée automatiquement au démarrage via `ensureVsTables()`.
+**Aucune action manuelle requise** — vérifier au boot dans les logs :
+```
+[vs/migrations] applied 006_s30_visual_jobs.sql
+```
+Exécution manuelle dev (optionnelle) :
+```bash
+psql $DATABASE_URL -f src/lib/vs/migrations/006_s30_visual_jobs.sql
+```
+
+### 5.2 Nouvelles variables d'environnement
+
+| Var | Défaut | Rôle |
+|---|---|---|
+| `VS_VISUAL_COHERENCE_CHECK` | `false` | Active le check cohérence post-génération (P2 persona — coût $0.10/visuel). Laisser à `false` en prod V2. |
+| `VS_COHERENT_PIPELINE` | `true` | Active le pipeline cohérent V2 sur `/rooms/[id]/generate`. Mettre à `false` pour rollback V1 d'urgence. |
+
+À ajouter dans **Replit Secrets** uniquement si on veut overrider les défauts.
+
+### 5.3 Routes API livrées
+
+- `POST /api/vs/projects/[id]/preflight` — détection T1-T5
+- `POST /api/vs/projects/[id]/visuals/generate` — lance job multi-pièces
+- `GET  /api/vs/projects/[id]/visuals-stream` — SSE temps réel
+- `PATCH /api/vs/visual-questions/[id]` — soumet réponse Thomas
+- `PATCH /api/vs/photos/[id]/place` — place photo sur plan
+- `PUT  /api/vs/rooms/[id]/settings` — slider + commentaire
+- `POST /api/vs/visuals/[id]/regenerate` — régénération individuelle (EC-5)
+- `POST /api/vs/rooms/[id]/generate` — REFACTO vers pipeline cohérent (V2 par défaut)
+
+### 5.4 Limite Replit autoscale connue
+
+Le bus SSE `visual-job-bus.ts` est in-memory par instance. Multi-instance
+autoscale = perte d'events si worker tourne sur instance A et SSE sur B.
+Mitigation V2 : la BDD `vs_visual_jobs` reste source de vérité (frontend
+peut interroger l'état du job en complément). Migration V3 vers Redis
+pub/sub si besoin réel multi-instance.
+
+---
+
+## 6. Vague 3 (UI canvas) — à venir
+
 - Composants drag-drop, modale chat questions, contrôleur d'angle
-- Streaming UI visuels (Server-Sent Events ou polling jobs)
+- Consommation EventSource sur `/visuals-stream` côté client
 - Investissement tactile mobile (zoom auto, FAB, bottom sheet)
 
-Aucune action Replit anticipée — sera documenté à chaque vague.
+Aucune action Replit anticipée — sera documenté à la livraison Vague 3.
