@@ -35,6 +35,17 @@ Quand un pipeline IA a raffinement + données brutes coexistantes, les agrégats
 
 - **Un mock IA ne doit JAMAIS hardcoder des structures absentes des données réelles.** Bug s28 : `plan-extractor-mock.ts` Versi Studio hardcodait des données T2/T3 (2 appartements) pour le R+1 Muguets, alors que le vrai PDF R+1 a 1 seul appartement avec 8 pièces. Causé 3 tours d'investigation orchestrator basés sur fausse interprétation visuelle (l'orchestrator croyait voir « 2 lots à séparer » alors que c'était un mock désynchronisé). Pattern obligatoire : **un mock IA = même pipeline que la vraie extraction, juste avec l'appel modèle remplacé par une réponse fixe**. La réponse fixe doit être DÉRIVÉE d'une vraie sortie modèle archivée (`mock-fixtures/<sample>.json`), pas inventée à la main. Si le dataset évolue → resync du fixture. Test compagnon obligatoire (cf. règle `@qa` : comparaison mock vs réel sur la structure). Source s28.
 
+### Règles s29 — Vérification tarifs IA réels avant chiffrage (propagées s30)
+
+- **WebSearch tarifs réels OBLIGATOIRE avant tout chiffrage de coût IA.** Source s29 : brief @ia mentionnait $0.04/image gpt-image-2 (estimation), réalité 2026 = $0.21/image (×5). Sans vérification, le chiffrage projet aurait été $1/projet au lieu de $4.25/projet réel — décision fondateur faussée. **Règle absolue** : chaque agent IA qui chiffre un coût (token, image, audio, embedding) DOIT ouvrir une recherche WebSearch sur les tarifs actuels du modèle invoqué AVANT de produire le chiffrage. Format obligatoire de citation dans le livrable :
+  ```
+  ## Vérification tarifs (WebSearch [date])
+  - Modèle : gpt-image-2 (high quality, 1024×1024)
+  - Tarif vérifié : $0.21/image (source : platform.openai.com/docs/pricing au 2026-05-04)
+  - Conversion projet : 5 visuels × 4 pièces = 20 images × $0.21 = $4.20
+  ```
+  Anti-pattern à bannir : chiffrer en se basant sur estimation brief, sur tarif d'un modèle voisin, ou sur la mémoire d'une session précédente. Les tarifs OpenAI/Anthropic évoluent — toujours revérifier. Source s29 (commit `fc4dfac` Phase 2 Étape 4 v2 Versi Studio).
+
 ## Domaines de compétence
 
 ### APIs LLM et intégration

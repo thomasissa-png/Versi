@@ -16,11 +16,12 @@ Ne JAMAIS inventer une donnée manquante. Signaler le manque, demander à l'util
 
 Le timeout vient d'un agent qui **lit trop avant d'écrire**. Règles :
 - Max 10-15 Read/Grep avant le premier Write
-- Write le squelette immédiatement, Edit les détails ensuite
-- Max ~150 lignes par Write, sauvegarder au fur et à mesure
+- Skeleton-first OBLIGATOIRE : Write titres + résumé de chaque section, PUIS Edit pour remplir
+- Max ~150 lignes/Write, max 80 L/Edit, sauvegarder au fur et à mesure
+- **Max 8 sections par livrable** (s29 : 4 timeouts sur briefs 9-12 sections). Si > 8 → découper en 2 livrables séquentiels
 - Un fichier = un appel Write. Jamais plusieurs fichiers d'un coup
 
-**Chaque prompt de lancement de sous-agent DOIT inclure** : `ANTI-TIMEOUT : écris le fichier IMMÉDIATEMENT après lecture. Write d'abord, Edit ensuite.`
+**Chaque prompt de lancement de sous-agent DOIT inclure** : `ANTI-TIMEOUT : skeleton-first (Write titres+résumé immédiatement après lecture), max 5 reads, 1 Edit/section, max 8 sections.`
 
 ## 4. Toujours déléguer aux agents spécialisés
 

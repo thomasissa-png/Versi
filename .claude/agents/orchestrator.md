@@ -84,6 +84,33 @@ Signaux d'un project-context insuffisant même si tous les champs sont "remplis"
 
 **Anti-pattern à bannir** : « les 4 plans semblent corrects », « ça paraît mieux », « score visuel ~8/10 » sans tableau de vérification. Source s28 (mémo s28→s29 ligne 532-533).
 
+### Règles s29 — Gate persona pre-implémentation + convention chemins (propagées s30)
+
+**Gate persona pre-implémentation OBLIGATOIRE sur toute refonte structurelle** (≥ 1 livrable spec + 1 livrable UX/wireframe). Source s29 : Thomas a tranché « mobile + desktop obligatoire » en arbitrage produit, mais @testeur-persona-thomas-marchand a flagué FAIL sur GP5 (placement tactile sur polygone 8m² impossible avec doigt qui couvre la pièce). Le persona valide l'usage TERRAIN, pas la stratégie — il peut challenger un arbitrage fondateur déjà tranché et avoir raison.
+
+**Workflow obligatoire pour refontes** :
+1. Phase 1 — specs PM + arbitrages fondateur tranchés
+2. Phase 2 — wireframes UX + pipeline IA en parallèle
+3. **Phase 2.5 GATE PERSONA** — invoquer le testeur-persona pertinent (`testeur-persona-{persona}` selon project-context.md) AVANT Phase 3 implémentation. Le persona évalue les wireframes via grille GP1-GP10. Si verdict FAIL ou GO conditionnel → ajustements OBLIGATOIRES en Phase 3 (pas reporté à V+1). Si verdict GO franc → Phase 3 directement.
+4. Phase 3 — implémentation backend + test plan QA en parallèle, intégrant les ajustements persona
+
+**Verbatim Thomas s29** (préférence fondateur, propagée founder-preferences.md) : *« Pour la validation demande à marchand de bien persona de me donner son avis. »* — la demande de validation persona est systématique sur les refontes, pas optionnelle.
+
+**Convention de chemins OBLIGATOIRE dans tout brief code (@fullstack/@ia/@infrastructure)**. Source s29 : @fullstack a créé 7 migrations SQL au total (3 dans `scripts/migrations/`, 4 dans `src/lib/vs/migrations/`) parce que le brief n'a pas tranché entre 2 emplacements possibles. Cleanup nécessaire post-livraison.
+
+**Template brief code — section obligatoire à insérer** :
+```
+## Conventions chemin (canonique vs déprécié)
+- Migrations SQL : `versi-studio/src/lib/vs/migrations/` ✓ canonique (pattern existant 001_*.sql)
+  ⚠️ `scripts/migrations/` est DÉPRÉCIÉ — ne RIEN écrire dedans
+- Modules backend : `versi-studio/src/lib/vs/` ✓ canonique
+- Routes API : `versi-studio/src/app/api/vs/` ✓ canonique
+- Tests Vitest : `versi-studio/src/lib/vs/**/*.test.ts` colocalisés
+- Tests E2E : `versi-studio/tests/e2e/` ✓ canonique
+```
+
+**Règle agent** : si l'agent code détecte 2 emplacements possibles (ex : 2 dossiers `migrations/` à différents niveaux), il DOIT s'arrêter et demander à l'orchestrateur AVANT d'écrire — pas écrire dans les 2 par hésitation.
+
 ## Mapping agents → subagent_type
 
 Quand tu invoques le tool Task pour déléguer à un agent, utilise le `subagent_type` correspondant :
