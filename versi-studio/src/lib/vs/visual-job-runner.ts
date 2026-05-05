@@ -91,7 +91,11 @@ export async function createVisualJob(
 
 // ─── Chargement des pièces à générer ───────────────────────────────
 
-async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<RoomToGenerate[]> {
+async function loadRoomsToGenerate(
+  projectId: string,
+  styleId: string,
+  roomIds?: string[]
+): Promise<RoomToGenerate[]> {
   void styleId;
   const result = await query<{
     room_id: string;
@@ -129,8 +133,9 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     WHERE l.project_id = $1
       AND COALESCE(rs.target_visual_count, 1) > 0
       AND COALESCE(r.status, 'suggested') <> 'skipped'
+      ${roomIds && roomIds.length > 0 ? "AND r.id = ANY($2::uuid[])" : ""}
     `,
-    [projectId]
+    roomIds && roomIds.length > 0 ? [projectId, roomIds] : [projectId]
   );
   return result.rows.map((row) => ({
     room_id: row.room_id,
@@ -191,6 +196,8 @@ interface RunVisualJobInput {
   job_id: string;
   project_id: string;
   style_id: string;
+  /** s32 (autopilot) — restreint le job à ces pièces (#4 génération par pièce). */
+  room_ids?: string[];
 }
 
 /**
@@ -204,14 +211,14 @@ interface RunVisualJobInput {
  * largement suffisant pour les 7 minutes de génération annoncées Étape 4 v2.
  */
 export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
-  const { job_id, project_id, style_id } = input;
+  const { job_id, project_id, style_id, room_ids } = input;
   const coherenceCheckEnabled = process.env.VS_VISUAL_COHERENCE_CHECK === "true";
   if (coherenceCheckEnabled) {
     console.log(`[visual-job-runner] coherence check ENABLED for job ${job_id} (opt-in flag)`);
   }
 
   try {
-    const rooms = await loadRoomsToGenerate(project_id, style_id);
+    const rooms = await loadRoomsToGenerate(project_id, style_id, room_ids);
     if (rooms.length === 0) {
       await emitJobEvent({
         type: "batch.complete", project_id, job_id,

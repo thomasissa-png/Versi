@@ -447,6 +447,44 @@ export default function VisualWizard({
     [currentRoom]
   );
 
+  // s32 #4 (autopilot) — génère uniquement la pièce courante.
+  // Pattern : POST /generate avec room_ids=[currentRoom.id], puis bascule
+  // la phase parent en `generating`. Le SSE consommera les événements (mais
+  // ne verra que ceux de cette pièce — le worker filtre côté SQL).
+  const handleGenerateThisRoom = useCallback(async () => {
+    if (!currentRoom) return;
+    if (!currentRoom.style_id) {
+      setError("Choisissez un style pour cette pièce avant de générer.");
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/vs/projects/${projectId}/visuals/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            style_id: currentRoom.style_id,
+            room_ids: [currentRoom.id],
+          }),
+        }
+      );
+      const json = (await res.json()) as ApiResponse<{
+        job_id: string;
+        expected_count: number;
+        estimated_cost_usd: number;
+      }>;
+      if (!json.success) {
+        setError(json.error);
+        return;
+      }
+      setError(null);
+      setPhase("generating");
+    } catch {
+      setError("La génération n'a pas pu démarrer pour cette pièce.");
+    }
+  }, [currentRoom, projectId]);
+
   // s32 #5 (autopilot) — skip pièce courante.
   const handleSkipRoom = useCallback(async () => {
     if (!currentRoom) return;
@@ -708,6 +746,7 @@ export default function VisualWizard({
           onCommentChange={handleCommentChange}
           comment={commentsByRoom.get(currentRoom.id) ?? null}
           onSkipRoom={handleSkipRoom}
+          onGenerateThisRoom={handleGenerateThisRoom}
           onPlacementMoveCommit={handlePlacementMoveCommit}
           onNextRoom={handleNextRoom}
           onPrevRoom={currentStepIndex > 0 ? handlePrevRoom : null}

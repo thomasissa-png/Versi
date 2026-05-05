@@ -63,6 +63,8 @@ export interface VisualWizardRoomStepProps {
   comment: string | null;
   /** s32 #5 (autopilot) — skip pièce (pas de visuels). */
   onSkipRoom: () => Promise<void>;
+  /** s32 #4 (autopilot) — génère uniquement cette pièce (preview puis next). */
+  onGenerateThisRoom: () => Promise<void>;
 
   /** Navigation. */
   onNextRoom: () => void;
@@ -98,6 +100,7 @@ export default function VisualWizardRoomStep({
   onCommentChange,
   comment,
   onSkipRoom,
+  onGenerateThisRoom,
   onNextRoom,
   onPrevRoom,
   onAngleDrag,
@@ -109,6 +112,7 @@ export default function VisualWizardRoomStep({
   const [commentDraft, setCommentDraft] = useState<string>(comment ?? ""); // s32 #3 — commentaire (debounce 800ms)
   const [confirmSkip, setConfirmSkip] = useState<boolean>(false); // s32 #5 — confirm modal-light avant skip
   const [skipping, setSkipping] = useState<boolean>(false);
+  const [generatingThis, setGeneratingThis] = useState<boolean>(false); // s32 #4 — busy "Générer cette pièce"
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -645,6 +649,21 @@ export default function VisualWizardRoomStep({
                 {disabledReason}
               </p>
             )}
+            {/* s32 #4 (autopilot) — génération par pièce.
+                Bouton secondaire : Thomas peut tester l'IA pièce-par-pièce
+                au lieu de tout configurer puis tout générer en bloc. */}
+            <button
+              type="button"
+              onClick={() => {
+                setGeneratingThis(true);
+                void onGenerateThisRoom().finally(() => setGeneratingThis(false));
+              }}
+              disabled={!canGoNext || generatingThis}
+              data-testid="wizard-generate-this-room"
+              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border-2 border-interactive-primary text-interactive-primary hover:bg-interactive-primary/10 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              {generatingThis ? "Lancement..." : "Générer cette pièce"}
+            </button>
             <button
               type="button"
               onClick={onNextRoom}
