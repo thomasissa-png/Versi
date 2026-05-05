@@ -60,6 +60,14 @@ test.describe("Étape 4 v2 — Placement (S1-S4)", () => {
     const canvas = page.getByTestId("visual-plan-canvas");
     await expect(canvas).toBeVisible({ timeout: 10_000 });
 
+    // s32 — vérifier que la nouvelle UI v2 est rendue (root + grille cartes pièces).
+    await expect(page.getByTestId("visual-placement-view")).toBeVisible();
+    const firstRoomCard = page.locator('[data-testid^="room-placement-card-"]').first();
+    await expect(firstRoomCard).toBeVisible({ timeout: 10_000 });
+    // Bouton upload "+ Ajouter des photos" présent sur chaque carte (s32 BUG 4).
+    const firstUploadBtn = page.locator('[data-testid^="room-card-upload-"]').first();
+    await expect(firstUploadBtn).toBeVisible();
+
     // Le drag-drop précis sur SVG demanderait des coords absolues complexes ;
     // on simule plutôt l'action via le FAB (placement assistance — desktop
     // peut aussi tap sur photo + tap polygon). On vérifie le contrat HTTP

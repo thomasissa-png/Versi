@@ -1,16 +1,17 @@
 /**
  * Tests E2E — Étape 4 v2 Génération (s30, scénarios S5-S8)
  *
- * Couvre les 4 scénarios génération du test plan QA s29 :
- *   S5 — Settings + cost estimator (5 visuels = $1.05, slider non-bloquant)
+ * Couvre les scénarios génération du test plan QA s29 :
+ *   S5 — REGRESSION: CostEstimator absent du DOM (s32 BUG 2 — retiré, préf founder)
+ *        Le calcul de coût existe encore côté backend mais n'est plus user-facing.
  *   S6 — Warning ordre inversé (slider 3 / 0 photo placée → orange + aria)
  *   S7 — Preflight + questions modal (T1 surface manquante → modale C)
  *   S8 — SSE streaming + galerie progressive (events visual.generated)
  *
  * Matrice devices :
  *   - desktop-chrome : S5, S6, S7, S8 (parcours principal)
- *   - tablet-ipad : S5, S8 (cost + galerie)
- *   - mobile-iphone : S5 only (cost estimator visible mobile)
+ *   - tablet-ipad : S5, S8 (galerie)
+ *   - mobile-iphone : S5 only (vérif CostEstimator absent mobile aussi)
  *
  * Stratégie :
  *   - mocks /api/vs/* via setupVisualsStepV2 + setupGenerationMocks
@@ -35,34 +36,32 @@ test.describe("Étape 4 v2 — Génération (S5-S8)", () => {
     await blockExternalOpenAI(page);
   });
 
-  // ─── S5 — Cost estimator affiche $1.05 pour 5 visuels @critical ──
-  test("S5 — slider 3 salon + 2 chambre → CostEstimator $1.05", async ({ page }) => {
+  // ─── S5 — REGRESSION: CostEstimator absent du DOM (s32 BUG 2) ──────
+  // s32 fix : CostEstimator retiré du DOM (préf founder "pas de blocage UI sur
+  // prix"). Le calcul de coût reste backend mais n'est plus exposé à l'utilisateur.
+  // Ce test vérifie qu'aucun composant cost-estimator n'apparaît dans l'écran
+  // placement — bug bloquant si réintroduit accidentellement.
+  test("S5 — REGRESSION: aucun CostEstimator dans le DOM (s32 BUG 2)", async ({ page }) => {
     await setupVisualsStepV2(page, { photos: [DEFAULT_PHOTO_PLACED] });
     await setupGenerationMocks(page);
 
     await page.goto(PLACEMENT_URL);
     await expect(page.getByTestId("visual-plan-canvas")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("visual-placement-view")).toBeVisible();
 
-    // CostEstimator est rendu dès que la sidebar settings est montée.
-    // En Vague 3b il agrège la somme des sliders × $0.21 par visuel.
+    // CostEstimator NE DOIT PAS être rendu (s32 BUG 2 fix).
     const cost = page.getByTestId("cost-estimator");
-    if (await cost.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      const text = await cost.textContent();
-      // Vérifier qu'un montant en dollars est affiché (format flexible).
-      expect(text).toMatch(/\$|USD|€/);
-      // Pas de valeur "NaN" ou "undefined" — protection P1.
-      expect(text).not.toMatch(/NaN|undefined|null/);
-    } else {
-      // Si CostEstimator pas encore monté (settings vides) → vérifier au moins
-      // que l'UI ne crashe pas et que le conteneur sidebar est visible.
-      await expect(page.getByTestId("visual-plan-canvas")).toBeVisible();
-    }
+    await expect(cost).toHaveCount(0);
 
-    // Bouton générer présent et accessible (pas bloqué par cost estimator —
-    // P0 fondateur "pas de blocage UI sur prix").
+    // Pas de mention de prix en USD/EUR sur la page placement (sécurité supplémentaire).
+    // On accepte $ ou € s'ils sont dans des badges hors écran ; le pattern strict
+    // est l'absence du testid cost-estimator ci-dessus.
+    const bodyText = await page.locator("body").textContent();
+    expect(bodyText).not.toMatch(/\$1\.05|coût total|cost total/i);
+
+    // Bouton générer présent et accessible (parcours non bloqué).
     const generateBtn = page.getByTestId("generate-button");
     if (await generateBtn.isVisible().catch(() => false)) {
-      // Le bouton peut être disabled si rien à générer mais doit être visible.
       await expect(generateBtn).toBeVisible();
     }
   });
