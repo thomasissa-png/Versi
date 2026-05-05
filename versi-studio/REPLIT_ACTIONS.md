@@ -21,7 +21,7 @@ UI v2). Zéro flash UI v1, zéro client JS, redirect côté serveur.
 
 Actions à effectuer sur Replit après pull :
 
-1. `git fetch origin && git checkout claude/add-sanity-check-IpyM0 && git pull`
+1. `git fetch origin && git checkout claude/versi-s31-hotfix-etape4-IpyM0 && git pull`
    (ou la branche s31 mergée sur main si déjà mergée)
 2. `cd versi-studio && npm install` (les deps s30 `heic-convert` et `exifr` sont
    déjà installées si vous étiez à jour s30 — sinon voir section 1)

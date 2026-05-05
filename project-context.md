@@ -510,7 +510,7 @@
 
 ### Mémo de reprise versi-s31 → s32
 
-**Branche dernière clôturée** : `claude/add-sanity-check-IpyM0` (HEAD `17bb9b5`, à mettre à jour au push final mémo)
+**Branche dernière clôturée** : `claude/versi-s31-hotfix-etape4-IpyM0` (renommée depuis `claude/add-sanity-check-IpyM0` pour respecter format `claude/versi-sN-description-suffix`)
 **Date de clôture** : 2026-05-05
 **Numéro de session** : 31 (session 32 à venir)
 **Statut s31** : CLÔTURÉE — session HOTFIX P0 autopilot après remontée Thomas en prod ("UI Étape 4 inchangée + job bloqué 10 min"). Diagnostic root cause → fix routing → propagation learning P0 → tests non-régression → verdicts validation. Mode autopilot total (zéro question post-validation initial).
@@ -537,8 +537,8 @@
 3. **P3 Cap `lessons-learned.md` tendu** : 69/80 L. Au prochain learning, déclencher net-zero (archiver entrée s27.2 ou ancienne stable depuis ≥ 2 sessions).
 
 **Actions Thomas en attente (ordre)** :
-1. **Smoke test Replit selon REPLIT_ACTIONS section 0** : git fetch + checkout `claude/add-sanity-check-IpyM0`, npm install, vérifier migrations 001-006 appliquées, vérifier `OPENAI_API_KEY` accès `gpt-image-2`, `Stop` puis `Run` Replit (purge cache Next obligatoire), naviguer vers Étape 4 d'un projet → vérifier URL = `/visuals/placement`, canvas plan visible, photos draggables, AngleController fonctionnel.
-2. **Si smoke test PASS** → merger la branche `claude/add-sanity-check-IpyM0` sur main, mettre à jour REPLIT_ACTIONS étape 1 (`git pull origin main` au lieu de la branche feature).
+1. **Smoke test Replit selon REPLIT_ACTIONS section 0** : git fetch + checkout `claude/versi-s31-hotfix-etape4-IpyM0`, npm install, vérifier migrations 001-006 appliquées, vérifier `OPENAI_API_KEY` accès `gpt-image-2`, `Stop` puis `Run` Replit (purge cache Next obligatoire), naviguer vers Étape 4 d'un projet → vérifier URL = `/visuals/placement`, canvas plan visible, photos draggables, AngleController fonctionnel.
+2. **Si smoke test PASS** → merger la branche `claude/versi-s31-hotfix-etape4-IpyM0` sur main, mettre à jour REPLIT_ACTIONS étape 1 (`git pull origin main` au lieu de la branche feature).
 3. **Si smoke test FAIL** → invoquer @fullstack en investigation immédiate avec logs Replit + statut DB `vs_visual_jobs`.
 
 **Prochaines actions recommandées s32** :
