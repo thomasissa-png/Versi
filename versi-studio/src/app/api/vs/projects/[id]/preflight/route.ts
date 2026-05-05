@@ -3,7 +3,7 @@
  *
  * Détecte les ambiguïtés T1-T5 sur le projet AVANT de lancer la génération.
  * Tant qu'au moins une question reste status='asked', la génération est
- * bloquée (cf. /api/vs/rooms/[id]/generate qui appelle hasBlockingQuestions).
+ * bloquée (cf. /api/vs/projects/[id]/visuals/generate qui appelle hasBlockingQuestions).
  *
  * Body : { style_id: string }
  * Response 200 : { questions: AmbiguityQuestion[] }   (peut être []
