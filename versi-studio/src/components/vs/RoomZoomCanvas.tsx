@@ -57,6 +57,8 @@ export interface RoomZoomCanvasProps {
   onAngleCommit: (id: string, angle: number) => void;
   /** True pendant un commit API en vol. */
   isCommitting?: boolean;
+  /** Callback : clic en dehors du polygone (pour toast d'aide). */
+  onClickOutsidePolygon?: () => void;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -64,15 +66,19 @@ export interface RoomZoomCanvasProps {
 const PHOTO_DOT_RADIUS = 16;
 const ANGLE_INDICATOR_LENGTH = 38;
 const ANGLE_HANDLE_RADIUS = 7;
+const ANGLE_HANDLE_HIT_RADIUS = 20; // zone de hit agrandie pour drag (mouse + touch)
+const ANGLE_HANDLE_HIT_RADIUS_TOUCH = 22; // touch target a11y minimum 44px diamètre
+const ZOOM_MAX_SCALE = 8; // plafond auto-zoom (anti-pixelisation polygones petits)
 const ZOOM_PADDING_RATIO = 0.18; // 18% padding autour du polygone
 
 const COLOR_POLY_FILL = "rgba(46, 102, 220, 0.10)";
 const COLOR_POLY_BORDER = "rgba(46, 102, 220, 0.85)";
 const COLOR_POLY_FILL_HOVER = "rgba(46, 102, 220, 0.18)";
-const COLOR_DIM_OUTSIDE = "rgba(255, 255, 255, 0.55)"; // overlay blanc atténué hors polygone
+const COLOR_DIM_OUTSIDE = "rgba(240, 237, 232, 0.72)"; // overlay design system hors polygone
+const COLOR_CANVAS_BG = "#F0EDE8"; // fond canvas (design tokens bg)
 
-const PHOTO_DOT_FILL = "#2E66DC";
-const PHOTO_DOT_FILL_SELECTED = "#22A17A";
+const PHOTO_DOT_FILL = "#0B0B0B"; // design system text-default
+const PHOTO_DOT_FILL_SELECTED = "#15803D"; // success vert design system
 const PHOTO_DOT_BORDER = "#FFFFFF";
 const ANGLE_INDICATOR_COLOR = "#141C28";
 const ANGLE_HANDLE_FILL = "#141C28";
@@ -96,6 +102,7 @@ export default function RoomZoomCanvas({
   onAngleDrag,
   onAngleCommit,
   isCommitting = false,
+  onClickOutsidePolygon,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,6 +112,7 @@ export default function RoomZoomCanvas({
   const [imageNaturalSize, setImageNaturalSize] = useState({ w: 0, h: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hover, setHover] = useState<{ inPolygon: boolean; point: NormalizedPoint } | null>(null);
+  const [hoverHandleId, setHoverHandleId] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragPreviewAngle, setDragPreviewAngle] = useState<number | null>(null);
 
@@ -164,7 +172,7 @@ export default function RoomZoomCanvas({
 
     const availableW = containerSize.width * (1 - ZOOM_PADDING_RATIO * 2);
     const availableH = containerSize.height * (1 - ZOOM_PADDING_RATIO * 2);
-    const scale = Math.min(availableW / polyW, availableH / polyH);
+    const scale = Math.min(availableW / polyW, availableH / polyH, ZOOM_MAX_SCALE);
     const polyCenterX = (tl.x + br.x) / 2;
     const polyCenterY = (tl.y + br.y) / 2;
     const offsetX = containerSize.width / 2 - polyCenterX * scale;
@@ -259,7 +267,15 @@ export default function RoomZoomCanvas({
 
   // ─── Hit test : pastille sous la souris ────────────────────────
   const findPlacementHandle = useCallback(
-    (canvasX: number, canvasY: number): { id: string; isHandle: boolean } | null => {
+    (
+      canvasX: number,
+      canvasY: number,
+      pointerType: "mouse" | "touch" | "pen" = "mouse"
+    ): { id: string; isHandle: boolean } | null => {
+      const hitRadius =
+        pointerType === "touch"
+          ? ANGLE_HANDLE_HIT_RADIUS_TOUCH
+          : ANGLE_HANDLE_HIT_RADIUS;
       for (const p of placements) {
         if (!p.is_placed_on_plan || p.position_x === null || p.position_y === null) continue;
         const center = lotLocalToScreen(
@@ -274,13 +290,13 @@ export default function RoomZoomCanvas({
         if (dist <= PHOTO_DOT_RADIUS + 4) {
           return { id: p.id, isHandle: false };
         }
-        // Test sur la poignée d'angle (extrémité de la flèche)
+        // Test sur la poignée d'angle (extrémité de la flèche, hit zone agrandie)
         if (p.angle_degrees !== null) {
           const rad = ((p.angle_degrees - 90) * Math.PI) / 180;
           const ex = center.x + Math.cos(rad) * ANGLE_INDICATOR_LENGTH;
           const ey = center.y + Math.sin(rad) * ANGLE_INDICATOR_LENGTH;
           const dh = Math.hypot(canvasX - ex, canvasY - ey);
-          if (dh <= ANGLE_HANDLE_RADIUS + 6) {
+          if (dh <= hitRadius) {
             return { id: p.id, isHandle: true };
           }
         }
@@ -311,7 +327,7 @@ export default function RoomZoomCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#FAFAF7";
+    ctx.fillStyle = COLOR_CANVAS_BG;
     ctx.fillRect(0, 0, w, h);
 
     // Layer 1 : background plan
@@ -399,6 +415,17 @@ export default function RoomZoomCanvas({
       const px = projected.x;
       const py = projected.y;
       const isSelected = photo.id === selectedPlacementId;
+      const isPending = !photo.file_path || photo.file_path === "";
+
+      // État pending : dashed + opacity réduite pour distinguer "placée non uploadée"
+      ctx.save();
+      if (isPending) {
+        ctx.globalAlpha = 0.65;
+        ctx.setLineDash([5, 3]);
+      } else {
+        ctx.globalAlpha = 1;
+        ctx.setLineDash([]);
+      }
 
       // Angle effectif (preview en cours de drag, sinon valeur DB)
       const dragId = dragRef.current?.placementId;
@@ -444,6 +471,9 @@ export default function RoomZoomCanvas({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(String(idx), px, py);
+
+      // Reset état pending
+      ctx.restore();
     }
   }, [
     containerSize,
@@ -468,7 +498,8 @@ export default function RoomZoomCanvas({
       if (isCommitting) return;
       if (e.button !== 0) return;
       const { x, y } = getCanvasCoords(e.clientX, e.clientY);
-      const hit = findPlacementHandle(x, y);
+      const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
+      const hit = findPlacementHandle(x, y, ptype);
       if (hit && hit.isHandle) {
         // Démarre le drag de l'angle
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -491,6 +522,8 @@ export default function RoomZoomCanvas({
           const inside = pointInPolygon(point.x * 100, point.y * 100, room.polygon);
           if (inside) {
             onPlaceClick(point);
+          } else {
+            onClickOutsidePolygon?.();
           }
         }
       }
@@ -504,6 +537,7 @@ export default function RoomZoomCanvas({
       room.polygon,
       onPlaceClick,
       onSelectPlacement,
+      onClickOutsidePolygon,
     ]
   );
 
@@ -530,7 +564,10 @@ export default function RoomZoomCanvas({
         }
         return;
       }
-      // Hover detection — utilisé pour highlight polygone
+      // Hover detection — utilisé pour highlight polygone + curseur grab sur poignée
+      const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
+      const handleHit = findPlacementHandle(x, y, ptype);
+      setHoverHandleId(handleHit && handleHit.isHandle ? handleHit.id : null);
       const point = screenToLotPoint(x, y);
       if (room.polygon && room.polygon.length >= 3) {
         const inside = pointInPolygon(point.x * 100, point.y * 100, room.polygon);
@@ -548,6 +585,7 @@ export default function RoomZoomCanvas({
       screenToLotPoint,
       room.polygon,
       onAngleDrag,
+      findPlacementHandle,
     ]
   );
 
@@ -565,11 +603,18 @@ export default function RoomZoomCanvas({
     [dragPreviewAngle, onAngleCommit]
   );
 
-  const cursorClass = useMemo(() => {
-    if (isCommitting) return "cursor-wait";
-    if (hover?.inPolygon) return "cursor-crosshair";
-    return "cursor-default";
-  }, [isCommitting, hover]);
+  // dragPreviewAngle est un state mis à jour à chaque drag move → utilisé comme
+  // proxy pour "drag actif" (refs ne peuvent pas être lus pendant le render).
+  const isDragging = dragPreviewAngle !== null;
+  const cursorClass = isCommitting
+    ? "cursor-wait"
+    : isDragging
+    ? "cursor-grabbing"
+    : hoverHandleId
+    ? "cursor-grab"
+    : hover?.inPolygon
+    ? "cursor-crosshair"
+    : "cursor-default";
 
   return (
     <div
@@ -597,12 +642,21 @@ export default function RoomZoomCanvas({
           <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin" />
         </div>
       )}
-      {/* Hint visuel */}
-      <div className="absolute top-md left-md right-md pointer-events-none flex justify-center">
-        <p className="text-xs text-text-default bg-bg-card/90 px-md py-xs rounded-md border border-border-default shadow-sm">
-          Cliquez dans la pièce pour ajouter une position de prise de vue.
-        </p>
-      </div>
+      {/* Hint visuel — conditionnel selon contexte */}
+      {placements.length === 0 && (
+        <div className="absolute top-md left-md right-md pointer-events-none flex justify-center">
+          <p className="text-xs text-text-default bg-bg-card/90 px-md py-xs rounded-md border border-border-default shadow-sm">
+            Cliquez dans la pièce pour placer la première prise de vue.
+          </p>
+        </div>
+      )}
+      {placements.length > 0 && selectedPlacementId !== null && (
+        <div className="absolute top-md left-md right-md pointer-events-none flex justify-center">
+          <p className="text-xs text-text-default bg-bg-card/90 px-md py-xs rounded-md border border-border-default shadow-sm">
+            Faites glisser la pointe de la flèche pour orienter la prise de vue.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

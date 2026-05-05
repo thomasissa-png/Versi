@@ -268,7 +268,7 @@ export default function VisualPlacementPage({
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
           <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">
-            Configurez vos pièces une par une
+            Étape 4 — Visuels par pièce
           </h1>
           {lots.length > 1 && (
             <label className="inline-flex items-center gap-sm text-sm">
@@ -289,8 +289,7 @@ export default function VisualPlacementPage({
           )}
         </div>
         <p className="text-sm text-text-muted mt-xs">
-          Pour chaque pièce, cliquez sur le plan pour ajouter une position de prise de vue,
-          uploadez la photo correspondante, orientez la flèche et choisissez un style.
+          Pour chaque pièce : placez une prise de vue sur le plan, uploadez la photo, orientez la flèche, choisissez un style.
         </p>
       </div>
 

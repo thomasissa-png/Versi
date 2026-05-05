@@ -252,7 +252,7 @@ export default function VisualWizard({
         setPendingPlacements((prev) => prev.filter((p) => p.id !== pendingId));
         setPhotos((prev) => [...prev, json.data]);
       } catch {
-        setError("Upload échoué.");
+        setError("L'envoi de la photo a échoué.");
       }
     },
     [pendingPlacements]

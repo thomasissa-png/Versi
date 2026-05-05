@@ -37,6 +37,26 @@ const STYLE_ORDER: StyleId[] = [
   "japandi",
 ];
 
+/**
+ * D1 — bandeau couleur catégorielle pour différencier visuellement les 12
+ * styles. Mapping local pour rester focused (pas de modif de la config STYLES
+ * partagée). Couleurs choisies cohérentes avec la palette sobre Versi.
+ */
+const STYLE_COLORS: Record<StyleId, string> = {
+  scandinave: "#A3B5C9", // bleu-gris pâle
+  industriel: "#3D3D3D", // anthracite
+  moderne: "#0B0B0B", // noir
+  boheme: "#C8956D", // terracotta
+  classique: "#8B7355", // taupe
+  minimaliste: "#FFFFFF", // blanc (traité spécial avec border)
+  "art-deco": "#C9A55C", // or pâle
+  tropical: "#5A8060", // vert sauge
+  "wabi-sabi": "#A89F88", // lin
+  "mid-century": "#9C5933", // cuivre
+  cottagecore: "#D4B896", // beige doré
+  japandi: "#7B8576", // vert kaki sombre
+};
+
 export default function RoomStylePicker({
   selectedStyleId,
   onSelect,
@@ -89,7 +109,7 @@ export default function RoomStylePicker({
               disabled={isPersisting}
               data-testid={`room-style-option-${id}`}
               className={[
-                "text-left rounded-md border p-sm min-h-[68px] flex flex-col gap-2xs transition-colors",
+                "text-left rounded-md border min-h-[68px] flex flex-col transition-colors overflow-hidden",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
                 isSelected
                   ? "border-interactive-primary bg-interactive-primary/5 ring-2 ring-interactive-primary/30"
@@ -97,6 +117,18 @@ export default function RoomStylePicker({
                 isPersisting ? "opacity-60 cursor-wait" : "cursor-pointer",
               ].join(" ")}
             >
+              {/* D1 — bandeau couleur catégorielle 4px (border interne pour le blanc) */}
+              <div
+                className={[
+                  "h-[4px] w-full",
+                  id === "minimaliste"
+                    ? "border-b border-border-default"
+                    : "",
+                ].join(" ")}
+                style={{ backgroundColor: STYLE_COLORS[id] }}
+                aria-hidden="true"
+              />
+              <div className="flex flex-col gap-2xs p-sm flex-1">
               <div className="flex items-center justify-between gap-xs">
                 <span className="font-semibold text-sm text-text-default">
                   {style.name}
@@ -127,6 +159,7 @@ export default function RoomStylePicker({
               <span className="text-xs text-text-muted leading-snug line-clamp-2">
                 {style.prompt_hint}
               </span>
+              </div>
             </button>
           );
         })}

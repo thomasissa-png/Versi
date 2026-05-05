@@ -76,6 +76,15 @@ export default function VisualWizardRecap({
     totalRoomsWithStyle === rooms.length &&
     rooms.every((r) => (photosByRoomId.get(r.id)?.length ?? 0) > 0);
 
+  const missingCount = useMemo(
+    () =>
+      rooms.filter((r) => {
+        const placed = photosByRoomId.get(r.id)?.length ?? 0;
+        return placed === 0 || !r.style_id;
+      }).length,
+    [rooms, photosByRoomId]
+  );
+
   /**
    * Lance la génération. On utilise un style projet "factice" car le pipeline
    * accepte un fallback : chaque pièce avec son propre style_id sera utilisée.
@@ -123,14 +132,25 @@ export default function VisualWizardRecap({
         <p className="text-xs uppercase tracking-widest text-text-muted">
           Étape finale
         </p>
-        <h2 className="text-xl sm:text-2xl uppercase tracking-wide font-semibold text-text-default">
+        <h2 className="text-xl sm:text-2xl uppercase tracking-wide font-semibold font-serif text-text-default">
           Vérifiez et générez
         </h2>
-        <p className="text-sm text-text-muted">
-          {totalPlacedPhotos} photo{totalPlacedPhotos > 1 ? "s" : ""} placée
-          {totalPlacedPhotos > 1 ? "s" : ""} sur {rooms.length} pièce
-          {rooms.length > 1 ? "s" : ""}.
-        </p>
+        {/* C3 — message conditionnel WoW vs incomplet */}
+        {allReady ? (
+          <div className="rounded-md border border-success/20 bg-success/5 p-md">
+            <p className="text-sm text-text-default">
+              Tout est prêt. {totalPlacedPhotos} photo
+              {totalPlacedPhotos > 1 ? "s" : ""} sur {rooms.length} pièce
+              {rooms.length > 1 ? "s" : ""}. Versi va générer vos visuels en
+              quelques minutes.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-text-muted">
+            {missingCount} pièce{missingCount > 1 ? "s" : ""} à compléter avant
+            génération.
+          </p>
+        )}
       </div>
 
       {/* Plan complet read-only */}
@@ -192,7 +212,7 @@ export default function VisualWizardRecap({
               <button
                 type="button"
                 onClick={() => onEditRoom(room.id)}
-                className="text-xs self-start px-sm py-xs rounded-md text-interactive-primary hover:bg-interactive-primary/10 mt-xs"
+                className="text-xs self-start px-md min-h-[44px] inline-flex items-center rounded-md text-interactive-primary hover:bg-interactive-primary/10 mt-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
               >
                 Modifier
               </button>
