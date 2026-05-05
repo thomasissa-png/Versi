@@ -21,6 +21,32 @@
 **Phase HOTFIX-1** : @fullstack -- diagnostic root cause, rapport sans fix
 **Phase HOTFIX-2** (après validation user) : @fullstack -- fix ciblé sur hypothèse retenue
 
+### HOTFIX-1 -- Verdict diagnostic (2026-05-05)
+
+**Statut** : COMPLETE -- rapport produit dans `docs/hotfix/2026-05-05-etape-4-v2-diagnostic.md` (orchestrateur, sous-agent Task indispo en mode subagent).
+
+**Root cause identifié (HAUTE)** : H1 -- Route Étape 4 active (`src/app/vs/projects/[id]/visuals/page.tsx`) jamais migrée vers UI v2. Elle rend toujours `VisualRoom` (UI v1). La nouvelle UI v2 (`VisualPlacementView`) est cantonnée à la sous-route `/visuals/placement` non liée depuis le Stepper.
+
+**Preuve** : Grep `VisualPlacementView|useVisualsStream` dans `visuals/page.tsx` → 0 résultat. Imports actuels = `Stepper, RoomGrid, VisualRoom`.
+
+**Conséquence Symptôme A** : Thomas voit l'ancienne UI parce que c'est ce qui est rendu.
+**Conséquence Symptôme B** : Le texte "Création en cours — environ 90 secondes" vient de `VisualResult.tsx` (composant v1). Donc Thomas est sur la chaîne v1 qui POST `/api/vs/rooms/[id]/generate`. Cette route legacy a été refactorée s30 pour `await generateCoherentVisuals` synchrone côté API → timeout proxy Replit 60s sur `gpt-image-2` qui prend 90s+ → row `vs_visuals` status='pending' figée → UI v1 polle indéfiniment.
+
+**Hypothèse secondaire (HAUTE)** : H2 -- timeout proxy Replit sur route legacy `/rooms/[id]/generate` qui await la génération.
+**Hypothèse tertiaire (MOYENNE)** : H3 -- env var `VS_COHERENT_PIPELINE` ou scope clé OpenAI.
+
+**Plan fix recommandé (HOTFIX-2 après confirmation user)** :
+- Option A (LOW RISK) : redirect `/visuals` → `/visuals/placement` via `redirect()` Next.js. ~10 lignes, 1 fichier. Bascule complète sur v2 testée Vitest 107/107 + Playwright 18/0/2.
+- Si H2 confirmé en plus : convertir `POST /rooms/[id]/generate` en fire-and-forget (~30 lignes).
+
+**Action de confirmation Thomas (30s)** :
+```bash
+grep -n "VisualPlacementView\|useVisualsStream" versi-studio/src/app/vs/projects/[id]/visuals/page.tsx
+```
+Si 0 résultat → H1 confirmé, lancer Option A.
+
+**Prochaine action** : attendre validation user du root cause AVANT de lancer @fullstack en HOTFIX-2.
+
 
 ## Branche
 `claude/versi-s21-launch-OsqlY`
