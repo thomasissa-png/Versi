@@ -7,6 +7,55 @@ de la branche s29 — elles ne sont PAS automatisées par CI.
 
 ---
 
+## 0. s31 — HOTFIX-2 Étape 4 v2 (déploiement obligatoire)
+
+**Pourquoi** : pendant les vagues s30, toute la nouvelle UI v2 (canvas plan,
+photos draggables, worker SSE, AngleController, génération multi-pièces) a été
+codée et testée (Vitest 107/107, Playwright 18/0/2) MAIS la route active
+`/vs/projects/[id]/visuals` rendait toujours l'ancienne UI v1 (`VisualRoom`,
+pièce-par-pièce). Thomas voyait l'ancienne UI + job synchrone bloqué 10 min.
+
+**Fix HOTFIX-2 (Option A — redirect)** : `visuals/page.tsx` est désormais un
+Server Component minimal qui `redirect()` vers `/visuals/placement` (la nouvelle
+UI v2). Zéro flash UI v1, zéro client JS, redirect côté serveur.
+
+Actions à effectuer sur Replit après pull :
+
+1. `git fetch origin && git checkout claude/add-sanity-check-IpyM0 && git pull`
+   (ou la branche s31 mergée sur main si déjà mergée)
+2. `cd versi-studio && npm install` (les deps s30 `heic-convert` et `exifr` sont
+   déjà installées si vous étiez à jour s30 — sinon voir section 1)
+3. Vérifier l'application des migrations :
+   - `001_*.sql` à `006_s30_visual_jobs.sql` doivent être appliquées
+   - Migration runner auto via `ensureVsTables()` au boot (voir logs serveur)
+   - Sinon : `psql $DATABASE_URL -f versi-studio/src/lib/vs/migrations/006_s30_visual_jobs.sql`
+4. Vérifier env vars (Replit Secrets) :
+   - `OPENAI_API_KEY` avec scope accès `gpt-image-2`
+   - `VS_COHERENT_PIPELINE` à `true` (défaut, ne pas overrider sauf rollback)
+5. **Redémarrer Replit (Stop puis Run)** — pas seulement reload, pour purger
+   le cache Next.js (le redirect Server Component est susceptible d'être caché
+   sur la précédente version)
+6. **Test manuel** : aller sur un projet existant → cliquer Étape 4 Visuels →
+   l'URL doit basculer automatiquement sur `/visuals/placement` et afficher la
+   nouvelle UI :
+   - Plan dessiné en background (PDF rendu canvas)
+   - Liste de photos draggables côté sidebar (desktop) ou bottom-sheet (mobile)
+   - AngleController (cercle pivotable + slider 0-359°) au focus d'une photo
+   - Bouton "Générer les visuels" en bas
+   - PAS de grille de pièces RoomGrid (= ancienne UI v1, signe de bug si visible)
+
+**Risques résiduels signalés à @qa/@reviewer** :
+- La route `POST /api/vs/rooms/[id]/generate` utilise un pattern `void
+  runCoherentMonoRoom(...)` (fire-and-forget) qui contredit la règle CLAUDE.md
+  fullstack "zéro fire-and-forget Replit autoscale". Pattern intentionnel
+  (retour 201 immédiat + polling status) mais peut perdre le job si l'instance
+  est tuée mid-génération. Mitigation existante : le pipeline cohérent multi-
+  pièces (`POST /api/vs/projects/[id]/visuals/generate`) utilise `vs_visual_jobs`
+  comme job persistant + SSE. La route mono-room reste sur fire-and-forget par
+  conservation de contrat. À discuter en V3 si symptômes prod.
+
+---
+
 ## 1. Installation des nouvelles dépendances npm (obligatoire)
 
 Deux packages ajoutés pour le pré-traitement des photos Étape 4 v2 :
