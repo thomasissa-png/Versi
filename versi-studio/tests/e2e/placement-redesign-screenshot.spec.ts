@@ -1,28 +1,28 @@
 /**
- * Test screenshot — Validation visuelle Étape 4 v2 wizard s32.
+ * Test screenshot — Validation visuelle wizard s32 (Phase 4 — itération 3).
  *
- * Refonte s32 (commit refonte wizard) : l'écran multi-pièces a été remplacé
- * par un wizard guidé pièce-par-pièce. Le screenshot capture la première
- * étape du wizard avec :
- *   - Header "Pièce 1 / N" + barre progression
- *   - RoomZoomCanvas zoomé sur le polygone de la 1re pièce (overlay
- *     atténuant les zones hors polygone)
- *   - Liste pastilles (vide au démarrage) + hint "Cliquez sur le plan..."
- *   - RoomStylePicker (12 styles en grille)
- *   - Footer Précédent désactivé / Pièce suivante désactivée (pas encore
- *     de photo + style)
+ * Couvre 3 états du wizard :
+ *  1. Step 1 nu (1re pièce, Salon avec photos placées + style scandinave) — base s32
+ *  2. Configuring enrichi : meublé/non-meublé toggle + commentaire saisi — itération 3
+ *  3. Preview : 3 visuels générés mockés via SSE + boutons Régénérer/Valider — itération 3
  *
- * Output : test-results/placement-redesign-{desktop,mobile}.png
+ * Stratégie SSE pour Test B (preview) :
+ *  - Mock /api/vs/projects/[id]/visuals-stream (EventSource) avec 3 events
+ *    `visual.generated` pour ROOM_ID_1 → wizard bascule auto en `preview`.
+ *  - Mock /api/vs/files** sert un PNG synthétique pour les visuels.
+ *
+ * Output : tests/screenshots/s32-iter3-wizard-{configuring,preview}-{desktop,mobile}.png
+ *          (+ baseline existant placement-redesign-{desktop,mobile}.png inchangé)
  */
 
-import { test, expect, devices } from "@playwright/test";
+import { test, expect, devices, type Page } from "@playwright/test";
 import {
   setupVisualsStepV2,
   REALISTIC_PHOTOS,
   DEFAULT_ROOMS,
 } from "./helpers/setupProject";
 import { blockExternalOpenAI } from "./helpers/mockOpenAI";
-import { PROJECT_ID } from "./fixtures";
+import { PROJECT_ID, ROOM_ID_1 } from "./fixtures";
 
 const PLACEMENT_URL = `/vs/projects/${PROJECT_ID}/visuals/placement`;
 
@@ -30,15 +30,88 @@ const PLACEMENT_URL = `/vs/projects/${PROJECT_ID}/visuals/placement`;
  * Rooms enrichies pour validation visuelle wizard (s32) :
  *  - Salon : style "scandinave" appliqué (pour montrer état RoomStylePicker actif)
  *  - Chambre + SDB : sans style (état "à choisir")
- *
- * Combinées à REALISTIC_PHOTOS, le wizard affiche dès la 1re pièce :
- *   - 2 photos placées dans le Salon (pastilles 45° + 180°)
- *   - Style "Scandinave" actif → bouton "Pièce suivante" activé
  */
 const ROOMS_WIZARD_FIXTURE = DEFAULT_ROOMS.map((r, idx) =>
   idx === 0 ? { ...r, style_id: "scandinave" } : r
 );
 
+// ─── Helper SSE mock ────────────────────────────────────────────────
+/**
+ * Mock /api/vs/projects/[id]/visuals-stream pour renvoyer immédiatement
+ * 3 événements `visual.generated` pour ROOM_ID_1, déclenchant la bascule
+ * automatique du wizard de `generating` → `preview`.
+ *
+ * Format SSE attendu par useVisualsStream :
+ *   event: visual.generated
+ *   data: {"type":"visual.generated","visual_id":"...","room_id":"...","kind":"anchor","file_path":"...","coherence_mode":null}
+ */
+async function mockNextImageOptimizer(page: Page): Promise<void> {
+  // Next/Image proxy via /_next/image?url=... → côté SERVEUR. Cette interception
+  // ne peut PAS toucher l'optimizer SSR. À la place, on accepte que le SSR
+  // renvoie 502 et que <Image> lève onError → next/image affiche le alt text.
+  // Pour contourner sans modifier le composant, on intercepte la requête
+  // browser final `_next/image*` et on sert le PNG synthétique. Cela court-
+  // circuite le pipeline d'optimisation côté browser.
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const planPath = join(__dirname, "fixtures", "synthetic-plan.png");
+  const buf = readFileSync(planPath);
+  await page.route(`**/_next/image**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      body: buf,
+    });
+  });
+}
+
+async function mockVisualsStreamWith3Visuals(page: Page, roomId: string): Promise<void> {
+  await page.route(`**/api/vs/projects/${PROJECT_ID}/visuals-stream`, async (route) => {
+    const visuals = [
+      {
+        type: "visual.generated",
+        visual_id: "visual-mock-001-aaaa-aaaa-aaaaaaaaaaaa",
+        room_id: roomId,
+        kind: "anchor",
+        file_path: "/tmp/vs/visuals/salon-mock-01.png",
+        coherence_mode: "multi_image_native",
+      },
+      {
+        type: "visual.generated",
+        visual_id: "visual-mock-002-bbbb-bbbb-bbbbbbbbbbbb",
+        room_id: roomId,
+        kind: "secondary",
+        file_path: "/tmp/vs/visuals/salon-mock-02.png",
+        coherence_mode: "multi_image_native",
+      },
+      {
+        type: "visual.generated",
+        visual_id: "visual-mock-003-cccc-cccc-cccccccccccc",
+        room_id: roomId,
+        kind: "secondary",
+        file_path: "/tmp/vs/visuals/salon-mock-03.png",
+        coherence_mode: "multi_image_native",
+      },
+    ];
+    const body = visuals
+      .map(
+        (v) =>
+          `event: visual.generated\ndata: ${JSON.stringify(v)}\n\n`
+      )
+      .join("");
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      headers: {
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+      body,
+    });
+  });
+}
+
+// ─── Suite 1 : screenshot baseline (s32 base, inchangé) ──────────────
 test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
   test("desktop 1280x800 — wizard step 1 full page", async ({ browser }) => {
     const context = await browser.newContext({
@@ -61,8 +134,6 @@ test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
     await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId("room-style-picker")).toBeVisible();
 
-    // Stabilisation réseau + chargement async PNG synthétique (fetch image
-    // dans RoomZoomCanvas → setImageNaturalSize → recalcul viewport → redraw).
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1500);
 
@@ -102,6 +173,284 @@ test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
     await page.screenshot({
       path: "test-results/placement-redesign-mobile.png",
       fullPage: true,
+    });
+
+    await context.close();
+  });
+});
+
+// ─── Suite 2 : itération 3 — configuring enrichi + preview ─────────
+test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
+  // Fixture commune : Salon avec photos placées + style + meublé=false + commentaire
+  // GET /rooms/:id/settings retourne le commentaire pré-rempli pour qu'il soit
+  // visible dans le textarea sans frappe utilisateur.
+  const COMMENT_TEXT =
+    "Pièce vide à meubler. Apporter canapé bleu marine et tapis berbère.";
+
+  async function setupConfiguringEnriched(page: Page): Promise<void> {
+    await blockExternalOpenAI(page);
+    await setupVisualsStepV2(page, {
+      rooms: ROOMS_WIZARD_FIXTURE,
+      photos: REALISTIC_PHOTOS,
+    });
+
+    // Settings global pour rooms (déclaré AVANT la route spécifique pour que
+    // Playwright LIFO donne priorité à la route ROOM_ID_1 ci-dessous).
+    await page.route(`**/api/vs/rooms/*/settings`, async (route) => {
+      const url = route.request().url();
+      // Branche ROOM_ID_1 → commentaire pré-rempli (visible dans textarea).
+      if (url.includes(ROOM_ID_1)) {
+        if (route.request().method() === "GET") {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({
+              success: true,
+              data: {
+                room_id: ROOM_ID_1,
+                target_visual_count: 1,
+                comment_text: COMMENT_TEXT,
+              },
+            }),
+          });
+          return;
+        }
+        if (route.request().method() === "PATCH") {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ success: true, data: { room_id: ROOM_ID_1 } }),
+          });
+          return;
+        }
+      }
+      // Autres rooms → fallback (commentaire vide).
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: { room_id: "x", target_visual_count: 1, comment_text: null },
+          }),
+        });
+      } else if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: { room_id: "x" } }),
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // PATCH /api/vs/rooms/:id (style, is_furnished, status=skipped)
+    await page.route(`**/api/vs/rooms/*`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        const body = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: { id: ROOM_ID_1, ...body } }),
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // POST /api/vs/projects/:id/visuals/generate → 202 + déclenche bascule generating
+    await page.route(
+      `**/api/vs/projects/${PROJECT_ID}/visuals/generate`,
+      async (route) => {
+        if (route.request().method() === "POST") {
+          await route.fulfill({
+            status: 202,
+            contentType: "application/json",
+            body: JSON.stringify({
+              success: true,
+              data: {
+                job_id: "job-mock-iter3",
+                expected_count: 3,
+                estimated_cost_usd: 0.12,
+              },
+            }),
+          });
+        } else {
+          await route.fallback();
+        }
+      }
+    );
+  }
+
+  // ─── Test A : configuring enrichi ────────────────────────────────
+  test("desktop — configuring enrichi (meublé toggle + commentaire)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupConfiguringEnriched(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
+
+    // Attendre que le commentaire pré-rempli soit chargé (fetch /settings).
+    await expect(page.getByTestId("wizard-room-comment")).toHaveValue(COMMENT_TEXT, {
+      timeout: 5_000,
+    });
+
+    // Cliquer sur "Non meublé" pour activer le toggle (par défaut probablement neutre).
+    await page.getByTestId("wizard-furnished-no").click();
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-iter3-wizard-configuring-desktop.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+
+  test("mobile — configuring enrichi (meublé toggle + commentaire)", async ({
+    browser,
+  }) => {
+    const iphone = devices["iPhone 14"] ?? devices["iPhone 13"];
+    const context = await browser.newContext({
+      ...iphone,
+      viewport: { width: 390, height: 844 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupConfiguringEnriched(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.getByTestId("wizard-room-comment")).toHaveValue(COMMENT_TEXT, {
+      timeout: 5_000,
+    });
+
+    await page.getByTestId("wizard-furnished-no").click();
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-iter3-wizard-configuring-mobile.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+
+  // ─── Test B : preview avec 3 visuels mockés via SSE ─────────────
+  test("desktop — preview avec 3 visuels (Régénérer / Valider)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupConfiguringEnriched(page);
+    await mockNextImageOptimizer(page);
+    await mockVisualsStreamWith3Visuals(page, ROOM_ID_1);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Cliquer sur "Générer cette pièce" — bascule en `generating`, ouvre SSE.
+    await page.getByTestId("wizard-generate-this-room").click();
+
+    // Attendre la bascule en preview (SSE renvoie 3 visuels → preview auto).
+    await expect(page.getByTestId("room-preview-view")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-preview-grid")).toBeVisible();
+    await expect(page.getByTestId("room-preview-regenerate")).toBeVisible();
+    await expect(page.getByTestId("room-preview-validate")).toBeVisible();
+
+    // Scroll jusqu'à la section preview pour cadrer le screenshot.
+    // Scroll au DÉBUT de la section preview (titre + grid en haut du viewport).
+    await page.getByTestId("room-preview-view").evaluate((el) =>
+      el.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior })
+    );
+    // Petit offset pour ne pas coller au header sticky.
+    await page.evaluate(() => window.scrollBy(0, -80));
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    // Viewport-only (pas fullPage) pour éviter la superposition du header
+    // sticky lors d'un screenshot full page d'une page longue.
+    await page.screenshot({
+      path: "tests/screenshots/s32-iter3-wizard-preview-desktop.png",
+      fullPage: false,
+    });
+
+    await context.close();
+  });
+
+  test("mobile — preview avec 3 visuels (Régénérer / Valider)", async ({
+    browser,
+  }) => {
+    const iphone = devices["iPhone 14"] ?? devices["iPhone 13"];
+    const context = await browser.newContext({
+      ...iphone,
+      viewport: { width: 390, height: 844 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupConfiguringEnriched(page);
+    await mockNextImageOptimizer(page);
+    await mockVisualsStreamWith3Visuals(page, ROOM_ID_1);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByTestId("wizard-generate-this-room").click();
+
+    await expect(page.getByTestId("room-preview-view")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-preview-grid")).toBeVisible();
+
+    // Scroll au DÉBUT de la section preview (titre + grid en haut du viewport).
+    await page.getByTestId("room-preview-view").evaluate((el) =>
+      el.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior })
+    );
+    // Petit offset pour ne pas coller au header sticky.
+    await page.evaluate(() => window.scrollBy(0, -80));
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-iter3-wizard-preview-mobile.png",
+      fullPage: false,
     });
 
     await context.close();

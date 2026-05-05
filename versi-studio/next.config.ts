@@ -15,6 +15,21 @@ const nextConfig: NextConfig = {
   // Externaliser comme pdf-to-img / tesseract.js résout. Cause root du bug
   // 5102 reporté par Thomas après commit 4d8a519.
   serverExternalPackages: ["pdf-to-img", "tesseract.js", "pdfjs-dist"],
+
+  // s32 — autoriser next/image à optimiser les fichiers servis par notre
+  // route `/api/vs/files?path=...` (query string requise par Next.js 16
+  // dès qu'on utilise `?`). Sans cette entrée, `Image` lève
+  // `next-image-unconfigured-localpatterns` et crash le rendu de la page
+  // (galerie wizard preview, miniatures recap, etc.).
+  // Cf. https://nextjs.org/docs/messages/next-image-unconfigured-localpatterns
+  images: {
+    localPatterns: [
+      {
+        pathname: "/api/vs/files",
+        // search omis → autorise n'importe quelle query string (ou aucune).
+      },
+    ],
+  },
 };
 
 export default nextConfig;
