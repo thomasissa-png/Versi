@@ -2,6 +2,26 @@
 
 <!-- SESSION: phases=3 tasks_prod=0 tasks_consult=0 -->
 
+---
+
+## HOTFIX P0 s30+1 -- Étape 4 v2 prod cassée (2026-05-05)
+
+**Mode** : HOTFIX investigation, pas de fix immédiat.
+
+**Symptômes** :
+- A : UI Étape 4 inchangée après pull s30 sur Replit prod
+- B : job "Création en cours ~90s" bloqué 10+ min sans progression
+
+**Findings pré-investigation** (orchestrateur) :
+- `useVisualsStream` utilisé dans `VisualGallery`, `VisualPlacementView`, `GenerationProgressView` -- pas dans `visuals/page.tsx` direct (normal, c'est un sous-composant)
+- `visual-job-runner` référencé dans `src/app/api/vs/projects/[id]/visuals/generate/route.ts`
+- Page Étape 4 = `versi-studio/src/app/vs/projects/[id]/visuals/page.tsx`
+- REPLIT_ACTIONS.md référence s29 -- pas de section s30 ajoutée (signal fort : actions manuelles s30 oubliées ?)
+
+**Phase HOTFIX-1** : @fullstack -- diagnostic root cause, rapport sans fix
+**Phase HOTFIX-2** (après validation user) : @fullstack -- fix ciblé sur hypothèse retenue
+
+
 ## Branche
 `claude/versi-s21-launch-OsqlY`
 
