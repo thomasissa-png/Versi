@@ -9,6 +9,8 @@
  */
 
 import type { Page, Route } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   PROJECT_ID,
   PLAN_ID_1,
@@ -24,27 +26,57 @@ import {
   MOCK_PLANS,
 } from "../fixtures";
 
+// PNG plan synthétique partagé — chargé une fois, sert toutes les routes /api/vs/files
+const SYNTHETIC_PLAN_PATH = join(__dirname, "..", "fixtures", "synthetic-plan.png");
+let _syntheticPlanCache: Buffer | null = null;
+function loadSyntheticPlan(): Buffer {
+  if (_syntheticPlanCache) return _syntheticPlanCache;
+  _syntheticPlanCache = readFileSync(SYNTHETIC_PLAN_PATH);
+  return _syntheticPlanCache;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────
 
 export interface RoomFixture {
   id: string;
-  name: string;
-  type: string;
+  name: string | null;
+  /** room_type — aligné VsRoom (salon, chambre, sdb, ...) */
+  room_type: string;
+  custom_label: string | null;
   surface_m2: number | null;
-  polygon: Array<{ x: number; y: number }>;
+  /**
+   * Polygone LOT-LOCAL en % (0-100) — shape aligné VsRoom.polygon.
+   * Cohérent avec le PNG synthetic-plan.png généré par
+   * tests/e2e/fixtures/generate-synthetic-plan.ts.
+   */
+  polygon: Array<{ x_percent: number; y_percent: number }>;
+  /** position rect (lot-local %) — fallback compatibilité legacy. */
+  position?: { x_percent: number; y_percent: number; width_percent: number; height_percent: number };
+  status?: "suggested" | "validated";
+  source?: "ai" | "user";
+  created_at?: string;
   lot_id: string;
   plan_id: string;
 }
 
 export interface PhotoFixture {
   id: string;
+  /** room_id sur lequel la photo est rattachée (pas placed_room_id — VsPhoto.room_id). */
+  room_id: string;
   filename: string;
   file_path: string;
   is_placed_on_plan: boolean;
-  placed_room_id: string | null;
+  /** Position normalisée 0-1 LOT-LOCAL — center de la pastille sur le plan. */
   position_x: number | null;
   position_y: number | null;
+  /** Angle 0-359, 0 = nord, sens horaire. null si non placée. */
   angle_degrees: number | null;
+  /** EXIF + warnings (alignés VsPhoto). */
+  taken_at?: string | null;
+  exif_raw?: Record<string, unknown> | null;
+  preprocessing_warnings?: unknown[] | null;
+  angle_description?: string | null;
+  created_at?: string;
 }
 
 export interface ProjectSetupOpts {
@@ -70,46 +102,68 @@ export const DEFAULT_PLAN_R1 = {
   floor_label: "R+1",
 };
 
+/**
+ * Pièces alignées avec le PNG synthetic-plan.png (lot=5%-95% du plan global,
+ * pièces en LOT-LOCAL %).
+ *  Salon   : (5,10) → (50,60)   gauche du lot
+ *  Chambre : (55,10) → (95,50)  droite haut du lot
+ *  SDB     : (55,55) → (90,90)  droite bas du lot
+ */
 export const DEFAULT_ROOMS: RoomFixture[] = [
   {
     id: ROOM_ID_1,
-    name: "Salon",
-    type: "salon",
+    name: null,
+    room_type: "salon",
+    custom_label: null,
     surface_m2: 28,
     polygon: [
-      { x: 0.10, y: 0.10 },
-      { x: 0.45, y: 0.10 },
-      { x: 0.45, y: 0.50 },
-      { x: 0.10, y: 0.50 },
+      { x_percent: 5, y_percent: 10 },
+      { x_percent: 50, y_percent: 10 },
+      { x_percent: 50, y_percent: 60 },
+      { x_percent: 5, y_percent: 60 },
     ],
+    position: { x_percent: 5, y_percent: 10, width_percent: 45, height_percent: 50 },
+    status: "validated",
+    source: "ai",
+    created_at: "2026-04-15T10:10:00.000Z",
     lot_id: LOT_ID_1,
     plan_id: PLAN_ID_1,
   },
   {
     id: ROOM_ID_2,
-    name: "Chambre",
-    type: "chambre",
+    name: null,
+    room_type: "chambre",
+    custom_label: null,
     surface_m2: 12,
     polygon: [
-      { x: 0.50, y: 0.10 },
-      { x: 0.85, y: 0.10 },
-      { x: 0.85, y: 0.50 },
-      { x: 0.50, y: 0.50 },
+      { x_percent: 55, y_percent: 10 },
+      { x_percent: 95, y_percent: 10 },
+      { x_percent: 95, y_percent: 50 },
+      { x_percent: 55, y_percent: 50 },
     ],
+    position: { x_percent: 55, y_percent: 10, width_percent: 40, height_percent: 40 },
+    status: "validated",
+    source: "ai",
+    created_at: "2026-04-15T10:10:00.000Z",
     lot_id: LOT_ID_1,
     plan_id: PLAN_ID_1,
   },
   {
     id: ROOM_ID_3,
-    name: "SDB",
-    type: "sdb",
+    name: null,
+    room_type: "sdb",
+    custom_label: null,
     surface_m2: 4,
     polygon: [
-      { x: 0.10, y: 0.55 },
-      { x: 0.40, y: 0.55 },
-      { x: 0.40, y: 0.80 },
-      { x: 0.10, y: 0.80 },
+      { x_percent: 55, y_percent: 55 },
+      { x_percent: 90, y_percent: 55 },
+      { x_percent: 90, y_percent: 90 },
+      { x_percent: 55, y_percent: 90 },
     ],
+    position: { x_percent: 55, y_percent: 55, width_percent: 35, height_percent: 35 },
+    status: "validated",
+    source: "ai",
+    created_at: "2026-04-15T10:10:00.000Z",
     lot_id: LOT_ID_1,
     plan_id: PLAN_ID_1,
   },
@@ -117,25 +171,114 @@ export const DEFAULT_ROOMS: RoomFixture[] = [
 
 export const DEFAULT_PHOTO_PLACED: PhotoFixture = {
   id: PHOTO_ID_1,
+  room_id: ROOM_ID_1,
   filename: "salon-01.jpg",
   file_path: "/test-fixtures/salon-01.jpg",
   is_placed_on_plan: true,
-  placed_room_id: ROOM_ID_1,
-  position_x: 0.27,
-  position_y: 0.30,
+  // Centre du polygone Salon en LOT-LOCAL 0-1 : (5+50)/2/100 = 0.275, (10+60)/2/100 = 0.35
+  position_x: 0.275,
+  position_y: 0.35,
   angle_degrees: 0,
+  taken_at: null,
+  exif_raw: null,
+  preprocessing_warnings: null,
+  angle_description: null,
+  created_at: "2026-04-15T10:20:00.000Z",
 };
 
 export const DEFAULT_PHOTO_UNPLACED: PhotoFixture = {
   id: PHOTO_ID_1,
+  room_id: ROOM_ID_1,
   filename: "salon-01.jpg",
   file_path: "/test-fixtures/salon-01.jpg",
   is_placed_on_plan: false,
-  placed_room_id: null,
   position_x: null,
   position_y: null,
   angle_degrees: null,
+  taken_at: null,
+  exif_raw: null,
+  preprocessing_warnings: null,
+  angle_description: null,
+  created_at: "2026-04-15T10:20:00.000Z",
 };
+
+/**
+ * Set de photos REALISTE pour screenshots placement (s32).
+ * Couvre :
+ *  - 2 photos placées dans Salon (états multi → polygone bleu, angles 45° et 180°)
+ *  - 1 photo placée dans Chambre (état placée seule → polygone vert, angle 270°)
+ *  - 1 photo placée dans SDB (angle 0°/nord)
+ *  - 1 photo NON placée dans Salon (mix « placée / à placer »)
+ *
+ * Positions LOT-LOCAL 0-1 calées sur les polygones.
+ * Angles 0/45/180/270 montrent les 4 directions cardinales.
+ */
+export const REALISTIC_PHOTOS: PhotoFixture[] = [
+  // Salon — 2 photos placées (multi → polygone bleu)
+  {
+    id: "photo-salon-01-aaaa-aaaa-aaaaaaaaaaaa",
+    room_id: ROOM_ID_1,
+    filename: "salon-fenetre.jpg",
+    file_path: "/tmp/vs/photos/salon-fenetre.jpg",
+    is_placed_on_plan: true,
+    position_x: 0.20, // gauche du Salon
+    position_y: 0.25,
+    angle_degrees: 45, // nord-est
+    taken_at: null, exif_raw: null, preprocessing_warnings: null,
+    angle_description: null, created_at: "2026-04-15T10:20:00.000Z",
+  },
+  {
+    id: "photo-salon-02-bbbb-bbbb-bbbbbbbbbbbb",
+    room_id: ROOM_ID_1,
+    filename: "salon-canape.jpg",
+    file_path: "/tmp/vs/photos/salon-canape.jpg",
+    is_placed_on_plan: true,
+    position_x: 0.32,
+    position_y: 0.50,
+    angle_degrees: 180, // sud
+    taken_at: null, exif_raw: null, preprocessing_warnings: null,
+    angle_description: null, created_at: "2026-04-15T10:21:00.000Z",
+  },
+  // Chambre — 1 photo placée (placée seule → polygone vert)
+  {
+    id: "photo-chambre-01-cccc-cccc-cccccccccccc",
+    room_id: ROOM_ID_2,
+    filename: "chambre-lit.jpg",
+    file_path: "/tmp/vs/photos/chambre-lit.jpg",
+    is_placed_on_plan: true,
+    position_x: 0.75, // centre Chambre
+    position_y: 0.30,
+    angle_degrees: 270, // ouest
+    taken_at: null, exif_raw: null, preprocessing_warnings: null,
+    angle_description: null, created_at: "2026-04-15T10:22:00.000Z",
+  },
+  // SDB — 1 photo placée (placée seule → polygone vert)
+  {
+    id: "photo-sdb-01-dddd-dddd-dddddddddddd",
+    room_id: ROOM_ID_3,
+    filename: "sdb-douche.jpg",
+    file_path: "/tmp/vs/photos/sdb-douche.jpg",
+    is_placed_on_plan: true,
+    position_x: 0.725, // centre SDB
+    position_y: 0.725,
+    angle_degrees: 0, // nord
+    taken_at: null, exif_raw: null, preprocessing_warnings: null,
+    angle_description: null, created_at: "2026-04-15T10:23:00.000Z",
+  },
+  // Salon — 1 photo NON placée (état mixte « à placer »)
+  {
+    id: "photo-salon-03-eeee-eeee-eeeeeeeeeeee",
+    room_id: ROOM_ID_1,
+    filename: "salon-cuisine-ouverte.jpg",
+    file_path: "/tmp/vs/photos/salon-cuisine.jpg",
+    is_placed_on_plan: false,
+    position_x: null,
+    position_y: null,
+    angle_degrees: null,
+    taken_at: null, exif_raw: null, preprocessing_warnings: null,
+    angle_description: null, created_at: "2026-04-15T10:24:00.000Z",
+  },
+];
 
 // ─── Mock Setup ─────────────────────────────────────────────────────
 
@@ -206,10 +349,11 @@ export async function setupVisualsStepV2(
     });
   });
 
-  // GET visuals par room (page itère pour charger photos+visuals existants)
+  // GET visuals par room (page itère pour charger photos+visuals existants).
+  // Filtre par room_id (aligné VsPhoto.room_id, pas placed_room_id).
   await page.route(`**/api/vs/rooms/*/visuals`, async (route: Route) => {
     const roomId = route.request().url().match(/rooms\/([^/]+)\/visuals/)?.[1];
-    const photosForRoom = state.photos.filter((p) => p.placed_room_id === roomId);
+    const photosForRoom = state.photos.filter((p) => p.room_id === roomId);
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -217,16 +361,27 @@ export async function setupVisualsStepV2(
     });
   });
 
-  // GET fichier plan (route cosmétique — retourne 200 vide pour ne pas casser <img>)
+  // GET fichier plan — sert le PNG synthétique (tests/e2e/fixtures/synthetic-plan.png)
+  // pour que VisualPlanCanvas charge un VRAI plan visible (pas un 1×1 transparent).
   await page.route(`**/api/vs/files**`, async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "image/png",
-      body: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=",
-        "base64"
-      ),
-    });
+    try {
+      const buf = loadSyntheticPlan();
+      await route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        body: buf,
+      });
+    } catch {
+      // Fallback 1×1 si le PNG synthétique est absent (CI minimal).
+      await route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        body: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=",
+          "base64"
+        ),
+      });
+    }
   });
 
   // GET rooms (filtré par plan_id si query string présent)
@@ -264,7 +419,7 @@ export async function setupVisualsStepV2(
       const photo = state.photos.find((p) => p.id === photoId);
       if (photo) {
         photo.is_placed_on_plan = true;
-        photo.placed_room_id = body.room_id;
+        photo.room_id = body.room_id;
         photo.position_x = body.position_x;
         photo.position_y = body.position_y;
         if (body.angle_degrees !== undefined) photo.angle_degrees = body.angle_degrees;

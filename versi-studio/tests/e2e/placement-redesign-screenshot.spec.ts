@@ -1,20 +1,26 @@
 /**
- * Test screenshot — Validation visuelle Étape 4 v2 refonte s32.
+ * Test screenshot — Validation visuelle Étape 4 v2 refonte s32 (réalité Thomas).
  *
  * Mission Thomas : « montre-moi visuellement le résultat ».
- * Produit 2 PNG full-page (desktop 1280x800 + mobile 390x844) du nouvel écran
- * placement avec :
- *   - Canvas plan en haut (s32 BUG 1 : polygones contenus dans lot via
- *     computeRenderLayout + lotLocal↔planGlobal pattern étape 3)
- *   - Grille de cartes pièces dessous (s32 BUG 3 : layout étapes 2/3)
- *   - Bouton "+ Ajouter des photos" sur chaque carte (s32 BUG 4)
- *   - PAS de CostEstimator (s32 BUG 2 : retiré du DOM)
+ *
+ * Itération 2 (s32) : remplacement de DEFAULT_PHOTO_PLACED (1 photo, fixture
+ * pauvre) par REALISTIC_PHOTOS (5 photos : 4 placées avec angles 0/45/180/270
+ * sur Salon/Chambre/SDB + 1 non-placée). Le PNG synthetic-plan.png remplace
+ * le 1×1 transparent. Polygones VsRoom corrigés ({x_percent, y_percent}).
+ *
+ * Le screenshot montre maintenant :
+ *   - Plan synthétique 800x500 visible (Salon, Chambre, SDB lisibles)
+ *   - 3 polygones overlay teintés (vert=1 photo, bleu=2 photos, gris=vide)
+ *     contenus dans le cadre du lot (s32 BUG 1 — pattern lot-local→plan-global)
+ *   - 4 pastilles photos placées + flèches d'angle directionnelles
+ *   - Cartes pièces avec compteur photos placées (BUG 3 + BUG 4)
+ *   - PAS de CostEstimator (BUG 2)
  *
  * Output : test-results/placement-redesign-{desktop,mobile}.png
  */
 
 import { test, expect, devices } from "@playwright/test";
-import { setupVisualsStepV2, DEFAULT_PHOTO_PLACED } from "./helpers/setupProject";
+import { setupVisualsStepV2, REALISTIC_PHOTOS } from "./helpers/setupProject";
 import { blockExternalOpenAI } from "./helpers/mockOpenAI";
 import { PROJECT_ID } from "./fixtures";
 
@@ -29,7 +35,7 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const page = await context.newPage();
 
     await blockExternalOpenAI(page);
-    await setupVisualsStepV2(page, { photos: [DEFAULT_PHOTO_PLACED] });
+    await setupVisualsStepV2(page, { photos: REALISTIC_PHOTOS });
 
     await page.goto(PLACEMENT_URL);
 
@@ -40,9 +46,11 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const firstCard = page.locator('[data-testid^="room-placement-card-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 10_000 });
 
-    // Attendre stabilisation réseau + animations CSS.
+    // Attendre stabilisation réseau + chargement async du PNG plan synthétique
+    // (fetch image dans VisualPlanCanvas, puis useEffect → setImageNaturalSize
+    // → re-draw canvas avec polygones + photos + angles).
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1500);
 
     // Post-fix scroll body (commit 213dd88) : capture naturelle full-page,
     // sans manip artificielle. Ce screenshot reflète exactement ce que
@@ -65,7 +73,7 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const page = await context.newPage();
 
     await blockExternalOpenAI(page);
-    await setupVisualsStepV2(page, { photos: [DEFAULT_PHOTO_PLACED] });
+    await setupVisualsStepV2(page, { photos: REALISTIC_PHOTOS });
 
     await page.goto(PLACEMENT_URL);
 
@@ -74,9 +82,11 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const firstCard = page.locator('[data-testid^="room-placement-card-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 10_000 });
 
-    // Attendre stabilisation réseau + animations CSS.
+    // Attendre stabilisation réseau + chargement async du PNG plan synthétique
+    // (fetch image dans VisualPlanCanvas, puis useEffect → setImageNaturalSize
+    // → re-draw canvas avec polygones + photos + angles).
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1500);
 
     // Post-fix scroll body (commit 213dd88) : capture naturelle full-page,
     // sans manip artificielle.
