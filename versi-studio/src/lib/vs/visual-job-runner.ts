@@ -109,7 +109,7 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
       r.surface_m2::FLOAT AS surface_m2,
       r.style_id,
       rs.comment_text,
-      COALESCE(rs.target_visual_count, 0) AS target_visual_count,
+      COALESCE(rs.target_visual_count, 1) AS target_visual_count,
       r.polygon,
       (
         SELECT COALESCE(json_agg(q.user_answer ORDER BY q.answered_at)::TEXT, '[]')
@@ -123,7 +123,8 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     JOIN vs_lots l ON l.id = r.lot_id
     LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
     WHERE l.project_id = $1
-      AND COALESCE(rs.target_visual_count, 0) > 0
+      AND COALESCE(rs.target_visual_count, 1) > 0
+      AND COALESCE(r.status, 'suggested') <> 'skipped'
     `,
     [projectId]
   );

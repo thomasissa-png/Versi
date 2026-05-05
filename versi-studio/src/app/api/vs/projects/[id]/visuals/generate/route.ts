@@ -79,22 +79,30 @@ export async function POST(
       );
     }
 
-    // Compter le nombre de visuels attendus
+    // Compter le nombre de visuels attendus.
+    // BUG P0 fix s32 (Thomas prod) : `COALESCE(rs.target_visual_count, 1)` au
+    // lieu de 0 pour considérer "settings absente = pièce active par défaut"
+    // (cohérent avec le default DB DEFAULT 1 de vs_room_settings et avec
+    // settings/route.ts:54 + ambiguity-detector.ts:287). Avant le fix, une
+    // pièce qui n'avait jamais reçu d'INSERT explicite (cas du wizard s32 qui
+    // ne crée pas vs_room_settings au démarrage) était comptée 0 → "Aucune
+    // pièce active". On exclut explicitement les pièces 'skipped' (s32 #5).
     const sumResult = await query<{ total: string }>(
       `
-      SELECT COALESCE(SUM(rs.target_visual_count), 0)::TEXT AS total
+      SELECT COALESCE(SUM(COALESCE(rs.target_visual_count, 1)), 0)::TEXT AS total
         FROM vs_rooms r
         JOIN vs_lots l ON l.id = r.lot_id
         LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
        WHERE l.project_id = $1
-         AND COALESCE(rs.target_visual_count, 0) > 0
+         AND COALESCE(rs.target_visual_count, 1) > 0
+         AND COALESCE(r.status, 'suggested') <> 'skipped'
       `,
       [projectId]
     );
     const expectedCount = Number.parseInt(sumResult.rows[0]?.total ?? "0", 10);
     if (expectedCount === 0) {
       return NextResponse.json(
-        { success: false, error: "Aucune pièce active (target_visual_count > 0). Activez au moins une pièce." },
+        { success: false, error: "Aucune pièce à générer. Configurez au moins une pièce avant de lancer la génération." },
         { status: 400 }
       );
     }
