@@ -315,7 +315,7 @@ test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
     await page.waitForTimeout(1500);
 
     await page.screenshot({
-      path: "tests/screenshots/s32-iter3-wizard-configuring-desktop.png",
+      path: "tests/screenshots/s32-iter4-wizard-configuring-desktop.png",
       fullPage: true,
     });
 
@@ -353,7 +353,7 @@ test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
     await page.waitForTimeout(1500);
 
     await page.screenshot({
-      path: "tests/screenshots/s32-iter3-wizard-configuring-mobile.png",
+      path: "tests/screenshots/s32-iter4-wizard-configuring-mobile.png",
       fullPage: true,
     });
 
@@ -404,7 +404,7 @@ test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
     // Viewport-only (pas fullPage) pour éviter la superposition du header
     // sticky lors d'un screenshot full page d'une page longue.
     await page.screenshot({
-      path: "tests/screenshots/s32-iter3-wizard-preview-desktop.png",
+      path: "tests/screenshots/s32-iter4-wizard-preview-desktop.png",
       fullPage: false,
     });
 
@@ -449,7 +449,7 @@ test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
     await page.waitForTimeout(1500);
 
     await page.screenshot({
-      path: "tests/screenshots/s32-iter3-wizard-preview-mobile.png",
+      path: "tests/screenshots/s32-iter4-wizard-preview-mobile.png",
       fullPage: false,
     });
 
