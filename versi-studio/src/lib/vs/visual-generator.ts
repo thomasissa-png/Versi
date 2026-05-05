@@ -49,6 +49,11 @@ export interface AnchorPromptParams {
   /** Réponses utilisateur aux questions T1-T5 (concaténées). */
   userAnswers: string[];
   structuralInstructions: string | null;
+  /** s32 (autopilot Thomas s32) — état actuel pièce sur les photos.
+   *  true = pièce déjà meublée à transformer/améliorer.
+   *  false = pièce vide à meubler intégralement.
+   *  undefined = back-compat (default true comportement V2 historique). */
+  isFurnished?: boolean;
 }
 
 /** Signature visuelle extraite de l'ancre — sert à uniformiser les secondaires. */
@@ -362,7 +367,19 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE."
     : "1. KEEP all structural elements EXACTLY (walls, windows, doors, ceiling, floor shape).";
 
-  return `Transform this empty/raw ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style.${structuralBlock}
+  // s32 (autopilot) — directive meublé/vide. Default true = comportement V2
+  // historique (la photo est censée être brute, à meubler). Si Thomas indique
+  // explicitement is_furnished=true → la photo montre déjà du mobilier qu'il
+  // faut adapter/améliorer plutôt que recréer.
+  const isFurnished = p.isFurnished !== false; // undefined → default true (back-compat)
+  const openingSentence = isFurnished
+    ? `Redesign this already-furnished ${roomLabel} into a beautifully styled ${roomLabel} in ${styleName} style. The room is currently furnished — adapt and upgrade the existing layout, replacing or refining furniture, decor and finishes to match the target style. Preserve the overall spatial logic.`
+    : `Transform this empty, unfurnished ${roomLabel} into a beautifully designed and fully furnished ${roomLabel} in ${styleName} style. The room is currently EMPTY — bring in the complete furniture set appropriate to the room type and style.`;
+  const furnishedRule = isFurnished
+    ? "9. EXISTING FURNITURE: the room is already furnished — keep the general layout (sofa zone, dining zone, bed orientation) consistent with what's visible, but upgrade the pieces, materials and palette to the chosen style."
+    : "9. EMPTY ROOM: the room is empty — fully furnish it with all standard pieces expected for this room type, properly placed for circulation and function.";
+
+  return `${openingSentence}${structuralBlock}
 
 STYLE DETAILS: ${styleHint}.
 
@@ -380,7 +397,8 @@ ${structuralRule}
 5. NO text, watermark, logo, or overlay.
 6. Do NOT change camera perspective.
 7. Walls freshly finished, floor with appropriate material.
-8. Subtle decorative elements appropriate to style.`;
+8. Subtle decorative elements appropriate to style.
+${furnishedRule}`;
 }
 
 // ─── V2 (s29) — buildVisualPromptSecondary ────────────────────────

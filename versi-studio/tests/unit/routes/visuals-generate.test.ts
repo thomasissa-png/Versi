@@ -136,7 +136,9 @@ describe("POST /visuals/generate — pré-conditions métier", () => {
     const res = await POST(buildRequest({ style_id: "scandinave" }), buildParams(VALID_UUID));
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toMatch(/aucune pièce active/i);
+    // s32 (autopilot) : message reformulé "Aucune pièce à générer.
+    // Configurez au moins une pièce avant de lancer la génération."
+    expect(json.error).toMatch(/aucune pièce/i);
   });
 });
 

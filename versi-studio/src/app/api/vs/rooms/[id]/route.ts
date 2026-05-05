@@ -34,7 +34,13 @@ interface PatchRoomPayload {
   touched?: boolean;
   /** s32 — style décoration propre à la pièce (refonte wizard Étape 4) */
   style_id?: string | null;
+  /** s32 (autopilot) — true = pièce meublée à transformer, false = vide à meubler. */
+  is_furnished?: boolean;
+  /** s32 (autopilot) — 'suggested' | 'validated' | 'skipped' (skip pièce wizard). */
+  status?: "suggested" | "validated" | "skipped";
 }
+
+const VALID_ROOM_STATUSES = ["suggested", "validated", "skipped"] as const;
 
 export async function PATCH(
   request: NextRequest,
@@ -125,6 +131,30 @@ export async function PATCH(
       }
       setClauses.push(`style_id = $${paramIndex++}`);
       values.push(body.style_id);
+    }
+
+    // s32 (autopilot) — meublé / non-meublé
+    if (body.is_furnished !== undefined) {
+      if (typeof body.is_furnished !== "boolean") {
+        return NextResponse.json(
+          { success: false, error: "is_furnished doit être un booléen." },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`is_furnished = $${paramIndex++}`);
+      values.push(body.is_furnished);
+    }
+
+    // s32 (autopilot) — skip pièce
+    if (body.status !== undefined) {
+      if (!VALID_ROOM_STATUSES.includes(body.status)) {
+        return NextResponse.json(
+          { success: false, error: "Statut invalide." },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`status = $${paramIndex++}`);
+      values.push(body.status);
     }
 
     // Option C : toute modification utilisateur marque la pièce comme confirmée.

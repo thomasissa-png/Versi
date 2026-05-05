@@ -91,6 +91,10 @@ export default function VisualWizard({
   const [pendingPlacements, setPendingPlacements] = useState<PendingPlacement[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [overrideVisuals, setOverrideVisuals] = useState<Map<string, VisualGenerated[]>>(new Map());
+  // s32 #3 (autopilot) — commentaires par pièce, lus à la première navigation
+  // sur la pièce courante, persistés via PATCH /rooms/:id/settings (debounce
+  // côté composant enfant). Map<room_id, comment_text>.
+  const [commentsByRoom, setCommentsByRoom] = useState<Map<string, string>>(new Map());
 
   // Resync si parent recharge les données
   useEffect(() => {
@@ -109,7 +113,13 @@ export default function VisualWizard({
   });
 
   // ─── Helpers dérivés ────────────────────────────────────────────
-  const currentRoom: VsRoom | null = roomsState[currentStepIndex] ?? null;
+  // s32 #5 — filtrer les pièces 'skipped' du wizard. Le user peut toujours
+  // les retrouver via le récap ou désactiver le skip (pas implémenté en V1).
+  const visibleRooms = useMemo(
+    () => roomsState.filter((r) => r.status !== "skipped"),
+    [roomsState]
+  );
+  const currentRoom: VsRoom | null = visibleRooms[currentStepIndex] ?? null;
 
   const placementsForCurrentRoom = useMemo(() => {
     if (!currentRoom) return [];
@@ -313,6 +323,198 @@ export default function VisualWizard({
     []
   );
 
+  // s32 #1 (autopilot) — commit déplacement pastille (drag move).
+  const handlePlacementMoveCommit = useCallback(
+    async (placementId: string, point: NormalizedPoint) => {
+      // Cas pending : MAJ locale uniquement
+      if (placementId.startsWith("pending-")) {
+        setPendingPlacements((prev) =>
+          prev.map((p) =>
+            p.id === placementId
+              ? { ...p, position_x: point.x, position_y: point.y }
+              : p
+          )
+        );
+        return;
+      }
+      const photo = photos.find((p) => p.id === placementId);
+      if (!photo) return;
+      // Optimistic UI : MAJ locale immédiate
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === placementId
+            ? { ...p, position_x: point.x, position_y: point.y }
+            : p
+        )
+      );
+      try {
+        const res = await fetch(`/api/vs/photos/${placementId}/place`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room_id: photo.room_id,
+            position_x: point.x,
+            position_y: point.y,
+            angle_degrees: photo.angle_degrees,
+          }),
+        });
+        const json = (await res.json()) as ApiResponse<{
+          photo_id: string;
+          position_x: number;
+          position_y: number;
+        }>;
+        if (!json.success) {
+          // Rollback
+          setPhotos((prev) =>
+            prev.map((p) =>
+              p.id === placementId
+                ? { ...p, position_x: photo.position_x, position_y: photo.position_y }
+                : p
+            )
+          );
+          setError(json.error);
+        }
+      } catch {
+        setError("Déplacement non enregistré.");
+      }
+    },
+    [photos]
+  );
+
+  // s32 #3 (autopilot) — toggle meublé/non-meublé sur la pièce courante.
+  const handleFurnishedChange = useCallback(
+    async (isFurnished: boolean) => {
+      if (!currentRoom) return;
+      // Optimistic
+      setRoomsState((prev) =>
+        prev.map((r) =>
+          r.id === currentRoom.id ? { ...r, is_furnished: isFurnished } : r
+        )
+      );
+      try {
+        const res = await fetch(`/api/vs/rooms/${currentRoom.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_furnished: isFurnished }),
+        });
+        const json = (await res.json()) as ApiResponse<VsRoom>;
+        if (!json.success) {
+          setRoomsState((prev) =>
+            prev.map((r) =>
+              r.id === currentRoom.id ? { ...r, is_furnished: !isFurnished } : r
+            )
+          );
+          setError(json.error);
+        }
+      } catch {
+        setError("État de la pièce non enregistré.");
+      }
+    },
+    [currentRoom]
+  );
+
+  // s32 #3 (autopilot) — commentaire pièce (debounce côté child, persisté
+  // dans vs_room_settings.comment_text via /rooms/:id/settings).
+  const handleCommentChange = useCallback(
+    async (comment: string) => {
+      if (!currentRoom) return;
+      // Lire target_visual_count actuel avant de PATCH (sinon on écrase à 0/null).
+      // L'API settings exige target_visual_count + comment_text. On le lit dans
+      // la map locale ou on assume 1 (default DB).
+      try {
+        const res = await fetch(`/api/vs/rooms/${currentRoom.id}/settings`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_visual_count: 1,
+            comment_text: comment.trim() || null,
+          }),
+        });
+        const json = (await res.json()) as ApiResponse<{ room_id: string }>;
+        if (!json.success) {
+          setError(json.error);
+          return;
+        }
+        setCommentsByRoom((prev) => {
+          const next = new Map(prev);
+          next.set(currentRoom.id, comment);
+          return next;
+        });
+      } catch {
+        setError("Commentaire non enregistré.");
+      }
+    },
+    [currentRoom]
+  );
+
+  // s32 #5 (autopilot) — skip pièce courante.
+  const handleSkipRoom = useCallback(async () => {
+    if (!currentRoom) return;
+    try {
+      const res = await fetch(`/api/vs/rooms/${currentRoom.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "skipped" }),
+      });
+      const json = (await res.json()) as ApiResponse<VsRoom>;
+      if (!json.success) {
+        setError(json.error);
+        return;
+      }
+      // Optimistic : retire la pièce de la liste visible. L'index courant
+      // pointera automatiquement sur la "suivante" puisque visibleRooms se
+      // recalculera. Si on était sur la dernière, fallback recap.
+      setRoomsState((prev) =>
+        prev.map((r) =>
+          r.id === currentRoom.id ? { ...r, status: "skipped" } : r
+        )
+      );
+      // Si la pièce skippée était la dernière visible, passer au récap.
+      const remainingAfterSkip = visibleRooms.filter(
+        (r) => r.id !== currentRoom.id
+      );
+      if (currentStepIndex >= remainingAfterSkip.length) {
+        if (remainingAfterSkip.length === 0) {
+          setPhase("recap");
+        } else {
+          setCurrentStepIndex(remainingAfterSkip.length - 1);
+        }
+      }
+      // Sinon currentStepIndex reste sur la "nouvelle" pièce qui occupe ce slot.
+    } catch {
+      setError("Pièce non passée — réessayez.");
+    }
+  }, [currentRoom, visibleRooms, currentStepIndex]);
+
+  // s32 #3 (autopilot) — fetch initial des paramètres room_settings (commentaire
+  // déjà en DB) lors du changement de pièce courante.
+  useEffect(() => {
+    if (!currentRoom) return;
+    if (commentsByRoom.has(currentRoom.id)) return; // déjà fetché/édité
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/vs/rooms/${currentRoom.id}/settings`);
+        const json = (await res.json()) as ApiResponse<{
+          comment_text: string | null;
+        }>;
+        if (cancelled) return;
+        if (json.success) {
+          setCommentsByRoom((prev) => {
+            const next = new Map(prev);
+            next.set(currentRoom.id, json.data.comment_text ?? "");
+            return next;
+          });
+        }
+      } catch {
+        /* silencieux — UI part avec brouillon vide */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentRoom, commentsByRoom]);
+
   const handleStyleSelect = useCallback(
     async (styleId: StyleId) => {
       if (!currentRoom) return;
@@ -339,12 +541,12 @@ export default function VisualWizard({
 
   // ─── Navigation ────────────────────────────────────────────────
   const handleNextRoom = useCallback(() => {
-    if (currentStepIndex < roomsState.length - 1) {
+    if (currentStepIndex < visibleRooms.length - 1) {
       setCurrentStepIndex((i) => i + 1);
     } else {
       setPhase("recap");
     }
-  }, [currentStepIndex, roomsState.length]);
+  }, [currentStepIndex, visibleRooms.length]);
 
   const handlePrevRoom = useCallback(() => {
     if (currentStepIndex > 0) {
@@ -354,7 +556,24 @@ export default function VisualWizard({
 
   const handleEditRoomFromRecap = useCallback(
     (roomId: string) => {
-      const idx = roomsState.findIndex((r) => r.id === roomId);
+      // s32 #5 : si la pièce est skippée, on l'unskip implicitement (le user
+      // veut clairement la rééditer puisqu'il clique "Modifier").
+      const target = roomsState.find((r) => r.id === roomId);
+      if (target && target.status === "skipped") {
+        // PATCH async — pas bloquant pour la nav.
+        void fetch(`/api/vs/rooms/${roomId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "validated" }),
+        });
+        setRoomsState((prev) =>
+          prev.map((r) => (r.id === roomId ? { ...r, status: "validated" } : r))
+        );
+      }
+      const visible = roomsState
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => r.id === roomId || r.status !== "skipped");
+      const idx = visible.findIndex(({ r }) => r.id === roomId);
       if (idx >= 0) {
         setCurrentStepIndex(idx);
         setPhase("wizard");
@@ -395,7 +614,7 @@ export default function VisualWizard({
 
   // ─── Rendu ─────────────────────────────────────────────────────
 
-  if (roomsState.length === 0) {
+  if (visibleRooms.length === 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <p className="text-sm text-text-muted">Aucune pièce à configurer.</p>
@@ -474,7 +693,7 @@ export default function VisualWizard({
       {phase === "wizard" && currentRoom && (
         <VisualWizardRoomStep
           stepIndex={currentStepIndex + 1}
-          totalSteps={roomsState.length}
+          totalSteps={visibleRooms.length}
           room={currentRoom}
           planImageUrl={planImageUrl}
           lotZone={lotZone}
@@ -485,6 +704,11 @@ export default function VisualWizard({
           onUploadReplace={handleUploadReplace}
           onDeletePlacement={handleDeletePlacement}
           onStyleSelect={handleStyleSelect}
+          onFurnishedChange={handleFurnishedChange}
+          onCommentChange={handleCommentChange}
+          comment={commentsByRoom.get(currentRoom.id) ?? null}
+          onSkipRoom={handleSkipRoom}
+          onPlacementMoveCommit={handlePlacementMoveCommit}
           onNextRoom={handleNextRoom}
           onPrevRoom={currentStepIndex > 0 ? handlePrevRoom : null}
         />

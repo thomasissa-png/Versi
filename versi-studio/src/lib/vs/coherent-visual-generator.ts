@@ -63,6 +63,9 @@ export interface CoherentGenerationInput {
   user_answers: string[];
   /** Instructions structurelles (extraites du commentaire si T3 a confirmé). */
   structural_instructions: string | null;
+  /** s32 (autopilot) — true = pièce déjà meublée à transformer/améliorer,
+   *  false = pièce vide à meubler intégralement. Default true (back-compat). */
+  is_furnished?: boolean;
 }
 
 export interface SecondaryVisualResult {
@@ -141,6 +144,7 @@ async function generateAnchorVisual(
     commentText: input.comment_text,
     userAnswers: input.user_answers,
     structuralInstructions: input.structural_instructions,
+    isFurnished: input.is_furnished,
   };
   const prompt = buildVisualPromptAnchor(params);
 
@@ -181,6 +185,7 @@ async function generateSecondaryVisual(
     commentText: input.comment_text,
     userAnswers: input.user_answers,
     structuralInstructions: input.structural_instructions,
+    isFurnished: input.is_furnished,
   };
   const prompt = buildVisualPromptSecondary({ ...baseParams, anchorSignature });
 

@@ -55,12 +55,23 @@ export interface VisualWizardRoomStepProps {
   /** Sélectionne le style de la pièce (PATCH /rooms/:id). */
   onStyleSelect: (id: StyleId) => Promise<void>;
 
+  /** s32 #3 (autopilot) — toggle meublé/non-meublé. */
+  onFurnishedChange: (isFurnished: boolean) => Promise<void>;
+  /** s32 #3 (autopilot) — commentaire libre pièce (debounce côté parent). */
+  onCommentChange: (comment: string) => Promise<void>;
+  /** s32 #3 (autopilot) — commentaire courant (lu depuis vs_room_settings côté parent). */
+  comment: string | null;
+  /** s32 #5 (autopilot) — skip pièce (pas de visuels). */
+  onSkipRoom: () => Promise<void>;
+
   /** Navigation. */
   onNextRoom: () => void;
   onPrevRoom: (() => void) | null;
 
   /** Drag visuel (sans commit). Optionnel. */
   onAngleDrag?: (placementId: string, angle: number) => void;
+  /** s32 #1 (autopilot) — commit final déplacement pastille. */
+  onPlacementMoveCommit: (placementId: string, point: NormalizedPoint) => Promise<void>;
 }
 
 /**
@@ -83,13 +94,21 @@ export default function VisualWizardRoomStep({
   onUploadReplace,
   onDeletePlacement,
   onStyleSelect,
+  onFurnishedChange,
+  onCommentChange,
+  comment,
+  onSkipRoom,
   onNextRoom,
   onPrevRoom,
   onAngleDrag,
+  onPlacementMoveCommit,
 }: VisualWizardRoomStepProps) {
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
   const [busyPlacementId, setBusyPlacementId] = useState<string | null>(null);
-  const [outsideHint, setOutsideHint] = useState<string | null>(null); // A7 — toast clic hors polygone
+  const [outsideHint, setOutsideHint] = useState<string | null>(null); // s32 #2 — toast info clic hors polygone (placement autorisé)
+  const [commentDraft, setCommentDraft] = useState<string>(comment ?? ""); // s32 #3 — commentaire (debounce 800ms)
+  const [confirmSkip, setConfirmSkip] = useState<boolean>(false); // s32 #5 — confirm modal-light avant skip
+  const [skipping, setSkipping] = useState<boolean>(false);
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -127,15 +146,47 @@ export default function VisualWizardRoomStep({
     input?.click();
   }, []);
 
-  // A7 — auto-clear du hint hors polygone (2s)
+  // s32 #2 — info hors polygone (placement AUTORISÉ — l'IA interprète la distance).
   const handleClickOutsidePolygon = useCallback(() => {
-    setOutsideHint("Cliquez à l'intérieur de la pièce.");
+    setOutsideHint("Position hors pièce — l'IA interprétera la distance.");
   }, []);
   useEffect(() => {
     if (outsideHint === null) return;
-    const t = setTimeout(() => setOutsideHint(null), 2000);
+    const t = setTimeout(() => setOutsideHint(null), 2500);
     return () => clearTimeout(t);
   }, [outsideHint]);
+
+  // s32 #3 — sync brouillon commentaire si la prop change (changement de pièce)
+  useEffect(() => {
+    setCommentDraft(comment ?? "");
+  }, [comment, room.id]);
+
+  // s32 #3 — debounce 800ms du commentaire vers l'API
+  useEffect(() => {
+    const initial = comment ?? "";
+    if (commentDraft === initial) return;
+    const timer = setTimeout(() => {
+      void onCommentChange(commentDraft);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [commentDraft, comment, onCommentChange]);
+
+  // s32 #5 — handler skip avec confirm two-step (pas de Dialog component dispo simple)
+  const handleSkipClick = useCallback(() => {
+    if (!confirmSkip) {
+      setConfirmSkip(true);
+      return;
+    }
+    setSkipping(true);
+    void onSkipRoom().finally(() => {
+      setSkipping(false);
+      setConfirmSkip(false);
+    });
+  }, [confirmSkip, onSkipRoom]);
+  // Reset confirm si user change de pièce
+  useEffect(() => {
+    setConfirmSkip(false);
+  }, [room.id]);
 
   // B6 + B7 — détection nouveaux placements (auto-scroll + flag "recent" 3s)
   useEffect(() => {
@@ -303,6 +354,7 @@ export default function VisualWizardRoomStep({
           onAngleCommit={onAngleCommit}
           isCommitting={busyPlacementId !== null}
           onClickOutsidePolygon={handleClickOutsidePolygon}
+          onPlacementMoveCommit={onPlacementMoveCommit}
         />
         {/* A7 — toast clic hors polygone (auto-clear 2s) */}
         {outsideHint && (
@@ -469,34 +521,140 @@ export default function VisualWizardRoomStep({
         />
       </section>
 
-      {/* Footer navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm pt-sm border-t border-border-default">
-        <div className="flex items-center">
-          {onPrevRoom && (
+      {/* s32 #3 (autopilot) — Détails pièce : meublé + commentaires libres */}
+      <section
+        aria-labelledby="room-details-title"
+        className="rounded-md border border-border-default bg-bg-card p-md flex flex-col gap-md"
+      >
+        <h3
+          id="room-details-title"
+          className="text-sm uppercase tracking-wide font-semibold text-text-default"
+        >
+          Détails de la pièce
+        </h3>
+
+        {/* Toggle meublé / non-meublé */}
+        <div className="flex flex-col gap-xs">
+          <p className="text-xs text-text-muted">
+            État actuel de la pièce sur les photos
+          </p>
+          <div
+            role="radiogroup"
+            aria-label="État actuel de la pièce"
+            className="inline-flex rounded-md border border-border-default overflow-hidden self-start"
+          >
             <button
               type="button"
-              onClick={onPrevRoom}
-              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              role="radio"
+              aria-checked={room.is_furnished === true}
+              onClick={() => void onFurnishedChange(true)}
+              className={[
+                "min-h-[44px] px-md py-sm text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                room.is_furnished
+                  ? "bg-interactive-primary text-text-inverse"
+                  : "bg-bg-card text-text-default hover:bg-bg-default",
+              ].join(" ")}
+              data-testid="wizard-furnished-yes"
             >
-              ← Précédent
+              Déjà meublée
             </button>
-          )}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={room.is_furnished === false}
+              onClick={() => void onFurnishedChange(false)}
+              className={[
+                "min-h-[44px] px-md py-sm text-sm font-medium border-l border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                !room.is_furnished
+                  ? "bg-interactive-primary text-text-inverse"
+                  : "bg-bg-card text-text-default hover:bg-bg-default",
+              ].join(" ")}
+              data-testid="wizard-furnished-no"
+            >
+              Vide à meubler
+            </button>
+          </div>
+          <p className="text-xs text-text-muted">
+            {room.is_furnished
+              ? "L'IA améliorera le mobilier existant en respectant la disposition."
+              : "L'IA apportera le mobilier complet du style choisi."}
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-xs sm:gap-sm">
-          {disabledReason && (
-            <p className="text-xs text-text-muted text-right">
-              {disabledReason}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={onNextRoom}
-            disabled={!canGoNext}
-            data-testid="wizard-next-room"
-            className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+
+        {/* Commentaire libre */}
+        <div className="flex flex-col gap-xs">
+          <label
+            htmlFor={`room-comment-${room.id}`}
+            className="text-xs text-text-muted"
           >
-            {stepIndex === totalSteps ? "Récapitulatif" : "Pièce suivante →"}
-          </button>
+            Commentaires (optionnel)
+          </label>
+          <textarea
+            id={`room-comment-${room.id}`}
+            value={commentDraft}
+            onChange={(e) => setCommentDraft(e.target.value.slice(0, 500))}
+            placeholder="Ex : éclairage tamisé souhaité, vue mer côté gauche, garder le canapé bleu..."
+            rows={3}
+            maxLength={500}
+            data-testid="wizard-room-comment"
+            className="w-full px-md py-sm text-sm rounded-md border border-border-default bg-bg-default text-text-default placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary resize-y"
+          />
+          <p className="text-xs text-text-muted text-right">
+            {commentDraft.length} / 500
+          </p>
+        </div>
+      </section>
+
+      {/* Footer navigation */}
+      <div className="flex flex-col gap-sm pt-sm border-t border-border-default">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
+          <div className="flex items-center gap-sm flex-wrap">
+            {onPrevRoom && (
+              <button
+                type="button"
+                onClick={onPrevRoom}
+                className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              >
+                ← Précédent
+              </button>
+            )}
+            {/* s32 #5 (autopilot) — skip pièce (confirm two-step inline) */}
+            <button
+              type="button"
+              onClick={handleSkipClick}
+              disabled={skipping}
+              data-testid="wizard-skip-room"
+              aria-pressed={confirmSkip}
+              className={[
+                "min-h-[44px] px-md py-sm rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50",
+                confirmSkip
+                  ? "bg-warning text-text-inverse hover:bg-warning/90"
+                  : "text-text-muted hover:text-text-default hover:bg-bg-card",
+              ].join(" ")}
+            >
+              {skipping
+                ? "..."
+                : confirmSkip
+                ? "Confirmer : pas de visuels pour cette pièce"
+                : "Passer cette pièce"}
+            </button>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-xs sm:gap-sm">
+            {disabledReason && (
+              <p className="text-xs text-text-muted text-right">
+                {disabledReason}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={onNextRoom}
+              disabled={!canGoNext}
+              data-testid="wizard-next-room"
+              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              {stepIndex === totalSteps ? "Récapitulatif" : "Pièce suivante →"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

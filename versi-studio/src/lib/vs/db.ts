@@ -226,6 +226,15 @@ export async function ensureVsTables(): Promise<void> {
     ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS style_id TEXT NULL;
     CREATE INDEX IF NOT EXISTS vs_rooms_style_id_idx
       ON vs_rooms(style_id) WHERE style_id IS NOT NULL;
+    -- S32 (migration 008) : meublé / skip pièce (autopilot Thomas prod)
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS is_furnished BOOLEAN NOT NULL DEFAULT TRUE;
+    DO $migration_s32_room_status$
+    BEGIN
+      ALTER TABLE vs_rooms DROP CONSTRAINT IF EXISTS vs_rooms_status_check;
+      ALTER TABLE vs_rooms ADD CONSTRAINT vs_rooms_status_check
+        CHECK (status IN ('suggested','validated','skipped'));
+    END
+    $migration_s32_room_status$;
 
     CREATE TABLE IF NOT EXISTS vs_photos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

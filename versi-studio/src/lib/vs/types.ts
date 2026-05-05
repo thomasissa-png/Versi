@@ -23,7 +23,7 @@ export type LotStatus = "suggested" | "validated" | "overlap_error";
 
 export type LotSource = "ai" | "manual";
 
-export type RoomStatus = "suggested" | "validated";
+export type RoomStatus = "suggested" | "validated" | "skipped";
 
 export type VisualStatus = "processing" | "generated" | "validated" | "failed";
 
@@ -91,6 +91,9 @@ export interface VsRoom {
   /** s32 — style de décoration propre à la pièce (refonte Étape 4 wizard).
    *  Slug kebab-case (StyleId). Null = pas encore choisi. */
   style_id: string | null;
+  /** s32 — true = pièce déjà meublée à transformer, false = pièce vide à
+   *  meubler intégralement. Default true (back-compat). */
+  is_furnished: boolean;
   status: RoomStatus;
   source: LotSource;
   created_at: string;

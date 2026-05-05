@@ -57,8 +57,12 @@ export interface RoomZoomCanvasProps {
   onAngleCommit: (id: string, angle: number) => void;
   /** True pendant un commit API en vol. */
   isCommitting?: boolean;
-  /** Callback : clic en dehors du polygone (pour toast d'aide). */
+  /** Callback : clic en dehors du polygone (info — placement autorisé s32 #2). */
   onClickOutsidePolygon?: () => void;
+  /** s32 #1 (autopilot) — drag visuel en cours d'une pastille (sans commit). */
+  onPlacementDrag?: (id: string, point: NormalizedPoint) => void;
+  /** s32 #1 (autopilot) — commit final au mouseup d'un drag pastille. */
+  onPlacementMoveCommit?: (id: string, point: NormalizedPoint) => void;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -91,6 +95,16 @@ interface DragState {
   startAngle: number;
 }
 
+/** s32 #1 (autopilot) — drag d'une pastille placée. */
+interface MoveDragState {
+  placementId: string;
+  /** Position d'origine en lot-local 0-1 (rollback si releasePointerCapture). */
+  startPoint: NormalizedPoint;
+  /** Offset entre clic et centre pastille (pour drag fluide sans saut). */
+  offsetX: number;
+  offsetY: number;
+}
+
 export default function RoomZoomCanvas({
   room,
   planImageUrl,
@@ -103,6 +117,8 @@ export default function RoomZoomCanvas({
   onAngleCommit,
   isCommitting = false,
   onClickOutsidePolygon,
+  onPlacementDrag,
+  onPlacementMoveCommit,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -113,8 +129,15 @@ export default function RoomZoomCanvas({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hover, setHover] = useState<{ inPolygon: boolean; point: NormalizedPoint } | null>(null);
   const [hoverHandleId, setHoverHandleId] = useState<string | null>(null);
+  const [hoverDotId, setHoverDotId] = useState<string | null>(null); // s32 #1 — cursor grab/grabbing
   const dragRef = useRef<DragState | null>(null);
   const [dragPreviewAngle, setDragPreviewAngle] = useState<number | null>(null);
+  // s32 #1 — drag d'une pastille placée (move, pas angle).
+  const moveDragRef = useRef<MoveDragState | null>(null);
+  const [movePreviewPoint, setMovePreviewPoint] = useState<NormalizedPoint | null>(null);
+  // s32 #1 — seuil avant qu'un pointerdown sur pastille bascule de "select" à "drag move"
+  const MOVE_DRAG_THRESHOLD_PX = 4;
+  const moveDragArmedRef = useRef<{ id: string; downX: number; downY: number; offsetX: number; offsetY: number; startPoint: NormalizedPoint } | null>(null);
 
   // ─── Render layout (letterbox classique) ───────────────────────
   const renderLayout = useMemo<RenderLayout>(
@@ -406,8 +429,15 @@ export default function RoomZoomCanvas({
     for (const photo of placements) {
       if (!photo.is_placed_on_plan) continue;
       if (photo.position_x === null || photo.position_y === null) continue;
+      // s32 #1 — si cette pastille est en cours de drag move, projeter sur la
+      // position prévisualisée plutôt que la valeur DB (sinon snap visuel).
+      const moveDragId = moveDragRef.current?.placementId;
+      const effectivePos =
+        moveDragId === photo.id && movePreviewPoint !== null
+          ? movePreviewPoint
+          : { x: photo.position_x, y: photo.position_y };
       const projected = lotLocalToScreen(
-        { x: photo.position_x, y: photo.position_y },
+        effectivePos,
         renderLayout,
         viewport,
         lotZone
@@ -486,6 +516,7 @@ export default function RoomZoomCanvas({
     projectLotPct,
     lotZone,
     dragPreviewAngle,
+    movePreviewPoint,
   ]);
 
   useEffect(() => {
@@ -512,19 +543,40 @@ export default function RoomZoomCanvas({
           onSelectPlacement(hit.id);
         }
       } else if (hit) {
-        // Clic sur pastille = sélectionne
+        // s32 #1 — clic sur pastille : on arme un drag potentiel. La bascule
+        // select → drag se fait au-delà du seuil MOVE_DRAG_THRESHOLD_PX
+        // (sinon un simple clic resterait toujours interprété comme drag).
+        const placement = placements.find((p) => p.id === hit.id);
+        if (placement && placement.position_x !== null && placement.position_y !== null) {
+          const center = lotLocalToScreen(
+            { x: placement.position_x, y: placement.position_y },
+            renderLayout,
+            viewport,
+            lotZone
+          );
+          moveDragArmedRef.current = {
+            id: hit.id,
+            downX: x,
+            downY: y,
+            offsetX: x - center.x,
+            offsetY: y - center.y,
+            startPoint: { x: placement.position_x, y: placement.position_y },
+          };
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
         onSelectPlacement(hit.id);
       } else {
-        // Clic dans le polygone = nouvelle position
+        // s32 #2 — placement autorisé n'importe où dans le canvas (plus de
+        // contrainte intra-polygone). Le toast onClickOutsidePolygon sert
+        // d'info "l'IA interprétera la distance" (pas un blocage).
         const point = screenToLotPoint(x, y);
-        // Test point dans polygone (en %)
-        if (room.polygon && room.polygon.length >= 3) {
-          const inside = pointInPolygon(point.x * 100, point.y * 100, room.polygon);
-          if (inside) {
-            onPlaceClick(point);
-          } else {
-            onClickOutsidePolygon?.();
-          }
+        const inside =
+          room.polygon && room.polygon.length >= 3
+            ? pointInPolygon(point.x * 100, point.y * 100, room.polygon)
+            : true;
+        onPlaceClick(point);
+        if (!inside) {
+          onClickOutsidePolygon?.();
         }
       }
     },
@@ -535,6 +587,9 @@ export default function RoomZoomCanvas({
       placements,
       screenToLotPoint,
       room.polygon,
+      renderLayout,
+      viewport,
+      lotZone,
       onPlaceClick,
       onSelectPlacement,
       onClickOutsidePolygon,
@@ -564,10 +619,51 @@ export default function RoomZoomCanvas({
         }
         return;
       }
+
+      // s32 #1 — drag move actif : MAJ position visuelle (ne commit pas).
+      if (moveDragRef.current) {
+        const md = moveDragRef.current;
+        const point = screenToLotPoint(x - md.offsetX, y - md.offsetY);
+        // Clamp 0-1 — la photo est ancrée dans le lot.
+        const clamped: NormalizedPoint = {
+          x: Math.max(0, Math.min(1, point.x)),
+          y: Math.max(0, Math.min(1, point.y)),
+        };
+        setMovePreviewPoint(clamped);
+        onPlacementDrag?.(md.placementId, clamped);
+        return;
+      }
+
+      // s32 #1 — drag move armé mais pas encore franchi le seuil ?
+      if (moveDragArmedRef.current) {
+        const armed = moveDragArmedRef.current;
+        const dist = Math.hypot(x - armed.downX, y - armed.downY);
+        if (dist >= MOVE_DRAG_THRESHOLD_PX) {
+          // Bascule armed → drag actif
+          moveDragRef.current = {
+            placementId: armed.id,
+            startPoint: armed.startPoint,
+            offsetX: armed.offsetX,
+            offsetY: armed.offsetY,
+          };
+          moveDragArmedRef.current = null;
+          const point = screenToLotPoint(x - armed.offsetX, y - armed.offsetY);
+          const clamped: NormalizedPoint = {
+            x: Math.max(0, Math.min(1, point.x)),
+            y: Math.max(0, Math.min(1, point.y)),
+          };
+          setMovePreviewPoint(clamped);
+          onPlacementDrag?.(armed.id, clamped);
+        }
+        return;
+      }
+
       // Hover detection — utilisé pour highlight polygone + curseur grab sur poignée
       const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
       const handleHit = findPlacementHandle(x, y, ptype);
       setHoverHandleId(handleHit && handleHit.isHandle ? handleHit.id : null);
+      // s32 #1 — hover sur corps de pastille → cursor grab
+      setHoverDotId(handleHit && !handleHit.isHandle ? handleHit.id : null);
       const point = screenToLotPoint(x, y);
       if (room.polygon && room.polygon.length >= 3) {
         const inside = pointInPolygon(point.x * 100, point.y * 100, room.polygon);
@@ -585,6 +681,7 @@ export default function RoomZoomCanvas({
       screenToLotPoint,
       room.polygon,
       onAngleDrag,
+      onPlacementDrag,
       findPlacementHandle,
     ]
   );
@@ -594,27 +691,58 @@ export default function RoomZoomCanvas({
       if (dragRef.current) {
         const id = dragRef.current.placementId;
         const angle = dragPreviewAngle ?? dragRef.current.startAngle;
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* déjà relâché */
+        }
         dragRef.current = null;
         setDragPreviewAngle(null);
         onAngleCommit(id, angle);
+        return;
+      }
+
+      // s32 #1 — fin de drag move : commit la nouvelle position
+      if (moveDragRef.current) {
+        const id = moveDragRef.current.placementId;
+        const point = movePreviewPoint ?? moveDragRef.current.startPoint;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* déjà relâché */
+        }
+        moveDragRef.current = null;
+        setMovePreviewPoint(null);
+        onPlacementMoveCommit?.(id, point);
+        return;
+      }
+
+      // s32 #1 — armed sans drag déclenché (simple clic) : on relâche tout.
+      if (moveDragArmedRef.current) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* déjà relâché */
+        }
+        moveDragArmedRef.current = null;
       }
     },
-    [dragPreviewAngle, onAngleCommit]
+    [dragPreviewAngle, movePreviewPoint, onAngleCommit, onPlacementMoveCommit]
   );
 
   // dragPreviewAngle est un state mis à jour à chaque drag move → utilisé comme
   // proxy pour "drag actif" (refs ne peuvent pas être lus pendant le render).
-  const isDragging = dragPreviewAngle !== null;
+  const isDraggingAngle = dragPreviewAngle !== null;
+  const isDraggingMove = movePreviewPoint !== null;
   const cursorClass = isCommitting
     ? "cursor-wait"
-    : isDragging
+    : isDraggingAngle || isDraggingMove
     ? "cursor-grabbing"
-    : hoverHandleId
+    : hoverHandleId || hoverDotId
     ? "cursor-grab"
     : hover?.inPolygon
     ? "cursor-crosshair"
-    : "cursor-default";
+    : "cursor-default"; // s32 #2 — hors polygone autorisé : pas de cursor-not-allowed
 
   return (
     <div

@@ -42,6 +42,8 @@ interface RoomToGenerate {
   structural_instructions: string | null;
   /** s32 — style propre à la pièce (NULL = fallback sur project style_id). */
   style_id: string | null;
+  /** s32 (autopilot) — true = pièce déjà meublée à transformer, false = vide à meubler. */
+  is_furnished: boolean;
 }
 
 interface PhotoRow {
@@ -101,6 +103,7 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     user_answers_json: string | null;
     structural_instructions: string | null;
     style_id: string | null;
+    is_furnished: boolean;
   }>(
     `
     SELECT
@@ -108,6 +111,7 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
       r.room_type,
       r.surface_m2::FLOAT AS surface_m2,
       r.style_id,
+      COALESCE(r.is_furnished, TRUE) AS is_furnished,
       rs.comment_text,
       COALESCE(rs.target_visual_count, 1) AS target_visual_count,
       r.polygon,
@@ -138,6 +142,7 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     user_answers: row.user_answers_json ? (JSON.parse(row.user_answers_json) as string[]).filter(Boolean) : [],
     structural_instructions: row.structural_instructions,
     style_id: row.style_id,
+    is_furnished: row.is_furnished,
   }));
 }
 
@@ -255,6 +260,7 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         target_visual_count: room.target_visual_count,
         user_answers: room.user_answers,
         structural_instructions: room.structural_instructions,
+        is_furnished: room.is_furnished,
       };
 
       try {
