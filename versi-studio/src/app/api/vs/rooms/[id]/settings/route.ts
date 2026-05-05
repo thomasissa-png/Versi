@@ -104,13 +104,19 @@ export async function PUT(
       comment_text?: string | null;
     };
 
-    const target = Number.isInteger(body.target_visual_count) ? (body.target_visual_count as number) : NaN;
-    if (!Number.isFinite(target) || target < 0 || target > 5) {
+    // s32 fix P2 (Thomas iter4) — PATCH partiel : target_visual_count est
+    // désormais OPTIONNEL. Si absent, on préserve la valeur DB existante via
+    // COALESCE côté UPDATE (default 1 à la création). Le commentaire est
+    // toujours pris en compte (string vide => null).
+    const targetProvided = Number.isInteger(body.target_visual_count);
+    const target = targetProvided ? (body.target_visual_count as number) : null;
+    if (targetProvided && (target! < 0 || target! > 5)) {
       return NextResponse.json(
         { success: false, error: "target_visual_count doit être un entier 0-5." },
         { status: 400 }
       );
     }
+    const commentProvided = Object.prototype.hasOwnProperty.call(body, "comment_text");
     const comment = body.comment_text == null ? null : String(body.comment_text).trim().slice(0, 500);
 
     // Vérifier que la pièce existe
@@ -119,19 +125,30 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Pièce introuvable." }, { status: 404 });
     }
 
+    // INSERT : COALESCE($2, 1) → si target absent à la création, default 1.
+    // UPDATE : COALESCE(EXCLUDED.target, current) → préserve la valeur existante
+    // si l'appelant n'a pas fourni target. Idem pour comment si absent.
     await query(
       `INSERT INTO vs_room_settings (room_id, target_visual_count, comment_text)
-       VALUES ($1, $2, $3)
+       VALUES ($1, COALESCE($2, 1), $3)
        ON CONFLICT (room_id) DO UPDATE
-         SET target_visual_count = EXCLUDED.target_visual_count,
-             comment_text = EXCLUDED.comment_text,
+         SET target_visual_count = COALESCE(EXCLUDED.target_visual_count, vs_room_settings.target_visual_count),
+             comment_text = CASE WHEN $4::boolean THEN EXCLUDED.comment_text ELSE vs_room_settings.comment_text END,
              updated_at = NOW()`,
-      [roomId, target, comment]
+      [roomId, target, comment, commentProvided]
     );
+
+    // Relire la valeur finale (target peut avoir été préservée) pour la réponse.
+    const finalRow = await query<{ target_visual_count: number; comment_text: string | null }>(
+      `SELECT target_visual_count, comment_text FROM vs_room_settings WHERE room_id = $1`,
+      [roomId]
+    );
+    const finalTarget = finalRow.rows[0]?.target_visual_count ?? 1;
+    const finalComment = finalRow.rows[0]?.comment_text ?? null;
 
     // P1 persona : flag warning si target>0 mais 0 photo placée
     let warningPending = false;
-    if (target > 0) {
+    if (finalTarget > 0) {
       const photosCount = await query<{ count: string }>(
         `SELECT COUNT(*)::TEXT AS count FROM vs_photos
           WHERE room_id = $1 AND is_placed_on_plan = true`,
@@ -144,8 +161,8 @@ export async function PUT(
       success: true,
       data: {
         room_id: roomId,
-        target_visual_count: target,
-        comment_text: comment,
+        target_visual_count: finalTarget,
+        comment_text: finalComment,
         warning_pending: warningPending,
       },
     });
@@ -157,3 +174,7 @@ export async function PUT(
     );
   }
 }
+
+// s32 fix P2 (Thomas iter4) — alignement method : le wizard envoie PATCH,
+// le handler historique exporte PUT. On expose les deux pour éviter 405.
+export const PATCH = PUT;

@@ -486,15 +486,15 @@ export default function VisualWizard({
   const handleCommentChange = useCallback(
     async (comment: string) => {
       if (!currentRoom) return;
-      // Lire target_visual_count actuel avant de PATCH (sinon on écrase à 0/null).
-      // L'API settings exige target_visual_count + comment_text. On le lit dans
-      // la map locale ou on assume 1 (default DB).
+      // s32 fix P2 (Thomas iter4) — PATCH partiel : on n'envoie QUE comment_text.
+      // L'API settings préserve target_visual_count existant via COALESCE
+      // (route.ts). Avant ce fix, on écrasait silencieusement target=3 → 1
+      // dès que Thomas tapait un commentaire.
       try {
         const res = await fetch(`/api/vs/rooms/${currentRoom.id}/settings`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            target_visual_count: 1,
             comment_text: comment.trim() || null,
           }),
         });
