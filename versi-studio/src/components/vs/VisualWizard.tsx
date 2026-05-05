@@ -1,19 +1,29 @@
 /**
- * VisualWizard — Composant racine de l'Étape 4 (s32 refonte UX).
+ * VisualWizard — Composant racine de l'Étape 4 (s32 Phase 4 complète).
  *
- * Wizard linéaire pièce-par-pièce remplaçant VisualPlacementView.
+ * Wizard linéaire pièce-par-pièce avec preview INLINE des visuels :
+ * Thomas génère pièce par pièce, valide chaque pièce avant la suivante.
  *
- * Phases (machine d'états) :
- *   "wizard"      → step pièce courante (RoomZoomCanvas + style + uploads)
- *   "recap"       → vue d'ensemble + bouton "Générer tous les visuels"
- *   "generating"  → vue progression SSE
- *   "gallery"     → galerie résultats
+ * Phases parent :
+ *   "wizard" → step pièce courante (avec sous-état RoomStepState) ou recap final
+ *   "recap"  → vue d'ensemble post-validation de toutes les pièces
+ *
+ * RoomStepState (sous-état par pièce, source de vérité dans roomStepStates) :
+ *   "configuring" → layout standard (canvas + photos + style + bouton "Générer cette pièce")
+ *   "generating"  → RoomGenerationProgress (spinner) en lieu et place du canvas
+ *   "preview"     → RoomPreviewView avec visuels + boutons "Régénérer" / "Valider"
+ *   "validated"   → carte compacte "Modifier" si on revient à cette pièce
  *
  * État local clé :
- *   - currentStepIndex : index de la pièce courante (0..rooms.length-1)
+ *   - currentStepIndex : index de la pièce courante (0..visibleRooms.length-1)
  *   - pendingPlacements : positions cliquées sur le canvas mais sans photo
  *     uploadée (préfixe id "pending-..."). Une fois upload réussi, remplacé
  *     par le VsPhoto réel renvoyé par l'API.
+ *   - roomStepStates : Map<roomId, RoomStepState>
+ *   - validatedVisualsByRoom : visuels reçus + validés par pièce (persistent UI)
+ *
+ * Persistance reprise : au mount, fetch /api/vs/rooms/:id/visuals pour chaque
+ * pièce → si visuels existent, init la pièce en `validated`.
  *
  * Les callbacks API sont localisés ici (un seul point de vérité pour les
  * mutations photos/style). Le canvas et les sous-vues sont purement UI.
@@ -24,19 +34,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import VisualWizardRoomStep from "@/components/vs/VisualWizardRoomStep";
 import VisualWizardRecap from "@/components/vs/VisualWizardRecap";
-import GenerationProgressView from "@/components/vs/GenerationProgressView";
-import VisualGallery from "@/components/vs/VisualGallery";
+import RoomPreviewView from "@/components/vs/RoomPreviewView";
+import RoomGenerationProgress from "@/components/vs/RoomGenerationProgress";
 import { useVisualsStream, type VisualGenerated } from "@/hooks/useVisualsStream";
 import type {
   VsRoom,
   VsPhoto,
+  VsVisual,
   ZoneRect,
   ApiResponse,
 } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
 
-type Phase = "wizard" | "recap" | "generating" | "gallery";
+type Phase = "wizard" | "recap";
+
+/**
+ * État d'une pièce dans le flow wizard pièce-par-pièce (s32 Phase 4).
+ *
+ *  - configuring : layout standard (canvas + photos + style + bouton "Générer cette pièce")
+ *  - generating  : génération SSE en cours pour cette pièce
+ *  - preview     : visuels reçus, en attente de validation utilisateur
+ *  - validated   : pièce validée, carte compacte récap si on revient en arrière
+ */
+export type RoomStepState = "configuring" | "generating" | "preview" | "validated";
 
 export interface VisualWizardProps {
   projectId: string;
@@ -90,11 +111,22 @@ export default function VisualWizard({
   const [roomsState, setRoomsState] = useState<VsRoom[]>(rooms);
   const [pendingPlacements, setPendingPlacements] = useState<PendingPlacement[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [overrideVisuals, setOverrideVisuals] = useState<Map<string, VisualGenerated[]>>(new Map());
   // s32 #3 (autopilot) — commentaires par pièce, lus à la première navigation
   // sur la pièce courante, persistés via PATCH /rooms/:id/settings (debounce
   // côté composant enfant). Map<room_id, comment_text>.
   const [commentsByRoom, setCommentsByRoom] = useState<Map<string, string>>(new Map());
+
+  // s32 Phase 4 — state machine par pièce (configuring/generating/preview/validated).
+  const [roomStepStates, setRoomStepStates] = useState<Map<string, RoomStepState>>(
+    () => new Map()
+  );
+  // Visuels validés en mémoire (persistance UI : on garde la liste affichée
+  // dans le récap final même si le SSE est fermé). Map<roomId, visuals>.
+  const [validatedVisualsByRoom, setValidatedVisualsByRoom] = useState<
+    Map<string, VisualGenerated[]>
+  >(() => new Map());
+  // Reprise initiale depuis DB : tag pour ne pas refetcher en boucle.
+  const [initialResumeFetched, setInitialResumeFetched] = useState(false);
 
   // Resync si parent recharge les données
   useEffect(() => {
@@ -105,12 +137,41 @@ export default function VisualWizard({
     setRoomsState(rooms);
   }, [rooms]);
 
-  // SSE consumer (actif dès que job démarre)
-  const sseEnabled = phase === "generating" || phase === "gallery";
+  // s32 Phase 4 — au moins une pièce en `generating` ou `preview` doit garder
+  // le stream actif (preview pour permettre re-régénération sans relancer la
+  // connexion).
+  const hasActiveRoomGeneration = useMemo(() => {
+    for (const st of roomStepStates.values()) {
+      if (st === "generating" || st === "preview") return true;
+    }
+    return false;
+  }, [roomStepStates]);
+
+  // SSE consumer (actif dès qu'au moins une pièce est en `generating` ou `preview`)
+  const sseEnabled = hasActiveRoomGeneration;
   const stream = useVisualsStream({
     projectId: sseEnabled ? projectId : null,
     enabled: sseEnabled,
   });
+
+  // Helper : lire l'état d'une pièce. `configuring` par défaut.
+  const getRoomState = useCallback(
+    (roomId: string): RoomStepState =>
+      roomStepStates.get(roomId) ?? "configuring",
+    [roomStepStates]
+  );
+
+  // Helper : muter l'état d'une pièce.
+  const setRoomState = useCallback(
+    (roomId: string, state: RoomStepState) => {
+      setRoomStepStates((prev) => {
+        const next = new Map(prev);
+        next.set(roomId, state);
+        return next;
+      });
+    },
+    []
+  );
 
   // ─── Helpers dérivés ────────────────────────────────────────────
   // s32 #5 — filtrer les pièces 'skipped' du wizard. Le user peut toujours
@@ -133,28 +194,14 @@ export default function VisualWizard({
     );
   }, [photos, pendingPlacements, currentRoom]);
 
-  // Targets pour GenerationProgressView (target par défaut = 1 par pièce)
-  const roomTargetsList = useMemo(
-    () =>
-      roomsState.map((r) => ({
-        room_id: r.id,
-        target: 1,
-      })),
-    [roomsState]
-  );
-
-  const visualsByRoomMerged = useMemo(() => {
-    const merged = new Map<string, VisualGenerated[]>();
-    for (const [k, v] of stream.visualsByRoom.entries()) merged.set(k, v);
-    for (const [k, v] of overrideVisuals.entries()) {
-      const existing = merged.get(k) ?? [];
-      const overridden = existing.map(
-        (ev) => v.find((nv) => nv.visual_id === ev.visual_id) ?? ev
-      );
-      merged.set(k, overridden);
-    }
-    return merged;
-  }, [stream.visualsByRoom, overrideVisuals]);
+  // Visuels reçus pour la pièce courante (filtre client par room_id).
+  // Source : SSE en cours OU validatedVisualsByRoom (cas reprise après stream fermé).
+  const currentRoomVisuals = useMemo<VisualGenerated[]>(() => {
+    if (!currentRoom) return [];
+    const fromStream = stream.visualsByRoom.get(currentRoom.id) ?? [];
+    if (fromStream.length > 0) return fromStream;
+    return validatedVisualsByRoom.get(currentRoom.id) ?? [];
+  }, [currentRoom, stream.visualsByRoom, validatedVisualsByRoom]);
 
   // ─── Handlers placement ─────────────────────────────────────────
 
@@ -447,16 +494,24 @@ export default function VisualWizard({
     [currentRoom]
   );
 
-  // s32 #4 (autopilot) — génère uniquement la pièce courante.
+  // s32 Phase 4 (complète) — génère uniquement la pièce courante.
   // Pattern : POST /generate avec room_ids=[currentRoom.id], puis bascule
-  // la phase parent en `generating`. Le SSE consommera les événements (mais
-  // ne verra que ceux de cette pièce — le worker filtre côté SQL).
+  // l'état de cette pièce en `generating`. Le SSE consommera les événements
+  // filtrés côté worker par room_id. Le wizard parent garde phase="wizard"
+  // mais la sous-vue affiche RoomGenerationProgress en lieu et place du canvas.
   const handleGenerateThisRoom = useCallback(async () => {
     if (!currentRoom) return;
     if (!currentRoom.style_id) {
       setError("Choisissez un style pour cette pièce avant de générer.");
       return;
     }
+    // Reset visuels validés pour cette pièce (cas régénération) — les nouveaux
+    // visuels arriveront via SSE, on évite ainsi d'afficher un mix anciens/nouveaux.
+    setValidatedVisualsByRoom((prev) => {
+      const next = new Map(prev);
+      next.delete(currentRoom.id);
+      return next;
+    });
     try {
       const res = await fetch(
         `/api/vs/projects/${projectId}/visuals/generate`,
@@ -479,11 +534,12 @@ export default function VisualWizard({
         return;
       }
       setError(null);
-      setPhase("generating");
+      // Bascule l'état de la pièce → la sous-vue affiche RoomGenerationProgress.
+      setRoomState(currentRoom.id, "generating");
     } catch {
       setError("La génération n'a pas pu démarrer pour cette pièce.");
     }
-  }, [currentRoom, projectId]);
+  }, [currentRoom, projectId, setRoomState]);
 
   // s32 #5 (autopilot) — skip pièce courante.
   const handleSkipRoom = useCallback(async () => {
@@ -620,77 +676,139 @@ export default function VisualWizard({
     [roomsState]
   );
 
-  const handleJobStarted = useCallback(() => {
-    setError(null);
-    setPhase("generating");
-  }, []);
+  // s32 Phase 4 — Régénérer cette pièce : repasse en `configuring` et reset visuels.
+  const handleRegenerateRoom = useCallback(() => {
+    if (!currentRoom) return;
+    setValidatedVisualsByRoom((prev) => {
+      const next = new Map(prev);
+      next.delete(currentRoom.id);
+      return next;
+    });
+    setRoomState(currentRoom.id, "configuring");
+  }, [currentRoom, setRoomState]);
 
-  const handleProgressComplete = useCallback(() => {
-    setPhase("gallery");
-  }, []);
-
-  const handleBackToWizard = useCallback(() => {
-    stream.close();
-    setOverrideVisuals(new Map());
-    setPhase("wizard");
-  }, [stream]);
-
-  const handleVisualUpdated = useCallback(
-    (roomId: string, updated: VisualGenerated) => {
-      setOverrideVisuals((prev) => {
+  // s32 Phase 4 — Valider les visuels et passer à la pièce suivante.
+  // Persiste les visuels reçus dans validatedVisualsByRoom (pour le récap final
+  // si le stream est fermé) puis bascule en `validated` + next step.
+  const handleValidateRoom = useCallback(() => {
+    if (!currentRoom) return;
+    const visuals = currentRoomVisuals;
+    if (visuals.length > 0) {
+      setValidatedVisualsByRoom((prev) => {
         const next = new Map(prev);
-        const list = next.get(roomId) ?? [];
-        const idx = list.findIndex((v) => v.visual_id === updated.visual_id);
-        if (idx >= 0) list[idx] = updated;
-        else list.push(updated);
-        next.set(roomId, [...list]);
+        next.set(currentRoom.id, visuals);
         return next;
       });
-    },
-    []
-  );
+    }
+    setRoomState(currentRoom.id, "validated");
+    // Avance au step suivant — si on était sur la dernière pièce, recap.
+    if (currentStepIndex < visibleRooms.length - 1) {
+      setCurrentStepIndex((i) => i + 1);
+    } else {
+      setPhase("recap");
+    }
+  }, [
+    currentRoom,
+    currentRoomVisuals,
+    currentStepIndex,
+    visibleRooms.length,
+    setRoomState,
+  ]);
+
+  // s32 Phase 4 — Annuler une génération en cours pour cette pièce (revient
+  // en configuring sans visuels).
+  const handleCancelRoomGeneration = useCallback(() => {
+    if (!currentRoom) return;
+    setRoomState(currentRoom.id, "configuring");
+  }, [currentRoom, setRoomState]);
+
+  // s32 Phase 4 — Transitions automatiques générées par les events SSE.
+  // Quand une pièce en `generating` reçoit un visuel via stream, on bascule
+  // en `preview`. La logique est déclarative : pour CHAQUE pièce en
+  // `generating`, vérifier si stream a déjà au moins 1 visuel pour elle.
+  useEffect(() => {
+    if (stream.visualsByRoom.size === 0) return;
+    let mutated = false;
+    const next = new Map(roomStepStates);
+    for (const [roomId, state] of next.entries()) {
+      if (state !== "generating") continue;
+      const list = stream.visualsByRoom.get(roomId);
+      if (list && list.length > 0) {
+        next.set(roomId, "preview");
+        mutated = true;
+      }
+    }
+    if (mutated) setRoomStepStates(next);
+  }, [stream.visualsByRoom, roomStepStates]);
+
+  // s32 Phase 4 — Persistance reprise : au mount, fetch les visuels existants
+  // pour chaque pièce. Si une pièce a déjà des visuels en DB → init en
+  // `validated` + persiste les visuels pour le récap final.
+  useEffect(() => {
+    if (initialResumeFetched) return;
+    if (visibleRooms.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const results = await Promise.all(
+          visibleRooms.map(async (room) => {
+            try {
+              const res = await fetch(`/api/vs/rooms/${room.id}/visuals`);
+              const json = (await res.json()) as ApiResponse<{
+                photos: VsPhoto[];
+                visuals: Array<VsVisual & { photo_file_path: string }>;
+              }>;
+              if (!json.success) return { roomId: room.id, visuals: [] };
+              // Garde uniquement les visuels avec un file_path (status generated/validated).
+              const usable = json.data.visuals.filter(
+                (v) => v.file_path && (v.status === "generated" || v.status === "validated")
+              );
+              const mapped: VisualGenerated[] = usable.map((v) => ({
+                visual_id: v.id,
+                room_id: room.id,
+                kind: v.anchor_visual_id === null ? "anchor" : "secondary",
+                file_path: v.file_path ?? "",
+                coherence_mode: v.coherence_mode,
+                status: v.status,
+              }));
+              return { roomId: room.id, visuals: mapped };
+            } catch {
+              return { roomId: room.id, visuals: [] };
+            }
+          })
+        );
+        if (cancelled) return;
+        const initStates = new Map<string, RoomStepState>();
+        const initVisuals = new Map<string, VisualGenerated[]>();
+        for (const r of results) {
+          if (r.visuals.length > 0) {
+            initStates.set(r.roomId, "validated");
+            initVisuals.set(r.roomId, r.visuals);
+          }
+        }
+        if (initStates.size > 0) setRoomStepStates(initStates);
+        if (initVisuals.size > 0) setValidatedVisualsByRoom(initVisuals);
+        setInitialResumeFetched(true);
+      } catch {
+        setInitialResumeFetched(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialResumeFetched, visibleRooms]);
 
   // ─── Rendu ─────────────────────────────────────────────────────
+
+  // État de la pièce courante (par défaut configuring).
+  const currentRoomState: RoomStepState = currentRoom
+    ? getRoomState(currentRoom.id)
+    : "configuring";
 
   if (visibleRooms.length === 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <p className="text-sm text-text-muted">Aucune pièce à configurer.</p>
-      </div>
-    );
-  }
-
-  if (phase === "generating") {
-    return (
-      <div className="w-full">
-        <GenerationProgressView
-          rooms={roomsState}
-          roomTargets={roomTargetsList}
-          job={stream.job}
-          visualsByRoom={stream.visualsByRoom}
-          failures={stream.failures}
-          streamStatus={stream.status}
-          reconnects={stream.reconnects}
-          onComplete={handleProgressComplete}
-          onCancel={handleBackToWizard}
-        />
-      </div>
-    );
-  }
-
-  if (phase === "gallery") {
-    // Style "représentatif" pour la galerie — on prend celui de la 1re pièce
-    // (la galerie n'utilise styleId qu'en libellé).
-    const galleryStyle = roomsState.find((r) => r.style_id)?.style_id ?? "";
-    return (
-      <div className="w-full">
-        <VisualGallery
-          rooms={roomsState}
-          visualsByRoom={visualsByRoomMerged}
-          styleId={galleryStyle}
-          onBackToSettings={handleBackToWizard}
-          onVisualUpdated={handleVisualUpdated}
-        />
       </div>
     );
   }
@@ -728,7 +846,8 @@ export default function VisualWizard({
         </div>
       )}
 
-      {phase === "wizard" && currentRoom && (
+      {/* Phase wizard avec sous-état par pièce. */}
+      {phase === "wizard" && currentRoom && currentRoomState === "configuring" && (
         <VisualWizardRoomStep
           stepIndex={currentStepIndex + 1}
           totalSteps={visibleRooms.length}
@@ -748,8 +867,63 @@ export default function VisualWizard({
           onSkipRoom={handleSkipRoom}
           onGenerateThisRoom={handleGenerateThisRoom}
           onPlacementMoveCommit={handlePlacementMoveCommit}
-          onNextRoom={handleNextRoom}
           onPrevRoom={currentStepIndex > 0 ? handlePrevRoom : null}
+        />
+      )}
+
+      {phase === "wizard" && currentRoom && currentRoomState === "generating" && (
+        <RoomGenerationProgress
+          roomName={
+            currentRoom.custom_label ||
+            currentRoom.name ||
+            currentRoom.room_type ||
+            "Pièce"
+          }
+          receivedCount={(stream.visualsByRoom.get(currentRoom.id) ?? []).length}
+          targetCount={1}
+          onCancel={handleCancelRoomGeneration}
+          errorMessage={stream.status === "error" ? "Connexion interrompue — réessayez." : null}
+        />
+      )}
+
+      {phase === "wizard" && currentRoom && currentRoomState === "preview" && (
+        <RoomPreviewView
+          roomName={
+            currentRoom.custom_label ||
+            currentRoom.name ||
+            currentRoom.room_type ||
+            "Pièce"
+          }
+          visuals={currentRoomVisuals}
+          onRegenerate={handleRegenerateRoom}
+          onValidate={handleValidateRoom}
+          isLastRoom={currentStepIndex === visibleRooms.length - 1}
+        />
+      )}
+
+      {/* État `validated` — carte compacte récap si on revient sur la pièce. */}
+      {phase === "wizard" && currentRoom && currentRoomState === "validated" && (
+        <ValidatedRoomCard
+          stepIndex={currentStepIndex + 1}
+          totalSteps={visibleRooms.length}
+          roomName={
+            currentRoom.custom_label ||
+            currentRoom.name ||
+            currentRoom.room_type ||
+            "Pièce"
+          }
+          visuals={currentRoomVisuals}
+          onModify={() => {
+            if (!currentRoom) return;
+            setRoomState(currentRoom.id, "configuring");
+          }}
+          onPrev={currentStepIndex > 0 ? handlePrevRoom : null}
+          onNext={
+            currentStepIndex < visibleRooms.length - 1
+              ? handleNextRoom
+              : () => setPhase("recap")
+          }
+          isLastRoom={currentStepIndex === visibleRooms.length - 1}
         />
       )}
 
@@ -758,13 +932,120 @@ export default function VisualWizard({
           projectId={projectId}
           rooms={roomsState}
           photos={photos}
+          validatedVisualsByRoom={validatedVisualsByRoom}
           planImageUrl={planImageUrl}
           lotZone={lotZone}
           onEditRoom={handleEditRoomFromRecap}
-          onJobStarted={handleJobStarted}
           onError={setError}
         />
       )}
     </div>
+  );
+}
+
+// ─── ValidatedRoomCard ──────────────────────────────────────────────
+// Carte compacte affichée pour une pièce déjà validée (visuels persistés).
+// L'utilisateur peut "Modifier" pour revenir en configuring, ou naviguer
+// avec Précédent / Suivante.
+
+interface ValidatedRoomCardProps {
+  stepIndex: number;
+  totalSteps: number;
+  roomName: string;
+  visuals: VisualGenerated[];
+  onModify: () => void;
+  onPrev: (() => void) | null;
+  onNext: () => void;
+  isLastRoom: boolean;
+}
+
+function ValidatedRoomCard({
+  stepIndex,
+  totalSteps,
+  roomName,
+  visuals,
+  onModify,
+  onPrev,
+  onNext,
+  isLastRoom,
+}: ValidatedRoomCardProps) {
+  const main = visuals[0] ?? null;
+  const previewSrc = main?.file_path
+    ? `/api/vs/files?path=${encodeURIComponent(main.file_path)}`
+    : null;
+  return (
+    <section
+      className="flex flex-col gap-lg w-full"
+      data-testid="validated-room-card"
+      aria-labelledby="validated-room-title"
+    >
+      <header className="flex flex-col gap-xs">
+        <p className="text-xs uppercase tracking-widest text-text-muted">
+          Pièce {stepIndex} / {totalSteps} — Validée
+        </p>
+        <h2
+          id="validated-room-title"
+          className="text-xl sm:text-2xl uppercase tracking-wide font-semibold font-serif text-text-default"
+        >
+          {roomName}
+        </h2>
+      </header>
+
+      <div className="rounded-md border border-success/40 bg-success/5 p-md flex flex-col sm:flex-row gap-md items-start">
+        <div className="relative w-32 h-24 rounded-md overflow-hidden bg-bg-default border border-border-default flex-shrink-0">
+          {previewSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewSrc}
+              alt={`Visuel principal — ${roomName}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-text-muted text-xs">
+              Aucun visuel
+            </div>
+          )}
+        </div>
+        <div className="flex-1 flex flex-col gap-xs min-w-0">
+          <p className="text-sm text-text-default">
+            {visuals.length} visuel{visuals.length > 1 ? "s" : ""} validé
+            {visuals.length > 1 ? "s" : ""} pour cette pièce.
+          </p>
+          <p className="text-xs text-text-muted">
+            Cliquez sur Modifier pour régénérer ou ajuster les paramètres.
+          </p>
+          <button
+            type="button"
+            onClick={onModify}
+            data-testid="validated-room-modify"
+            className="self-start min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card mt-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+          >
+            Modifier
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm pt-sm border-t border-border-default">
+        <div>
+          {onPrev && (
+            <button
+              type="button"
+              onClick={onPrev}
+              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              ← Précédent
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onNext}
+          data-testid="validated-room-next"
+          className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+        >
+          {isLastRoom ? "Récapitulatif" : "Pièce suivante →"}
+        </button>
+      </div>
+    </section>
   );
 }

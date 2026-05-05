@@ -66,8 +66,7 @@ export interface VisualWizardRoomStepProps {
   /** s32 #4 (autopilot) — génère uniquement cette pièce (preview puis next). */
   onGenerateThisRoom: () => Promise<void>;
 
-  /** Navigation. */
-  onNextRoom: () => void;
+  /** Navigation arrière (la suite est gérée par le state machine parent). */
   onPrevRoom: (() => void) | null;
 
   /** Drag visuel (sans commit). Optionnel. */
@@ -101,7 +100,6 @@ export default function VisualWizardRoomStep({
   comment,
   onSkipRoom,
   onGenerateThisRoom,
-  onNextRoom,
   onPrevRoom,
   onAngleDrag,
   onPlacementMoveCommit,
@@ -649,9 +647,10 @@ export default function VisualWizardRoomStep({
                 {disabledReason}
               </p>
             )}
-            {/* s32 #4 (autopilot) — génération par pièce.
-                Bouton secondaire : Thomas peut tester l'IA pièce-par-pièce
-                au lieu de tout configurer puis tout générer en bloc. */}
+            {/* s32 Phase 4 — flow par pièce : la seule action active est
+                "Générer cette pièce". L'utilisateur passe à la suivante
+                uniquement après validation des visuels (RoomPreviewView).
+                Pour avancer sans générer : "Passer cette pièce" (skip). */}
             <button
               type="button"
               onClick={() => {
@@ -660,18 +659,9 @@ export default function VisualWizardRoomStep({
               }}
               disabled={!canGoNext || generatingThis}
               data-testid="wizard-generate-this-room"
-              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border-2 border-interactive-primary text-interactive-primary hover:bg-interactive-primary/10 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
             >
               {generatingThis ? "Lancement..." : "Générer cette pièce"}
-            </button>
-            <button
-              type="button"
-              onClick={onNextRoom}
-              disabled={!canGoNext}
-              data-testid="wizard-next-room"
-              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
-            >
-              {stepIndex === totalSteps ? "Récapitulatif" : "Pièce suivante →"}
             </button>
           </div>
         </div>
