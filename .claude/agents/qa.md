@@ -270,6 +270,7 @@ Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT test
   ```
   À utiliser systématiquement quand un mock factory référence une `vi.fn()` partagée avec le scope test.
 - **Helper Playwright cascade fetch : exposer TOUTES les routes intermédiaires.** Source s30 commit `7a4b26a`. Page Next.js avec cascade fetch (project → lots → plans → rooms-by-lot → visuals-by-room) bloque sur loading state si helper mock 1-niveau. Pattern : avant rédaction tests E2E, `grep -rn "fetch(" path/to/page.tsx` lister TOUTES les routes consommées, puis exposer chacune dans `setupVisualsStepV2()` ou helper équivalent. Sinon tests bloqués sur skeleton UI. Checklist QA : « Lister tous les `fetch()` du composant testé avant d'écrire le helper de mock. »
+- **Tests source-level Vitest node (sans jsdom) pour valider fixes JSX code-only.** Source s30 round 3 commit `bc4accf` (`tests/unit/round3-audit-fixes.test.ts`). Quand projet config Vitest = `environment: "node"` (pas jsdom) ET fix UI/JSX à valider : pattern `readFileSync(component.tsx)` + assertions `expect(source).toContain(...)` ou regex sur le code (présence classe Tailwind, prop, CSS var, handler). Avantages : 8ms pour 22 tests, zéro setup, valide invariants structurels post-fix. Limites : ne valide pas rendu visuel ni runtime — combiner avec Playwright E2E. Pattern réutilisable pour audits fix code-only sans coût `@vitest-environment jsdom` ni `@testing-library/react`.
 
 ### Stratégie de non-régression
 

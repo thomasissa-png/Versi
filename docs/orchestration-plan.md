@@ -155,3 +155,45 @@ Branche : `claude/versi-s24-propagation-learnings-Au1vk`
 4. Bug dev Turbopack loading infini (optionnel)
 
 Prochain plan d'orchestration : a creer au demarrage s23 selon priorite retenue par Thomas (voir memo de reprise `project-context.md` section "Priorites proposees pour s23").
+
+## Sessions s25-s29 (2026-04-23 → 2026-05-04) - CLOTUREES (resumes condensés)
+
+s25-s27.2 : refonte pipeline extraction Versi Studio (canonicalisation + pivot bitmap → vectoriel pixel-perfect). s27.2 = 9 commits feat/fix sur claude/session-recovery-setup-iDOWX (HEAD 05d0998). Pivot vector pdfjs `viewport.transform` = clé du fix.
+
+s28 : 33 tours d'itération sur placement architectural pieces Étape 3 Versi Studio. Verdict Thomas final « ça paraît beaucoup mieux ouo » → 8/10 stable validé sur 4 plans Muguets. Bug critique fixé tour 27 : `firstPlan = plans[0]` piège multi-étage. Pivot architectural tour 18 BFS quota → bbox-from-walls.
+
+s29 : Étape 4 v2 Visuels Vague 1 backend (commit ad30b35) — modules + 4 migrations SQL + 1 doc Replit. Audit persona Thomas marchand de biens GO avec 8 ajustements P0/P1/P2. Préf fondateur s29 : pas de blocage budget IA + validation persona pre-implémentation systématique.
+
+## Session s30 (2026-05-04) - CLOTUREE
+
+Branche : `claude/versi-s30-session-resumption-Jc4hi`
+**19 commits** : 84f186c → 8c045cc (~8800 L code+tests+docs)
+
+### Phases completees
+- Phase 0 : propagation 6 learnings P0/P1 s29 (gate bloquante) — 84f186c
+- Phase 0b : hotfix 4 erreurs TS build cassé + sync package-lock + fix mime root cause "Invalid image" — 798e94a, 73c9cb5, b643629
+- Étape A : Vague 2 backend 7 routes API + SSE + job persistant + migration 006 — a7726d2
+- Étape B parallèle : Vague 3a UI placement (canvas + tap-to-confirm mobile fix GP5) + Vitest 107/107 PASS — 227b419, ea472d8
+- Étape C : Vague 3b UI génération + galerie + SSE consumer — cff35e1
+- Étape D parallèle : Playwright E2E 18/0/2 Chromium + verdict persona GO 8.5/10 — 7a4b26a, 0ea909b
+- Étape E : audit @reviewer cohérence GO conditionnel (7/7 BLOQUANT, 5/6 REQUIS) — 11152d6
+- Étape F (clôture) : mémo + 6 LEARNINGS promus en règles agents — 3b78ff9
+- Round 1 perfection : audit @design 7.8/10 + fix 2 frictions persona P2 — fcd87de, 2b79e41
+- Round 3 perfection : fix 6 défauts @design (3 P0 + 3 P1) — bc4accf
+- Round 4 perfection : re-audit @design **9.2/10** GO (+1.4) — 80a3ac5, 8c045cc
+
+### Métriques s30
+- Tests : Vitest 107/107 PASS (Vague 2) + 22/22 PASS (round 3 fixes) + 18/18 PASS (helpers round 2)
+- E2E : Playwright 18 PASS / 2 skipped (mobile WebKit en CI uniquement) / 0 failed Chromium
+- Build : tsc PASS, lint baseline inchangé (90 errors préexistantes hors scope), npm run build PASS
+- Verdicts : Persona 8.5/10 GO + Reviewer GO conditionnel + Design 9.2/10 GO
+
+### Travaux reportés en s31 (Étape F prod = action Thomas)
+1. **R3 prioritaire** : test clé OpenAI prod gpt-image-2 accessible
+2. **R1** : multi-image natif vs fallback textual_signature (badge UI déjà présent)
+3. **R2** : calibration seuil T4 sur 20-30 photos chantier réelles
+4. **Mobile iPhone réel** : test placement bottom sheet plan dense 8 pièces (avec safe-area iOS notch)
+5. **5 P2 polish post-Étape F** (non bloquants, à programmer si remontée terrain Thomas) : focus ring QuestionsModal footer + GenerateButton mobile mt-auto + FAB safe-area + AngleController aria-disabled + CostEstimator suffixe (indicatif)
+6. **Héritage** : suppression/resync plan-extractor-mock.ts (test fail pré-existant s28), migration property_photos R2 (s27), versi-studio.fr DNS (s26), audit volumineux project-context.md (1187 L), dédoublonnage founder-preferences.md (273 L)
+
+Prochain plan d'orchestration : à créer au démarrage s31 selon priorité retenue par Thomas (mémo de reprise `project-context.md` section "Mémo de reprise versi-s30 → s31").
