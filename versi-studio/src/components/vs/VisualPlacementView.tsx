@@ -436,9 +436,10 @@ export default function VisualPlacementView({
   // ─── Rendu ──────────────────────────────────────────────────────
 
   // Phase generating ou gallery : on remplace tout par la vue dédiée
+  // s32 fix scroll interne : pas de h-full/overflow-y-auto, scroll body natif.
   if (phase === "generating") {
     return (
-      <div className="vs-placement-view relative w-full h-full flex flex-col min-h-0 overflow-y-auto">
+      <div className="vs-placement-view relative w-full flex flex-col">
         <GenerationProgressView
           rooms={rooms}
           roomTargets={roomTargetsList}
@@ -456,7 +457,7 @@ export default function VisualPlacementView({
 
   if (phase === "gallery") {
     return (
-      <div className="vs-placement-view relative w-full h-full flex flex-col min-h-0 overflow-y-auto">
+      <div className="vs-placement-view relative w-full flex flex-col">
         <VisualGallery
           rooms={rooms}
           visualsByRoom={visualsByRoomMerged}
@@ -468,10 +469,11 @@ export default function VisualPlacementView({
     );
   }
 
-  // Phase placement — layout vertical aligné étapes 2/3 (s32 refonte UX)
+  // Phase placement — layout vertical aligné étapes 2/3 (s32 refonte UX).
+  // s32 fix scroll interne : pas de h-full/overflow-y-auto, scroll body natif.
   return (
     <div
-      className="vs-placement-view relative w-full h-full flex flex-col gap-lg overflow-y-auto px-lg pb-lg"
+      className="vs-placement-view relative w-full flex flex-col gap-lg px-lg pb-lg"
       data-testid="visual-placement-view"
     >
       {/* Canvas plan — pleine largeur, hauteur fixe responsive */}

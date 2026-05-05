@@ -247,7 +247,7 @@ export default function VisualPlacementPage({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] min-h-0">
+    <div className="flex flex-col">
       {/* En-tête + sélecteur lot */}
       <div className="px-lg pt-lg pb-md border-b border-border-default">
         {/* HOTFIX-2 s31 : `/visuals` redirige désormais vers `/visuals/placement`,
@@ -309,8 +309,8 @@ export default function VisualPlacementPage({
         </div>
       )}
 
-      {/* Vue principale */}
-      <div className="flex-1 min-h-0">
+      {/* Vue principale — scroll body classique (s32 fix scroll interne) */}
+      <div className="w-full">
         <VisualPlacementView
           projectId={projectId}
           planImageUrl={planImageUrl}
