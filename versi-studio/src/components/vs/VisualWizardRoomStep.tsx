@@ -111,6 +111,8 @@ export default function VisualWizardRoomStep({
   const [confirmSkip, setConfirmSkip] = useState<boolean>(false); // s32 #5 — confirm modal-light avant skip
   const [skipping, setSkipping] = useState<boolean>(false);
   const [generatingThis, setGeneratingThis] = useState<boolean>(false); // s32 #4 — busy "Générer cette pièce"
+  const [movingPlacementId, setMovingPlacementId] = useState<string | null>(null); // B1 itér.4 — feedback drag dans la liste
+  const [skipToast, setSkipToast] = useState<string | null>(null); // B9 itér.4 — toast info post-skip
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -150,7 +152,7 @@ export default function VisualWizardRoomStep({
 
   // s32 #2 — info hors polygone (placement AUTORISÉ — l'IA interprète la distance).
   const handleClickOutsidePolygon = useCallback(() => {
-    setOutsideHint("Position hors pièce — l'IA interprétera la distance.");
+    setOutsideHint("Position hors pièce : l'IA interprétera la distance.");
   }, []);
   useEffect(() => {
     if (outsideHint === null) return;
@@ -180,15 +182,26 @@ export default function VisualWizardRoomStep({
       return;
     }
     setSkipping(true);
-    void onSkipRoom().finally(() => {
-      setSkipping(false);
-      setConfirmSkip(false);
-    });
+    void onSkipRoom()
+      .then(() => {
+        // B9 itér.4 — toast feedback success (auto-clear 3s)
+        setSkipToast("Pièce ignorée — retrouvez-la dans le récap final.");
+      })
+      .finally(() => {
+        setSkipping(false);
+        setConfirmSkip(false);
+      });
   }, [confirmSkip, onSkipRoom]);
   // Reset confirm si user change de pièce
   useEffect(() => {
     setConfirmSkip(false);
   }, [room.id]);
+  // B9 itér.4 — auto-clear skipToast après 3s
+  useEffect(() => {
+    if (skipToast === null) return;
+    const t = setTimeout(() => setSkipToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [skipToast]);
 
   // B6 + B7 — détection nouveaux placements (auto-scroll + flag "recent" 3s)
   useEffect(() => {
@@ -357,6 +370,7 @@ export default function VisualWizardRoomStep({
           isCommitting={busyPlacementId !== null}
           onClickOutsidePolygon={handleClickOutsidePolygon}
           onPlacementMoveCommit={onPlacementMoveCommit}
+          onPlacementMoving={setMovingPlacementId}
         />
         {/* A7 — toast clic hors polygone (auto-clear 2s) */}
         {outsideHint && (
@@ -367,6 +381,19 @@ export default function VisualWizardRoomStep({
           >
             <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-warning/40 shadow-md">
               {outsideHint}
+            </p>
+          </div>
+        )}
+        {/* B9 itér.4 — toast feedback skip pièce (auto-clear 3s) */}
+        {skipToast && (
+          <div
+            className="absolute bottom-md left-1/2 -translate-x-1/2 pointer-events-none"
+            role="status"
+            aria-live="polite"
+            data-testid="wizard-skip-toast"
+          >
+            <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-interactive-primary/40 shadow-md">
+              {skipToast}
             </p>
           </div>
         )}
@@ -405,8 +432,10 @@ export default function VisualWizardRoomStep({
                     else cardRefs.current.delete(p.id);
                   }}
                   className={[
-                    "flex gap-sm p-sm rounded-md border bg-bg-card",
-                    selectedPlacementId === p.id
+                    "flex gap-sm p-sm rounded-md border bg-bg-card transition-shadow",
+                    movingPlacementId === p.id
+                      ? "border-warning ring-2 ring-warning/40"
+                      : selectedPlacementId === p.id
                       ? "border-interactive-primary ring-2 ring-interactive-primary/30"
                       : placementError
                       ? "border-error/50"
@@ -446,8 +475,8 @@ export default function VisualWizardRoomStep({
                         ? `Angle ${Math.round(p.angle_degrees)}°`
                         : "Faites tourner la flèche pour orienter."}
                     </p>
-                    {/* B6 — hint drag-angle pendant 3s après création, même si angle défini */}
-                    {showDragHint && p.angle_degrees !== null && (
+                    {/* B6 + B2 itér.4 — hint drag pendant 3s après création (inconditionnel) */}
+                    {showDragHint && (
                       <p className="text-xs text-interactive-primary">
                         Faites glisser la pointe pour ajuster.
                       </p>
@@ -558,7 +587,7 @@ export default function VisualWizardRoomStep({
               ].join(" ")}
               data-testid="wizard-furnished-yes"
             >
-              Déjà meublée
+              Meublée
             </button>
             <button
               type="button"
@@ -573,7 +602,7 @@ export default function VisualWizardRoomStep({
               ].join(" ")}
               data-testid="wizard-furnished-no"
             >
-              Vide à meubler
+              Non meublée
             </button>
           </div>
           <p className="text-xs text-text-muted">
@@ -589,7 +618,7 @@ export default function VisualWizardRoomStep({
             htmlFor={`room-comment-${room.id}`}
             className="text-xs text-text-muted"
           >
-            Commentaires (optionnel)
+            Instructions pour l&apos;IA (optionnel)
           </label>
           <textarea
             id={`room-comment-${room.id}`}
@@ -631,13 +660,13 @@ export default function VisualWizardRoomStep({
                 "min-h-[44px] px-md py-sm rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50",
                 confirmSkip
                   ? "bg-warning text-text-inverse hover:bg-warning/90"
-                  : "text-text-muted hover:text-text-default hover:bg-bg-card",
+                  : "border border-border-default text-text-muted hover:text-text-default hover:bg-bg-card",
               ].join(" ")}
             >
               {skipping
-                ? "..."
+                ? "Passage en cours..."
                 : confirmSkip
-                ? "Confirmer : pas de visuels pour cette pièce"
+                ? "Confirmer — ignorer cette pièce"
                 : "Passer cette pièce"}
             </button>
           </div>

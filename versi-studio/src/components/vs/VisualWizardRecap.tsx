@@ -165,7 +165,7 @@ export default function VisualWizardRecap({
                 <button
                   type="button"
                   onClick={() => onEditRoom(room.id)}
-                  className="text-xs px-md min-h-[40px] inline-flex items-center rounded-md text-interactive-primary hover:bg-interactive-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+                  className="text-xs px-md min-h-[44px] inline-flex items-center rounded-md text-interactive-primary hover:bg-interactive-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
                 >
                   {hasVisuals ? "Modifier ou régénérer" : "Configurer cette pièce"}
                 </button>

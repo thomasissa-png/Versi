@@ -63,6 +63,8 @@ export interface RoomZoomCanvasProps {
   onPlacementDrag?: (id: string, point: NormalizedPoint) => void;
   /** s32 #1 (autopilot) — commit final au mouseup d'un drag pastille. */
   onPlacementMoveCommit?: (id: string, point: NormalizedPoint) => void;
+  /** s32 itér.4 — notifie début/fin d'un drag move (id quand actif, null sinon). */
+  onPlacementMoving?: (id: string | null) => void;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -119,6 +121,7 @@ export default function RoomZoomCanvas({
   onClickOutsidePolygon,
   onPlacementDrag,
   onPlacementMoveCommit,
+  onPlacementMoving,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -647,6 +650,8 @@ export default function RoomZoomCanvas({
             offsetY: armed.offsetY,
           };
           moveDragArmedRef.current = null;
+          // s32 itér.4 — notifie le parent qu'un drag commence (feedback liste).
+          onPlacementMoving?.(armed.id);
           const point = screenToLotPoint(x - armed.offsetX, y - armed.offsetY);
           const clamped: NormalizedPoint = {
             x: Math.max(0, Math.min(1, point.x)),
@@ -713,6 +718,7 @@ export default function RoomZoomCanvas({
         }
         moveDragRef.current = null;
         setMovePreviewPoint(null);
+        onPlacementMoving?.(null);
         onPlacementMoveCommit?.(id, point);
         return;
       }
@@ -727,7 +733,38 @@ export default function RoomZoomCanvas({
         moveDragArmedRef.current = null;
       }
     },
-    [dragPreviewAngle, movePreviewPoint, onAngleCommit, onPlacementMoveCommit]
+    [dragPreviewAngle, movePreviewPoint, onAngleCommit, onPlacementMoveCommit, onPlacementMoving]
+  );
+
+  // s32 itér.4 (A1) — pointercancel : rollback (jamais commit).
+  // Cas typique : le navigateur reprend la pointer capture (scroll, gesture
+  // système). On ne doit PAS persister la position partielle.
+  const handlePointerCancel = useCallback(
+    (e: ReactPointerEvent<HTMLCanvasElement>) => {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* déjà relâché */
+      }
+      // Drag angle en cours → reset preview, pas de commit (DB conserve l'ancien angle).
+      if (dragRef.current) {
+        dragRef.current = null;
+        setDragPreviewAngle(null);
+        return;
+      }
+      // Drag move en cours → reset preview vers position d'origine, pas de commit.
+      if (moveDragRef.current) {
+        moveDragRef.current = null;
+        setMovePreviewPoint(null);
+        onPlacementMoving?.(null);
+        return;
+      }
+      // Drag armé sans franchissement seuil → reset.
+      if (moveDragArmedRef.current) {
+        moveDragArmedRef.current = null;
+      }
+    },
+    [onPlacementMoving]
   );
 
   // dragPreviewAngle est un state mis à jour à chaque drag move → utilisé comme
@@ -757,7 +794,7 @@ export default function RoomZoomCanvas({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         data-testid="room-zoom-canvas"
       />
       {!planImageUrl && (

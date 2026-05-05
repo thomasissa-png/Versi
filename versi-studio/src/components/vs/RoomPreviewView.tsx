@@ -31,6 +31,11 @@ export interface RoomPreviewViewProps {
   busy?: boolean;
   /** Si dernière pièce du wizard, l'action valide change de label. */
   isLastRoom?: boolean;
+  /**
+   * C4 itér.4 — true si le 1er clic « Régénérer » a été reçu (état armé).
+   * Le bouton bascule alors en bg-warning + label « Confirmer ... » jusqu'au 2e clic.
+   */
+  regenerateConfirm?: boolean;
 }
 
 export default function RoomPreviewView({
@@ -40,6 +45,7 @@ export default function RoomPreviewView({
   onValidate,
   busy = false,
   isLastRoom = false,
+  regenerateConfirm = false,
 }: RoomPreviewViewProps) {
   const empty = visuals.length === 0;
 
@@ -57,12 +63,12 @@ export default function RoomPreviewView({
           id="room-preview-title"
           className="text-xl sm:text-2xl uppercase tracking-wide font-semibold font-serif text-text-default"
         >
-          Visuels — {roomName}
+          {roomName}
         </h2>
         <p className="text-sm text-text-muted">
           {empty
             ? "Aucun visuel encore disponible — patientez ou régénérez."
-            : `${visuals.length} visuel${visuals.length > 1 ? "s" : ""} prêt${visuals.length > 1 ? "s" : ""} pour validation.`}
+            : `${visuals.length} visuel${visuals.length > 1 ? "s" : ""} prêt${visuals.length > 1 ? "s" : ""} à valider.`}
         </p>
       </header>
 
@@ -124,9 +130,17 @@ export default function RoomPreviewView({
           onClick={onRegenerate}
           disabled={busy}
           data-testid="room-preview-regenerate"
-          className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+          aria-pressed={regenerateConfirm}
+          className={[
+            "min-h-[44px] px-md py-sm rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+            regenerateConfirm
+              ? "bg-warning text-text-inverse hover:bg-warning/90"
+              : "border border-border-default text-text-default hover:bg-bg-card",
+          ].join(" ")}
         >
-          Régénérer cette pièce
+          {regenerateConfirm
+            ? "Confirmer la régénération (visuels actuels seront perdus)"
+            : "Régénérer cette pièce"}
         </button>
         <button
           type="button"

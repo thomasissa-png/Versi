@@ -105,10 +105,31 @@ export default function VisualWizard({
   rooms,
   initialPhotos,
 }: VisualWizardProps) {
+  // C1 itér.4 — normalise is_furnished : null/undefined → true (default métier
+  // immo : un bien vendu marchand de biens est plus souvent meublé que vide).
+  // Sans ça, le toggle "Non meublée" apparaît actif par défaut sans choix Thomas.
+  const normalizeRoom = useCallback(
+    (r: VsRoom): VsRoom => ({
+      ...r,
+      is_furnished: r.is_furnished === null || r.is_furnished === undefined ? true : r.is_furnished,
+    }),
+    []
+  );
   const [phase, setPhase] = useState<Phase>("wizard");
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [photos, setPhotos] = useState<VsPhoto[]>(initialPhotos);
-  const [roomsState, setRoomsState] = useState<VsRoom[]>(rooms);
+  const [roomsState, setRoomsState] = useState<VsRoom[]>(() => rooms.map(normalizeRoom));
+  // C3 itér.4 — expected_count par pièce (persisté à la POST /generate, lu par
+  // RoomGenerationProgress via targetCount). Évite le hardcode 1.
+  const [roomExpectedCount, setRoomExpectedCount] = useState<Map<string, number>>(
+    () => new Map()
+  );
+  // C4 itér.4 — two-step confirm pour "Régénérer cette pièce" (depuis preview).
+  const [confirmRegenerate, setConfirmRegenerate] = useState<boolean>(false);
+  // Reset confirm si on change de pièce.
+  useEffect(() => {
+    setConfirmRegenerate(false);
+  }, [currentStepIndex]);
   const [pendingPlacements, setPendingPlacements] = useState<PendingPlacement[]>([]);
   const [error, setError] = useState<string | null>(null);
   // s32 #3 (autopilot) — commentaires par pièce, lus à la première navigation
@@ -134,8 +155,8 @@ export default function VisualWizard({
   }, [initialPhotos]);
 
   useEffect(() => {
-    setRoomsState(rooms);
-  }, [rooms]);
+    setRoomsState(rooms.map(normalizeRoom));
+  }, [rooms, normalizeRoom]);
 
   // s32 Phase 4 — au moins une pièce en `generating` ou `preview` doit garder
   // le stream actif (preview pour permettre re-régénération sans relancer la
@@ -534,6 +555,13 @@ export default function VisualWizard({
         return;
       }
       setError(null);
+      // C3 itér.4 — persiste expected_count pour la pièce (lu par
+      // RoomGenerationProgress via targetCount, évite le hardcode 1).
+      setRoomExpectedCount((prev) => {
+        const next = new Map(prev);
+        next.set(currentRoom.id, json.data.expected_count ?? 1);
+        return next;
+      });
       // Bascule l'état de la pièce → la sous-vue affiche RoomGenerationProgress.
       setRoomState(currentRoom.id, "generating");
     } catch {
@@ -677,15 +705,22 @@ export default function VisualWizard({
   );
 
   // s32 Phase 4 — Régénérer cette pièce : repasse en `configuring` et reset visuels.
+  // C4 itér.4 — confirm two-step (premier clic = arme, second = exécute) pour
+  // empêcher la perte accidentelle des visuels en cours.
   const handleRegenerateRoom = useCallback(() => {
     if (!currentRoom) return;
+    if (!confirmRegenerate) {
+      setConfirmRegenerate(true);
+      return;
+    }
+    setConfirmRegenerate(false);
     setValidatedVisualsByRoom((prev) => {
       const next = new Map(prev);
       next.delete(currentRoom.id);
       return next;
     });
     setRoomState(currentRoom.id, "configuring");
-  }, [currentRoom, setRoomState]);
+  }, [currentRoom, setRoomState, confirmRegenerate]);
 
   // s32 Phase 4 — Valider les visuels et passer à la pièce suivante.
   // Persiste les visuels reçus dans validatedVisualsByRoom (pour le récap final
@@ -880,25 +915,29 @@ export default function VisualWizard({
             "Pièce"
           }
           receivedCount={(stream.visualsByRoom.get(currentRoom.id) ?? []).length}
-          targetCount={1}
+          targetCount={roomExpectedCount.get(currentRoom.id) ?? 1}
           onCancel={handleCancelRoomGeneration}
           errorMessage={stream.status === "error" ? "Connexion interrompue — réessayez." : null}
         />
       )}
 
       {phase === "wizard" && currentRoom && currentRoomState === "preview" && (
-        <RoomPreviewView
-          roomName={
-            currentRoom.custom_label ||
-            currentRoom.name ||
-            currentRoom.room_type ||
-            "Pièce"
-          }
-          visuals={currentRoomVisuals}
-          onRegenerate={handleRegenerateRoom}
-          onValidate={handleValidateRoom}
-          isLastRoom={currentStepIndex === visibleRooms.length - 1}
-        />
+        <div className="animate-in fade-in duration-300" data-testid="room-preview-wrapper">
+          <RoomPreviewView
+            roomName={
+              currentRoom.custom_label ||
+              currentRoom.name ||
+              currentRoom.room_type ||
+              "Pièce"
+            }
+            visuals={currentRoomVisuals}
+            onRegenerate={handleRegenerateRoom}
+            onValidate={handleValidateRoom}
+            isLastRoom={currentStepIndex === visibleRooms.length - 1}
+            busy={false}
+            regenerateConfirm={confirmRegenerate}
+          />
+        </div>
       )}
 
       {/* État `validated` — carte compacte récap si on revient sur la pièce. */}
@@ -1008,11 +1047,11 @@ function ValidatedRoomCard({
         </div>
         <div className="flex-1 flex flex-col gap-xs min-w-0">
           <p className="text-sm text-text-default">
-            {visuals.length} visuel{visuals.length > 1 ? "s" : ""} validé
-            {visuals.length > 1 ? "s" : ""} pour cette pièce.
+            Visuels validés — régénérez ou ajustez les paramètres si besoin.
           </p>
           <p className="text-xs text-text-muted">
-            Cliquez sur Modifier pour régénérer ou ajuster les paramètres.
+            {visuals.length} visuel{visuals.length > 1 ? "s" : ""} validé
+            {visuals.length > 1 ? "s" : ""} pour cette pièce.
           </p>
           <button
             type="button"

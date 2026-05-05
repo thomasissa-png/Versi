@@ -63,7 +63,7 @@ export default function RoomGenerationProgress({
               Création des visuels pour cette pièce...
               <br />
               <span className="text-xs text-text-muted">
-                Environ 3 minutes — vous pouvez patienter ici.
+                Comptez environ 3 minutes.
               </span>
             </p>
           </>
