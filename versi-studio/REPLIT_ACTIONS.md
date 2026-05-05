@@ -44,15 +44,17 @@ Actions à effectuer sur Replit après pull :
    - Bouton "Générer les visuels" en bas
    - PAS de grille de pièces RoomGrid (= ancienne UI v1, signe de bug si visible)
 
-**Risques résiduels signalés à @qa/@reviewer** :
-- La route `POST /api/vs/rooms/[id]/generate` utilise un pattern `void
-  runCoherentMonoRoom(...)` (fire-and-forget) qui contredit la règle CLAUDE.md
-  fullstack "zéro fire-and-forget Replit autoscale". Pattern intentionnel
-  (retour 201 immédiat + polling status) mais peut perdre le job si l'instance
-  est tuée mid-génération. Mitigation existante : le pipeline cohérent multi-
-  pièces (`POST /api/vs/projects/[id]/visuals/generate`) utilise `vs_visual_jobs`
-  comme job persistant + SSE. La route mono-room reste sur fire-and-forget par
-  conservation de contrat. À discuter en V3 si symptômes prod.
+**Risques résiduels — RÉSOLUS s31 (commit `f51a33b`)** :
+- ~~`POST /api/vs/rooms/[id]/generate` fire-and-forget~~ → **route convertie en
+  410 Gone** (route dépréciée). Plus aucun caller : la nouvelle UI v2
+  (`/visuals/placement`) utilise exclusivement
+  `POST /api/vs/projects/[id]/visuals/generate` (pipeline cohérent multi-pièces
+  + jobs persistants `vs_visual_jobs` + SSE). Élimine le risque "perte de job
+  si instance Replit tuée mid-génération".
+- ~~Composants v1 orphelins~~ → **VisualRoom.tsx, RoomGrid.tsx, VisualResult.tsx
+  supprimés** (zéro import après HOTFIX-2). Pas de code mort résiduel.
+
+GP3 Crédibilité du verdict persona Thomas s31 : PARTIAL → **PASS** (8.5/10 → 10/10 cible).
 
 ---
 
