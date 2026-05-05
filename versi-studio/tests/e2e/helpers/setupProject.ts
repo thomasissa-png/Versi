@@ -57,6 +57,8 @@ export interface RoomFixture {
   created_at?: string;
   lot_id: string;
   plan_id: string;
+  /** Style appliqué à la pièce (s32 wizard). null = pas encore choisi. */
+  style_id?: string | null;
 }
 
 export interface PhotoFixture {

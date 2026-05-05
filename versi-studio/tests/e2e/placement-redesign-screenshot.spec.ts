@@ -16,11 +16,28 @@
  */
 
 import { test, expect, devices } from "@playwright/test";
-import { setupVisualsStepV2, REALISTIC_PHOTOS } from "./helpers/setupProject";
+import {
+  setupVisualsStepV2,
+  REALISTIC_PHOTOS,
+  DEFAULT_ROOMS,
+} from "./helpers/setupProject";
 import { blockExternalOpenAI } from "./helpers/mockOpenAI";
 import { PROJECT_ID } from "./fixtures";
 
 const PLACEMENT_URL = `/vs/projects/${PROJECT_ID}/visuals/placement`;
+
+/**
+ * Rooms enrichies pour validation visuelle wizard (s32) :
+ *  - Salon : style "scandinave" appliqué (pour montrer état RoomStylePicker actif)
+ *  - Chambre + SDB : sans style (état "à choisir")
+ *
+ * Combinées à REALISTIC_PHOTOS, le wizard affiche dès la 1re pièce :
+ *   - 2 photos placées dans le Salon (pastilles 45° + 180°)
+ *   - Style "Scandinave" actif → bouton "Pièce suivante" activé
+ */
+const ROOMS_WIZARD_FIXTURE = DEFAULT_ROOMS.map((r, idx) =>
+  idx === 0 ? { ...r, style_id: "scandinave" } : r
+);
 
 test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
   test("desktop 1280x800 — wizard step 1 full page", async ({ browser }) => {
@@ -31,7 +48,10 @@ test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
     const page = await context.newPage();
 
     await blockExternalOpenAI(page);
-    await setupVisualsStepV2(page, { photos: REALISTIC_PHOTOS });
+    await setupVisualsStepV2(page, {
+      rooms: ROOMS_WIZARD_FIXTURE,
+      photos: REALISTIC_PHOTOS,
+    });
 
     await page.goto(PLACEMENT_URL);
 
@@ -64,7 +84,10 @@ test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
     const page = await context.newPage();
 
     await blockExternalOpenAI(page);
-    await setupVisualsStepV2(page, { photos: REALISTIC_PHOTOS });
+    await setupVisualsStepV2(page, {
+      rooms: ROOMS_WIZARD_FIXTURE,
+      photos: REALISTIC_PHOTOS,
+    });
 
     await page.goto(PLACEMENT_URL);
 
