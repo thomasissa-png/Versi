@@ -88,6 +88,9 @@ export interface VsRoom {
   polygon: Array<{ x_percent: number; y_percent: number }> | null;
   /** true si l'utilisateur a modifié, déplacé ou confirmé cette pièce IA */
   touched: boolean;
+  /** s32 — style de décoration propre à la pièce (refonte Étape 4 wizard).
+   *  Slug kebab-case (StyleId). Null = pas encore choisi. */
+  style_id: string | null;
   status: RoomStatus;
   source: LotSource;
   created_at: string;

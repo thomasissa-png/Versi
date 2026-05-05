@@ -222,6 +222,10 @@ export async function ensureVsTables(): Promise<void> {
     ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon JSONB;
     -- S22 : ajout colonne touched pour flag confirmation utilisateur (option C)
     ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS touched BOOLEAN NOT NULL DEFAULT false;
+    -- S32 (migration 007) : style propre à chaque pièce (refonte Étape 4 wizard)
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS style_id TEXT NULL;
+    CREATE INDEX IF NOT EXISTS vs_rooms_style_id_idx
+      ON vs_rooms(style_id) WHERE style_id IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS vs_photos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -40,6 +40,8 @@ interface RoomToGenerate {
   polygon: ZonePolygonPoint[] | null;
   user_answers: string[];
   structural_instructions: string | null;
+  /** s32 — style propre à la pièce (NULL = fallback sur project style_id). */
+  style_id: string | null;
 }
 
 interface PhotoRow {
@@ -98,12 +100,14 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     polygon: ZonePolygonPoint[] | null;
     user_answers_json: string | null;
     structural_instructions: string | null;
+    style_id: string | null;
   }>(
     `
     SELECT
       r.id AS room_id,
       r.room_type,
       r.surface_m2::FLOAT AS surface_m2,
+      r.style_id,
       rs.comment_text,
       COALESCE(rs.target_visual_count, 0) AS target_visual_count,
       r.polygon,
@@ -132,6 +136,7 @@ async function loadRoomsToGenerate(projectId: string, styleId: string): Promise<
     polygon: row.polygon,
     user_answers: row.user_answers_json ? (JSON.parse(row.user_answers_json) as string[]).filter(Boolean) : [],
     structural_instructions: row.structural_instructions,
+    style_id: row.style_id,
   }));
 }
 
@@ -233,11 +238,16 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         continue;
       }
 
+      // s32 — style propre à la pièce, fallback sur le style projet si non choisi.
+      // Garde la back-compat : projets pré-s32 (avec style projet uniquement)
+      // continuent à fonctionner. Le wizard s32 force le choix par pièce, donc
+      // tout nouveau flow passera par room.style_id ≠ NULL.
+      const effectiveStyleId = room.style_id ?? style_id;
       const genInput: CoherentGenerationInput = {
         room_id: room.room_id,
         room_polygon: polygon,
         photos,
-        style_id,
+        style_id: effectiveStyleId,
         room_type: room.room_type,
         surface_m2: room.surface_m2,
         comment_text: room.comment_text,

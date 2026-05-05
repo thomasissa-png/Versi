@@ -9,9 +9,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
 import type { VsRoom, ApiResponse } from "@/lib/vs/types";
-import { ROOM_TYPE_LABELS, type RoomTypeKey } from "@/lib/vs/styles";
+import { ROOM_TYPE_LABELS, STYLES, type RoomTypeKey, type StyleId } from "@/lib/vs/styles";
 
 const VALID_ROOM_TYPES = Object.keys(ROOM_TYPE_LABELS) as RoomTypeKey[];
+const VALID_STYLE_IDS = Object.keys(STYLES) as StyleId[];
 
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -31,6 +32,8 @@ interface PatchRoomPayload {
   polygon?: Array<Record<string, unknown>> | null;
   /** Marque explicitement la pièce comme confirmée par l'utilisateur */
   touched?: boolean;
+  /** s32 — style décoration propre à la pièce (refonte wizard Étape 4) */
+  style_id?: string | null;
 }
 
 export async function PATCH(
@@ -110,6 +113,18 @@ export async function PATCH(
     if (body.polygon !== undefined) {
       setClauses.push(`polygon = $${paramIndex++}`);
       values.push(body.polygon ? JSON.stringify(body.polygon) : null);
+    }
+
+    // s32 — style propre à chaque pièce (refonte wizard Étape 4)
+    if (body.style_id !== undefined) {
+      if (body.style_id !== null && !VALID_STYLE_IDS.includes(body.style_id as StyleId)) {
+        return NextResponse.json(
+          { success: false, error: "Style invalide." },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`style_id = $${paramIndex++}`);
+      values.push(body.style_id);
     }
 
     // Option C : toute modification utilisateur marque la pièce comme confirmée.

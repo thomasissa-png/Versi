@@ -63,6 +63,43 @@ export async function POST(
     const file = formData.get("file") as File | null;
     const angleDescription = (formData.get("angle_description") as string) || null;
 
+    // s32 — placement immédiat à l'upload (refonte wizard Étape 4) :
+    // si position_x / position_y / angle_degrees sont fournis, la photo est
+    // insérée déjà placée sur le plan (is_placed_on_plan = true).
+    const positionXRaw = formData.get("position_x");
+    const positionYRaw = formData.get("position_y");
+    const angleDegreesRaw = formData.get("angle_degrees");
+
+    let positionX: number | null = null;
+    let positionY: number | null = null;
+    let angleDegrees: number | null = null;
+    let placeOnPlan = false;
+
+    if (typeof positionXRaw === "string" && typeof positionYRaw === "string") {
+      const parsedX = Number.parseFloat(positionXRaw);
+      const parsedY = Number.parseFloat(positionYRaw);
+      if (
+        Number.isFinite(parsedX) &&
+        Number.isFinite(parsedY) &&
+        parsedX >= 0 &&
+        parsedX <= 1 &&
+        parsedY >= 0 &&
+        parsedY <= 1
+      ) {
+        positionX = parsedX;
+        positionY = parsedY;
+        placeOnPlan = true;
+      }
+    }
+    if (typeof angleDegreesRaw === "string") {
+      const parsedAngle = Number.parseFloat(angleDegreesRaw);
+      if (Number.isFinite(parsedAngle)) {
+        // Normalise dans [0, 360)
+        const normalized = ((parsedAngle % 360) + 360) % 360;
+        angleDegrees = normalized;
+      }
+    }
+
     if (!file) {
       return NextResponse.json(
         { success: false, error: "Aucun fichier fourni." },
@@ -104,12 +141,23 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     await writeFile(filePath, Buffer.from(arrayBuffer));
 
-    // Insérer en base
+    // Insérer en base — s32 placement immédiat si position+angle fournis
     const result = await query<VsPhoto>(
-      `INSERT INTO vs_photos (room_id, file_path, angle_description)
-       VALUES ($1, $2, $3)
+      `INSERT INTO vs_photos (
+         room_id, file_path, angle_description,
+         position_x, position_y, angle_degrees, is_placed_on_plan
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [roomId, filePath, angleDescription]
+      [
+        roomId,
+        filePath,
+        angleDescription,
+        positionX,
+        positionY,
+        angleDegrees,
+        placeOnPlan,
+      ]
     );
 
     return NextResponse.json(

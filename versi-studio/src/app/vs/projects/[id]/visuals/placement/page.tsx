@@ -23,7 +23,7 @@
 
 import { useEffect, useState, useCallback, use, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import VisualPlacementView from "@/components/vs/VisualPlacementView";
+import VisualWizard from "@/components/vs/VisualWizard";
 import type {
   VsProject,
   VsLot,
@@ -268,7 +268,7 @@ export default function VisualPlacementPage({
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
           <h1 className="text-base sm:text-xl uppercase tracking-wide font-semibold">
-            Placez vos photos sur le plan
+            Configurez vos pièces une par une
           </h1>
           {lots.length > 1 && (
             <label className="inline-flex items-center gap-sm text-sm">
@@ -289,9 +289,8 @@ export default function VisualPlacementPage({
           )}
         </div>
         <p className="text-sm text-text-muted mt-xs">
-          Glissez chaque photo depuis la liste sur la pièce correspondante. Sur
-          mobile, sélectionnez la photo puis tapez la pièce — un menu de
-          confirmation s&apos;affichera.
+          Pour chaque pièce, cliquez sur le plan pour ajouter une position de prise de vue,
+          uploadez la photo correspondante, orientez la flèche et choisissez un style.
         </p>
       </div>
 
@@ -309,9 +308,9 @@ export default function VisualPlacementPage({
         </div>
       )}
 
-      {/* Vue principale — scroll body classique (s32 fix scroll interne) */}
+      {/* Vue principale — wizard pièce-par-pièce (s32 refonte UX) */}
       <div className="w-full">
-        <VisualPlacementView
+        <VisualWizard
           projectId={projectId}
           planImageUrl={planImageUrl}
           lotZone={lotZone}
