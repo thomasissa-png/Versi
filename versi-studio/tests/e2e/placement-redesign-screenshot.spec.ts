@@ -40,29 +40,13 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const firstCard = page.locator('[data-testid^="room-placement-card-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 10_000 });
 
-    // Petit délai pour que les images du plan + transitions CSS finissent.
+    // Attendre stabilisation réseau + animations CSS.
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(800);
 
-    // s32 — la refonte met le contenu dans un container avec overflow-y-auto
-    // (vs-placement-view). Un screenshot fullPage classique ne capture que ce
-    // qui est visible dans le viewport, pas le contenu scrollable interne.
-    // On expand le container temporairement pour capturer tout le rendu.
-    await page.evaluate(() => {
-      const view = document.querySelector('[data-testid="visual-placement-view"]') as HTMLElement | null;
-      if (view) {
-        view.style.height = "auto";
-        view.style.overflow = "visible";
-      }
-      // Le wrapper parent peut aussi clipper.
-      let parent = view?.parentElement;
-      while (parent && parent !== document.body) {
-        parent.style.overflow = "visible";
-        parent.style.height = "auto";
-        parent = parent.parentElement;
-      }
-    });
-    await page.waitForTimeout(300);
-
+    // Post-fix scroll body (commit 213dd88) : capture naturelle full-page,
+    // sans manip artificielle. Ce screenshot reflète exactement ce que
+    // Thomas verra en prod.
     await page.screenshot({
       path: "test-results/placement-redesign-desktop.png",
       fullPage: true,
@@ -90,24 +74,12 @@ test.describe("s32 — Screenshots refonte placement (validation visuelle Thomas
     const firstCard = page.locator('[data-testid^="room-placement-card-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 10_000 });
 
+    // Attendre stabilisation réseau + animations CSS.
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(800);
 
-    // s32 — expand container scrollable pour capturer tout le contenu.
-    await page.evaluate(() => {
-      const view = document.querySelector('[data-testid="visual-placement-view"]') as HTMLElement | null;
-      if (view) {
-        view.style.height = "auto";
-        view.style.overflow = "visible";
-      }
-      let parent = view?.parentElement;
-      while (parent && parent !== document.body) {
-        parent.style.overflow = "visible";
-        parent.style.height = "auto";
-        parent = parent.parentElement;
-      }
-    });
-    await page.waitForTimeout(300);
-
+    // Post-fix scroll body (commit 213dd88) : capture naturelle full-page,
+    // sans manip artificielle.
     await page.screenshot({
       path: "test-results/placement-redesign-mobile.png",
       fullPage: true,
