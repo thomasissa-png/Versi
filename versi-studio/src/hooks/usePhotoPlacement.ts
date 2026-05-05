@@ -52,6 +52,11 @@ export interface UsePhotoPlacementReturn {
   onCommitPlacement: (draft: PhotoPlacementDraft) => Promise<boolean>;
   /** Reset du draft visuel (utilisé sur abandon, ex: Escape pendant drag). */
   resetVisual: (photoId: string) => void;
+  /**
+   * Ajoute une photo nouvellement uploadée au state local (s32 — upload depuis
+   * RoomPlacementCard sans re-fetch global). La photo est non placée par défaut.
+   */
+  addPhoto: (photo: VsPhoto) => void;
 }
 
 export function usePhotoPlacement(
@@ -156,11 +161,25 @@ export function usePhotoPlacement(
     [serverPhotos, onCommitSuccess, onCommitError, resetVisual]
   );
 
+  const addPhoto = useCallback((photo: VsPhoto) => {
+    setServerPhotos((prev) => {
+      // Dédup : si déjà présent (race condition double-upload), on remplace.
+      const idx = prev.findIndex((p) => p.id === photo.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = photo;
+        return next;
+      }
+      return [...prev, photo];
+    });
+  }, []);
+
   return {
     photos,
     isCommitting,
     onUpdateVisual,
     onCommitPlacement,
     resetVisual,
+    addPhoto,
   };
 }

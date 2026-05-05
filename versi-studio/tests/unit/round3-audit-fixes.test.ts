@@ -27,17 +27,26 @@ function readComponent(name: string): string {
   return readFileSync(resolve(COMPONENTS_DIR, name), "utf-8");
 }
 
-describe("Round 3 audit fixes — D1 chevauchement CostEstimator/AngleController", () => {
+describe("Round 3 audit fixes — D1 (s32 refonte UX) — CostEstimator retiré du DOM user", () => {
   const src = readComponent("VisualPlacementView.tsx");
 
-  it("D1 : CostEstimator n'est plus en absolute top-md right-md sur le canvas", () => {
-    // Avant : <div className="absolute top-md right-md z-10"><CostEstimator />
-    // Après : <div className="sticky top-0 z-10 ... px-md py-sm"><CostEstimator />
-    expect(src).not.toMatch(/absolute\s+top-md\s+right-md[^"]*">\s*<CostEstimator/);
+  // s32 mise à jour : suite au verbatim Thomas s29-s30 (« on s'en moque du
+  // coût pour nos clients, ils dépenseront leurs crédits le moment venu »),
+  // le CostEstimator a été retiré entièrement du DOM utilisateur. La logique
+  // de calcul reste disponible côté backend pour usage admin futur.
+  it("D1 : CostEstimator n'est plus rendu dans VisualPlacementView", () => {
+    expect(src).not.toMatch(/<CostEstimator/);
   });
 
-  it("D1 : CostEstimator est désormais dans un wrapper sticky en header sidebar", () => {
-    expect(src).toMatch(/sticky\s+top-0[^"]*">\s*<CostEstimator/);
+  it("D1 : aucune mention 'Coût estimé' dans la vue placement", () => {
+    expect(src).not.toMatch(/Coût estimé/);
+  });
+
+  it("D1 : layout vertical s32 — canvas + grille de cartes pièces", () => {
+    // Pattern aligné étapes 2/3 : flex-col + grid pour les cartes pièces
+    expect(src).toMatch(/flex flex-col gap-lg/);
+    expect(src).toMatch(/grid-cols-1 sm:grid-cols-2 lg:grid-cols-3/);
+    expect(src).toMatch(/RoomPlacementCard/);
   });
 });
 

@@ -31,8 +31,17 @@ import type {
   VsRoom,
   VsPhoto,
   VsVisual,
+  ZoneRect,
+  ZonePolygonPoint,
   ApiResponse,
 } from "@/lib/vs/types";
+
+const DEFAULT_LOT_ZONE: ZoneRect = {
+  x_percent: 0,
+  y_percent: 0,
+  width_percent: 100,
+  height_percent: 100,
+};
 
 interface RoomVisualsResponse {
   photos: VsPhoto[];
@@ -142,6 +151,41 @@ export default function VisualPlacementPage({
     if (!planForLot) return null;
     return `/api/vs/files?path=${encodeURIComponent(planForLot.file_path)}`;
   }, [planForLot]);
+
+  // ─── lotZone (s32 fix BUG 1) ────────────────────────────────────
+  // Pattern aligné avec rooms/page.tsx : dérive bbox du lot depuis zone_data.
+  // Un lot peut être stocké en rect ({x,y,w,h}) OU polygon ({points}). Pour
+  // le rendu canvas, on a besoin d'un rect (bbox englobant).
+  const lotZone = useMemo<ZoneRect>(() => {
+    if (!selectedLot?.zone_data) return DEFAULT_LOT_ZONE;
+    const raw = selectedLot.zone_data as Record<string, unknown>;
+    if (raw.type === "polygon" && Array.isArray(raw.points)) {
+      const pts = (raw.points as ZonePolygonPoint[]).map((p) => ({
+        x_percent: Number(p.x_percent),
+        y_percent: Number(p.y_percent),
+      }));
+      if (pts.length === 0) return DEFAULT_LOT_ZONE;
+      const xs = pts.map((p) => p.x_percent);
+      const ys = pts.map((p) => p.y_percent);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      const maxX = Math.max(...xs);
+      const maxY = Math.max(...ys);
+      return {
+        x_percent: minX,
+        y_percent: minY,
+        width_percent: maxX - minX,
+        height_percent: maxY - minY,
+      };
+    }
+    // Rect (legacy ou explicite)
+    return {
+      x_percent: Number(raw.x_percent ?? 0),
+      y_percent: Number(raw.y_percent ?? 0),
+      width_percent: Number(raw.width_percent ?? 100),
+      height_percent: Number(raw.height_percent ?? 100),
+    };
+  }, [selectedLot]);
 
   const roomsForLot = useMemo(
     () => (selectedLotId ? rooms.filter((r) => r.lot_id === selectedLotId) : []),
@@ -270,6 +314,7 @@ export default function VisualPlacementPage({
         <VisualPlacementView
           projectId={projectId}
           planImageUrl={planImageUrl}
+          lotZone={lotZone}
           rooms={roomsForLot}
           initialPhotos={photosForLot}
         />

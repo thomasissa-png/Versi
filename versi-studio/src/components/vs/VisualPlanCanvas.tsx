@@ -36,12 +36,15 @@ import {
   type WheelEvent as ReactWheelEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import type { VsRoom, VsPhoto } from "@/lib/vs/types";
+import type { VsRoom, VsPhoto, ZoneRect } from "@/lib/vs/types";
 import { polygonCentroid } from "@/lib/vs/types";
 import {
-  screenToNormalized,
+  screenToLotLocal,
+  lotLocalToScreen,
   findRoomAtPoint,
   computeRoomZoom,
+  computeRenderLayout,
+  lotLocalToPlanGlobalPercent,
   type NormalizedPoint,
 } from "@/lib/vs/ui/photo-placement";
 
@@ -50,6 +53,13 @@ import {
 export interface VisualPlanCanvasProps {
   /** URL image plan (background canvas) */
   planImageUrl: string | null;
+  /**
+   * Zone du lot dans le plan global (% du plan entier).
+   * Source de vérité pour positionner correctement les polygones lot-local.
+   * Fix s32 BUG 1 — sans ce repère, les polygones étaient projetés sur le
+   * canvas full au lieu du sous-rectangle du lot → débordaient.
+   */
+  lotZone: ZoneRect;
   /** Pièces du lot/étage courant (avec polygones lot-local %) */
   rooms: VsRoom[];
   /** Photos uploadées (placées et non placées) — couches photos */
@@ -108,6 +118,7 @@ const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
 export default function VisualPlanCanvas({
   planImageUrl,
+  lotZone,
   rooms,
   photos,
   focusedRoomId,
@@ -123,11 +134,25 @@ export default function VisualPlanCanvas({
 
   const [viewport, setViewport] = useState<Viewport>(INITIAL_VIEWPORT);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [imageNaturalSize, setImageNaturalSize] = useState({ w: 0, h: 0 });
   const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const panStateRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
   const pinchStateRef = useRef<{ initialDistance: number; initialScale: number } | null>(null);
+
+  // ─── Letterbox layout (s32 fix BUG 1) ──────────────────────────
+  // Préserve le ratio image plan dans le container — pattern RoomCanvas étape 3.
+  const renderLayout = useMemo(
+    () =>
+      computeRenderLayout(
+        containerSize.width,
+        containerSize.height,
+        imageNaturalSize.w,
+        imageNaturalSize.h
+      ),
+    [containerSize, imageNaturalSize]
+  );
 
   // ─── Photos par room (pour couleur polygone) ───────────────────
 
@@ -151,9 +176,11 @@ export default function VisualPlanCanvas({
     let cancelled = false;
     if (!planImageUrl) {
       planImageRef.current = null;
-      // setState async via microtask pour éviter cascade synchrone (R19 lint)
       queueMicrotask(() => {
-        if (!cancelled) setImageLoaded(false);
+        if (!cancelled) {
+          setImageLoaded(false);
+          setImageNaturalSize({ w: 0, h: 0 });
+        }
       });
       return () => {
         cancelled = true;
@@ -164,11 +191,13 @@ export default function VisualPlanCanvas({
     img.onload = () => {
       if (cancelled) return;
       planImageRef.current = img;
+      setImageNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
       setImageLoaded(true);
     };
     img.onerror = () => {
       if (cancelled) return;
       planImageRef.current = null;
+      setImageNaturalSize({ w: 0, h: 0 });
       setImageLoaded(false);
     };
     img.src = planImageUrl;
@@ -198,9 +227,16 @@ export default function VisualPlanCanvas({
   useEffect(() => {
     if (!focusedRoomId) return;
     if (containerSize.width === 0 || containerSize.height === 0) return;
+    if (renderLayout.renderW === 0 || renderLayout.renderH === 0) return;
     const room = rooms.find((r) => r.id === focusedRoomId);
     if (!room) return;
-    const z = computeRoomZoom(room, containerSize, isMobile ? 0.7 : 0.6);
+    const z = computeRoomZoom(
+      room,
+      containerSize,
+      renderLayout,
+      lotZone,
+      isMobile ? 0.7 : 0.6
+    );
     if (!z) return;
     let cancelled = false;
     queueMicrotask(() => {
@@ -209,7 +245,7 @@ export default function VisualPlanCanvas({
     return () => {
       cancelled = true;
     };
-  }, [focusedRoomId, rooms, containerSize, isMobile]);
+  }, [focusedRoomId, rooms, containerSize, renderLayout, lotZone, isMobile]);
 
   // ─── Helper coords ─────────────────────────────────────────────
 
@@ -223,17 +259,16 @@ export default function VisualPlanCanvas({
     []
   );
 
+  /**
+   * Pixel canvas → coords LOT-LOCAL normalisées (0-1 dans le repère du lot).
+   * C'est dans ce repère que les polygones pièces sont définis et que le hit-test
+   * (`findRoomAtPoint`) opère.
+   */
   const screenToPlan = useCallback(
     (canvasX: number, canvasY: number): NormalizedPoint => {
-      return screenToNormalized(canvasX, canvasY, {
-        width: containerSize.width,
-        height: containerSize.height,
-        offsetX: viewport.offsetX,
-        offsetY: viewport.offsetY,
-        scale: viewport.scale,
-      });
+      return screenToLotLocal(canvasX, canvasY, renderLayout, viewport, lotZone);
     },
-    [containerSize, viewport]
+    [renderLayout, viewport, lotZone]
   );
 
   // ─── Rendu canvas ──────────────────────────────────────────────
@@ -263,19 +298,48 @@ export default function VisualPlanCanvas({
     ctx.fillStyle = "#FAFAF7";
     ctx.fillRect(0, 0, w, h);
 
-    // Layer 1 : background plan
+    // Helpers de projection lot-local % → pixel canvas (avec viewport transform).
+    // Étapes : lot-local % → plan-global % → pixel logique (letterbox) → pixel écran.
+    const projectLotPct = (xLotPct: number, yLotPct: number) => {
+      const xGlobalPct = lotLocalToPlanGlobalPercent(
+        xLotPct,
+        lotZone.x_percent,
+        lotZone.width_percent
+      );
+      const yGlobalPct = lotLocalToPlanGlobalPercent(
+        yLotPct,
+        lotZone.y_percent,
+        lotZone.height_percent
+      );
+      const lx = (xGlobalPct / 100) * renderLayout.renderW + renderLayout.offsetX;
+      const ly = (yGlobalPct / 100) * renderLayout.renderH + renderLayout.offsetY;
+      return {
+        x: lx * viewport.scale + viewport.offsetX,
+        y: ly * viewport.scale + viewport.offsetY,
+      };
+    };
+
+    // Layer 1 : background plan — letterbox dans le canvas (préserve ratio)
     const img = planImageRef.current;
-    if (img) {
+    if (img && renderLayout.renderW > 0 && renderLayout.renderH > 0) {
+      const planX = renderLayout.offsetX * viewport.scale + viewport.offsetX;
+      const planY = renderLayout.offsetY * viewport.scale + viewport.offsetY;
+      const planW = renderLayout.renderW * viewport.scale;
+      const planH = renderLayout.renderH * viewport.scale;
       ctx.drawImage(
         img,
-        viewport.offsetX,
-        viewport.offsetY,
-        w * viewport.scale,
-        h * viewport.scale
+        0,
+        0,
+        img.naturalWidth,
+        img.naturalHeight,
+        planX,
+        planY,
+        planW,
+        planH
       );
     }
 
-    // Layer 2 : polygones pièces
+    // Layer 2 : polygones pièces (lot-local % → projection)
     for (const room of rooms) {
       if (!room.polygon || room.polygon.length < 3) continue;
       const placed = photosByRoom.get(room.id) ?? [];
@@ -303,10 +367,9 @@ export default function VisualPlanCanvas({
       ctx.beginPath();
       for (let i = 0; i < room.polygon.length; i++) {
         const pt = room.polygon[i];
-        const px = (pt.x_percent / 100) * w * viewport.scale + viewport.offsetX;
-        const py = (pt.y_percent / 100) * h * viewport.scale + viewport.offsetY;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+        const { x, y } = projectLotPct(pt.x_percent, pt.y_percent);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
       ctx.closePath();
       ctx.fillStyle = fill;
@@ -317,8 +380,7 @@ export default function VisualPlanCanvas({
 
       // Label pièce au centroïde
       const c = polygonCentroid(room.polygon);
-      const cx = (c.x_percent / 100) * w * viewport.scale + viewport.offsetX;
-      const cy = (c.y_percent / 100) * h * viewport.scale + viewport.offsetY;
+      const { x: cx, y: cy } = projectLotPct(c.x_percent, c.y_percent);
       ctx.fillStyle = "#141C28";
       ctx.font = "500 11px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
@@ -328,14 +390,20 @@ export default function VisualPlanCanvas({
       ctx.fillText(label, cx, cy);
     }
 
-    // Layer 3 : photos placées (pastilles + angle)
+    // Layer 3 : photos placées (pastilles + angle).
+    // position_x/position_y sont en LOT-LOCAL normalisé (0-1) — alignées avec
+    // le repère utilisé par screenToLotLocal et le hit-test polygones.
     for (const photo of photos) {
       if (!photo.is_placed_on_plan) continue;
       if (photo.position_x === null || photo.position_y === null) continue;
-      // Position photo : on assume coords normalisées plan-relatif (0-1).
-      // Si la pièce est positionnée en lot-local, on délègue à la persistance API.
-      const px = photo.position_x * w * viewport.scale + viewport.offsetX;
-      const py = photo.position_y * h * viewport.scale + viewport.offsetY;
+      const projected = lotLocalToScreen(
+        { x: photo.position_x, y: photo.position_y },
+        renderLayout,
+        viewport,
+        lotZone
+      );
+      const px = projected.x;
+      const py = projected.y;
 
       // Trait angle (depuis pastille)
       if (photo.angle_degrees !== null) {
@@ -362,6 +430,8 @@ export default function VisualPlanCanvas({
   }, [
     containerSize,
     viewport,
+    renderLayout,
+    lotZone,
     rooms,
     photos,
     photosByRoom,

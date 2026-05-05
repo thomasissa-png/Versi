@@ -1,16 +1,25 @@
 /**
- * VisualPlacementView — Orchestrateur Étape 4 v2
- *  - Vague 3a (s30) : canvas plan + photos draggables + placement
- *  - Vague 3b (s30) : sidebar settings + cost estimator + génération SSE + galerie
+ * VisualPlacementView — Orchestrateur Étape 4 v2 (s32 refonte UX)
+ *
+ * Pattern UX aligné sur les étapes 2 et 3 du Stepper :
+ *  - Plan canvas pleine largeur en haut
+ *  - Grille de cartes pièces dessous (1 col mobile / 2 cols tablet / 3 cols desktop)
+ *  - Bloc style + CTA "Générer" sous les cartes
+ *
+ * Refonte s32 :
+ *  - BUG 1 (polygones débordant) : VisualPlanCanvas reçoit lotZone et utilise
+ *    le pattern letterbox + lot-local→plan-global d'étape 3.
+ *  - BUG 2 (coût utilisateur visible) : CostEstimator retiré du DOM (préf
+ *    fondateur s29-s30 — pas de blocage technique sur le coût).
+ *  - BUG 3 (UX nulle, sidebar masquant) : layout vertical aligné étapes 2/3.
+ *  - BUG 4 (upload invisible) : bouton "Ajouter des photos" sur chaque carte
+ *    pièce (consomme /api/vs/rooms/:id/photos qui existait déjà).
  *
  * Phases (machine d'états) :
- *   "placement"   → canvas + sidebar photos + sidebar settings (par défaut)
+ *   "placement"   → canvas + cartes pièces + style + CTA (par défaut)
  *   "questions"   → modale T1-T5 bloquante (preflight a retourné des Q)
  *   "generating"  → vue progression SSE (job en cours)
  *   "gallery"     → galerie résultats (job complet)
- *
- * Le canvas + sidebars restent montés sous la modale en "placement". Pour
- * "generating" et "gallery", on remplace la zone principale.
  *
  * Mobile detection : matchMedia "(max-width: 767px)" (breakpoint 768).
  */
@@ -19,11 +28,10 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import VisualPlanCanvas from "@/components/vs/VisualPlanCanvas";
-import PhotoSidebar from "@/components/vs/PhotoSidebar";
+import RoomPlacementCard from "@/components/vs/RoomPlacementCard";
 import PlacementBottomSheet from "@/components/vs/PlacementBottomSheet";
 import AngleController from "@/components/vs/AngleController";
 import RoomSettingsSidebar, { type RoomSettingsState } from "@/components/vs/RoomSettingsSidebar";
-import CostEstimator from "@/components/vs/CostEstimator";
 import GenerateButton from "@/components/vs/GenerateButton";
 import QuestionsModal from "@/components/vs/QuestionsModal";
 import GenerationProgressView from "@/components/vs/GenerationProgressView";
@@ -31,7 +39,7 @@ import VisualGallery from "@/components/vs/VisualGallery";
 import StyleGrid from "@/components/vs/StyleGrid";
 import { usePhotoPlacement } from "@/hooks/usePhotoPlacement";
 import { useVisualsStream, type VisualGenerated } from "@/hooks/useVisualsStream";
-import type { VsRoom, VsPhoto, VsRoomSettings, ApiResponse } from "@/lib/vs/types";
+import type { VsRoom, VsPhoto, VsRoomSettings, ZoneRect, ApiResponse } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { AmbiguityQuestion } from "@/lib/vs/ambiguity-detector";
 import type { StyleId } from "@/lib/vs/styles";
@@ -45,7 +53,12 @@ export interface VisualPlacementViewProps {
   projectId: string;
   /** URL de l'image plan (étage courant). */
   planImageUrl: string | null;
-  /** Pièces de l'étage courant (avec polygones). */
+  /**
+   * Zone du lot dans le plan global (% du plan entier). s32 fix BUG 1.
+   * Source : lot.zone_data, dérivée par la page parente comme dans rooms/page.tsx.
+   */
+  lotZone: ZoneRect;
+  /** Pièces de l'étage courant (avec polygones lot-local %). */
   rooms: VsRoom[];
   /** Toutes les photos uploadées du projet. */
   initialPhotos: VsPhoto[];
@@ -61,6 +74,7 @@ interface SettingsApiResponse {
 export default function VisualPlacementView({
   projectId,
   planImageUrl,
+  lotZone,
   rooms,
   initialPhotos,
 }: VisualPlacementViewProps) {
@@ -95,7 +109,7 @@ export default function VisualPlacementView({
   const [overrideVisuals, setOverrideVisuals] = useState<Map<string, VisualGenerated[]>>(new Map());
 
   // ─── Hook placement ─────────────────────────────────────────────
-  const { photos, isCommitting, onCommitPlacement } = usePhotoPlacement({
+  const { photos, isCommitting, onCommitPlacement, addPhoto } = usePhotoPlacement({
     initialPhotos,
     onCommitSuccess: (p) => {
       const filename = p.file_path.split("/").pop() ?? "Photo";
@@ -103,6 +117,19 @@ export default function VisualPlacementView({
     },
     onCommitError: (err) => setToast({ kind: "error", msg: err }),
   });
+
+  // ─── Handler upload depuis RoomPlacementCard (s32 BUG 4) ────────
+  const handlePhotoUploaded = useCallback(
+    (photo: VsPhoto) => {
+      addPhoto(photo);
+      setToast({ kind: "success", msg: "Photo ajoutée." });
+    },
+    [addPhoto]
+  );
+
+  const handleUploadError = useCallback((msg: string) => {
+    setToast({ kind: "error", msg });
+  }, []);
 
   // ─── Auto-clear toast 3s ────────────────────────────────────────
   useEffect(() => {
@@ -188,6 +215,17 @@ export default function VisualPlacementView({
     const s = new Set<string>();
     for (const p of photos) if (p.is_placed_on_plan) s.add(p.room_id);
     return s;
+  }, [photos]);
+
+  // ─── Photos par room (pour les RoomPlacementCard) ───────────────
+  const photosByRoomId = useMemo(() => {
+    const map = new Map<string, VsPhoto[]>();
+    for (const p of photos) {
+      const arr = map.get(p.room_id) ?? [];
+      arr.push(p);
+      map.set(p.room_id, arr);
+    }
+    return map;
   }, [photos]);
 
   /**
@@ -430,13 +468,17 @@ export default function VisualPlacementView({
     );
   }
 
-  // Phase placement (avec overlay questions le cas échéant)
+  // Phase placement — layout vertical aligné étapes 2/3 (s32 refonte UX)
   return (
-    <div className="vs-placement-view relative w-full h-full flex flex-col sm:flex-row min-h-0">
-      {/* Canvas — zone principale */}
-      <div className="flex-1 relative min-h-[60vh] sm:min-h-0">
+    <div
+      className="vs-placement-view relative w-full h-full flex flex-col gap-lg overflow-y-auto px-lg pb-lg"
+      data-testid="visual-placement-view"
+    >
+      {/* Canvas plan — pleine largeur, hauteur fixe responsive */}
+      <div className="relative w-full h-[400px] sm:h-[550px] rounded-md overflow-hidden border border-border-default flex-shrink-0">
         <VisualPlanCanvas
           planImageUrl={planImageUrl}
+          lotZone={lotZone}
           rooms={rooms}
           photos={photos}
           focusedRoomId={focusedRoomId}
@@ -493,29 +535,45 @@ export default function VisualPlacementView({
         )}
       </div>
 
-      {/* Sidebar — desktop : 2 colonnes (photos + settings) ; mobile : drawer bas. */}
-      <aside
-        className={
-          isMobile
-            ? "border-t border-border-default bg-bg-default max-h-[40vh] overflow-y-auto"
-            : "w-80 flex-shrink-0 border-l border-border-default bg-bg-card overflow-y-auto flex flex-col"
-        }
+      {/* Cartes pièces — grille responsive sous le plan (s32 BUG 3 + BUG 4) */}
+      <section
+        aria-labelledby="rooms-grid-title"
+        className="flex flex-col gap-sm"
       >
-        {/* Cost estimator sticky header — Round 3 s30 fix D1 chevauchement.
-            Anciennement absolute sur le canvas (chevauchait AngleController mobile). */}
-        <div className="sticky top-0 z-10 bg-bg-card border-b border-border-default px-md py-sm">
-          <CostEstimator roomTargets={roomTargets} />
+        <div className="flex items-baseline justify-between gap-sm">
+          <h2
+            id="rooms-grid-title"
+            className="text-sm uppercase tracking-wide font-semibold text-text-default"
+          >
+            Vos pièces
+          </h2>
+          <p className="text-xs text-text-muted">
+            {selectedPhotoId
+              ? "Cliquez sur la pièce du plan pour placer la photo sélectionnée."
+              : "Glissez une photo sur le plan, ou ajoutez-en de nouvelles ci-dessous."}
+          </p>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-md">
+          {rooms.map((room) => (
+            <RoomPlacementCard
+              key={room.id}
+              room={room}
+              photos={photosByRoomId.get(room.id) ?? []}
+              selectedPhotoId={selectedPhotoId}
+              onSelectPhoto={setSelectedPhotoId}
+              isFocused={focusedRoomId === room.id}
+              onFocusRoom={setFocusedRoomId}
+              onPhotoUploaded={handlePhotoUploaded}
+              onUploadError={handleUploadError}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+      </section>
 
-        <PhotoSidebar
-          photos={photos}
-          selectedPhotoId={selectedPhotoId}
-          onSelectPhoto={setSelectedPhotoId}
-          isMobile={isMobile}
-        />
-
-        {/* Style picker (Vague 3b) */}
-        <div className="p-md border-t border-border-default">
+      {/* Style + targets — sous les cartes pièces */}
+      <section className="flex flex-col gap-md p-md rounded-md border border-border-default bg-bg-card">
+        <div>
           <h2 className="text-sm uppercase tracking-wide font-semibold text-text-default mb-sm">
             Style des visuels
           </h2>
@@ -525,9 +583,8 @@ export default function VisualPlacementView({
           />
         </div>
 
-        {/* RoomSettings sidebar (Vague 3b) */}
         {settingsLoaded && (
-          <div className="border-t border-border-default">
+          <div className="border-t border-border-default pt-md">
             <RoomSettingsSidebar
               rooms={rooms}
               photos={photos}
@@ -536,28 +593,28 @@ export default function VisualPlacementView({
             />
           </div>
         )}
+      </section>
 
-        {/* Generate button (Vague 3b) */}
-        <div className="p-md border-t border-border-default mt-auto">
-          {styleId ? (
-            <GenerateButton
-              projectId={projectId}
-              styleId={styleId}
-              canStart={canStart}
-              disabledReason={disabledReason}
-              onQuestions={handleQuestions}
-              onJobStarted={handleJobStarted}
-              onError={handleGenerationError}
-            />
-          ) : (
-            <p className="text-xs text-text-muted">
-              Choisissez un style ci-dessus pour activer la génération.
-            </p>
-          )}
-        </div>
-      </aside>
+      {/* CTA Générer — sticky bottom-like */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-sm pt-sm">
+        {styleId ? (
+          <GenerateButton
+            projectId={projectId}
+            styleId={styleId}
+            canStart={canStart}
+            disabledReason={disabledReason}
+            onQuestions={handleQuestions}
+            onJobStarted={handleJobStarted}
+            onError={handleGenerationError}
+          />
+        ) : (
+          <p className="text-xs text-text-muted text-center sm:text-right">
+            Choisissez un style ci-dessus pour activer la génération.
+          </p>
+        )}
+      </div>
 
-      {/* FAB mobile */}
+      {/* FAB mobile (placement actif) */}
       {showFAB && (
         <button
           type="button"
