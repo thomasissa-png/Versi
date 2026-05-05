@@ -339,8 +339,7 @@ export default function VisualWizardRoomStep({
               const hasPhoto = p.is_placed_on_plan && p.file_path !== "";
               const isBusy = busyPlacementId === p.id;
               const placementError = errorPlacementIds.get(p.id) ?? null;
-              const showDragHint =
-                recentlyCreatedIds.has(p.id) || p.angle_degrees === null;
+              const showDragHint = recentlyCreatedIds.has(p.id);
               const photoUrl = hasPhoto
                 ? `/api/vs/files?path=${encodeURIComponent(p.file_path)}`
                 : null;

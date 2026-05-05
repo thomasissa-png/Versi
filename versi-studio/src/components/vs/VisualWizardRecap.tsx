@@ -117,7 +117,7 @@ export default function VisualWizardRecap({
       }
       onJobStarted(json.data);
     } catch {
-      onError("Lancement de la génération échoué.");
+      onError("La génération n'a pas pu démarrer.");
     } finally {
       setSubmitting(false);
     }
