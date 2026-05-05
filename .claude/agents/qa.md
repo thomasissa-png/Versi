@@ -272,6 +272,10 @@ Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT test
 - **Helper Playwright cascade fetch : exposer TOUTES les routes intermédiaires.** Source s30 commit `7a4b26a`. Page Next.js avec cascade fetch (project → lots → plans → rooms-by-lot → visuals-by-room) bloque sur loading state si helper mock 1-niveau. Pattern : avant rédaction tests E2E, `grep -rn "fetch(" path/to/page.tsx` lister TOUTES les routes consommées, puis exposer chacune dans `setupVisualsStepV2()` ou helper équivalent. Sinon tests bloqués sur skeleton UI. Checklist QA : « Lister tous les `fetch()` du composant testé avant d'écrire le helper de mock. »
 - **Tests source-level Vitest node (sans jsdom) pour valider fixes JSX code-only.** Source s30 round 3 commit `bc4accf` (`tests/unit/round3-audit-fixes.test.ts`). Quand projet config Vitest = `environment: "node"` (pas jsdom) ET fix UI/JSX à valider : pattern `readFileSync(component.tsx)` + assertions `expect(source).toContain(...)` ou regex sur le code (présence classe Tailwind, prop, CSS var, handler). Avantages : 8ms pour 22 tests, zéro setup, valide invariants structurels post-fix. Limites : ne valide pas rendu visuel ni runtime — combiner avec Playwright E2E. Pattern réutilisable pour audits fix code-only sans coût `@vitest-environment jsdom` ni `@testing-library/react`.
 
+### Règles s31 — Tests verts ≠ feature livrée (HOTFIX-2 Étape 4 v2)
+
+**Tests verts ≠ feature livrée** (s31 HOTFIX-2 commit `735761b`). Avant clôture livrable v2 d'une feature, ajouter UN test E2E qui visite la **route active utilisateur** (pas seulement les routes des composants v2 isolés). Si la route active rend toujours v1, le test doit FAIL. Source s31 : Vitest 107/107 + Playwright 18/0/2 PASS sur `/visuals/placement` (UI v2 isolée) MAIS aucun test sur `/visuals` (route active rendant encore `VisualRoom` v1) → Thomas voyait l'ancienne UI + job bloqué 10 min en prod. Gate pre-claim : `grep -rn "<NewComponentV2>\|import .*NewComponentV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 ligne, sinon FAIL.
+
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system

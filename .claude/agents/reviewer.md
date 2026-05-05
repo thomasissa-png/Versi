@@ -54,6 +54,10 @@ Avant tout verdict GO ou claim « PASS / final / 10/10 », faire un compte-rendu
 
 **Anti-pattern à bannir** : « toutes les gates G1-G32 passent → GO » sans regarder le visuel. Source s28 (mémo s28→s29 ligne 19, learning `audit-mauvaises-raisons`).
 
+### Règles s31 — Vérifier le câblage route active (HOTFIX-2 Étape 4 v2)
+
+**Vérifier le câblage route active** (s31 HOTFIX-2 commit `735761b`). Pour toute livraison UI v2 ou refonte d'écran, exiger preuve que la **route active utilisateur** rend bien la nouvelle UI : `grep -rn "<ComposantV2>\|import.*ComposantV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 résultat ET vérifier l'URL effective via Stepper/navigation. Tests verts en isolation (sous-route v2, composants unitaires) **ne suffisent pas** comme preuve de livraison. Source s31 : Vitest 107/107 + Playwright 18/0/2 + persona Thomas 8.5/10 sur composants v2 MAIS route active `/visuals` rendait toujours v1 → 10 min de Thomas bloqué en prod. Anti-pattern à bannir : valider une feature sur la base de la couverture de test sans confronter à la route que l'utilisateur emprunte réellement (chemin Stepper, URL canonique du parcours).
+
 ## Protocole d'entrée obligatoire
 
 Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificités :
