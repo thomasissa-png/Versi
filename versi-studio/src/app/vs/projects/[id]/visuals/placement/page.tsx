@@ -206,15 +206,18 @@ export default function VisualPlacementPage({
     <div className="flex flex-col h-[calc(100vh-120px)] min-h-0">
       {/* En-tête + sélecteur lot */}
       <div className="px-lg pt-lg pb-md border-b border-border-default">
+        {/* HOTFIX-2 s31 : `/visuals` redirige désormais vers `/visuals/placement`,
+            le bouton retour pointe directement vers l'étape précédente (pièces)
+            pour éviter la boucle de redirect. */}
         <button
           type="button"
-          onClick={() => router.push(`/vs/projects/${projectId}/visuals`)}
+          onClick={() => router.push(`/vs/projects/${projectId}/rooms`)}
           className="inline-flex items-center gap-xs text-sm text-text-muted hover:text-text-default transition-colors mb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px]"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Retour aux visuels
+          Pièces
         </button>
         <p className="vs-label mb-xs truncate" title={project.adresse}>
           {project.adresse}
