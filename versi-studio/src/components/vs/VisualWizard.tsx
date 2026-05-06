@@ -917,7 +917,11 @@ export default function VisualWizard({
           receivedCount={(stream.visualsByRoom.get(currentRoom.id) ?? []).length}
           targetCount={roomExpectedCount.get(currentRoom.id) ?? 1}
           onCancel={handleCancelRoomGeneration}
-          errorMessage={stream.status === "error" ? "Connexion interrompue — réessayez." : null}
+          errorMessage={
+            stream.status === "error"
+              ? "Connexion difficile — la génération continue côté serveur, on rattrape l'état."
+              : null
+          }
         />
       )}
 

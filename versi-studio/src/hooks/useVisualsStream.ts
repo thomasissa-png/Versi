@@ -1,31 +1,38 @@
 /**
- * useVisualsStream — SSE consumer Étape 4 v2 / s30 Vague 3b
+ * useVisualsStream — Hook hybride SSE + Polling (s32 P0 fix)
  *
- * Consomme `/api/vs/projects/[id]/visuals-stream` (EventSource) et expose un
- * state local consolidé pour les vues de génération + galerie :
+ * BUG s32 résolu : « Connexion interrompue — réessayez » apparaissait quand
+ * Thomas changeait d'onglet pendant la génération. Cause : EventSource est
+ * agressivement throttlé par Chrome quand la tab perd le focus, et les
+ * proxies (Replit autoscale / Vercel idle) coupent les long-lived connections.
+ * Le hook v1 dépendait UNIQUEMENT du SSE → faux positif d'erreur alors que
+ * le job tournait toujours côté serveur.
  *
- *   {
- *     status: 'idle' | 'connecting' | 'open' | 'closed' | 'error',
- *     job: { id, expected, completed, failed, started_at } | null,
- *     visualsByRoom: Map<roomId, VsVisual[]>,
- *     failures: VisualFailure[],
- *     reconnects: number,
- *   }
+ * Pattern Versimo (validé en prod, robuste tab-switch) :
+ *  - Polling de `/api/vs/projects/[id]/visuals-job` toutes les 4s comme
+ *    SOURCE DE VÉRITÉ (résiste au throttling browser : setInterval continue
+ *    en background, même throttlé à 1Hz minimum).
+ *  - SSE en mode OPTIONNEL pour low-latency (events arrivent en quasi-temps
+ *    réel quand la tab est active). Si SSE drop → on n'affiche AUCUNE erreur,
+ *    le polling prend le relais silencieusement.
+ *  - Page Visibility API : à `visibilitychange → visible`, on déclenche un
+ *    poll immédiat pour rattraper l'état (sinon attendre 4s = UX moche).
+ *  - Reconnect SSE en arrière-plan (3 tentatives backoff 1s/3s/6s) — si
+ *    succès, on retombe en mode low-latency, sinon on reste en polling pur.
+ *  - L'état exposé `status` ne devient JAMAIS "error" tant que le job est
+ *    actif côté serveur. Plus de message « Connexion interrompue ».
  *
- * Patterns critiques :
- *  - Replay initial : événement custom `replay` consommé avant `event` standard.
- *  - Reconnect auto : 3 tentatives (backoff 1s/3s/6s), puis abandon (toast côté UI).
- *  - Heartbeat detect : si aucun message > 60s, on force un reconnect (le serveur
- *    envoie `: ka` toutes les 25s en commentaire SSE — EventSource les ignore mais
- *    `onmessage` ne se déclenche pas). On track la dernière activité réseau via
- *    un timer `readyState` + onerror.
- *  - Cleanup obligatoire au unmount (`close()` + clear timers).
+ * État `status` (sémantique repensée) :
+ *  - 'idle'      : hook désactivé (pas de projectId / enabled=false)
+ *  - 'connecting': premier poll en cours
+ *  - 'open'      : on reçoit des updates (SSE ou polling)
+ *  - 'closed'    : job terminé (completed/failed) ou cleanup
+ *  - 'error'     : SEULEMENT si l'API GET /visuals-job échoue durablement
+ *                  (3 polls consécutifs en erreur réseau) — n'arrive jamais
+ *                  sur un simple tab-switch.
  *
- * Référence : versi-studio/src/lib/vs/visual-job-bus.ts (types VisualJobEvent),
- *             versi-studio/src/app/api/vs/projects/[id]/visuals-stream/route.ts (replay).
- *
- * Hors-scope V2 (mitigation worker multi-instance Replit) : si le serveur perd
- * un event, l'UI a un fallback `refetch()` exposé (TODO V3 polling fallback).
+ * Référence : versi-studio/src/app/api/vs/projects/[id]/visuals-job/route.ts
+ *             versi-studio/src/lib/vs/visual-job-bus.ts (types VisualJobEvent)
  */
 
 "use client";
@@ -67,7 +74,7 @@ export interface VisualGenerated {
 export interface UseVisualsStreamState {
   status: StreamStatus;
   job: JobState | null;
-  /** Visuels reçus via SSE indexés par room_id. Mis à jour en temps réel. */
+  /** Visuels reçus (SSE + polling fusionnés) indexés par room_id. */
   visualsByRoom: Map<string, VisualGenerated[]>;
   failures: VisualFailure[];
   reconnects: number;
@@ -84,9 +91,41 @@ interface UseVisualsStreamOptions {
   onEvent?: (raw: unknown) => void;
 }
 
-const MAX_RECONNECTS = 3;
-const RECONNECT_DELAYS_MS = [1_000, 3_000, 6_000];
-const HEARTBEAT_TIMEOUT_MS = 60_000;
+const POLL_INTERVAL_MS = 4_000;
+const SSE_RECONNECT_DELAYS_MS = [1_000, 3_000, 6_000];
+const MAX_SSE_RECONNECTS = 3;
+const POLL_FAILURE_THRESHOLD = 3; // 3 polls consécutifs en erreur → status='error'
+
+// ─── Helpers fusion polling → state ────────────────────────────────
+
+interface VisualsJobResponse {
+  success: boolean;
+  data?: {
+    job: {
+      id: string;
+      status: "pending" | "running" | "completed" | "failed";
+      expected_count: number;
+      completed_count: number;
+      failed_count: number;
+      estimated_cost_usd: number;
+      started_at: string | null;
+      error: string | null;
+    } | null;
+    visuals_by_room: Record<string, VisualGenerated[]>;
+  };
+  error?: string;
+}
+
+/** Fusionne deux listes de visuels par visual_id (dédoublonnage). */
+function mergeVisualLists(
+  current: VisualGenerated[],
+  incoming: VisualGenerated[]
+): VisualGenerated[] {
+  const byId = new Map<string, VisualGenerated>();
+  for (const v of current) byId.set(v.visual_id, v);
+  for (const v of incoming) byId.set(v.visual_id, v); // incoming écrase (plus récent)
+  return Array.from(byId.values());
+}
 
 // ─── Hook ──────────────────────────────────────────────────────────
 
@@ -104,38 +143,115 @@ export function useVisualsStream({
   const [reconnects, setReconnects] = useState(0);
 
   const esRef = useRef<EventSource | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heartbeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+  const sseReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sseReconnectAttemptsRef = useRef(0);
+  const pollFailuresRef = useRef(0);
   const closedManuallyRef = useRef(false);
+  const inFlightPollRef = useRef(false);
+  const runPollRef = useRef<() => Promise<void>>(async () => {});
 
-  const resetHeartbeat = useCallback(() => {
-    if (heartbeatTimerRef.current) clearTimeout(heartbeatTimerRef.current);
-    heartbeatTimerRef.current = setTimeout(() => {
-      // Aucun message reçu depuis 60s : EventSource peut être "open" mais bloqué
-      // côté proxy → force un reconnect en fermant manuellement (déclenche onerror).
-      esRef.current?.close();
-      setStatus("error");
-    }, HEARTBEAT_TIMEOUT_MS);
+  // ─── Polling : source de vérité ──────────────────────────────────
+
+  const schedulePoll = useCallback((delayMs: number = POLL_INTERVAL_MS) => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    // Lecture via ref pour casser le cycle schedulePoll <-> runPoll sans
+    // laisser ESLint râler sur les deps.
+    pollTimerRef.current = setTimeout(() => void runPollRef.current(), delayMs);
   }, []);
 
-  const close = useCallback(() => {
-    closedManuallyRef.current = true;
-    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-    if (heartbeatTimerRef.current) clearTimeout(heartbeatTimerRef.current);
-    esRef.current?.close();
-    esRef.current = null;
-    setStatus("closed");
-  }, []);
+  const runPoll = useCallback(async () => {
+    if (closedManuallyRef.current) return;
+    if (!projectId) return;
+    if (inFlightPollRef.current) {
+      // Évite les polls qui se chevauchent (réseau lent → on saute)
+      schedulePoll();
+      return;
+    }
+    inFlightPollRef.current = true;
+    try {
+      const res = await fetch(`/api/vs/projects/${projectId}/visuals-job`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as VisualsJobResponse;
+      if (!json.success || !json.data) {
+        throw new Error(json.error || "Réponse invalide");
+      }
+
+      pollFailuresRef.current = 0;
+
+      // Mise à jour job
+      const j = json.data.job;
+      if (j) {
+        setJob({
+          id: j.id,
+          expected_count: j.expected_count,
+          completed_count: j.completed_count,
+          failed_count: j.failed_count,
+          estimated_cost_usd: j.estimated_cost_usd,
+          started_at: j.started_at,
+          status: j.status,
+        });
+      }
+
+      // Mise à jour visuels (fusion avec ce qui est déjà là, dédoublonnage par visual_id)
+      const incoming = json.data.visuals_by_room;
+      if (incoming && Object.keys(incoming).length > 0) {
+        setVisualsByRoom((prev) => {
+          const next = new Map(prev);
+          for (const [roomId, list] of Object.entries(incoming)) {
+            const cur = next.get(roomId) ?? [];
+            const merged = mergeVisualLists(cur, list);
+            // Garde l'ordre stable : items déjà présents en premier, nouveaux à la fin
+            next.set(roomId, merged);
+          }
+          return next;
+        });
+      }
+
+      // Statut UI : 'open' tant que ça avance, 'closed' si terminal
+      if (j && (j.status === "completed" || j.status === "failed")) {
+        setStatus("closed");
+        // On stoppe le polling ; l'UI bascule en preview
+        if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+        return;
+      }
+
+      setStatus((prev) => (prev === "idle" || prev === "connecting" ? "open" : prev));
+      // Si on était en 'error' à cause de polls KO, on rebascule en 'open'
+      setStatus((prev) => (prev === "error" ? "open" : prev));
+
+      schedulePoll();
+    } catch {
+      pollFailuresRef.current += 1;
+      if (pollFailuresRef.current >= POLL_FAILURE_THRESHOLD) {
+        // 3 polls consécutifs KO → vraie erreur réseau (pas un tab-switch)
+        setStatus("error");
+      }
+      // On retente quand même — réseau rétabli un jour
+      schedulePoll();
+    } finally {
+      inFlightPollRef.current = false;
+    }
+  }, [projectId, schedulePoll]);
+
+  // Garde la ref en phase avec la dernière closure (évite les fermetures stale)
+  useEffect(() => {
+    runPollRef.current = runPoll;
+  }, [runPoll]);
+
+  // ─── SSE : low-latency optionnel ─────────────────────────────────
 
   const handleEventPayload = useCallback(
     (raw: string) => {
-      resetHeartbeat();
       let parsed: unknown;
       try {
         parsed = JSON.parse(raw);
       } catch {
-        return; // payload non-JSON ignoré (keep-alives sont des comments, pas des events)
+        return;
       }
       onEvent?.(parsed);
       if (typeof parsed !== "object" || parsed === null) return;
@@ -153,6 +269,8 @@ export function useVisualsStream({
             started_at: new Date().toISOString(),
             status: "running",
           });
+          // Force un poll immédiat pour synchroniser l'état initial
+          void runPoll();
           break;
         }
         case "visual.generated": {
@@ -171,13 +289,14 @@ export function useVisualsStream({
           setVisualsByRoom((prev) => {
             const next = new Map(prev);
             const list = next.get(roomId) ?? [];
-            // dédoublonnage si le serveur retransmet (replay double)
             if (!list.some((v) => v.visual_id === visual.visual_id)) {
               next.set(roomId, [...list, visual]);
             }
             return next;
           });
-          setJob((prev) => (prev ? { ...prev, completed_count: prev.completed_count + 1 } : prev));
+          setJob((prev) =>
+            prev ? { ...prev, completed_count: prev.completed_count + 1 } : prev
+          );
           break;
         }
         case "visual.failed": {
@@ -205,13 +324,12 @@ export function useVisualsStream({
                 }
               : prev
           );
-          // Le serveur ferme la connexion après batch.complete (cf. route SSE).
+          // On laisse le polling final confirmer (et basculer status='closed')
+          void runPoll();
           break;
         }
         case "job.failed": {
-          setJob((prev) =>
-            prev ? { ...prev, status: "failed" } : prev
-          );
+          setJob((prev) => (prev ? { ...prev, status: "failed" } : prev));
           setFailures((prev) => [
             ...prev,
             {
@@ -222,45 +340,111 @@ export function useVisualsStream({
               at: new Date().toISOString(),
             },
           ]);
+          void runPoll();
           break;
         }
         default:
-          // visual.created : on l'ignore pour l'instant (UI affiche directement
-          // les visuels generated)
           break;
       }
     },
-    [onEvent, resetHeartbeat]
+    [onEvent, runPoll]
   );
 
-  const handleReplayPayload = useCallback(
-    (raw: string) => {
-      resetHeartbeat();
-      try {
-        const data = JSON.parse(raw) as {
-          job_id: string;
-          status: string;
-          expected_count: number;
-          completed_count: number;
-          failed_count: number;
-          estimated_cost_usd: number;
-          started_at: string | null;
-        };
-        setJob({
-          id: data.job_id,
-          expected_count: data.expected_count,
-          completed_count: data.completed_count,
-          failed_count: data.failed_count,
-          estimated_cost_usd: data.estimated_cost_usd,
-          started_at: data.started_at,
-          status: data.status,
-        });
-      } catch {
-        // payload replay corrompu — silencieux
+  const handleReplayPayload = useCallback((raw: string) => {
+    try {
+      const data = JSON.parse(raw) as {
+        job_id: string;
+        status: string;
+        expected_count: number;
+        completed_count: number;
+        failed_count: number;
+        estimated_cost_usd: number;
+        started_at: string | null;
+      };
+      setJob({
+        id: data.job_id,
+        expected_count: data.expected_count,
+        completed_count: data.completed_count,
+        failed_count: data.failed_count,
+        estimated_cost_usd: data.estimated_cost_usd,
+        started_at: data.started_at,
+        status: data.status,
+      });
+    } catch {
+      // payload corrompu — silencieux
+    }
+  }, []);
+
+  const connectSse = useCallback(() => {
+    if (!projectId) return;
+    if (closedManuallyRef.current) return;
+    // On ne ferme PAS le polling : SSE = bonus, polling = filet
+    const es = new EventSource(`/api/vs/projects/${projectId}/visuals-stream`);
+    esRef.current = es;
+
+    es.onopen = () => {
+      sseReconnectAttemptsRef.current = 0;
+      // Statut 'open' déjà géré par le polling — on ne touche à rien
+    };
+
+    es.onmessage = (ev) => {
+      if (typeof ev.data === "string") handleEventPayload(ev.data);
+    };
+
+    es.addEventListener("replay", (ev) => {
+      const m = ev as MessageEvent<string>;
+      if (typeof m.data === "string") handleReplayPayload(m.data);
+    });
+
+    const namedEvents = [
+      "job.started",
+      "visual.created",
+      "visual.generated",
+      "visual.failed",
+      "batch.complete",
+      "job.failed",
+    ];
+    for (const name of namedEvents) {
+      es.addEventListener(name, (ev) => {
+        const m = ev as MessageEvent<string>;
+        if (typeof m.data === "string") handleEventPayload(m.data);
+      });
+    }
+
+    es.onerror = () => {
+      if (closedManuallyRef.current) return;
+      es.close();
+      esRef.current = null;
+      // CRITIQUE : on NE bascule PAS status='error'. Le polling continue
+      // de tourner en arrière-plan → l'UI reste fluide. Le SSE est un bonus
+      // de latence, pas une dépendance dure.
+      const attempt = sseReconnectAttemptsRef.current;
+      if (attempt >= MAX_SSE_RECONNECTS) {
+        // On abandonne le SSE pour ce hook lifecycle. Polling pur prend le relais.
+        return;
       }
-    },
-    [resetHeartbeat]
-  );
+      const delay =
+        SSE_RECONNECT_DELAYS_MS[Math.min(attempt, SSE_RECONNECT_DELAYS_MS.length - 1)];
+      sseReconnectAttemptsRef.current = attempt + 1;
+      setReconnects((r) => r + 1);
+      sseReconnectTimerRef.current = setTimeout(connectSse, delay);
+    };
+  }, [projectId, handleEventPayload, handleReplayPayload]);
+
+  // ─── Cleanup ─────────────────────────────────────────────────────
+
+  const close = useCallback(() => {
+    closedManuallyRef.current = true;
+    if (sseReconnectTimerRef.current) clearTimeout(sseReconnectTimerRef.current);
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    sseReconnectTimerRef.current = null;
+    pollTimerRef.current = null;
+    esRef.current?.close();
+    esRef.current = null;
+    setStatus("closed");
+  }, []);
+
+  // ─── Lifecycle principal ─────────────────────────────────────────
 
   useEffect(() => {
     if (!projectId || !enabled) {
@@ -269,71 +453,51 @@ export function useVisualsStream({
     }
 
     closedManuallyRef.current = false;
-    reconnectAttemptsRef.current = 0;
+    sseReconnectAttemptsRef.current = 0;
+    pollFailuresRef.current = 0;
+    setStatus("connecting");
 
-    const connect = () => {
-      setStatus("connecting");
-      const es = new EventSource(`/api/vs/projects/${projectId}/visuals-stream`);
-      esRef.current = es;
-
-      es.onopen = () => {
-        setStatus("open");
-        reconnectAttemptsRef.current = 0;
-        resetHeartbeat();
-      };
-
-      es.onmessage = (ev) => {
-        // events sans `event:` explicit (default = "message") — payload est l'event object
-        if (typeof ev.data === "string") handleEventPayload(ev.data);
-      };
-
-      es.addEventListener("replay", (ev) => {
-        const m = ev as MessageEvent<string>;
-        if (typeof m.data === "string") handleReplayPayload(m.data);
-      });
-
-      // Le serveur émet via formatSseEvent qui produit `event: <type>\ndata: ...`.
-      // EventSource déclenche onmessage UNIQUEMENT pour `event: message`. Pour les
-      // autres types nommés, il faut addEventListener par nom.
-      const namedEvents = [
-        "job.started",
-        "visual.created",
-        "visual.generated",
-        "visual.failed",
-        "batch.complete",
-        "job.failed",
-      ];
-      for (const name of namedEvents) {
-        es.addEventListener(name, (ev) => {
-          const m = ev as MessageEvent<string>;
-          if (typeof m.data === "string") handleEventPayload(m.data);
-        });
-      }
-
-      es.onerror = () => {
-        if (closedManuallyRef.current) return;
-        es.close();
-        esRef.current = null;
-        const attempt = reconnectAttemptsRef.current;
-        if (attempt >= MAX_RECONNECTS) {
-          setStatus("error");
-          return;
-        }
-        const delay = RECONNECT_DELAYS_MS[Math.min(attempt, RECONNECT_DELAYS_MS.length - 1)];
-        reconnectAttemptsRef.current = attempt + 1;
-        setReconnects((r) => r + 1);
-        reconnectTimerRef.current = setTimeout(connect, delay);
-      };
-    };
-
-    connect();
+    // 1. Lance le polling immédiat (source de vérité)
+    void runPoll();
+    // 2. Lance le SSE en bonus (low-latency)
+    connectSse();
 
     return () => {
       closedManuallyRef.current = true;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      if (heartbeatTimerRef.current) clearTimeout(heartbeatTimerRef.current);
+      if (sseReconnectTimerRef.current) clearTimeout(sseReconnectTimerRef.current);
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      sseReconnectTimerRef.current = null;
+      pollTimerRef.current = null;
       esRef.current?.close();
       esRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, enabled]);
+
+  // ─── Page Visibility API : poll immédiat sur retour de tab ──────
+
+  useEffect(() => {
+    if (!projectId || !enabled) return;
+    if (typeof document === "undefined") return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (closedManuallyRef.current) return;
+      // Le browser a probablement throttlé le polling pendant le background.
+      // On force un poll immédiat pour rattraper, et on reset le SSE si mort.
+      void runPoll();
+      if (!esRef.current && sseReconnectAttemptsRef.current < MAX_SSE_RECONNECTS) {
+        // Tente un reconnect SSE silencieux
+        connectSse();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    // Egalement : 'focus' pour les browsers qui ne déclenchent pas visibilitychange
+    window.addEventListener("focus", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, enabled]);
