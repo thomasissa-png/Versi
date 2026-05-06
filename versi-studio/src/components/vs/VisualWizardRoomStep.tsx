@@ -224,7 +224,7 @@ export default function VisualWizardRoomStep({
     void onSkipRoom()
       .then(() => {
         // B9 itér.4 — toast feedback success (auto-clear 3s)
-        setSkipToast("Pièce ignorée — retrouvez-la dans le récap final.");
+        setSkipToast("Pièce ignorée — retrouvez-la dans le récapitulatif.");
       })
       .finally(() => {
         setSkipping(false);
@@ -736,7 +736,7 @@ export default function VisualWizardRoomStep({
                   console.error("[VisualWizardRoomStep] reset offset failed:", err);
                 }
               }}
-              className="ml-xs text-xs text-interactive-primary hover:underline"
+              className="ml-xs min-h-[44px] inline-flex items-center px-sm text-xs text-interactive-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
               data-testid="wizard-reset-contour-offset"
             >
               réinitialiser
@@ -963,7 +963,7 @@ export default function VisualWizardRoomStep({
           <div
             role="radiogroup"
             aria-label="État actuel de la pièce"
-            className="inline-flex rounded-md border border-border-default overflow-hidden self-start"
+            className="inline-flex rounded-md border border-border-default isolate self-start"
           >
             <button
               type="button"
@@ -1019,9 +1019,13 @@ export default function VisualWizardRoomStep({
             rows={3}
             maxLength={500}
             data-testid="wizard-room-comment"
+            aria-describedby={`room-comment-counter-${room.id}`}
             className="w-full px-md py-sm text-sm rounded-md border border-border-default bg-bg-default text-text-default placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary resize-y"
           />
-          <p className="text-xs text-text-muted text-right">
+          <p
+            id={`room-comment-counter-${room.id}`}
+            className="text-xs text-text-muted text-right"
+          >
             {commentDraft.length} / 500
           </p>
         </div>
