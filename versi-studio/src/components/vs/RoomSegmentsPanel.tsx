@@ -1,10 +1,10 @@
 /**
- * RoomSegmentsPanel — Panel latéral V3 pour annotations segments.
+ * RoomSegmentsPanel — Panel latéral V3 pour annotations segments.
  *
  * Pattern V3 (validé @moi 9.5/10 + @persona Thomas 10/10) :
  *  - Sidebar à droite du canvas (compact, scan rapide, anti-clics accidentels)
  *  - 1 ligne par segment : numéro horaire + orientation + dropdown 3 types
- *  - Résumé header dynamique « X segments — Y Mur / Z Baie / W Ouverture »
+ *  - Résumé header dynamique « X segments — Y Mur / Z Baie / W Ouverture »
  *  - Navigation clavier Tab/Shift+Tab native (ordre DOM)
  *  - Optimistic update local + PATCH API (feedback < 100ms)
  *  - Numérotation horaire depuis Nord (cohérence avec canvas)
@@ -132,13 +132,13 @@ export default function RoomSegmentsPanel({
       else if (r.v3Type === "opening") openCount++;
     }
     if (wallCount === rows.length) {
-      return `${rows.length} segments — Tous en mur plein`;
+      return `${rows.length} segments — Tous en mur plein`;
     }
     const parts: string[] = [];
-    if (wallCount > 0) parts.push(`${wallCount} Mur plein`);
-    if (bayCount > 0) parts.push(`${bayCount} Baie`);
-    if (openCount > 0) parts.push(`${openCount} Ouverture`);
-    return `${rows.length} segments — ${parts.join(" · ")}`;
+    if (wallCount > 0) parts.push(`${wallCount} mur${wallCount > 1 ? "s" : ""} plein${wallCount > 1 ? "s" : ""}`);
+    if (bayCount > 0) parts.push(`${bayCount} baie${bayCount > 1 ? "s" : ""} vitrée${bayCount > 1 ? "s" : ""}`);
+    if (openCount > 0) parts.push(`${openCount} ouverture${openCount > 1 ? "s" : ""}`);
+    return `${rows.length} segments — ${parts.join(" · ")}`;
   }, [rows]);
 
   const handleSelectChange = useCallback(
@@ -185,7 +185,7 @@ export default function RoomSegmentsPanel({
       {/* Liste */}
       {rows.length === 0 ? (
         <p className="text-xs text-text-muted italic">
-          Le contour de cette pièce ne définit aucun segment.
+          Aucun segment détecté pour cette pièce.
         </p>
       ) : (
         <ul className="flex flex-col gap-xs" role="list">
@@ -195,10 +195,10 @@ export default function RoomSegmentsPanel({
               <li
                 key={row.dbIndex}
                 className={[
-                  "flex items-center gap-sm px-sm py-xs rounded-md border transition-colors",
+                  "flex items-center gap-sm px-sm py-sm min-h-[44px] rounded-md border transition-colors",
                   highlighted
                     ? "border-interactive-primary bg-interactive-primary/10"
-                    : "border-border-default bg-bg-default",
+                    : "border-border-default bg-bg-default hover:bg-bg-subtle",
                 ].join(" ")}
                 onMouseEnter={() => handleMouseEnter(row.dbIndex)}
                 onMouseLeave={handleMouseLeave}
@@ -212,8 +212,8 @@ export default function RoomSegmentsPanel({
                 />
                 {/* Numéro */}
                 <span
+                  aria-hidden="true"
                   className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-bg-card border border-border-default text-xs font-semibold text-text-default flex-shrink-0"
-                  aria-label={`Segment ${row.displayIndex}`}
                 >
                   {row.displayIndex}
                 </span>
@@ -252,7 +252,7 @@ export default function RoomSegmentsPanel({
         className="flex flex-wrap items-center gap-sm pt-sm border-t border-border-default"
         aria-label="Légende des couleurs"
       >
-        <span className="flex items-center gap-xs text-[11px] text-text-muted">
+        <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
             className="inline-block w-2.5 h-2.5 rounded-full"
             style={{ backgroundColor: PASTILLE_COLORS.wall }}
@@ -260,7 +260,7 @@ export default function RoomSegmentsPanel({
           />
           Mur
         </span>
-        <span className="flex items-center gap-xs text-[11px] text-text-muted">
+        <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
             className="inline-block w-2.5 h-2.5 rounded-full"
             style={{ backgroundColor: PASTILLE_COLORS.bay_window }}
@@ -268,7 +268,7 @@ export default function RoomSegmentsPanel({
           />
           Baie
         </span>
-        <span className="flex items-center gap-xs text-[11px] text-text-muted">
+        <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
             className="inline-block w-2.5 h-2.5 rounded-full"
             style={{ backgroundColor: PASTILLE_COLORS.opening }}

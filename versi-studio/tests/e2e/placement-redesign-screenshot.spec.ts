@@ -179,6 +179,161 @@ test.describe("s32 — Screenshots wizard refonte Étape 4", () => {
   });
 });
 
+// ─── Suite V3 : pattern segments — 4 segments, 3 types différents ──
+test.describe("s32 V3 — Pattern segments (panel latéral droit + 3 types)", () => {
+  /**
+   * Mocks 4 segments pour ROOM_ID_1 (polygone rectangulaire 4 points) :
+   *  - segment_index 0 (haut, Nord)   → wall      (noir)
+   *  - segment_index 1 (droite, Est)  → bay_window (orange)
+   *  - segment_index 2 (bas, Sud)     → opening   (vert)
+   *  - segment_index 3 (gauche, Ouest)→ wall      (noir)
+   *
+   * Note : la numérotation horaire depuis Nord est calculée côté UI
+   * (segment-render.ts). Le label « 1, 2, 3, 4 » affiché dans le panel
+   * peut différer du segment_index DB selon l'orientation du polygone.
+   */
+  async function mockSegmentsV3(page: Page): Promise<void> {
+    const segments = [
+      {
+        id: "seg-0001",
+        room_id: ROOM_ID_1,
+        segment_index: 0,
+        type: "wall",
+        notes: null,
+        updated_at: "2026-05-06T10:00:00.000Z",
+      },
+      {
+        id: "seg-0002",
+        room_id: ROOM_ID_1,
+        segment_index: 1,
+        type: "bay_window",
+        notes: null,
+        updated_at: "2026-05-06T10:00:00.000Z",
+      },
+      {
+        id: "seg-0003",
+        room_id: ROOM_ID_1,
+        segment_index: 2,
+        type: "opening",
+        notes: null,
+        updated_at: "2026-05-06T10:00:00.000Z",
+      },
+      {
+        id: "seg-0004",
+        room_id: ROOM_ID_1,
+        segment_index: 3,
+        type: "wall",
+        notes: null,
+        updated_at: "2026-05-06T10:00:00.000Z",
+      },
+    ];
+    await page.route(`**/api/vs/rooms/*/segments`, async (route) => {
+      const url = route.request().url();
+      if (url.includes(ROOM_ID_1) && route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: segments }),
+        });
+        return;
+      }
+      // Autres rooms ou méthodes non-GET → liste vide / fallback PATCH success.
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: [] }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: { ok: true } }),
+        });
+      }
+    });
+  }
+
+  test("desktop 1280x800 — V3 segments panel latéral droit", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await blockExternalOpenAI(page);
+    await mockSegmentsV3(page);
+    await setupVisualsStepV2(page, {
+      rooms: ROOMS_WIZARD_FIXTURE,
+      photos: REALISTIC_PHOTOS,
+    });
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-segments-panel")).toBeVisible({ timeout: 10_000 });
+
+    // Attendre le chargement des 4 segments (résumé non-loading).
+    await expect(page.getByTestId("segments-panel-summary")).not.toContainText(
+      "Chargement",
+      { timeout: 5_000 }
+    );
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-segments-v3-desktop.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+
+  test("mobile iPhone 14 (390x844) — V3 segments panel sous canvas", async ({
+    browser,
+  }) => {
+    const iphone = devices["iPhone 14"] ?? devices["iPhone 13"];
+    const context = await browser.newContext({
+      ...iphone,
+      viewport: { width: 390, height: 844 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await blockExternalOpenAI(page);
+    await mockSegmentsV3(page);
+    await setupVisualsStepV2(page, {
+      rooms: ROOMS_WIZARD_FIXTURE,
+      photos: REALISTIC_PHOTOS,
+    });
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("room-segments-panel")).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.getByTestId("segments-panel-summary")).not.toContainText(
+      "Chargement",
+      { timeout: 5_000 }
+    );
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-segments-v3-mobile.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+});
+
 // ─── Suite 2 : itération 3 — configuring enrichi + preview ─────────
 test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
   // Fixture commune : Salon avec photos placées + style + meublé=false + commentaire
