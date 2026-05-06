@@ -123,6 +123,7 @@ export default function VisualWizardRoomStep({
   const [skipToast, setSkipToast] = useState<string | null>(null); // B9 itér.4 — toast info post-skip
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
+  const [showMobileDragHint, setShowMobileDragHint] = useState<boolean>(false); // V3.1 D2 — hint drag mobile (1ère apparition)
   // ─── s32 V3 — Drag direct contour (preview live, commit immédiat) ──
   /**
    * Offset visuel pendant le drag du contour (preview). Au pointer up, le
@@ -274,6 +275,39 @@ export default function VisualWizardRoomStep({
     setHighlightedSegmentIndex(null);
   }, [room.id]);
 
+  // ─── V3.1 D2 — hint drag mobile (1ère apparition uniquement) ──────
+  // Affiche un overlay informatif sur le canvas si l'utilisateur est sur
+  // pointeur tactile ET n'a jamais vu le hint. Disparaît au 1er drag commit
+  // ou au bout de 5s. Persistance via localStorage (clé `versi.wizardDragHintShown`).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const isCoarse =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches;
+      if (!isCoarse) return;
+      const seen = window.localStorage.getItem("versi.wizardDragHintShown");
+      if (seen) return;
+      setShowMobileDragHint(true);
+      const timer = setTimeout(() => setShowMobileDragHint(false), 5000);
+      return () => clearTimeout(timer);
+    } catch {
+      // localStorage indisponible (mode privé Safari, etc.) → pas de hint.
+      return;
+    }
+  }, [room.id]);
+
+  // V3.1 D2 — au 1er drag commit du contour, on consomme le hint définitivement.
+  const dismissMobileDragHint = useCallback(() => {
+    if (!showMobileDragHint) return;
+    setShowMobileDragHint(false);
+    try {
+      window.localStorage.setItem("versi.wizardDragHintShown", "1");
+    } catch {
+      /* localStorage indisponible — best-effort */
+    }
+  }, [showMobileDragHint]);
+
   // ─── s32 V3 — load segments à l'ouverture pièce ──────────────────
   useEffect(() => {
     let cancelled = false;
@@ -298,9 +332,14 @@ export default function VisualWizardRoomStep({
   }, [room.id]);
 
   // ─── s32 V3 — drag direct contour (preview + commit immédiat) ─────
-  const handleContourDrag = useCallback((offset: { x: number; y: number }) => {
-    setContourPreview(offset);
-  }, []);
+  const handleContourDrag = useCallback(
+    (offset: { x: number; y: number }) => {
+      setContourPreview(offset);
+      // V3.1 D2 — au 1er drag, on masque le hint mobile et on persiste la flag.
+      dismissMobileDragHint();
+    },
+    [dismissMobileDragHint]
+  );
 
   const handleContourCommit = useCallback(
     async (offset: { x: number; y: number }) => {
@@ -509,6 +548,7 @@ export default function VisualWizardRoomStep({
             onContourCommit={handleContourCommit}
             segments={segments}
             highlightedSegmentIndex={highlightedSegmentIndex}
+            onSegmentHover={setHighlightedSegmentIndex}
           />
           {/* A7 — toast clic hors polygone (auto-clear 2s) */}
           {outsideHint && (
@@ -519,6 +559,19 @@ export default function VisualWizardRoomStep({
             >
               <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-warning/40 shadow-md">
                 {outsideHint}
+              </p>
+            </div>
+          )}
+          {/* V3.1 D2 — hint drag mobile (1ère apparition, auto-clear 5s) */}
+          {showMobileDragHint && (
+            <div
+              className="absolute top-md left-1/2 -translate-x-1/2 pointer-events-none animate-in fade-in duration-200"
+              role="status"
+              aria-live="polite"
+              data-testid="wizard-mobile-drag-hint"
+            >
+              <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-interactive-primary/40 shadow-md">
+                Glissez le contour pour le recaler.
               </p>
             </div>
           )}

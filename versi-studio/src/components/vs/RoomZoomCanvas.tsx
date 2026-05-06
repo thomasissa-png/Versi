@@ -95,6 +95,12 @@ export interface RoomZoomCanvasProps {
   segments?: VsRoomSegment[];
   /** Index du segment hover/focus dans le panel latéral (highlight visuel). */
   highlightedSegmentIndex?: number | null;
+  /**
+   * V3.1 — sync canvas → panel : appelé lorsque le curseur survole une arête
+   * du polygone (< 14 px). Permet au panel d'auto-scroller / highlight la row
+   * correspondante. Reçoit `null` quand le curseur quitte la zone d'arête.
+   */
+  onSegmentHover?: (segmentIndex: number | null) => void;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -156,6 +162,7 @@ export default function RoomZoomCanvas({
   onContourCommit,
   segments = [],
   highlightedSegmentIndex = null,
+  onSegmentHover,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -843,6 +850,21 @@ export default function RoomZoomCanvas({
       } else {
         setHover(null);
       }
+
+      // V3.1 — sync canvas → panel : si le curseur est proche d'une arête du
+      // polygone effectif (< 14 px) ET pas sur une poignée pastille, on notifie
+      // le parent pour highlight la row correspondante. Sinon → null.
+      if (onSegmentHover) {
+        if (!handleHit && effectivePolygon && effectivePolygon.length >= 3) {
+          const verticesScreen: ScreenPoint[] = effectivePolygon.map((pt) =>
+            projectLotPct(pt.x_percent, pt.y_percent)
+          );
+          const nearEdge = findNearestSegment(x, y, verticesScreen, 14);
+          onSegmentHover(nearEdge ? nearEdge.segmentIndex : null);
+        } else {
+          onSegmentHover(null);
+        }
+      }
     },
     [
       getCanvasCoords,
@@ -859,6 +881,9 @@ export default function RoomZoomCanvas({
       onContourDrag,
       onPlacementMoving,
       contourDragActive,
+      effectivePolygon,
+      projectLotPct,
+      onSegmentHover,
     ]
   );
 

@@ -398,7 +398,7 @@ export const SEGMENT_TYPE_LABELS_V3: Record<
   string
 > = {
   wall: "Mur plein",
-  bay_window: "Baie vitrée à créer",
+  bay_window: "Baie vitrée",
   opening: "Ouverture à créer",
 };
 
