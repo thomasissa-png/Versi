@@ -713,6 +713,21 @@ export async function processChatMessage(
               result = "update_field invalide.";
               break;
             }
+            // s32 P1-1 — validation enum stricte vs ARCHITECTURAL_*_OPTIONS.
+            // Le LLM peut halluciner une valeur hors enum (ex « Parquet ancien »
+            // au lieu de « Parquet »). On refuse pour éviter de polluer la DB.
+            const enumOptions =
+              scope === "lot"
+                ? (ARCHITECTURAL_PROFILE_OPTIONS as Record<string, readonly string[]>)
+                : (ARCHITECTURAL_DETAILS_OPTIONS as Record<string, readonly string[]>);
+            // Exception : `style` n'est pas dans les enums (texte libre côté UI).
+            if (field !== "style" && enumOptions[field]) {
+              const allowed = enumOptions[field];
+              if (!allowed.includes(value)) {
+                result = `Invalid value '${value}' for field ${field} (scope=${scope}). Allowed: ${JSON.stringify(allowed)}. Re-call update_field with an exact allowed value.`;
+                break;
+              }
+            }
             // s32 Phase 4 — guardrail user-confirmed.
             // Si le champ a été saisi/confirmé par le marchand (pill bleu),
             // on REFUSE l'écrasement. L'IA voit l'erreur tool et doit

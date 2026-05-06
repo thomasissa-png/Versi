@@ -1125,7 +1125,7 @@ export default function VisualWizardRoomStep({
                 type="button"
                 onClick={() => void handleChatToastUndo()}
                 data-testid="wizard-chat-toast-undo"
-                className="text-xs font-semibold text-interactive-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary px-xs py-2xs rounded"
+                className="text-xs font-semibold text-success hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-success px-xs py-2xs rounded"
               >
                 Annuler
               </button>

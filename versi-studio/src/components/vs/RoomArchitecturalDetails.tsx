@@ -70,7 +70,7 @@ function isUnconfirmedVision(field: ArchitecturalFieldValue): boolean {
 function VisionBadge({ confidence }: { confidence?: number }) {
   return (
     <span
-      className="inline-flex items-center gap-2xs px-xs py-2xs rounded text-[10px] font-medium bg-[var(--color-interactive-primary)]/10 text-[var(--color-interactive-primary)]"
+      className="inline-flex items-center gap-2xs px-xs py-2xs rounded text-xs font-medium bg-interactive-primary/10 text-interactive-primary"
       title={
         confidence != null
           ? `Détecté automatiquement par l'IA (${Math.round(confidence * 100)} % de confiance). Cliquez pour modifier.`
@@ -100,7 +100,7 @@ function VisionBadge({ confidence }: { confidence?: number }) {
 function ToConfirmBadge({ confidence }: { confidence?: number }) {
   return (
     <span
-      className="inline-flex items-center gap-2xs px-xs py-2xs rounded text-[10px] font-medium bg-warning/15 text-warning border border-warning/40"
+      className="inline-flex items-center gap-2xs px-xs py-2xs rounded text-xs font-medium bg-warning/15 text-warning border border-warning/40"
       title={
         confidence != null
           ? `Détecté par l'IA (${Math.round(confidence * 100)} %). Cliquez le pill actif pour confirmer ou choisissez une autre option.`
@@ -244,11 +244,11 @@ export default function RoomArchitecturalDetails({
         </h3>
         {visionAnalyzing && (
           <span
-            className="inline-flex items-center gap-xs text-xs text-[var(--color-text-muted)]"
+            className="inline-flex items-center gap-xs text-xs text-text-muted"
             role="status"
             aria-live="polite"
           >
-            <span className="inline-block w-3 h-3 border-2 border-[var(--color-text-muted)]/30 border-t-[var(--color-text-muted)] rounded-full animate-spin" />
+            <span className="inline-block w-3 h-3 border-2 border-text-muted/30 border-t-text-muted rounded-full animate-spin" />
             Analyse photo…
           </span>
         )}
@@ -271,7 +271,7 @@ export default function RoomArchitecturalDetails({
       {!hasPhotoSource && !visionAnalyzing && (
         <p
           role="note"
-          className="text-xs px-sm py-xs rounded-md bg-[var(--color-interactive-primary)]/10 text-[var(--color-interactive-primary)] border border-[var(--color-interactive-primary)]/20"
+          className="text-xs px-sm py-xs rounded-md bg-interactive-primary/10 text-interactive-primary border border-interactive-primary/20"
         >
           Ajoutez une photo source pour activer l&apos;analyse automatique
           (sol, murs, luminosité). Vous pouvez aussi remplir manuellement
@@ -379,13 +379,27 @@ export default function RoomArchitecturalDetails({
       </div>
 
       {/* s32 migration 014 — Niveau de prestation par pièce */}
+      {(() => {
+        const levelField: ArchitecturalFieldValue =
+          details.level ?? { value: null, source: null };
+        const levelIsVision = levelField.source === "vision";
+        const levelUnconfirmed = isUnconfirmedVision(levelField);
+        return (
       <div>
         <div className="flex items-center gap-xs mb-xs">
           <p className="text-xs font-medium text-text-default">
             Niveau de prestation
           </p>
+          {/* s32 P1-8 — cohérence avec floor/walls/lighting :
+              affiche badge "À confirmer" / "Détecté" sur le header. */}
+          {levelIsVision && levelField.value != null && levelUnconfirmed && (
+            <ToConfirmBadge confidence={levelField.confidence} />
+          )}
+          {levelIsVision && levelField.value != null && !levelUnconfirmed && (
+            <VisionBadge confidence={levelField.confidence} />
+          )}
         </div>
-        <p className="text-[11px] text-text-muted mb-xs">
+        <p className="text-xs text-text-muted mb-xs">
           Indépendant du niveau global du lot — utile si une pièce vise une
           gamme différente (ex : salon premium, chambres standard).
         </p>
@@ -426,6 +440,8 @@ export default function RoomArchitecturalDetails({
           })}
         </div>
       </div>
+        );
+      })()}
 
       {/* s32 migration 014 — Contraintes techniques (multi-select) */}
       <div>
@@ -433,8 +449,12 @@ export default function RoomArchitecturalDetails({
           <p className="text-xs font-medium text-text-default">
             Contraintes techniques
           </p>
+          {/* s32 P1-8 — cohérence : badge "À confirmer" si une contrainte vision non confirmée. */}
+          {(details.technical_constraints ?? []).some((c) => isUnconfirmedVision(c)) && (
+            <ToConfirmBadge />
+          )}
         </div>
-        <p className="text-[11px] text-text-muted mb-xs">
+        <p className="text-xs text-text-muted mb-xs">
           Éléments immuables que l&apos;IA doit respecter dans la génération
           (ne pas les déplacer, ne pas les supprimer).
         </p>

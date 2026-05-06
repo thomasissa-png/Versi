@@ -18,6 +18,7 @@ import type {
   ArchitecturalDetails,
   ArchitecturalProfile,
 } from "@/lib/vs/types";
+import { VISION_HIGH_CONFIDENCE_THRESHOLD } from "@/lib/vs/architectural-vision";
 
 // ─── Singleton OpenAI ──────────────────────────────────────────────
 let _openaiClient: OpenAI | null = null;
@@ -472,7 +473,8 @@ export function buildArchitecturalBrief(
     }
 
     // Specifics : ignorer "Aucune"
-    // s32 P1-4 — tag "(low confidence)" sur source='vision' && confidence < 0.7
+    // s32 P1-4 — tag "(low confidence)" sur source='vision' &&
+    // confidence < VISION_HIGH_CONFIDENCE_THRESHOLD (centralisé P1-3).
     const specifics = (details.specifics ?? [])
       .filter((s) => s.value && s.value !== "Aucune")
       .map((s) => {
@@ -486,7 +488,7 @@ export function buildArchitecturalBrief(
         const lowConf =
           s.source === "vision" &&
           typeof s.confidence === "number" &&
-          s.confidence < 0.7;
+          s.confidence < VISION_HIGH_CONFIDENCE_THRESHOLD;
         return lowConf ? `${v} (visually identified, low confidence)` : v;
       });
     if (specifics.length > 0) {
@@ -592,11 +594,22 @@ export function buildChatInsightsBrief(
   }
 
   // Extra context pièce-spécifique
+  // s32 P1-2 — cap à 8 entrées max OU 800 chars cumulés (anti-pollution
+  // prompt — un chat verbeux peut générer 50+ entries de notes longues).
   if (chatExtraContext && typeof chatExtraContext === "object") {
+    const MAX_ENTRIES = 8;
+    const MAX_TOTAL_CHARS = 800;
+    let count = 0;
+    let totalChars = 0;
     for (const [key, value] of Object.entries(chatExtraContext)) {
       if (typeof value !== "string" || !value.trim()) continue;
+      if (count >= MAX_ENTRIES) break;
       const niceKey = key.replace(/_/g, " ");
-      lines.push(`- Specific intent (${niceKey}): ${value.trim()}`);
+      const entry = `- Specific intent (${niceKey}): ${value.trim()}`;
+      if (totalChars + entry.length > MAX_TOTAL_CHARS) break;
+      lines.push(entry);
+      totalChars += entry.length;
+      count += 1;
     }
   }
 

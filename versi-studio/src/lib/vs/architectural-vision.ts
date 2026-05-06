@@ -39,6 +39,31 @@ const MODEL = "gpt-4o-mini";
 const TIMEOUT_MS = 30_000;
 const MIN_CONFIDENCE_TO_KEEP = 0; // on retourne TOUS les champs avec leur confidence ; le client décide du seuil pré-remplissage UI
 
+/**
+ * s32 P1-3 — seuil unique « confiance vision élevée ».
+ *  - Côté UI : pills avec confidence ≥ ce seuil = badge orange « À confirmer »
+ *    sans warning supplémentaire ; en dessous = pill grisée.
+ *  - Côté prompt image (visual-generator) : confidence < seuil = ajout du tag
+ *    `(visually identified, low confidence)` pour que gpt-image-2 sache que
+ *    cette particularité est incertaine.
+ *  Centralisé ici pour éviter la dérive (modifier ici = propagation auto). */
+export const VISION_HIGH_CONFIDENCE_THRESHOLD = 0.7;
+
+/**
+ * s32 P1-3 — helper pur : true si un champ vision a une confiance suffisante
+ * pour être considéré « haute confiance ».
+ */
+export function shouldKeepVisionField(field: {
+  source?: "user" | "vision" | null;
+  confidence?: number;
+}): boolean {
+  if (field.source !== "vision") return true; // user-confirmed = always kept
+  return (
+    typeof field.confidence === "number" &&
+    field.confidence >= VISION_HIGH_CONFIDENCE_THRESHOLD
+  );
+}
+
 /** Mappe les niveaux qualitatifs renvoyés par le modèle à des numérals. */
 const CONFIDENCE_MAP: Record<string, number> = {
   clearly: 0.95,
