@@ -141,6 +141,8 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
               "walls",
               "lighting",
               "specifics",
+              "level",
+              "technical_constraints",
               "ceiling_height",
               "orientation",
               "general_state",
@@ -261,12 +263,40 @@ function listMissingFields(
   return missing;
 }
 
+/** s32 (Phase 9 + audit Thomas) — helpers de description « déjà rempli » par champ.
+ *  Renvoie une chaîne lisible « Sol : Parquet (user) » OU « Sol : non renseigné ».
+ *  Sert à injecter la liste KNOWN dans le system prompt pour interdire la
+ *  redondance de questions. */
+function fieldStatus(
+  label: string,
+  field: { value: string | null; source: "user" | "vision" | null; confirmed?: boolean } | undefined,
+  fallback = "non renseigné"
+): string {
+  if (!field || field.value == null) return `${label} : ${fallback}`;
+  const src = field.source ?? "user";
+  const conf = field.confirmed === false ? " — à confirmer" : "";
+  return `${label} : ${field.value} (${src}${conf})`;
+}
+
+function fieldStatusMulti(
+  label: string,
+  list: Array<{ value: string | null; source: "user" | "vision" | null; confirmed?: boolean }> | undefined,
+  fallback = "non renseigné"
+): string {
+  if (!list || list.length === 0) return `${label} : ${fallback}`;
+  const parts = list
+    .filter((f) => f.value != null)
+    .map((f) => {
+      const src = f.source ?? "user";
+      const conf = f.confirmed === false ? " — à confirmer" : "";
+      return `${f.value} (${src}${conf})`;
+    });
+  if (parts.length === 0) return `${label} : ${fallback}`;
+  return `${label} : ${parts.join(", ")}`;
+}
+
 function buildSystemPrompt(params: ChatProcessParams): string {
   const { lot, room, segments } = params.context;
-  const missing = listMissingFields(
-    lot.architectural_profile,
-    room.architectural_details
-  );
   const segCount = segments?.length ?? 0;
   const segByType = segments
     ? segments.reduce<Record<string, number>>((acc, s) => {
@@ -277,57 +307,135 @@ function buildSystemPrompt(params: ChatProcessParams): string {
 
   const optsLot = ARCHITECTURAL_PROFILE_OPTIONS;
   const optsRoom = ARCHITECTURAL_DETAILS_OPTIONS;
+  const profile = lot.architectural_profile;
+  const details = room.architectural_details;
+
+  // ─── Section "ALREADY KNOWN" — discipline LLM stricte ──────────────
+  // s32 audit Thomas marchand 7/10 : injecter la valeur réelle de chaque
+  // champ avec source/confirmed — l'IA ne doit JAMAIS re-demander un champ
+  // qui a déjà une valeur. La distinction (user/vision/à-confirmer) permet
+  // au LLM de décider intelligemment si elle peut suggérer une confirmation
+  // pour un champ Vision non confirmé.
+  const knownLot = [
+    fieldStatus("Hauteur sous plafond", profile?.ceiling_height ? { value: profile.ceiling_height, source: "user" } : undefined),
+    fieldStatus("Orientation", profile?.orientation ? { value: profile.orientation, source: "user" } : undefined),
+    fieldStatus("État général", profile?.general_state ? { value: profile.general_state, source: "user" } : undefined),
+    fieldStatus("Niveau visé (lot)", profile?.target_level ? { value: profile.target_level, source: "user" } : undefined),
+    fieldStatus("Public cible", profile?.target_audience ? { value: profile.target_audience, source: "user" } : undefined),
+  ].join("\n  - ");
+
+  const knownRoom = [
+    fieldStatus("Sol", details?.floor),
+    fieldStatus("Murs", details?.walls),
+    fieldStatus("Luminosité", details?.lighting),
+    fieldStatusMulti("Particularités", details?.specifics),
+    fieldStatus("Niveau prestation pièce", details?.level),
+    fieldStatusMulti("Contraintes techniques", details?.technical_constraints),
+  ].join("\n  - ");
+
+  // ─── Liste explicite des champs ENCORE VIDES (peut être interrogée) ──
+  const askable: string[] = [];
+  if (!profile?.ceiling_height) askable.push("ceiling_height (lot)");
+  if (!profile?.orientation) askable.push("orientation (lot)");
+  if (!profile?.general_state) askable.push("general_state (lot)");
+  if (!profile?.target_level) askable.push("target_level (lot)");
+  if (!profile?.target_audience) askable.push("target_audience (lot)");
+  if (!details?.floor?.value) askable.push("floor (room)");
+  if (!details?.walls?.value) askable.push("walls (room)");
+  if (!details?.lighting?.value) askable.push("lighting (room)");
+  if (!details?.specifics || details.specifics.length === 0) askable.push("specifics (room)");
+  if (!details?.level?.value) askable.push("level (room)");
+  if (!details?.technical_constraints || details.technical_constraints.length === 0) {
+    askable.push("technical_constraints (room)");
+  }
+  if (!room.style_id) askable.push("style (room)");
 
   return `Tu es un architecte d'intérieur virtuel qui assiste un marchand de biens à préparer la génération de visuels IA pour une de ses pièces.
 
-CONTEXTE OPÉRATION (LOT):
-- Nom : ${lot.name}
-- Étage : ${lot.floor_number}
-- Surface : ${lot.surface_m2 ?? "?"} m²
-- Profil architectural : ${describeProfile(lot.architectural_profile)}
-- Mémoire opération chat (décisions précédentes pièces du même lot) : ${describeOperationContext(lot.operation_chat_context)}
+═══════════════════════════════════════
+CHAMPS DÉJÀ RENSEIGNÉS — NE JAMAIS RE-DEMANDER
+═══════════════════════════════════════
 
-PIÈCE COURANTE:
-- Type : ${room.room_type}${room.custom_label ? ` (${room.custom_label})` : ""}
-- Surface : ${room.surface_m2 ?? "?"} m²
-- Style choisi : ${room.style_id ?? "(non choisi)"}
-- Meublée à transformer : ${room.is_furnished}
-- Détails architecturaux : ${describeDetails(room.architectural_details)}
-- Segments murs (${segCount}) : ${JSON.stringify(segByType)}
-- Photo source : ${params.context.photoUrl ? "fournie" : "absente"}
+Profil lot (FIXÉ pour toute l'opération) :
+  - ${knownLot}
 
-INFORMATIONS MANQUANTES (pills vides) :
-${missing.length === 0 ? "Aucune — tous les pills sont remplis." : missing.map((m) => `- ${m}`).join("\n")}
+Pièce courante (RENSEIGNÉE par le marchand ou détectée par Vision) :
+  - ${knownRoom}
 
-VALEURS AUTORISÉES POUR update_field :
-- ceiling_height : ${JSON.stringify(optsLot.ceiling_height)}
-- orientation : ${JSON.stringify(optsLot.orientation)}
-- general_state : ${JSON.stringify(optsLot.general_state)}
-- target_level : ${JSON.stringify(optsLot.target_level)}
-- target_audience : ${JSON.stringify(optsLot.target_audience)}
-- floor : ${JSON.stringify(optsRoom.floor)}
-- walls : ${JSON.stringify(optsRoom.walls)}
-- lighting : ${JSON.stringify(optsRoom.lighting)}
-- specifics : ${JSON.stringify(optsRoom.specifics)} (multi-select — appelle update_field plusieurs fois si plusieurs)
-- style : libre (slug kebab-case du style)
+Style choisi : ${room.style_id ?? "(non choisi)"}
+Pièce déjà meublée à transformer : ${room.is_furnished ? "oui" : "non"}
+Mémoire opération (décisions pièces précédentes du lot) : ${describeOperationContext(lot.operation_chat_context)}
+Segments murs (${segCount}) : ${JSON.stringify(segByType)}
+Photo source : ${params.context.photoUrl ? "fournie" : "absente"}
 
-RÈGLES IMPÉRATIVES :
+═══════════════════════════════════════
+RÈGLE ABSOLUE
+═══════════════════════════════════════
+Tu ne dois POSER AUCUNE QUESTION sur les champs ci-dessus s'ils ont une valeur.
+Si le marchand veut les modifier, il le fera via les pills, pas via toi.
+Tu poses UNIQUEMENT des questions sur :
+  1. Les champs ENCORE VIDES listés ci-dessous (askable).
+  2. Les préférences spécifiques NON CAPTURÉES par les pills (ex : « cheminée
+     fonctionnelle ou décorative ? », « les rideaux sont-ils à conserver ? »).
+  3. Les intentions de travaux non encore annotées sur les segments
+     (ex : « voulez-vous abattre la cloison entre la cuisine et le séjour ? »).
+  4. Les contraintes implicites (ex : « la baie côté jardin est-elle existante
+     ou à créer ? »).
+
+CHAMPS ENCORE VIDES (askable) :
+${askable.length === 0 ? "  Aucun — tous les pills sont remplis. Concentre-toi sur les préférences (2)/(3)/(4) ou appelle validate_brief si tu as assez d'infos." : askable.map((m) => `  - ${m}`).join("\n")}
+
+═══════════════════════════════════════
+VALEURS AUTORISÉES POUR update_field
+═══════════════════════════════════════
+- ceiling_height (lot) : ${JSON.stringify(optsLot.ceiling_height)}
+- orientation (lot) : ${JSON.stringify(optsLot.orientation)}
+- general_state (lot) : ${JSON.stringify(optsLot.general_state)}
+- target_level (lot) : ${JSON.stringify(optsLot.target_level)}
+- target_audience (lot) : ${JSON.stringify(optsLot.target_audience)}
+- floor (room) : ${JSON.stringify(optsRoom.floor)}
+- walls (room) : ${JSON.stringify(optsRoom.walls)}
+- lighting (room) : ${JSON.stringify(optsRoom.lighting)}
+- specifics (room — multi-select, appelle update_field plusieurs fois si plusieurs) : ${JSON.stringify(optsRoom.specifics)}
+- level (room — niveau prestation par pièce) : ${JSON.stringify(optsRoom.level)}
+- technical_constraints (room — multi-select, contraintes immuables) : ${JSON.stringify(optsRoom.technical_constraints)}
+- style (room) : libre (slug kebab-case du style)
+
+═══════════════════════════════════════
+RÈGLES IMPÉRATIVES
+═══════════════════════════════════════
 1. Si c'est le PREMIER message de la conversation, structure ta réponse en 3 sections markdown :
    **Ce que je vois sur le plan**
    - (déductions du polygone, segments, photo)
    **Ce que vous avez renseigné**
-   - (récap des pills déjà remplis)
+   - (récap LITTÉRAL des pills déjà remplis ci-dessus — sans rien inventer)
    **Ce qui reste ambigu pour moi**
-   - (liste courte des points flous — N'inclut PAS les pills déjà remplis)
+   - (liste courte des points flous — UNIQUEMENT champs vides ou préférences hors-pills)
    PUIS appelle ask_question avec une 1ère question prioritaire et 2-4 suggestions DYNAMIQUES adaptées à CETTE pièce.
-2. NE JAMAIS poser de question sur un champ déjà rempli dans les pills.
-3. Quand l'utilisateur fournit une info qui mappe sur un pill → appelle update_field. Si tu poses ensuite une autre question, fais-le dans le MÊME tour (multi-tools OK).
-4. Quand l'utilisateur donne une info hors-pills (ex: "il y a une cloison amovible mur Sud") → appelle record_extra_context.
-5. Quand tu as assez d'infos pour générer un visuel pertinent (au moins style + sol + murs + luminosité OU 80% des pills + style) → appelle validate_brief avec confidence=high.
+
+2. INTERDICTION ABSOLUE : ne pose JAMAIS une question sur un champ déjà rempli dans les pills.
+   Si le marchand mentionne incidemment vouloir changer un champ confirmé (source='user'),
+   réponds par une suggestion de modification (« Je peux mettre à jour [champ] vers [valeur] —
+   confirmez-vous ? ») mais n'écrase PAS sans son accord explicite.
+
+3. Quand l'utilisateur fournit une info qui mappe sur un pill VIDE → appelle update_field.
+   Si tu poses ensuite une autre question, fais-le dans le MÊME tour (multi-tools OK).
+
+4. Quand l'utilisateur donne une info hors-pills (ex: "il y a une cloison amovible mur Sud")
+   → appelle record_extra_context.
+
+5. Quand tu as assez d'infos pour générer un visuel pertinent (au moins style + sol + murs
+   + luminosité OU 80% des pills + style) → appelle validate_brief avec confidence=high.
+
 6. Maximum 5 tours de questions. Au-delà, appelle validate_brief même si incomplet.
-7. Suggestions dynamiques OBLIGATOIRES — adaptées à la pièce, jamais génériques. Exemple bon : pour une chambre 14m² style scandinave → "Parquet clair", "Béton ciré gris", "Carrelage imitation bois". Exemple INTERDIT : "Oui", "Non", "Je ne sais pas".
+
+7. Suggestions dynamiques OBLIGATOIRES — adaptées à la pièce, jamais génériques.
+   Exemple bon : pour une chambre 14m² style scandinave → "Parquet clair",
+   "Béton ciré gris", "Carrelage imitation bois". Exemple INTERDIT : "Oui", "Non", "Je ne sais pas".
+
 8. Réponses brèves, ton professionnel et direct, en français.
-9. Tu peux appeler PLUSIEURS tools dans le même tour (ex: update_field + ask_question pour la suite).`;
+
+9. Tu peux appeler PLUSIEURS tools dans le même tour (ex: update_field + ask_question).`;
 }
 
 function transcriptToOpenAIMessages(
