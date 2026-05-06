@@ -72,7 +72,103 @@ export interface VsLot {
   status: LotStatus;
   source: LotSource;
   confidence_avg: number | null;
+  /** s32 — profil architectural marchand (saisie Étape 2 panneau latéral). */
+  architectural_profile?: ArchitecturalProfile;
   created_at: string;
+}
+
+// ─── s32 — Architectural Brief (saisie marchand + Vision) ──────────
+
+/** s32 — 5 champs profil architectural niveau lot (Étape 2 panneau latéral).
+ *  Tout champ null = non renseigné. Saisie marchand uniquement (pas de Vision). */
+export interface ArchitecturalProfile {
+  /** Hauteur sous plafond — '2.20m' | '2.50m' | '2.70m' | '3m+' | 'Autre' */
+  ceiling_height: string | null;
+  /** Orientation — 'Nord' | 'Sud' | 'Est' | 'Ouest' | 'Mixte' */
+  orientation: string | null;
+  /** État général — 'Bon état' | 'À rafraîchir' | 'À rénover entièrement' */
+  general_state: string | null;
+  /** Niveau visé — 'Standard' | 'Premium' | 'Luxe' */
+  target_level: string | null;
+  /** Public cible — 'Jeune couple' | 'Famille' | 'Investisseur' | 'Senior' | 'Mixte' */
+  target_audience: string | null;
+}
+
+/** s32 — valeurs autorisées pour chaque champ profil lot. Validation API. */
+export const ARCHITECTURAL_PROFILE_OPTIONS = {
+  ceiling_height: ["2.20m", "2.50m", "2.70m", "3m+", "Autre"] as const,
+  orientation: ["Nord", "Sud", "Est", "Ouest", "Mixte"] as const,
+  general_state: ["Bon état", "À rafraîchir", "À rénover entièrement"] as const,
+  target_level: ["Standard", "Premium", "Luxe"] as const,
+  target_audience: [
+    "Jeune couple",
+    "Famille",
+    "Investisseur",
+    "Senior",
+    "Mixte",
+  ] as const,
+} as const;
+
+/** s32 — un champ détail pièce avec source (user/vision) et confidence éventuelle.
+ *  - source='user'   → saisie marchand, pas de confidence
+ *  - source='vision' → analyse OpenAI, confidence ∈ [0,1]
+ *  - source=null + value=null → champ vide (jamais analysé / saisi) */
+export interface ArchitecturalFieldValue {
+  value: string | null;
+  source: "user" | "vision" | null;
+  confidence?: number;
+}
+
+/** s32 — 4 champs détails architecturaux niveau pièce (Étape 4 wizard). */
+export interface ArchitecturalDetails {
+  /** Sol actuel — 'Parquet' | 'Carrelage' | 'Moquette' | 'Béton' | 'À rénover' */
+  floor: ArchitecturalFieldValue;
+  /** État murs — 'Peinture neuve' | 'Défraîchie' | 'Papier peint' | 'À rénover' */
+  walls: ArchitecturalFieldValue;
+  /** Luminosité — 'Très lumineux' | 'Bonne' | 'Faible' */
+  lighting: ArchitecturalFieldValue;
+  /** Particularités multi-select — 'Cheminée' | 'Poutres apparentes' | 'Niche' | 'Mansardé' | 'Aucune' */
+  specifics: ArchitecturalFieldValue[];
+}
+
+/** s32 — valeurs autorisées par champ détail pièce. Validation API. */
+export const ARCHITECTURAL_DETAILS_OPTIONS = {
+  floor: ["Parquet", "Carrelage", "Moquette", "Béton", "À rénover"] as const,
+  walls: [
+    "Peinture neuve",
+    "Défraîchie",
+    "Papier peint",
+    "À rénover",
+  ] as const,
+  lighting: ["Très lumineux", "Bonne", "Faible"] as const,
+  specifics: [
+    "Cheminée",
+    "Poutres apparentes",
+    "Niche",
+    "Mansardé",
+    "Aucune",
+  ] as const,
+} as const;
+
+/** s32 — helper : crée un détail vide (default DB row sans données). */
+export function emptyArchitecturalDetails(): ArchitecturalDetails {
+  return {
+    floor: { value: null, source: null },
+    walls: { value: null, source: null },
+    lighting: { value: null, source: null },
+    specifics: [],
+  };
+}
+
+/** s32 — helper : crée un profil vide. */
+export function emptyArchitecturalProfile(): ArchitecturalProfile {
+  return {
+    ceiling_height: null,
+    orientation: null,
+    general_state: null,
+    target_level: null,
+    target_audience: null,
+  };
 }
 
 export interface VsRoom {
@@ -100,6 +196,8 @@ export interface VsRoom {
   polygon_offset_x: number | null;
   /** s32 (autopilot — Feature A) — décalage vertical du polygone (-10 à +10). */
   polygon_offset_y: number | null;
+  /** s32 — détails architecturaux pièce (saisie wizard + Vision). */
+  architectural_details?: ArchitecturalDetails;
   status: RoomStatus;
   source: LotSource;
   created_at: string;

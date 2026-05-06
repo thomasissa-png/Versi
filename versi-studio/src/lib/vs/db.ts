@@ -201,6 +201,10 @@ export async function ensureVsTables(): Promise<void> {
     -- U1 versi-s21 : ajout colonne confidence_avg pour bases existantes
     ALTER TABLE vs_lots ADD COLUMN IF NOT EXISTS confidence_avg NUMERIC(4,3);
 
+    -- S32 (migration 012) : profil architectural lot (5 champs marchand)
+    ALTER TABLE vs_lots
+      ADD COLUMN IF NOT EXISTS architectural_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
+
     CREATE TABLE IF NOT EXISTS vs_rooms (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       lot_id UUID NOT NULL REFERENCES vs_lots(id) ON DELETE CASCADE,
@@ -238,6 +242,9 @@ export async function ensureVsTables(): Promise<void> {
     -- S32 (migration 009) : ajustement contour + annotations segments (autopilot)
     ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon_offset_x NUMERIC NULL;
     ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon_offset_y NUMERIC NULL;
+    -- S32 (migration 012) : détails architecturaux pièce (4 champs marchand + Vision)
+    ALTER TABLE vs_rooms
+      ADD COLUMN IF NOT EXISTS architectural_details JSONB NOT NULL DEFAULT '{}'::jsonb;
     CREATE TABLE IF NOT EXISTS vs_room_segments (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       room_id UUID NOT NULL REFERENCES vs_rooms(id) ON DELETE CASCADE,
