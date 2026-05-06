@@ -8,8 +8,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
-import type { VsRoom, ApiResponse } from "@/lib/vs/types";
+import type {
+  VsRoom,
+  ApiResponse,
+  ArchitecturalDetails,
+} from "@/lib/vs/types";
 import { ROOM_TYPE_LABELS, STYLES, type RoomTypeKey, type StyleId } from "@/lib/vs/styles";
+import { validateArchitecturalDetails } from "@/lib/vs/architectural-validation";
 
 const VALID_ROOM_TYPES = Object.keys(ROOM_TYPE_LABELS) as RoomTypeKey[];
 const VALID_STYLE_IDS = Object.keys(STYLES) as StyleId[];
@@ -43,6 +48,8 @@ interface PatchRoomPayload {
   polygon_offset_x?: number | null;
   /** s32 (autopilot — Feature A) — décalage vertical polygone (lot-local %). */
   polygon_offset_y?: number | null;
+  /** s32 — détails architecturaux pièce (saisie marchand + Vision). */
+  architectural_details?: ArchitecturalDetails;
 }
 
 const POLYGON_OFFSET_MIN = -10;
@@ -185,6 +192,19 @@ export async function PATCH(
       }
       setClauses.push(`polygon_offset_y = $${paramIndex++}`);
       values.push(body.polygon_offset_y);
+    }
+
+    // s32 — détails architecturaux pièce (saisie wizard + Vision)
+    if (body.architectural_details !== undefined) {
+      const result = validateArchitecturalDetails(body.architectural_details);
+      if (!result.ok) {
+        return NextResponse.json(
+          { success: false, error: result.error },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`architectural_details = $${paramIndex++}`);
+      values.push(JSON.stringify(result.value));
     }
 
     // s32 (autopilot) — skip pièce

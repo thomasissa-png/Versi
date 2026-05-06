@@ -681,6 +681,8 @@ export interface UpdateLotPayload {
   surface_m2?: number | null;
   zone_data?: Zone;
   status?: LotStatus;
+  /** s32 — profil architectural marchand (panneau Étape 2). */
+  architectural_profile?: ArchitecturalProfile;
 }
 
 // ─── API Responses ─────────────────────────────────────────────────

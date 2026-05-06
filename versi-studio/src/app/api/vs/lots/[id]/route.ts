@@ -15,6 +15,7 @@ import type {
   LotStatus,
 } from "@/lib/vs/types";
 import { isValidZone } from "@/lib/vs/types";
+import { validateArchitecturalProfile } from "@/lib/vs/architectural-validation";
 
 const VALID_STATUSES: LotStatus[] = ["suggested", "validated", "overlap_error"];
 
@@ -97,6 +98,19 @@ export async function PATCH(
       }
       setClauses.push(`status = $${paramIndex++}`);
       values.push(body.status);
+    }
+
+    // s32 — profil architectural marchand (panneau Étape 2)
+    if (body.architectural_profile !== undefined) {
+      const result = validateArchitecturalProfile(body.architectural_profile);
+      if (!result.ok) {
+        return NextResponse.json(
+          { success: false, error: result.error },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`architectural_profile = $${paramIndex++}`);
+      values.push(JSON.stringify(result.value));
     }
 
     if (setClauses.length === 0) {
