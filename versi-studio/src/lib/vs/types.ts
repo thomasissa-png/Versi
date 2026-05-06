@@ -94,9 +94,50 @@ export interface VsRoom {
   /** s32 — true = pièce déjà meublée à transformer, false = pièce vide à
    *  meubler intégralement. Default true (back-compat). */
   is_furnished: boolean;
+  /** s32 (autopilot — Feature A) — décalage horizontal du polygone en
+   *  pourcentage lot-local (-10 à +10). NULL = pas d'ajustement. Appliqué au
+   *  rendu : polygon[i].x_percent + polygon_offset_x. */
+  polygon_offset_x: number | null;
+  /** s32 (autopilot — Feature A) — décalage vertical du polygone (-10 à +10). */
+  polygon_offset_y: number | null;
   status: RoomStatus;
   source: LotSource;
   created_at: string;
+}
+
+/** s32 (autopilot — Feature B) — type sémantique d'un segment du polygone.
+ *  - wall : mur plein (default)
+ *  - door : ouverture porte (arc 90° + trait fin au rendu)
+ *  - window : fenêtre standard
+ *  - bay_window : baie vitrée à créer
+ *  - opening : ouverture libre vers autre espace (pas de trait, juste pastille)
+ *  - flexible : segment annoté comme modifiable (trait pointillé jaune) */
+export type VsRoomSegmentType =
+  | "wall"
+  | "door"
+  | "window"
+  | "bay_window"
+  | "opening"
+  | "flexible";
+
+export const VS_ROOM_SEGMENT_TYPES: readonly VsRoomSegmentType[] = [
+  "wall",
+  "door",
+  "window",
+  "bay_window",
+  "opening",
+  "flexible",
+] as const;
+
+/** s32 (autopilot — Feature B) — annotation sémantique d'une arête du polygone. */
+export interface VsRoomSegment {
+  id: string;
+  room_id: string;
+  /** Index de l'arête dans le polygone (entre sommets i et i+1). 0-based. */
+  segment_index: number;
+  type: VsRoomSegmentType;
+  notes: string | null;
+  updated_at: string;
 }
 
 export interface VsPhoto {

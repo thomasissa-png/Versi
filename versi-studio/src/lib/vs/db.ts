@@ -235,6 +235,35 @@ export async function ensureVsTables(): Promise<void> {
         CHECK (status IN ('suggested','validated','skipped'));
     END
     $migration_s32_room_status$;
+    -- S32 (migration 009) : ajustement contour + annotations segments (autopilot)
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon_offset_x NUMERIC NULL;
+    ALTER TABLE vs_rooms ADD COLUMN IF NOT EXISTS polygon_offset_y NUMERIC NULL;
+    CREATE TABLE IF NOT EXISTS vs_room_segments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      room_id UUID NOT NULL REFERENCES vs_rooms(id) ON DELETE CASCADE,
+      segment_index INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'wall',
+      notes TEXT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (room_id, segment_index)
+    );
+    DO $migration_s32_segment_type$
+    BEGIN
+      ALTER TABLE vs_room_segments DROP CONSTRAINT IF EXISTS vs_room_segments_type_check;
+      ALTER TABLE vs_room_segments ADD CONSTRAINT vs_room_segments_type_check
+        CHECK (type IN ('wall', 'door', 'window', 'bay_window', 'opening', 'flexible'));
+    END
+    $migration_s32_segment_type$;
+    CREATE INDEX IF NOT EXISTS vs_room_segments_room_id_idx
+      ON vs_room_segments(room_id);
+    CREATE OR REPLACE FUNCTION vs_room_segments_set_updated_at()
+    RETURNS TRIGGER AS $vs_seg_upd$
+    BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+    $vs_seg_upd$ LANGUAGE plpgsql;
+    DROP TRIGGER IF EXISTS trg_vs_room_segments_updated_at ON vs_room_segments;
+    CREATE TRIGGER trg_vs_room_segments_updated_at
+      BEFORE UPDATE ON vs_room_segments
+      FOR EACH ROW EXECUTE FUNCTION vs_room_segments_set_updated_at();
 
     CREATE TABLE IF NOT EXISTS vs_photos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -38,6 +38,20 @@ interface PatchRoomPayload {
   is_furnished?: boolean;
   /** s32 (autopilot) — 'suggested' | 'validated' | 'skipped' (skip pièce wizard). */
   status?: "suggested" | "validated" | "skipped";
+  /** s32 (autopilot — Feature A) — décalage horizontal polygone, lot-local %
+   *  (plage [-10, +10]). null = annule l'ajustement. */
+  polygon_offset_x?: number | null;
+  /** s32 (autopilot — Feature A) — décalage vertical polygone (lot-local %). */
+  polygon_offset_y?: number | null;
+}
+
+const POLYGON_OFFSET_MIN = -10;
+const POLYGON_OFFSET_MAX = 10;
+
+function isValidPolygonOffset(v: unknown): v is number | null {
+  if (v === null) return true;
+  if (typeof v !== "number" || !Number.isFinite(v)) return false;
+  return v >= POLYGON_OFFSET_MIN && v <= POLYGON_OFFSET_MAX;
 }
 
 const VALID_ROOM_STATUSES = ["suggested", "validated", "skipped"] as const;
@@ -145,6 +159,34 @@ export async function PATCH(
       values.push(body.is_furnished);
     }
 
+    // s32 (autopilot — Feature A) — ajustement contour (offset polygone)
+    if (body.polygon_offset_x !== undefined) {
+      if (!isValidPolygonOffset(body.polygon_offset_x)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `polygon_offset_x doit être null ou un nombre dans [${POLYGON_OFFSET_MIN}, ${POLYGON_OFFSET_MAX}].`,
+          },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`polygon_offset_x = $${paramIndex++}`);
+      values.push(body.polygon_offset_x);
+    }
+    if (body.polygon_offset_y !== undefined) {
+      if (!isValidPolygonOffset(body.polygon_offset_y)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `polygon_offset_y doit être null ou un nombre dans [${POLYGON_OFFSET_MIN}, ${POLYGON_OFFSET_MAX}].`,
+          },
+          { status: 400 }
+        );
+      }
+      setClauses.push(`polygon_offset_y = $${paramIndex++}`);
+      values.push(body.polygon_offset_y);
+    }
+
     // s32 (autopilot) — skip pièce
     if (body.status !== undefined) {
       if (!VALID_ROOM_STATUSES.includes(body.status)) {
@@ -171,8 +213,13 @@ export async function PATCH(
     }
 
     values.push(roomId);
+    // Cast NUMERIC en FLOAT pour que polygon_offset_* arrivent typés number côté client.
     const result = await query<VsRoom>(
-      `UPDATE vs_rooms SET ${setClauses.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE vs_rooms SET ${setClauses.join(", ")} WHERE id = $${paramIndex}
+         RETURNING *,
+                   surface_m2::FLOAT AS surface_m2,
+                   polygon_offset_x::FLOAT AS polygon_offset_x,
+                   polygon_offset_y::FLOAT AS polygon_offset_y`,
       values
     );
 

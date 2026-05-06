@@ -48,8 +48,13 @@ export async function GET(
       );
     }
 
+    // s32 (autopilot — Feature A) : cast NUMERIC -> FLOAT pour polygon_offset_*.
     const result = await query<VsRoom>(
-      "SELECT * FROM vs_rooms WHERE lot_id = $1 ORDER BY created_at ASC",
+      `SELECT *,
+              surface_m2::FLOAT AS surface_m2,
+              polygon_offset_x::FLOAT AS polygon_offset_x,
+              polygon_offset_y::FLOAT AS polygon_offset_y
+         FROM vs_rooms WHERE lot_id = $1 ORDER BY created_at ASC`,
       [lotId]
     );
 
