@@ -1,0 +1,51 @@
+# Versi Studio — Config Replit dédiée (s32)
+#
+# IMPORTANT : ce fichier n'est PAS le `.replit` racine du repo (qui sert
+# versi-immobilier). Il sert deux objectifs :
+#  1. Documenter la config attendue côté Replit Deployment Versi Studio
+#  2. Servir de source de vérité si Versi Studio est isolé dans un Repl distinct
+#
+# Si Versi Studio est déployé depuis un Repl indépendant cloné sur ce sous-dossier,
+# Replit lira ce fichier directement. Si Versi Studio est déployé depuis le Repl
+# principal, recopier les sections [deployment] dans le `.replit` racine ou
+# configurer le Deployment depuis le dashboard Replit avec ces valeurs.
+
+run = "npm start"
+entrypoint = "src/app/page.tsx"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+# Next.js standalone server bind par défaut sur 5000 (cf. package.json scripts.dev)
+PORT = "5000"
+HOSTNAME = "0.0.0.0"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+# Cloud Run (autoscale) — Versi Studio est stateless côté serveur
+# (sessions en DB Postgres, jobs SSE bus in-memory tolérant déco).
+deploymentTarget = "autoscale"
+
+# Build : npm install + next build (avec NODE_OPTIONS=4096 cf. package.json)
+# + copy-standalone-assets.mjs (copie .next/static et public/ dans standalone).
+build = ["sh", "-c", "npm install && npm run build"]
+
+# Run : standalone server (image compacte, ~50-80 Mo vs ~500 Mo bundle complet
+# avec sharp + heic-convert + tesseract.js + pdfjs-dist + openai).
+# Path versi-studio/ car Next.js préserve la structure monorepo dans standalone.
+run = ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js"]
+
+# Variables d'environnement OBLIGATOIRES (à configurer dans Replit Secrets,
+# JAMAIS en dur dans ce fichier) :
+#   - DATABASE_URL          (PostgreSQL Replit, fourni par dashboard)
+#   - OPENAI_API_KEY        (gpt-image-2 + gpt-4o-mini, scope edits requis)
+#
+# Variables OPTIONNELLES (override defaults seulement si nécessaire) :
+#   - VS_COHERENT_PIPELINE  (default true, mettre false pour rollback V1)
+#   - VS_VISUAL_COHERENCE_CHECK (default false, true active check $0.10/visuel)
+#   - VS_RATE_LIMIT_IMAGES_EDIT_CAPACITY (default 8)
+#   - VS_RATE_LIMIT_IMAGES_EDIT_REFILL_PER_MINUTE (default 8)

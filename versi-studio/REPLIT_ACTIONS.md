@@ -7,6 +7,47 @@ de la branche s29 — elles ne sont PAS automatisées par CI.
 
 ---
 
+## 0bis. s32 — HOTFIX déploiement Cloud Run (P0, branche `claude/versi-s32-placement-redesign-IpyM0`)
+
+**Symptôme** : build local PASS, déploiement Replit échoue (logs Replit vides).
+
+**Cause root** : trois problèmes cumulés :
+1. Le `.replit` racine du repo build versi-immobilier/versi-invest-site/src mais
+   PAS versi-studio. Versi Studio doit être un Replit Deployment distinct.
+2. Sans `output: "standalone"` Next.js, l'image Cloud Run dépasse plusieurs
+   centaines de Mo (sharp + heic-convert + tesseract.js + pdfjs-dist + openai)
+   → timeout au boot ou OOM.
+3. Le standalone Next.js en monorepo génère `.next/standalone/versi-studio/server.js`
+   (pas `.next/standalone/server.js`) — un `start:standalone` mal pathé crash
+   immédiatement avec `MODULE_NOT_FOUND`.
+
+**Fix livré (commit s32 deploy)** :
+- `next.config.ts` : ajout `output: "standalone"` (image compacte ~50-80 Mo)
+- `package.json` : `build` enchaîne `next build` puis `scripts/copy-standalone-assets.mjs`
+  (copie `.next/static` et `public/` dans le standalone, indispensable sinon 404 sur les chunks JS)
+- `package.json` : `start` lance désormais le standalone server depuis le bon path
+  monorepo (`.next/standalone/versi-studio/server.js`) avec `HOSTNAME=0.0.0.0`
+- `versi-studio/.replit` créé : config Replit dédiée à recopier dans le Deployment
+  Replit Versi Studio (Replit dashboard → Deployment → settings) si pas de `.replit`
+  natif au sous-projet
+
+**Actions Thomas sur Replit après merge** :
+1. Vérifier que le Replit Deployment Versi Studio est bien configuré pour pointer
+   le sous-dossier `versi-studio/` (pas la racine du repo)
+2. Configurer Secrets : `DATABASE_URL`, `OPENAI_API_KEY` (obligatoires)
+3. Reconfigurer build/run du Deployment depuis le dashboard avec ces commandes
+   (équivalent du `versi-studio/.replit`) :
+   - **Build** : `cd versi-studio && npm install && npm run build`
+   - **Run** : `cd versi-studio && HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js`
+4. Re-déployer (Stop puis Run)
+5. Vérifier `/api/health` répond `{ status: "healthy" }`
+
+**Si erreur persiste après ce fix** : prochaine piste = limite mémoire Replit
+au build (4 Go alloués via NODE_OPTIONS, mais Replit free tier peut être plafonné
+plus bas) → upgrade plan ou pre-build local + push d'un artifact `.next/`.
+
+---
+
 ## 0. s31 — HOTFIX-2 Étape 4 v2 (déploiement obligatoire)
 
 **Pourquoi** : pendant les vagues s30, toute la nouvelle UI v2 (canvas plan,

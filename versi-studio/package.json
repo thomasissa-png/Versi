@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 5000",
-    "build": "next build",
-    "start": "next start",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build && node scripts/copy-standalone-assets.mjs",
+    "start": "HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js",
+    "start:next": "next start",
+    "start:standalone": "HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js",
     "lint": "eslint"
   },
   "dependencies": {

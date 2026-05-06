@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // s32 — Build standalone pour déploiement Replit autoscale.
+  // Génère `.next/standalone/` qui n'inclut QUE les deps réellement utilisées
+  // par les routes (pas tout `node_modules`). Réduit drastiquement la taille
+  // de l'image (sharp + heic-convert + tesseract.js + pdfjs-dist + openai
+  // pèsent plusieurs centaines de Mo en bundle complet → ~50-80 Mo en
+  // standalone). Permet au déploiement Replit de réussir là où l'image
+  // complète timeout / OOM au boot.
+  // Server lance via `node .next/standalone/server.js` (HOST=0.0.0.0 PORT=$PORT).
+  // Note : les fichiers statiques (`public/`, `.next/static/`) doivent être
+  // copiés à côté du standalone — Next.js documente le pattern.
+  output: "standalone",
+
   // Replit dev preview — autoriser les domaines *.replit.dev / *.repl.co
   // pour que le dev server accepte les requêtes du proxy Replit.
   allowedDevOrigins: ["*.replit.dev", "*.repl.co", "*.picard.replit.dev"],
