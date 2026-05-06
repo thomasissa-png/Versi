@@ -33,6 +33,12 @@ interface Props {
   onChange: (next: ArchitecturalDetails) => void;
   /** Indicateur Vision en cours d'analyse (loader subtil). */
   visionAnalyzing?: boolean;
+  /**
+   * Indique si au moins une photo source est uploadée pour cette pièce.
+   * Si false → Vision n'a pas pu s'exécuter (besoin photo) — on affiche
+   * un message d'aide visible plutôt qu'un silence (s32 audit @persona).
+   */
+  hasPhotoSource?: boolean;
 }
 
 const SINGLE_FIELDS: Array<{
@@ -78,6 +84,7 @@ export default function RoomArchitecturalDetails({
   room,
   onChange,
   visionAnalyzing = false,
+  hasPhotoSource = true,
 }: Props) {
   const details: ArchitecturalDetails = useMemo(
     () => room.architectural_details ?? emptyArchitecturalDetails(),
@@ -152,6 +159,17 @@ export default function RoomArchitecturalDetails({
       <p className="text-xs text-text-muted">
         Précisez l&apos;état actuel de la pièce pour des visuels plus fidèles.
       </p>
+
+      {!hasPhotoSource && !visionAnalyzing && (
+        <p
+          role="note"
+          className="text-xs px-sm py-xs rounded-md bg-[var(--color-interactive-primary)]/10 text-[var(--color-interactive-primary)] border border-[var(--color-interactive-primary)]/20"
+        >
+          Ajoutez une photo source pour activer l&apos;analyse automatique
+          (sol, murs, luminosité). Vous pouvez aussi remplir manuellement
+          les champs ci-dessous.
+        </p>
+      )}
 
       {SINGLE_FIELDS.map(({ key, label }) => {
         const options = ARCHITECTURAL_DETAILS_OPTIONS[key];

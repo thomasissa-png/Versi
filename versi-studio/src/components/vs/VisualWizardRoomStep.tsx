@@ -1045,6 +1045,9 @@ export default function VisualWizardRoomStep({
           room={room}
           onChange={(d) => void onArchitecturalDetailsChange(d)}
           visionAnalyzing={visionAnalyzing}
+          hasPhotoSource={placements.some(
+            (p) => p.is_placed_on_plan && p.file_path !== ""
+          )}
         />
       )}
 
