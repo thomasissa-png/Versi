@@ -19,6 +19,9 @@ import RoomZoomCanvas from "@/components/vs/RoomZoomCanvas";
 import RoomStylePicker from "@/components/vs/RoomStylePicker";
 import RoomSegmentsPanel from "@/components/vs/RoomSegmentsPanel";
 import RoomArchitecturalDetails from "@/components/vs/RoomArchitecturalDetails";
+import ArchitectChatPanel, {
+  type FieldUpdate as ChatFieldUpdate,
+} from "@/components/vs/ArchitectChatPanel";
 import type {
   VsRoom,
   VsPhoto,
@@ -27,7 +30,9 @@ import type {
   VsRoomSegmentType,
   ApiResponse,
   ArchitecturalDetails,
+  ArchitecturalFieldValue,
 } from "@/lib/vs/types";
+import { emptyArchitecturalDetails } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
 
@@ -162,6 +167,10 @@ export default function VisualWizardRoomStep({
   const [segmentsLoading, setSegmentsLoading] = useState<boolean>(false);
   /** Segment hover/focus dans le panel ou canvas (sync visuelle). */
   const [highlightedSegmentIndex, setHighlightedSegmentIndex] = useState<number | null>(null);
+  // ─── s32 (Phase 9) — Chat architecte virtuel (toggle panel) ──────
+  const [panelMode, setPanelMode] = useState<"segments" | "chat">("segments");
+  const [chatBriefValidated, setChatBriefValidated] = useState<boolean>(false);
+  const [chatToast, setChatToast] = useState<string | null>(null);
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map()); // B7 — auto-scroll
   const headerRef = useRef<HTMLHeadingElement>(null); // B9 — focus reset
@@ -243,6 +252,114 @@ export default function VisualWizardRoomStep({
   useEffect(() => {
     setConfirmSkip(false);
   }, [room.id]);
+  // s32 (Phase 9) — reset état chat à chaque changement de pièce
+  useEffect(() => {
+    setPanelMode("segments");
+    setChatBriefValidated(false);
+    setChatToast(null);
+  }, [room.id]);
+  // s32 (Phase 9) — auto-clear chat toast après 3s
+  useEffect(() => {
+    if (chatToast === null) return;
+    const t = setTimeout(() => setChatToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [chatToast]);
+
+  // s32 (Phase 9) — handler chat update_field : applique le patch côté UI
+  // (room ou lot scope) + toast feedback. Persistance API immédiate.
+  const handleChatFieldUpdate = useCallback(
+    async (update: ChatFieldUpdate) => {
+      const FIELD_LABELS: Record<string, string> = {
+        floor: "Sol",
+        walls: "Murs",
+        lighting: "Luminosité",
+        specifics: "Particularités",
+        ceiling_height: "Hauteur",
+        orientation: "Orientation",
+        general_state: "État général",
+        target_level: "Niveau visé",
+        target_audience: "Public cible",
+        style: "Style",
+      };
+      const label = FIELD_LABELS[update.field] ?? update.field;
+      setChatToast(`J'ai mis à jour : ${label} → ${update.value}`);
+
+      try {
+        if (update.scope === "room") {
+          if (update.field === "style") {
+            await onStyleSelect(update.value as StyleId);
+            return;
+          }
+          const current =
+            room.architectural_details ?? emptyArchitecturalDetails();
+          const next: ArchitecturalDetails = {
+            floor: { ...current.floor },
+            walls: { ...current.walls },
+            lighting: { ...current.lighting },
+            specifics: [...current.specifics],
+          };
+          if (update.field === "specifics") {
+            const fv: ArchitecturalFieldValue = {
+              value: update.value,
+              source: "user",
+            };
+            // Évite doublon si la valeur existe déjà
+            if (!next.specifics.some((s) => s.value === update.value)) {
+              next.specifics.push(fv);
+            }
+          } else if (
+            update.field === "floor" ||
+            update.field === "walls" ||
+            update.field === "lighting"
+          ) {
+            next[update.field] = { value: update.value, source: "user" };
+          } else {
+            // Champ inconnu pour scope room (ex: style déjà géré au-dessus)
+            return;
+          }
+          if (onArchitecturalDetailsChange) {
+            await onArchitecturalDetailsChange(next);
+          }
+        } else if (update.scope === "lot") {
+          // Patch direct PATCH /api/vs/lots/:id (champ profile)
+          const VALID_LOT_FIELDS = [
+            "ceiling_height",
+            "orientation",
+            "general_state",
+            "target_level",
+            "target_audience",
+          ];
+          if (!VALID_LOT_FIELDS.includes(update.field)) return;
+          await fetch(`/api/vs/lots/${room.lot_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              architectural_profile: { [update.field]: update.value },
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("[VisualWizardRoomStep] chat field update failed:", err);
+        setChatToast(`Mise à jour échouée : ${label}`);
+      }
+    },
+    [
+      room.architectural_details,
+      room.lot_id,
+      onArchitecturalDetailsChange,
+      onStyleSelect,
+    ]
+  );
+
+  const handleChatBriefValidated = useCallback(
+    (_confidence: "high" | "medium" | "low") => {
+      setChatBriefValidated(true);
+    },
+    []
+  );
+
+  const handleOpenChat = useCallback(() => setPanelMode("chat"), []);
+  const handleCloseChat = useCallback(() => setPanelMode("segments"), []);
   // B9 itér.4 — auto-clear skipToast après 3s
   useEffect(() => {
     if (skipToast === null) return;
@@ -711,16 +828,40 @@ export default function VisualWizardRoomStep({
           )}
         </div>
 
-        {/* Panel latéral V3 — annotations 3 types via dropdown */}
-        <RoomSegmentsPanel
-          polygon={room.polygon}
-          segments={segments}
-          loading={segmentsLoading}
-          highlightedSegmentIndex={highlightedSegmentIndex}
-          onRowHover={setHighlightedSegmentIndex}
-          onSegmentTypeChange={handleSegmentTypeChange}
-        />
+        {/* s32 (Phase 9) — Panel latéral : segments OU chat architecte (toggle) */}
+        {panelMode === "segments" ? (
+          <RoomSegmentsPanel
+            polygon={room.polygon}
+            segments={segments}
+            loading={segmentsLoading}
+            highlightedSegmentIndex={highlightedSegmentIndex}
+            onRowHover={setHighlightedSegmentIndex}
+            onSegmentTypeChange={handleSegmentTypeChange}
+            onOpenChat={handleOpenChat}
+          />
+        ) : (
+          <ArchitectChatPanel
+            roomId={room.id}
+            onFieldUpdate={(u) => void handleChatFieldUpdate(u)}
+            onBriefValidated={handleChatBriefValidated}
+            onClose={handleCloseChat}
+          />
+        )}
       </div>
+
+      {/* s32 (Phase 9) — toast feedback chat update_field (auto-clear 3s) */}
+      {chatToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="wizard-chat-toast"
+          className="fixed bottom-md right-md z-50 max-w-xs"
+        >
+          <p className="text-xs text-text-default bg-bg-card/95 px-md py-sm rounded-md border border-interactive-primary/40 shadow-md">
+            {chatToast}
+          </p>
+        </div>
+      )}
 
       {/* Bandeau info drag direct + reset offset */}
       <div className="flex flex-wrap items-center gap-sm text-xs text-text-muted">
@@ -1086,26 +1227,36 @@ export default function VisualWizardRoomStep({
             </button>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-xs sm:gap-sm">
-            {disabledReason && (
+            {disabledReason && !chatBriefValidated && (
               <p className="text-xs text-text-muted text-right">
                 {disabledReason}
               </p>
             )}
-            {/* s32 Phase 4 — flow par pièce : la seule action active est
-                "Générer cette pièce". L'utilisateur passe à la suivante
-                uniquement après validation des visuels (RoomPreviewView).
-                Pour avancer sans générer : "Passer cette pièce" (skip). */}
+            {/* s32 Phase 9 — bouton Générer dynamique :
+                - état initial : gris-bleu « Générer quand même » (toujours actif)
+                - signal validate_brief LLM (chatBriefValidated=true) : vert
+                  « Générer — brief complet » */}
             <button
               type="button"
               onClick={() => {
                 setGeneratingThis(true);
                 void onGenerateThisRoom().finally(() => setGeneratingThis(false));
               }}
-              disabled={!canGoNext || generatingThis}
+              disabled={generatingThis}
               data-testid="wizard-generate-this-room"
-              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              data-brief-validated={chatBriefValidated ? "true" : "false"}
+              className={[
+                "min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50 disabled:cursor-not-allowed",
+                chatBriefValidated
+                  ? "bg-success text-bg-canvas hover:opacity-90"
+                  : "bg-bg-card border border-border-default text-text-default hover:bg-bg-subtle",
+              ].join(" ")}
             >
-              {generatingThis ? "Lancement..." : "Générer cette pièce"}
+              {generatingThis
+                ? "Lancement..."
+                : chatBriefValidated
+                ? "Générer — brief complet"
+                : "Générer quand même"}
             </button>
           </div>
         </div>

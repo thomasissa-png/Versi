@@ -50,6 +50,9 @@ export interface RoomSegmentsPanelProps {
   highlightedSegmentIndex?: number | null;
   /** Callback hover sur une ligne (sync canvas). Optionnel. */
   onRowHover?: (segmentIndex: number | null) => void;
+  /** s32 (Phase 9) — toggle vers le chat architecte. Si défini, affiche
+   *  une icône chat dans le header. */
+  onOpenChat?: () => void;
 }
 
 // ─── Couleurs pastilles (synchro avec segment-render.ts) ──────────
@@ -69,6 +72,7 @@ export default function RoomSegmentsPanel({
   loading = false,
   highlightedSegmentIndex = null,
   onRowHover,
+  onOpenChat,
 }: RoomSegmentsPanelProps) {
   // ─── Mapping horaire depuis Nord (segment_index_db → display_index) ──
   const horaireMap = useMemo(() => {
@@ -167,12 +171,43 @@ export default function RoomSegmentsPanel({
     >
       {/* Header */}
       <div className="flex flex-col gap-xs">
-        <h3
-          id="segments-panel-title"
-          className="text-sm uppercase tracking-wide font-semibold text-text-default"
-        >
-          Caractéristiques des murs
-        </h3>
+        <div className="flex items-start justify-between gap-sm">
+          <h3
+            id="segments-panel-title"
+            className="text-sm uppercase tracking-wide font-semibold text-text-default"
+          >
+            Caractéristiques des murs
+          </h3>
+          {onOpenChat && (
+            <button
+              type="button"
+              onClick={onOpenChat}
+              aria-label="Ouvrir le chat avec l'architecte virtuel"
+              title="Architecte virtuel — préciser des détails par chat"
+              className="text-text-muted hover:text-text-default w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary flex-shrink-0"
+              data-testid="open-architect-chat"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M3 4.5C3 3.67 3.67 3 4.5 3h9c.83 0 1.5.67 1.5 1.5v6c0 .83-.67 1.5-1.5 1.5H7l-3 2.5v-2.5h-.5C2.67 12 2 11.33 2 10.5v-6"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="6" cy="7.5" r="0.7" fill="currentColor" />
+                <circle cx="9" cy="7.5" r="0.7" fill="currentColor" />
+                <circle cx="12" cy="7.5" r="0.7" fill="currentColor" />
+              </svg>
+            </button>
+          )}
+        </div>
         <p
           className="text-xs text-text-muted"
           aria-live="polite"
