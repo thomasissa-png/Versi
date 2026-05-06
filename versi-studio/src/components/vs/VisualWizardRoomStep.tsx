@@ -17,7 +17,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RoomZoomCanvas from "@/components/vs/RoomZoomCanvas";
 import RoomStylePicker from "@/components/vs/RoomStylePicker";
-import type { VsRoom, VsPhoto, ZoneRect } from "@/lib/vs/types";
+import SegmentTypePopover from "@/components/vs/SegmentTypePopover";
+import type {
+  VsRoom,
+  VsPhoto,
+  ZoneRect,
+  VsRoomSegment,
+  VsRoomSegmentType,
+  ApiResponse,
+} from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
 
@@ -115,6 +123,21 @@ export default function VisualWizardRoomStep({
   const [skipToast, setSkipToast] = useState<string | null>(null); // B9 itér.4 — toast info post-skip
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
+  // ─── s32 (autopilot) Feature A — Ajustement contour ───────────────
+  const [canvasMode, setCanvasMode] = useState<"normal" | "adjusting" | "annotating">("normal");
+  /**
+   * Offset visuel courant (preview) lors du drag adjusting. Non persisté tant
+   * que l'utilisateur n'a pas cliqué "Appliquer".
+   * - null = pas en mode adjusting OU pas de drag actif
+   * - {x:0, y:0} = drag relâché à la position d'origine
+   */
+  const [adjustingPreview, setAdjustingPreview] = useState<{ x: number; y: number } | null>(null);
+  const [adjustingSaving, setAdjustingSaving] = useState<boolean>(false);
+  // ─── s32 (autopilot) Feature B — Annotations segments ─────────────
+  const [segments, setSegments] = useState<VsRoomSegment[]>([]);
+  const [segmentsLoading, setSegmentsLoading] = useState<boolean>(false);
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState<number | null>(null);
+  const [popoverAnchor, setPopoverAnchor] = useState<{ x: number; y: number } | null>(null);
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map()); // B7 — auto-scroll
   const headerRef = useRef<HTMLHeadingElement>(null); // B9 — focus reset
@@ -248,6 +271,164 @@ export default function VisualWizardRoomStep({
     headerRef.current?.focus();
   }, [room.id]);
 
+  // ─── s32 (autopilot) — reset modes au changement de pièce ─────────
+  useEffect(() => {
+    setCanvasMode("normal");
+    setAdjustingPreview(null);
+    setAdjustingSaving(false);
+    setActiveSegmentIndex(null);
+    setPopoverAnchor(null);
+  }, [room.id]);
+
+  // ─── s32 (autopilot — Feature B) — load segments à l'ouverture pièce ─
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setSegmentsLoading(true);
+      try {
+        const res = await fetch(`/api/vs/rooms/${room.id}/segments`, { method: "GET" });
+        const json = (await res.json()) as ApiResponse<VsRoomSegment[]>;
+        if (!cancelled && json.success) {
+          setSegments(json.data);
+        }
+      } catch (err) {
+        console.warn("[VisualWizardRoomStep] load segments failed:", err);
+      } finally {
+        if (!cancelled) setSegmentsLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [room.id]);
+
+  // ─── s32 (autopilot — Feature A) — handlers adjusting ─────────────
+  const handleEnterAdjusting = useCallback(() => {
+    setCanvasMode((m) => (m === "adjusting" ? "normal" : "adjusting"));
+    setActiveSegmentIndex(null);
+    setPopoverAnchor(null);
+    setAdjustingPreview(null);
+  }, []);
+
+  const handleAdjustingDrag = useCallback((offset: { x: number; y: number }) => {
+    setAdjustingPreview(offset);
+  }, []);
+
+  const handleAdjustingCommit = useCallback((offset: { x: number; y: number }) => {
+    setAdjustingPreview(offset);
+  }, []);
+
+  const handleAdjustingCancel = useCallback(() => {
+    setAdjustingPreview(null);
+    setCanvasMode("normal");
+  }, []);
+
+  const handleAdjustingApply = useCallback(async () => {
+    // Si aucun preview → annule simplement (rien à enregistrer)
+    if (!adjustingPreview) {
+      setCanvasMode("normal");
+      return;
+    }
+    setAdjustingSaving(true);
+    try {
+      const res = await fetch(`/api/vs/rooms/${room.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          polygon_offset_x: adjustingPreview.x,
+          polygon_offset_y: adjustingPreview.y,
+        }),
+      });
+      const json = (await res.json()) as ApiResponse<VsRoom>;
+      if (!json.success) {
+        console.error("[VisualWizardRoomStep] PATCH polygon_offset failed:", json.error);
+        return;
+      }
+      // Le parent rechargera via revalidation (pattern existant) — on quitte
+      // le mode adjusting et on laisse le polygone effectif intégrer le commit
+      // au prochain re-render de room.
+      setAdjustingPreview(null);
+      setCanvasMode("normal");
+    } catch (err) {
+      console.error("[VisualWizardRoomStep] PATCH polygon_offset error:", err);
+    } finally {
+      setAdjustingSaving(false);
+    }
+  }, [adjustingPreview, room.id]);
+
+  // ─── s32 (autopilot — Feature B) — handlers annotating ────────────
+  const handleEnterAnnotating = useCallback(() => {
+    setCanvasMode((m) => (m === "annotating" ? "normal" : "annotating"));
+    setAdjustingPreview(null);
+    setActiveSegmentIndex(null);
+    setPopoverAnchor(null);
+  }, []);
+
+  const handleSegmentClick = useCallback(
+    (segmentIndex: number, anchor: { x: number; y: number }) => {
+      setActiveSegmentIndex(segmentIndex);
+      setPopoverAnchor(anchor);
+    },
+    []
+  );
+
+  const handleSegmentTypeSelect = useCallback(
+    async (type: VsRoomSegmentType) => {
+      const idx = activeSegmentIndex;
+      if (idx === null) return;
+      // Optimistic update : applique le type immédiatement
+      setSegments((prev) => {
+        const existing = prev.find((s) => s.segment_index === idx);
+        if (existing) {
+          return prev.map((s) =>
+            s.segment_index === idx ? { ...s, type } : s
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `pending-${idx}`,
+            room_id: room.id,
+            segment_index: idx,
+            type,
+            notes: null,
+            updated_at: new Date().toISOString(),
+          },
+        ];
+      });
+      setActiveSegmentIndex(null);
+      setPopoverAnchor(null);
+      try {
+        const res = await fetch(
+          `/api/vs/rooms/${room.id}/segments/${idx}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type }),
+          }
+        );
+        const json = (await res.json()) as ApiResponse<VsRoomSegment>;
+        if (json.success) {
+          // Remplace l'optimistic par la réponse serveur (canonique)
+          setSegments((prev) =>
+            prev.map((s) =>
+              s.segment_index === idx ? json.data : s
+            )
+          );
+        }
+      } catch (err) {
+        console.error("[VisualWizardRoomStep] PATCH segment failed:", err);
+      }
+    },
+    [activeSegmentIndex, room.id]
+  );
+
+  const handlePopoverClose = useCallback(() => {
+    setActiveSegmentIndex(null);
+    setPopoverAnchor(null);
+  }, []);
+
   const handleFileChange = useCallback(
     async (placementId: string, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -371,7 +552,26 @@ export default function VisualWizardRoomStep({
           onClickOutsidePolygon={handleClickOutsidePolygon}
           onPlacementMoveCommit={onPlacementMoveCommit}
           onPlacementMoving={setMovingPlacementId}
+          mode={canvasMode}
+          adjustingOffsetPreview={adjustingPreview}
+          onAdjustingDrag={handleAdjustingDrag}
+          onAdjustingCommit={handleAdjustingCommit}
+          segments={segments}
+          onSegmentClick={handleSegmentClick}
+          activeSegmentIndex={activeSegmentIndex}
         />
+        {/* Popover annotation segment — positionné dans le container canvas */}
+        {canvasMode === "annotating" && popoverAnchor !== null && activeSegmentIndex !== null && (
+          <SegmentTypePopover
+            x={popoverAnchor.x}
+            y={popoverAnchor.y}
+            currentType={
+              segments.find((s) => s.segment_index === activeSegmentIndex)?.type ?? "wall"
+            }
+            onSelect={handleSegmentTypeSelect}
+            onClose={handlePopoverClose}
+          />
+        )}
         {/* A7 — toast clic hors polygone (auto-clear 2s) */}
         {outsideHint && (
           <div
@@ -396,6 +596,100 @@ export default function VisualWizardRoomStep({
               {skipToast}
             </p>
           </div>
+        )}
+      </div>
+
+      {/* s32 (autopilot) — Outils contour : Ajuster (Feature A) + Annoter (Feature B) */}
+      <div
+        className="flex flex-wrap items-center gap-sm"
+        data-testid="wizard-canvas-tools"
+      >
+        {canvasMode === "adjusting" ? (
+          <>
+            <button
+              type="button"
+              onClick={handleAdjustingCancel}
+              disabled={adjustingSaving}
+              data-testid="wizard-adjusting-cancel"
+              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleAdjustingApply()}
+              disabled={adjustingSaving}
+              data-testid="wizard-adjusting-apply"
+              className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              {adjustingSaving ? "Enregistrement..." : "Appliquer"}
+            </button>
+            <p className="text-xs text-text-muted">
+              Faites glisser le contour pour le décaler sur les murs réels.
+            </p>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleEnterAdjusting}
+              data-testid="wizard-adjust-contour"
+              aria-pressed={false}
+              className={[
+                "min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                canvasMode === "annotating"
+                  ? "text-text-muted opacity-60 cursor-not-allowed"
+                  : "text-text-default hover:bg-bg-card",
+              ].join(" ")}
+              disabled={canvasMode === "annotating"}
+            >
+              Ajuster ce contour
+            </button>
+            <button
+              type="button"
+              onClick={handleEnterAnnotating}
+              data-testid="wizard-annotate-segments"
+              aria-pressed={(canvasMode as string) === "annotating"}
+              className={[
+                "min-h-[44px] px-md py-sm rounded-md text-sm font-medium border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                (canvasMode as string) === "annotating"
+                  ? "bg-interactive-primary text-text-inverse border-interactive-primary"
+                  : "border-border-default text-text-default hover:bg-bg-card",
+              ].join(" ")}
+            >
+              {(canvasMode as string) === "annotating" ? "Terminer l'annotation" : "Annoter contours"}
+            </button>
+            {(canvasMode as string) === "annotating" && (
+              <p className="text-xs text-text-muted">
+                Cliquez sur une arête pour la typer (porte, fenêtre, baie...).
+                {segmentsLoading ? " Chargement..." : ""}
+              </p>
+            )}
+            {(room.polygon_offset_x ?? 0) !== 0 || (room.polygon_offset_y ?? 0) !== 0 ? (
+              <span className="text-xs text-text-muted">
+                · Contour ajusté
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setAdjustingSaving(true);
+                    try {
+                      await fetch(`/api/vs/rooms/${room.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ polygon_offset_x: null, polygon_offset_y: null }),
+                      });
+                    } finally {
+                      setAdjustingSaving(false);
+                    }
+                  }}
+                  className="ml-xs text-xs text-interactive-primary hover:underline"
+                  data-testid="wizard-reset-contour-offset"
+                >
+                  réinitialiser
+                </button>
+              </span>
+            ) : null}
+          </>
         )}
       </div>
 
