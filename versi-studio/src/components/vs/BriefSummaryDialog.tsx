@@ -42,6 +42,7 @@ export default function BriefSummaryDialog({
   onCancel,
 }: Props) {
   const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   // Focus auto sur le bouton primary à l'ouverture.
   useEffect(() => {
@@ -51,11 +52,36 @@ export default function BriefSummaryDialog({
     });
   }, [open]);
 
-  // Escape ferme la modale.
+  // Escape ferme la modale + s32 P0-5 focus trap : Tab cycle dans la modale.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") {
+        onCancel();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      // Collecte les focusables internes (exclut tabIndex=-1 et disabled).
+      const focusables = dialog.querySelectorAll<HTMLElement>(
+        'button:not(:disabled):not([tabindex="-1"]), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !dialog.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -81,7 +107,10 @@ export default function BriefSummaryDialog({
       />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-lg bg-bg-card border border-border-default rounded-md shadow-2xl flex flex-col gap-md p-lg">
+      <div
+        ref={dialogRef}
+        className="relative w-full max-w-lg bg-bg-card border border-border-default rounded-md shadow-2xl flex flex-col gap-md p-lg"
+      >
         <div className="flex items-start justify-between gap-sm">
           <h2
             id="brief-summary-title"
@@ -112,7 +141,7 @@ export default function BriefSummaryDialog({
         </p>
 
         <div
-          className="text-sm text-text-default leading-relaxed bg-bg-default/50 border border-border-default rounded-md p-md max-h-[40vh] overflow-y-auto"
+          className="text-sm text-text-default leading-relaxed bg-bg-default/50 border border-border-default rounded-md p-md max-h-[40vh] overflow-y-auto whitespace-pre-wrap"
           data-testid="brief-summary-text"
         >
           {briefText}
