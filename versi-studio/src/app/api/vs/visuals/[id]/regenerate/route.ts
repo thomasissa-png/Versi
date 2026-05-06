@@ -28,7 +28,11 @@ import {
 } from "@/lib/vs/visual-generator";
 import { readFile } from "node:fs/promises";
 import OpenAI, { toFile } from "openai";
-import type { ApiResponse } from "@/lib/vs/types";
+import type {
+  ApiResponse,
+  ArchitecturalDetails,
+  ArchitecturalProfile,
+} from "@/lib/vs/types";
 
 function isValidUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -64,6 +68,10 @@ interface VisualContextRow {
   surface_m2: number | null;
   comment_text: string | null;
   structural_instructions: string | null;
+  /** s32 (Thomas prod) — détails architecturaux pièce. */
+  architectural_details: ArchitecturalDetails | null;
+  /** s32 (Thomas prod) — profil architectural lot parent. */
+  architectural_profile: ArchitecturalProfile | null;
 }
 
 export async function POST(
@@ -104,6 +112,8 @@ export async function POST(
         commentText: ctx.comment_text,
         userAnswers: [],
         structuralInstructions: ctx.structural_instructions,
+        architecturalProfile: ctx.architectural_profile ?? null,
+        architecturalDetails: ctx.architectural_details ?? null,
       });
       imageInputs = [photoFile];
     } else {
@@ -123,6 +133,8 @@ export async function POST(
         userAnswers: [],
         structuralInstructions: ctx.structural_instructions,
         anchorSignature: ctx.anchor_signature_json,
+        architecturalProfile: ctx.architectural_profile ?? null,
+        architecturalDetails: ctx.architectural_details ?? null,
       });
       imageInputs = [photoFile];
       coherenceMode = "textual_signature"; // par défaut
@@ -230,11 +242,14 @@ async function loadVisualContext(visualId: string): Promise<VisualContextRow | n
       r.room_type       AS room_type,
       r.surface_m2::FLOAT AS surface_m2,
       rs.comment_text   AS comment_text,
-      rs.comment_text   AS structural_instructions
+      rs.comment_text   AS structural_instructions,
+      r.architectural_details AS architectural_details,
+      l.architectural_profile AS architectural_profile
       FROM vs_visuals v
       LEFT JOIN vs_visuals av ON av.id = v.anchor_visual_id
       JOIN vs_photos p ON p.id = v.photo_id
       JOIN vs_rooms r ON r.id = p.room_id
+      JOIN vs_lots l ON l.id = r.lot_id
       LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
      WHERE v.id = $1
     `,

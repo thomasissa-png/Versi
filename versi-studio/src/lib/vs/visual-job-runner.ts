@@ -27,7 +27,12 @@ import { preprocessPhoto } from "@/lib/vs/photo-preprocessor";
 import { storeVisualImage, loadVisualImage } from "@/lib/vs/visual-storage";
 import { emitJobEvent } from "@/lib/vs/visual-job-bus";
 import { readFile } from "node:fs/promises";
-import type { ZonePolygonPoint, VsRoomSegment } from "@/lib/vs/types";
+import type {
+  ZonePolygonPoint,
+  VsRoomSegment,
+  ArchitecturalDetails,
+  ArchitecturalProfile,
+} from "@/lib/vs/types";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -47,6 +52,10 @@ interface RoomToGenerate {
   /** s32 (autopilot — Feature A) — offset polygone (lot-local %, [-10, +10]). */
   polygon_offset_x: number | null;
   polygon_offset_y: number | null;
+  /** s32 (Thomas prod) — profil architectural marchand (5 champs). */
+  architectural_profile: ArchitecturalProfile | null;
+  /** s32 (Thomas prod) — détails architecturaux pièce (saisi + Vision). */
+  architectural_details: ArchitecturalDetails | null;
 }
 
 interface PhotoRow {
@@ -113,6 +122,8 @@ async function loadRoomsToGenerate(
     is_furnished: boolean;
     polygon_offset_x: number | null;
     polygon_offset_y: number | null;
+    architectural_profile: ArchitecturalProfile | null;
+    architectural_details: ArchitecturalDetails | null;
   }>(
     `
     SELECT
@@ -126,6 +137,8 @@ async function loadRoomsToGenerate(
       r.polygon,
       r.polygon_offset_x::FLOAT AS polygon_offset_x,
       r.polygon_offset_y::FLOAT AS polygon_offset_y,
+      r.architectural_details,
+      l.architectural_profile,
       (
         SELECT COALESCE(json_agg(q.user_answer ORDER BY q.answered_at)::TEXT, '[]')
           FROM vs_visual_questions q
@@ -157,6 +170,8 @@ async function loadRoomsToGenerate(
     is_furnished: row.is_furnished,
     polygon_offset_x: row.polygon_offset_x,
     polygon_offset_y: row.polygon_offset_y,
+    architectural_profile: row.architectural_profile ?? null,
+    architectural_details: row.architectural_details ?? null,
   }));
 }
 
@@ -320,6 +335,8 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         structural_instructions: room.structural_instructions,
         is_furnished: room.is_furnished,
         segments,
+        architectural_profile: room.architectural_profile,
+        architectural_details: room.architectural_details,
       };
 
       try {

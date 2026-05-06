@@ -14,6 +14,10 @@
 import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
 import { imagesEditLimiter } from "@/lib/vs/openai-rate-limiter";
+import type {
+  ArchitecturalDetails,
+  ArchitecturalProfile,
+} from "@/lib/vs/types";
 
 // ─── Singleton OpenAI ──────────────────────────────────────────────
 let _openaiClient: OpenAI | null = null;
@@ -58,6 +62,12 @@ export interface AnchorPromptParams {
    *  (porte/fenêtre/baie/ouverture/flexible) à injecter telle quelle dans
    *  le prompt. Vide = aucune annotation faite, on n'injecte rien. */
   segmentDescription?: string | null;
+  /** s32 (Thomas prod) — profil architectural marchand niveau lot (5 champs).
+   *  null/undef = pas renseigné, on n'injecte rien. */
+  architecturalProfile?: ArchitecturalProfile | null;
+  /** s32 (Thomas prod) — détails architecturaux pièce (4 champs).
+   *  null/undef = pas renseigné, on n'injecte rien. */
+  architecturalDetails?: ArchitecturalDetails | null;
 }
 
 /** Signature visuelle extraite de l'ancre — sert à uniformiser les secondaires. */
@@ -335,6 +345,149 @@ export function angleDegreesToCardinal(deg: number): string {
   return `view ${sectors[idx]} of the room`;
 }
 
+// ─── s32 (Thomas prod) — Brief architectural consolidé ────────────
+
+/**
+ * Compose le bloc "ARCHITECTURAL BRIEF" injecté dans le prompt de génération.
+ * Source de vérité : profil lot marchand + détails pièce (saisis ou Vision ≥ 0.7).
+ * Retourne "" si rien à injecter (pas de champ renseigné).
+ *
+ * Format texte structuré, anglophone (gpt-image-2 répond mieux en EN) :
+ *   ARCHITECTURAL BRIEF — DEALER INPUT (priority over visual inference):
+ *   - Lot profile: ceiling 2.50m, south-facing, good state, premium target, family audience
+ *   - Room state: parquet floor, fresh paint walls, good natural lighting
+ *   - Room features: fireplace, exposed beams
+ */
+export function buildArchitecturalBrief(
+  profile: ArchitecturalProfile | null | undefined,
+  details: ArchitecturalDetails | null | undefined
+): string {
+  const lines: string[] = [];
+
+  // ─── Profil lot (5 champs) ──────────────────────────────────
+  if (profile) {
+    const parts: string[] = [];
+    if (profile.ceiling_height) parts.push(`ceiling ${profile.ceiling_height}`);
+    if (profile.orientation) {
+      const map: Record<string, string> = {
+        Nord: "north-facing",
+        Sud: "south-facing",
+        Est: "east-facing",
+        Ouest: "west-facing",
+        Mixte: "mixed orientation",
+      };
+      parts.push(map[profile.orientation] ?? profile.orientation.toLowerCase());
+    }
+    if (profile.general_state) {
+      const map: Record<string, string> = {
+        "Bon état": "good condition",
+        "À rafraîchir": "needs refresh",
+        "À rénover entièrement": "full renovation needed",
+      };
+      parts.push(map[profile.general_state] ?? profile.general_state);
+    }
+    if (profile.target_level) {
+      const map: Record<string, string> = {
+        Standard: "standard finish",
+        Premium: "premium finish",
+        Luxe: "luxury finish",
+      };
+      parts.push(map[profile.target_level] ?? profile.target_level);
+    }
+    if (profile.target_audience) {
+      const map: Record<string, string> = {
+        "Jeune couple": "target audience: young couple",
+        Famille: "target audience: family",
+        Investisseur: "target audience: investor",
+        Senior: "target audience: senior",
+        Mixte: "target audience: mixed",
+      };
+      parts.push(map[profile.target_audience] ?? profile.target_audience);
+    }
+    if (parts.length > 0) {
+      lines.push(`- Lot profile: ${parts.join(", ")}`);
+    }
+  }
+
+  // ─── Détails pièce (3 single + multi specifics) ─────────────
+  if (details) {
+    const stateParts: string[] = [];
+    if (details.floor.value) {
+      const map: Record<string, string> = {
+        Parquet: "wooden parquet floor",
+        Carrelage: "tiled floor",
+        Moquette: "carpeted floor",
+        "Béton": "concrete floor",
+        "À rénover": "floor to renovate",
+      };
+      const v = map[details.floor.value] ?? `floor: ${details.floor.value}`;
+      const tag =
+        details.floor.source === "user"
+          ? " (dealer-confirmed)"
+          : details.floor.source === "vision"
+          ? " (visually identified)"
+          : "";
+      stateParts.push(`${v}${tag}`);
+    }
+    if (details.walls.value) {
+      const map: Record<string, string> = {
+        "Peinture neuve": "freshly painted walls",
+        "Défraîchie": "worn paint walls",
+        "Papier peint": "wallpapered walls",
+        "À rénover": "walls to renovate",
+      };
+      const v = map[details.walls.value] ?? `walls: ${details.walls.value}`;
+      const tag =
+        details.walls.source === "user"
+          ? " (dealer-confirmed)"
+          : details.walls.source === "vision"
+          ? " (visually identified)"
+          : "";
+      stateParts.push(`${v}${tag}`);
+    }
+    if (details.lighting.value) {
+      const map: Record<string, string> = {
+        "Très lumineux": "very bright natural light",
+        Bonne: "good natural light",
+        Faible: "low natural light",
+      };
+      const v =
+        map[details.lighting.value] ?? `lighting: ${details.lighting.value}`;
+      const tag =
+        details.lighting.source === "user"
+          ? " (dealer-confirmed)"
+          : details.lighting.source === "vision"
+          ? " (visually identified)"
+          : "";
+      stateParts.push(`${v}${tag}`);
+    }
+    if (stateParts.length > 0) {
+      lines.push(`- Room state: ${stateParts.join(", ")}`);
+    }
+
+    // Specifics : ignorer "Aucune"
+    const specifics = (details.specifics ?? [])
+      .filter((s) => s.value && s.value !== "Aucune")
+      .map((s) => {
+        const map: Record<string, string> = {
+          Cheminée: "fireplace",
+          "Poutres apparentes": "exposed beams",
+          Niche: "wall niche",
+          Mansardé: "sloped attic ceiling",
+        };
+        const v = map[s.value!] ?? s.value!.toLowerCase();
+        return v;
+      });
+    if (specifics.length > 0) {
+      lines.push(`- Room features: ${specifics.join(", ")}`);
+    }
+  }
+
+  if (lines.length === 0) return "";
+
+  return `\n\nARCHITECTURAL BRIEF — DEALER INPUT (authoritative, priority over visual inference):\n${lines.join("\n")}`;
+}
+
 // ─── V2 (s29) — buildVisualPromptAnchor ───────────────────────────
 
 /**
@@ -373,6 +526,11 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
   const segmentBlock = p.segmentDescription && p.segmentDescription.trim().length > 0
     ? `\n\n${p.segmentDescription.trim()}`
     : "";
+  // s32 (Thomas prod) — Brief architectural consolidé (profil lot + détails pièce)
+  const architecturalBrief = buildArchitecturalBrief(
+    p.architecturalProfile ?? null,
+    p.architecturalDetails ?? null
+  );
   const structuralRule = hasTransformations
     ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE. EXCEPT for doors explicitly modified by the transformation, preserve all existing doors visible in the source photo (position, size, opening direction, frame). Do not invent doors that are not visible in the source."
     : "1. KEEP all structural elements EXACTLY (walls, windows, doors, openings, bay windows, ceiling, floor shape). Specifically, preserve every existing door, window and opening visible in the source photo with its exact position, size, opening direction, frame and sill. The doors visible in the source must remain in the output, even if partially hidden by furniture. Do not invent doors, windows or openings that are not visible in the source.";
@@ -389,7 +547,7 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? "9. EXISTING FURNITURE: the room is already furnished — keep the general layout (sofa zone, dining zone, bed orientation) consistent with what's visible, but upgrade the pieces, materials and palette to the chosen style."
     : "9. EMPTY ROOM: the room is empty — fully furnish it with all standard pieces expected for this room type, properly placed for circulation and function.";
 
-  return `${openingSentence}${structuralBlock}${segmentBlock}
+  return `${openingSentence}${structuralBlock}${segmentBlock}${architecturalBrief}
 
 STYLE DETAILS: ${styleHint}.
 

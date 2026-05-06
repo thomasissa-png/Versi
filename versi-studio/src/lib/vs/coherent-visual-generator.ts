@@ -25,6 +25,8 @@ import {
   polygonCentroid,
   type ZonePolygonPoint,
   type VsRoomSegment,
+  type ArchitecturalDetails,
+  type ArchitecturalProfile,
 } from "@/lib/vs/types";
 import { imagesEditLimiter } from "@/lib/vs/openai-rate-limiter";
 import {
@@ -74,6 +76,10 @@ export interface CoherentGenerationInput {
   /** s32 (autopilot — Feature B) — segments annotés du polygone. Si vide ou
    *  100% 'wall', aucune injection prompt (pas de pollution). */
   segments?: VsRoomSegment[];
+  /** s32 (Thomas prod) — profil architectural marchand niveau lot (5 champs). */
+  architectural_profile?: ArchitecturalProfile | null;
+  /** s32 (Thomas prod) — détails architecturaux pièce (saisi + Vision). */
+  architectural_details?: ArchitecturalDetails | null;
 }
 
 export interface SecondaryVisualResult {
@@ -159,6 +165,8 @@ async function generateAnchorVisual(
     structuralInstructions: input.structural_instructions,
     isFurnished: input.is_furnished,
     segmentDescription,
+    architecturalProfile: input.architectural_profile ?? null,
+    architecturalDetails: input.architectural_details ?? null,
   };
   const prompt = buildVisualPromptAnchor(params);
 
@@ -207,6 +215,8 @@ async function generateSecondaryVisual(
     structuralInstructions: input.structural_instructions,
     isFurnished: input.is_furnished,
     segmentDescription,
+    architecturalProfile: input.architectural_profile ?? null,
+    architecturalDetails: input.architectural_details ?? null,
   };
   const prompt = buildVisualPromptSecondary({ ...baseParams, anchorSignature });
 
