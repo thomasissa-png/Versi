@@ -125,7 +125,12 @@ async function callIterationGeneration(
   prompt: string
 ): Promise<string> {
   const imageBuffer = Buffer.from(currentVisualBase64, "base64");
-  const ext = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "png";
+  // s30 fix (propagé depuis visual-generator.ts) : ext doit refléter le vrai MIME,
+  // sinon OpenAI rejette "Invalid image" sur photos JPEG. Source : règle s30 +
+  // commit b643629 — l'API utilise filename + Content-Type pour valider le format.
+  const ext = mimeType === "image/png" ? "png"
+            : mimeType === "image/webp" ? "webp"
+            : "jpg";
   const imageFile = await toFile(imageBuffer, `visual.${ext}`, { type: mimeType });
 
   const response = await openai.images.edit({

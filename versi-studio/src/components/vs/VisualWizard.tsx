@@ -689,6 +689,49 @@ export default function VisualWizard({
     [currentRoom]
   );
 
+  // s32 #P4 (Thomas prod) — feature "Affiner ce visuel".
+  // Le backend /iterate a créé un nouveau vs_visual avec parent_visual_id.
+  // RefineVisualDialog a poll jusqu'à status='generated', ici on injecte le
+  // nouveau visuel dans validatedVisualsByRoom pour affichage immédiat.
+  // Le polling visuals-job rattrapera aussi le visuel si actif.
+  const handleVisualRefined = useCallback(
+    async (newVisualId: string) => {
+      if (!currentRoom) return;
+      try {
+        const res = await fetch(`/api/vs/visuals/${newVisualId}/status`);
+        const json = (await res.json()) as ApiResponse<{
+          id: string;
+          status: string;
+          file_path: string | null;
+        }>;
+        if (!json.success || !json.data.file_path) return;
+        const newVisual: VisualGenerated = {
+          visual_id: json.data.id,
+          room_id: currentRoom.id,
+          // Affiné = secondaire par convention (l'ancre reste l'originale).
+          kind: "secondary",
+          file_path: json.data.file_path,
+          coherence_mode: null,
+          status: json.data.status as VisualGenerated["status"],
+        };
+        setValidatedVisualsByRoom((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(currentRoom.id) ?? [];
+          // Anti-doublon : si le visual_id est déjà présent (e.g. polling l'a
+          // ramené plus tôt), on ne le rajoute pas.
+          if (existing.some((v) => v.visual_id === newVisual.visual_id)) {
+            return prev;
+          }
+          next.set(currentRoom.id, [...existing, newVisual]);
+          return next;
+        });
+      } catch (err) {
+        console.error("[VisualWizard] handleVisualRefined erreur:", err);
+      }
+    },
+    [currentRoom]
+  );
+
   // s32 #P1 (Thomas prod) — drag d'un sommet du polygone : le PATCH a déjà
   // été émis côté enfant (offset baked dans newPolygon, offsets reset à null).
   // Ici on synchronise le state local roomsState pour que le prochain render
@@ -1017,6 +1060,7 @@ export default function VisualWizard({
             isLastRoom={currentStepIndex === visibleRooms.length - 1}
             busy={false}
             regenerateConfirm={confirmRegenerate}
+            onVisualRefined={handleVisualRefined}
           />
         </div>
       )}

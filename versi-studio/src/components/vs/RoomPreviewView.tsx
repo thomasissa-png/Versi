@@ -18,7 +18,9 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { VisualGenerated } from "@/hooks/useVisualsStream";
+import RefineVisualDialog from "@/components/vs/RefineVisualDialog";
 
 export interface RoomPreviewViewProps {
   roomName: string;
@@ -36,6 +38,13 @@ export interface RoomPreviewViewProps {
    * Le bouton bascule alors en bg-warning + label « Confirmer ... » jusqu'au 2e clic.
    */
   regenerateConfirm?: boolean;
+  /**
+   * s32 #P4 (Thomas prod) — un visuel raffiné a été créé. Le parent doit
+   * recharger la liste des visuels pour la pièce courante (le SSE/polling
+   * actif s'en charge, mais on peut aussi remonter pour un feedback immédiat).
+   * Si non fourni, la fonctionnalité Affiner n'est pas exposée.
+   */
+  onVisualRefined?: (newVisualId: string) => void;
 }
 
 export default function RoomPreviewView({
@@ -46,8 +55,14 @@ export default function RoomPreviewView({
   busy = false,
   isLastRoom = false,
   regenerateConfirm = false,
+  onVisualRefined,
 }: RoomPreviewViewProps) {
   const empty = visuals.length === 0;
+  // s32 #P4 — état modal Affiner (visuel parent en cours d'édition).
+  const [refineTarget, setRefineTarget] = useState<{
+    visualId: string;
+    src: string | null;
+  } | null>(null);
 
   return (
     <section
@@ -117,11 +132,55 @@ export default function RoomPreviewView({
                       Principal
                     </span>
                   )}
+                  {/* s32 #P4 (Thomas prod) — bouton "Affiner" sur chaque card */}
+                  {onVisualRefined && src && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRefineTarget({ visualId: v.visual_id, src })
+                      }
+                      data-testid={`room-preview-refine-${v.visual_id}`}
+                      aria-label={`Affiner le visuel ${isAnchor ? "principal" : "secondaire"}`}
+                      className="absolute bottom-xs right-xs inline-flex items-center gap-xs px-sm py-xs rounded-md bg-bg-card/95 border border-border-default text-xs font-medium text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary shadow-sm min-h-[36px]"
+                    >
+                      {/* Icône sparkles SVG inline (pas de dépendance) */}
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+                      </svg>
+                      Affiner
+                    </button>
+                  )}
                 </div>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {/* s32 #P4 — modal Affiner */}
+      {refineTarget && (
+        <RefineVisualDialog
+          parentVisualId={refineTarget.visualId}
+          parentImageSrc={refineTarget.src}
+          roomName={roomName}
+          onClose={() => setRefineTarget(null)}
+          onRefined={(newVisualId) => {
+            onVisualRefined?.(newVisualId);
+            // Délai 300ms : laisse le temps au parent de propager le nouveau
+            // visuel dans la liste avant fermeture (évite un flash visuel).
+            setTimeout(() => setRefineTarget(null), 300);
+          }}
+        />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-sm pt-md border-t border-border-default">
