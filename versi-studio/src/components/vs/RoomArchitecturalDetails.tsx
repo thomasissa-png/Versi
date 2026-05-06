@@ -449,9 +449,13 @@ export default function RoomArchitecturalDetails({
           <p className="text-xs font-medium text-text-default">
             Contraintes techniques
           </p>
-          {/* s32 P1-8 — cohérence : badge "À confirmer" si une contrainte vision non confirmée. */}
-          {(details.technical_constraints ?? []).some((c) => isUnconfirmedVision(c)) && (
+          {/* s32 P1-8 — cohérence : badge "À confirmer" si une contrainte vision non confirmée, sinon badge "IA" si au moins une de source vision (symétrie avec specifics). */}
+          {(details.technical_constraints ?? []).some((c) => isUnconfirmedVision(c)) ? (
             <ToConfirmBadge />
+          ) : (
+            (details.technical_constraints ?? []).some((c) => c.source === "vision") && (
+              <VisionBadge />
+            )
           )}
         </div>
         <p className="text-xs text-text-muted mb-xs">

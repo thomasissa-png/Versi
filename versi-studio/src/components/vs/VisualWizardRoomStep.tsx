@@ -1242,7 +1242,7 @@ export default function VisualWizardRoomStep({
                     )}
                     <span
                       className={[
-                        "absolute -top-1 -left-1 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white",
+                        "absolute -top-1 -left-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white",
                         hasPhoto ? "bg-success" : "bg-interactive-primary",
                       ].join(" ")}
                       aria-label={hasPhoto ? "Photo uploadée" : "En attente d'upload"}
