@@ -310,7 +310,7 @@ export default function RoomArchitecturalDetails({
                     data-testid={`room-arch-${key}-${opt}`}
                     className={`
                       inline-flex items-center px-sm py-xs rounded-full text-xs font-medium border transition-colors duration-150
-                      min-h-[36px]
+                      min-h-[44px]
                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                       ${
                         orangeStyle
@@ -360,7 +360,7 @@ export default function RoomArchitecturalDetails({
                 data-testid={`room-arch-specific-${opt}`}
                 className={`
                   inline-flex items-center px-sm py-xs rounded-full text-xs font-medium border transition-colors duration-150
-                  min-h-[36px]
+                  min-h-[44px]
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                   ${
                     unconfirmed
@@ -409,7 +409,7 @@ export default function RoomArchitecturalDetails({
                 data-testid={`room-arch-level-${opt}`}
                 className={`
                   inline-flex items-center px-sm py-xs rounded-full text-xs font-medium border transition-colors duration-150
-                  min-h-[36px]
+                  min-h-[44px]
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                   ${
                     unconfirmed
@@ -457,7 +457,7 @@ export default function RoomArchitecturalDetails({
                 data-testid={`room-arch-constraint-${opt}`}
                 className={`
                   inline-flex items-center px-sm py-xs rounded-full text-xs font-medium border transition-colors duration-150
-                  min-h-[36px]
+                  min-h-[44px]
                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
                   ${
                     unconfirmed
