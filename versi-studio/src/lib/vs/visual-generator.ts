@@ -105,8 +105,8 @@ export function buildVisualPrompt(
 
   // STRICT RULE 1 : conditionnelle selon la présence de transformations structurelles
   const structuralRule = hasTransformations
-    ? `1. APPLY the structural transformations described below AS THE PRIMARY OBJECTIVE. The transformation must be clearly visible and unmistakable. Adapt walls, partitions, and openings exactly as instructed. Keep camera framing and natural light direction.`
-    : `1. KEEP all structural elements EXACTLY as they are: walls, windows, doors, ceiling, floor shape, room proportions. Do NOT move, add, or remove any window or door.`;
+    ? `1. APPLY the structural transformations described below AS THE PRIMARY OBJECTIVE. The transformation must be clearly visible and unmistakable. Adapt walls, partitions, and openings exactly as instructed. Keep camera framing and natural light direction. EXCEPT for the doors explicitly modified by the transformation, preserve all existing doors visible in the source photo: their position, size, opening direction, and frame must remain identical. Do not invent doors that are not visible in the source.`
+    : `1. KEEP all structural elements EXACTLY as they are: walls, windows, doors, ceiling, floor shape, room proportions. Do NOT move, add, or remove any window or door. Specifically, preserve every existing door visible in the source photo with its exact position, size, opening direction, and frame. Do not invent doors that are not visible in the source.`;
 
   // Bloc optionnel de transformations structurelles
   const transformationsBlock = hasTransformations
@@ -374,8 +374,8 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? `\n\n${p.segmentDescription.trim()}`
     : "";
   const structuralRule = hasTransformations
-    ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE."
-    : "1. KEEP all structural elements EXACTLY (walls, windows, doors, ceiling, floor shape).";
+    ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE. EXCEPT for doors explicitly modified by the transformation, preserve all existing doors visible in the source photo (position, size, opening direction, frame). Do not invent doors that are not visible in the source."
+    : "1. KEEP all structural elements EXACTLY (walls, windows, doors, ceiling, floor shape). Specifically, preserve every existing door visible in the source photo with its exact position, size, opening direction, and frame. Do not invent doors that are not visible in the source.";
 
   // s32 (autopilot) — directive meublé/vide. Default true = comportement V2
   // historique (la photo est censée être brute, à meubler). Si Thomas indique
