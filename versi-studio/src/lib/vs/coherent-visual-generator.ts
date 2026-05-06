@@ -80,6 +80,11 @@ export interface CoherentGenerationInput {
   architectural_profile?: ArchitecturalProfile | null;
   /** s32 (Thomas prod) — détails architecturaux pièce (saisi + Vision). */
   architectural_details?: ArchitecturalDetails | null;
+  /** s32 (Phase 9) — mémoire opération chat (style/public/budget/notes). */
+  operation_chat_context?: Record<string, unknown> | null;
+  /** s32 (Phase 9) — extra_context capturé via chat (clé→description libre).
+   *  Exemples : { cloison_amovible: "mur Sud, démontable", cheminee: "déco" }. */
+  chat_extra_context?: Record<string, string> | null;
 }
 
 export interface SecondaryVisualResult {
@@ -167,6 +172,8 @@ async function generateAnchorVisual(
     segmentDescription,
     architecturalProfile: input.architectural_profile ?? null,
     architecturalDetails: input.architectural_details ?? null,
+    operationChatContext: input.operation_chat_context ?? null,
+    chatExtraContext: input.chat_extra_context ?? null,
   };
   const prompt = buildVisualPromptAnchor(params);
 
@@ -217,6 +224,8 @@ async function generateSecondaryVisual(
     segmentDescription,
     architecturalProfile: input.architectural_profile ?? null,
     architecturalDetails: input.architectural_details ?? null,
+    operationChatContext: input.operation_chat_context ?? null,
+    chatExtraContext: input.chat_extra_context ?? null,
   };
   const prompt = buildVisualPromptSecondary({ ...baseParams, anchorSignature });
 

@@ -56,6 +56,10 @@ interface RoomToGenerate {
   architectural_profile: ArchitecturalProfile | null;
   /** s32 (Thomas prod) — détails architecturaux pièce (saisi + Vision). */
   architectural_details: ArchitecturalDetails | null;
+  /** s32 (Phase 9) — mémoire opération chat (lot-level partagée). */
+  operation_chat_context: Record<string, unknown> | null;
+  /** s32 (Phase 9) — extra_context capturé via chat (clé→valeur libre). */
+  chat_extra_context: Record<string, string> | null;
 }
 
 interface PhotoRow {
@@ -124,6 +128,8 @@ async function loadRoomsToGenerate(
     polygon_offset_y: number | null;
     architectural_profile: ArchitecturalProfile | null;
     architectural_details: ArchitecturalDetails | null;
+    operation_chat_context: Record<string, unknown> | null;
+    chat_extra_context: Record<string, string> | null;
   }>(
     `
     SELECT
@@ -139,6 +145,8 @@ async function loadRoomsToGenerate(
       r.polygon_offset_y::FLOAT AS polygon_offset_y,
       r.architectural_details,
       l.architectural_profile,
+      l.operation_chat_context,
+      rc.extra_context AS chat_extra_context,
       (
         SELECT COALESCE(json_agg(q.user_answer ORDER BY q.answered_at)::TEXT, '[]')
           FROM vs_visual_questions q
@@ -150,6 +158,7 @@ async function loadRoomsToGenerate(
     FROM vs_rooms r
     JOIN vs_lots l ON l.id = r.lot_id
     LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
+    LEFT JOIN vs_room_chats rc ON rc.room_id = r.id
     WHERE l.project_id = $1
       AND COALESCE(rs.target_visual_count, 3) > 0
       AND COALESCE(r.status, 'suggested') <> 'skipped'
@@ -172,6 +181,8 @@ async function loadRoomsToGenerate(
     polygon_offset_y: row.polygon_offset_y,
     architectural_profile: row.architectural_profile ?? null,
     architectural_details: row.architectural_details ?? null,
+    operation_chat_context: row.operation_chat_context ?? null,
+    chat_extra_context: row.chat_extra_context ?? null,
   }));
 }
 
@@ -337,6 +348,8 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         segments,
         architectural_profile: room.architectural_profile,
         architectural_details: room.architectural_details,
+        operation_chat_context: room.operation_chat_context,
+        chat_extra_context: room.chat_extra_context,
       };
 
       try {

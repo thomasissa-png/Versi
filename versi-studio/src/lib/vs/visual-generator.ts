@@ -68,6 +68,12 @@ export interface AnchorPromptParams {
   /** s32 (Thomas prod) — détails architecturaux pièce (4 champs).
    *  null/undef = pas renseigné, on n'injecte rien. */
   architecturalDetails?: ArchitecturalDetails | null;
+  /** s32 (Phase 9) — mémoire opération chat (style/public/budget/notes lot).
+   *  null/undef = pas de chat ouvert sur ce lot. */
+  operationChatContext?: Record<string, unknown> | null;
+  /** s32 (Phase 9) — extra_context pièce capturé via chat (clé→valeur libre).
+   *  Exemples : { cloison_amovible: "mur Sud, démontable" }. */
+  chatExtraContext?: Record<string, string> | null;
 }
 
 /** Signature visuelle extraite de l'ancre — sert à uniformiser les secondaires. */
@@ -488,6 +494,68 @@ export function buildArchitecturalBrief(
   return `\n\nARCHITECTURAL BRIEF — DEALER INPUT (authoritative, priority over visual inference):\n${lines.join("\n")}`;
 }
 
+// ─── s32 (Phase 9) — Chat insights brief ──────────────────────────
+
+/**
+ * Construit un bloc d'insights provenant du chat architecte conversationnel.
+ *
+ * Source :
+ *  - operationChatContext : décisions partagées au lot (style, public, budget,
+ *    notes transversales). Pièce 2+ hérite des décisions pièce 1.
+ *  - chatExtraContext     : infos pièce-spécifiques hors-pills capturées via
+ *    `record_extra_context` (ex: "cloison amovible", "cheminée déco seulement").
+ *
+ * Bloc dédié pour permettre au LLM image de distinguer les contraintes
+ * dealer (pills) des intentions/contexte de l'opération (chat).
+ *
+ * Si tout est vide → retourne "" (pas de pollution prompt).
+ */
+export function buildChatInsightsBrief(
+  operationChatContext: Record<string, unknown> | null | undefined,
+  chatExtraContext: Record<string, string> | null | undefined
+): string {
+  const lines: string[] = [];
+
+  // Contexte opération (lot-level)
+  if (operationChatContext && typeof operationChatContext === "object") {
+    const c = operationChatContext as Record<string, unknown>;
+    const opParts: string[] = [];
+    if (typeof c.style === "string" && c.style.trim()) {
+      opParts.push(`overall style intent: ${c.style.trim()}`);
+    }
+    if (typeof c.target_audience === "string" && c.target_audience.trim()) {
+      opParts.push(`target audience: ${c.target_audience.trim()}`);
+    }
+    if (typeof c.budget_estimate === "string" && c.budget_estimate.trim()) {
+      opParts.push(`budget level: ${c.budget_estimate.trim()}`);
+    }
+    if (Array.isArray(c.custom_notes) && c.custom_notes.length > 0) {
+      const notes = c.custom_notes
+        .filter((n): n is string => typeof n === "string" && n.trim().length > 0)
+        .map((n) => n.trim());
+      if (notes.length > 0) {
+        opParts.push(`operation notes: ${notes.join(" / ")}`);
+      }
+    }
+    if (opParts.length > 0) {
+      lines.push(`- Operation-wide: ${opParts.join(", ")}`);
+    }
+  }
+
+  // Extra context pièce-spécifique
+  if (chatExtraContext && typeof chatExtraContext === "object") {
+    for (const [key, value] of Object.entries(chatExtraContext)) {
+      if (typeof value !== "string" || !value.trim()) continue;
+      const niceKey = key.replace(/_/g, " ");
+      lines.push(`- Specific intent (${niceKey}): ${value.trim()}`);
+    }
+  }
+
+  if (lines.length === 0) return "";
+
+  return `\n\nDEALER CHAT INSIGHTS (operator clarifications gathered via the conversational architect — secondary priority, complement to ARCHITECTURAL BRIEF above):\n${lines.join("\n")}`;
+}
+
 // ─── V2 (s29) — buildVisualPromptAnchor ───────────────────────────
 
 /**
@@ -531,6 +599,11 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     p.architecturalProfile ?? null,
     p.architecturalDetails ?? null
   );
+  // s32 (Phase 9) — Insights chat architecte conversationnel (additif).
+  const chatInsightsBrief = buildChatInsightsBrief(
+    p.operationChatContext ?? null,
+    p.chatExtraContext ?? null
+  );
   const structuralRule = hasTransformations
     ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE. EXCEPT for doors explicitly modified by the transformation, preserve all existing doors visible in the source photo (position, size, opening direction, frame). Do not invent doors that are not visible in the source."
     : "1. KEEP all structural elements EXACTLY (walls, windows, doors, openings, bay windows, ceiling, floor shape). Specifically, preserve every existing door, window and opening visible in the source photo with its exact position, size, opening direction, frame and sill. The doors visible in the source must remain in the output, even if partially hidden by furniture. Do not invent doors, windows or openings that are not visible in the source.";
@@ -547,7 +620,7 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? "9. EXISTING FURNITURE: the room is already furnished — keep the general layout (sofa zone, dining zone, bed orientation) consistent with what's visible, but upgrade the pieces, materials and palette to the chosen style."
     : "9. EMPTY ROOM: the room is empty — fully furnish it with all standard pieces expected for this room type, properly placed for circulation and function.";
 
-  return `${openingSentence}${structuralBlock}${segmentBlock}${architecturalBrief}
+  return `${openingSentence}${structuralBlock}${segmentBlock}${architecturalBrief}${chatInsightsBrief}
 
 STYLE DETAILS: ${styleHint}.
 

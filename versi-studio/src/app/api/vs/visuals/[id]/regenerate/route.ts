@@ -72,6 +72,10 @@ interface VisualContextRow {
   architectural_details: ArchitecturalDetails | null;
   /** s32 (Thomas prod) — profil architectural lot parent. */
   architectural_profile: ArchitecturalProfile | null;
+  /** s32 (Phase 9) — mémoire opération chat (lot-level). */
+  operation_chat_context: Record<string, unknown> | null;
+  /** s32 (Phase 9) — extra_context pièce capturé via chat. */
+  chat_extra_context: Record<string, string> | null;
 }
 
 export async function POST(
@@ -114,6 +118,8 @@ export async function POST(
         structuralInstructions: ctx.structural_instructions,
         architecturalProfile: ctx.architectural_profile ?? null,
         architecturalDetails: ctx.architectural_details ?? null,
+        operationChatContext: ctx.operation_chat_context ?? null,
+        chatExtraContext: ctx.chat_extra_context ?? null,
       });
       imageInputs = [photoFile];
     } else {
@@ -135,6 +141,8 @@ export async function POST(
         anchorSignature: ctx.anchor_signature_json,
         architecturalProfile: ctx.architectural_profile ?? null,
         architecturalDetails: ctx.architectural_details ?? null,
+        operationChatContext: ctx.operation_chat_context ?? null,
+        chatExtraContext: ctx.chat_extra_context ?? null,
       });
       imageInputs = [photoFile];
       coherenceMode = "textual_signature"; // par défaut
@@ -244,13 +252,16 @@ async function loadVisualContext(visualId: string): Promise<VisualContextRow | n
       rs.comment_text   AS comment_text,
       rs.comment_text   AS structural_instructions,
       r.architectural_details AS architectural_details,
-      l.architectural_profile AS architectural_profile
+      l.architectural_profile AS architectural_profile,
+      l.operation_chat_context AS operation_chat_context,
+      rc.extra_context AS chat_extra_context
       FROM vs_visuals v
       LEFT JOIN vs_visuals av ON av.id = v.anchor_visual_id
       JOIN vs_photos p ON p.id = v.photo_id
       JOIN vs_rooms r ON r.id = p.room_id
       JOIN vs_lots l ON l.id = r.lot_id
       LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
+      LEFT JOIN vs_room_chats rc ON rc.room_id = r.id
      WHERE v.id = $1
     `,
     [visualId]
