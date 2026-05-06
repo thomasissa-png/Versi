@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RoomZoomCanvas from "@/components/vs/RoomZoomCanvas";
 import RoomStylePicker from "@/components/vs/RoomStylePicker";
 import RoomSegmentsPanel from "@/components/vs/RoomSegmentsPanel";
+import RoomArchitecturalDetails from "@/components/vs/RoomArchitecturalDetails";
 import type {
   VsRoom,
   VsPhoto,
@@ -25,6 +26,7 @@ import type {
   VsRoomSegment,
   VsRoomSegmentType,
   ApiResponse,
+  ArchitecturalDetails,
 } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
@@ -65,6 +67,10 @@ export interface VisualWizardRoomStepProps {
 
   /** s32 #3 (autopilot) — toggle meublé/non-meublé. */
   onFurnishedChange: (isFurnished: boolean) => Promise<void>;
+  /** s32 (Thomas prod) — mise à jour détails architecturaux pièce (4 champs). */
+  onArchitecturalDetailsChange?: (details: ArchitecturalDetails) => Promise<void>;
+  /** s32 (Thomas prod) — true pendant l'analyse Vision auto au mount. */
+  visionAnalyzing?: boolean;
   /** s32 #3 (autopilot) — commentaire libre pièce (debounce côté parent). */
   onCommentChange: (comment: string) => Promise<void>;
   /** s32 #3 (autopilot) — commentaire courant (lu depuis vs_room_settings côté parent). */
@@ -118,6 +124,8 @@ export default function VisualWizardRoomStep({
   onDeletePlacement,
   onStyleSelect,
   onFurnishedChange,
+  onArchitecturalDetailsChange,
+  visionAnalyzing,
   onCommentChange,
   comment,
   targetVisualCount,
@@ -1030,6 +1038,15 @@ export default function VisualWizardRoomStep({
           </p>
         </div>
       </section>
+
+      {/* s32 (Thomas prod) — Détails architecturaux : sol, murs, luminosité, particularités */}
+      {onArchitecturalDetailsChange && (
+        <RoomArchitecturalDetails
+          room={room}
+          onChange={(d) => void onArchitecturalDetailsChange(d)}
+          visionAnalyzing={visionAnalyzing}
+        />
+      )}
 
       {/* Footer navigation */}
       <div className="flex flex-col gap-sm pt-sm border-t border-border-default">

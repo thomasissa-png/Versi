@@ -43,6 +43,7 @@ import type {
   VsVisual,
   ZoneRect,
   ApiResponse,
+  ArchitecturalDetails,
 } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
@@ -480,6 +481,44 @@ export default function VisualWizard({
         }
       } catch {
         setError("État de la pièce non enregistré.");
+      }
+    },
+    [currentRoom]
+  );
+
+  // s32 (Thomas prod) — détails architecturaux pièce (4 champs).
+  // Optimistic update + PATCH /api/vs/rooms/:id (champ architectural_details).
+  // Pas de rollback explicite : en cas d'échec, le marchand voit un message
+  // d'erreur global et peut re-cliquer (la fréquence des erreurs PATCH est
+  // marginale comparée au coût d'un undo précis sur 4 champs imbriqués).
+  const handleArchitecturalDetailsChange = useCallback(
+    async (details: ArchitecturalDetails) => {
+      if (!currentRoom) return;
+      const previous = currentRoom.architectural_details;
+      setRoomsState((prev) =>
+        prev.map((r) =>
+          r.id === currentRoom.id ? { ...r, architectural_details: details } : r
+        )
+      );
+      try {
+        const res = await fetch(`/api/vs/rooms/${currentRoom.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ architectural_details: details }),
+        });
+        const json = (await res.json()) as ApiResponse<VsRoom>;
+        if (!json.success) {
+          setRoomsState((prev) =>
+            prev.map((r) =>
+              r.id === currentRoom.id
+                ? { ...r, architectural_details: previous }
+                : r
+            )
+          );
+          setError(json.error);
+        }
+      } catch {
+        setError("Les détails architecturaux n'ont pas pu être enregistrés.");
       }
     },
     [currentRoom]
@@ -1014,6 +1053,7 @@ export default function VisualWizard({
           onDeletePlacement={handleDeletePlacement}
           onStyleSelect={handleStyleSelect}
           onFurnishedChange={handleFurnishedChange}
+          onArchitecturalDetailsChange={handleArchitecturalDetailsChange}
           onCommentChange={handleCommentChange}
           comment={commentsByRoom.get(currentRoom.id) ?? null}
           targetVisualCount={targetCountByRoom.get(currentRoom.id) ?? 3}
