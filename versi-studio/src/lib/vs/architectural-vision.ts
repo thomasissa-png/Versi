@@ -57,6 +57,7 @@ function buildPrompt(): string {
 
 Réponds UNIQUEMENT avec un JSON valide selon ce schéma exact (aucun texte autour, aucun code fence) :
 {
+  "not_a_room": <true if image is NOT an interior room (exterior view, blurry, invalid, document, etc.) — else omit or false>,
   "floor": { "value": <one of ${JSON.stringify(opts.floor)} or null>, "confidence_word": "clearly"|"likely"|"maybe"|"uncertain" },
   "walls": { "value": <one of ${JSON.stringify(opts.walls)} or null>, "confidence_word": "clearly"|"likely"|"maybe"|"uncertain" },
   "lighting": { "value": <one of ${JSON.stringify(opts.lighting)} or null>, "confidence_word": "clearly"|"likely"|"maybe"|"uncertain" },
@@ -64,6 +65,9 @@ Réponds UNIQUEMENT avec un JSON valide selon ce schéma exact (aucun texte auto
 }
 
 Règles :
+- Si l'image NE montre PAS un intérieur de pièce (vue extérieure, photo floue, document, plan, capture invalide) :
+  retourne { "not_a_room": true, "floor": { "value": null, "confidence_word": "uncertain" }, "walls": { "value": null, "confidence_word": "uncertain" }, "lighting": { "value": null, "confidence_word": "uncertain" }, "specifics": [] }.
+  N'invente JAMAIS de valeurs si la photo n'est pas une pièce.
 - Choisis EXACTEMENT une valeur autorisée (ou null pour les champs simples si vraiment indéterminable).
 - Pour "specifics", retourne un tableau (peut être vide). Inclus uniquement les particularités visibles.
 - "clearly" = visible sans ambiguïté ; "likely" = forte probabilité ; "maybe" = hypothèse ; "uncertain" = très peu fiable.
@@ -77,6 +81,8 @@ interface ParsedField {
 }
 
 interface ParsedResponse {
+  /** s32 P0-2 — flag explicite si l'image n'est pas une pièce. */
+  not_a_room?: boolean;
   floor: ParsedField;
   walls: ParsedField;
   lighting: ParsedField;
@@ -204,6 +210,15 @@ export async function analyzePhotoForArchitecturalDetails(params: {
     if (!parsed) {
       console.warn("[architectural-vision] JSON invalide", {
         rawHead: raw.slice(0, 200),
+      });
+      return emptyArchitecturalDetails();
+    }
+
+    // s32 P0-2 — edge case "not a room" : si l'image n'est pas un intérieur,
+    // on retourne un détails vide sans tenter de parser (évite valeurs inventées).
+    if (parsed.not_a_room === true) {
+      console.warn("[architectural-vision] image flagged not_a_room", {
+        photoUrl,
       });
       return emptyArchitecturalDetails();
     }
