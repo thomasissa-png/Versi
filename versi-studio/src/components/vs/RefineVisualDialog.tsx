@@ -23,6 +23,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { ApiResponse } from "@/lib/vs/types";
 
+/**
+ * Sélecteur des éléments focusables internes au dialog (focus trap).
+ * Source : recommandations WAI-ARIA Authoring Practices Guide (APG) — pattern dialog.
+ */
+const FOCUSABLE_SELECTOR =
+  'button:not(:disabled), [href], textarea:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
 export interface RefineVisualDialogProps {
   /** ID du visuel parent à raffiner. */
   parentVisualId: string;
@@ -59,12 +66,61 @@ export default function RefineVisualDialog({
   const [error, setError] = useState<string | null>(null);
   const [pendingVisualId, setPendingVisualId] = useState<string | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
+  // B1 / B2 — refs focus management (autoFocus textarea + focus trap + restore)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   // Cleanup poll au démontage
   useEffect(() => {
     return () => {
       pollAbortRef.current?.abort();
     };
+  }, []);
+
+  // B1 — autofocus textarea à l'ouverture (WCAG 2.4.3 Focus Order)
+  // B2 — capture l'élément qui avait le focus pour restore au unmount
+  useEffect(() => {
+    previouslyFocusedRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // Délai 0 : laisse React monter le DOM avant de focus
+    const t = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      // Restore focus sur l'ouvreur du modal (pattern WAI-ARIA APG)
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, []);
+
+  // B2 — focus trap : Tab cycle dans le panneau (et reverse Shift+Tab)
+  useEffect(() => {
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleTab);
+    return () => window.removeEventListener("keydown", handleTab);
   }, []);
 
   // Escape pour fermer (uniquement si pas en cours de génération)
@@ -79,7 +135,7 @@ export default function RefineVisualDialog({
   const handleSubmit = useCallback(async () => {
     const trimmed = instruction.trim();
     if (!trimmed) {
-      setError("Veuillez décrire ce que vous souhaitez modifier.");
+      setError("Décrivez la modification souhaitée.");
       return;
     }
     if (trimmed.length > MAX_INSTRUCTION_LENGTH) {
@@ -128,7 +184,7 @@ export default function RefineVisualDialog({
           if (st === "failed") {
             setError(
               sJson.data.error_message ||
-                "La modification a échoué. Veuillez réessayer."
+                "La génération a échoué. Vérifiez votre connexion et réessayez."
             );
             setBusy(false);
             setPendingVisualId(null);
@@ -144,14 +200,18 @@ export default function RefineVisualDialog({
           setTimeout(poll, POLL_INTERVAL_MS);
         } catch (err) {
           if (ac.signal.aborted) return;
-          setError(err instanceof Error ? err.message : "Erreur réseau.");
+          setError(err instanceof Error ? err.message : "Erreur réseau — vérifiez votre connexion et réessayez.");
           setBusy(false);
           setPendingVisualId(null);
         }
       };
       void poll();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur réseau.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erreur réseau — vérifiez votre connexion et réessayez."
+      );
       setBusy(false);
     }
   }, [instruction, parentVisualId, onRefined]);
@@ -161,14 +221,18 @@ export default function RefineVisualDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="refine-dialog-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-md animate-in fade-in duration-200"
       onClick={(e) => {
         // Click sur backdrop ferme (sauf busy)
         if (e.target === e.currentTarget && !busy) onClose();
       }}
       data-testid="refine-visual-dialog"
     >
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-md bg-bg-card border border-border-default shadow-xl flex flex-col gap-md p-lg">
+      <div
+        ref={panelRef}
+        style={{ paddingBottom: "max(var(--app-spacing-lg, 1.5rem), env(safe-area-inset-bottom))" }}
+        className="relative w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-md bg-bg-card border border-border-default shadow-xl flex flex-col gap-md p-lg"
+      >
         <header className="flex flex-col gap-xs">
           <p className="text-xs uppercase tracking-widest text-text-muted">
             Affiner le visuel
@@ -180,7 +244,7 @@ export default function RefineVisualDialog({
             {roomName}
           </h3>
           <p className="text-sm text-text-muted">
-            Décrivez ce que vous souhaitez modifier — l&apos;IA générera une nouvelle version en gardant la cohérence avec le visuel actuel.
+            Décrivez ce que vous souhaitez changer — l&apos;IA produit une nouvelle version en conservant l&apos;ambiance du visuel.
           </p>
         </header>
 
@@ -207,6 +271,7 @@ export default function RefineVisualDialog({
             Que voulez-vous modifier ?
           </label>
           <textarea
+            ref={textareaRef}
             id="refine-instruction"
             value={instruction}
             onChange={(e) =>
@@ -228,12 +293,14 @@ export default function RefineVisualDialog({
         {busy && pendingVisualId && (
           <div
             className="flex items-center gap-sm rounded-md border border-info/40 bg-info/5 px-md py-sm"
-            role="status"
-            aria-live="polite"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+            data-testid="refine-busy-feedback"
           >
             <div className="inline-block w-4 h-4 border-2 border-info border-t-transparent rounded-full animate-spin shrink-0" />
             <p className="text-sm text-text-default">
-              Génération en cours... environ 30 secondes.
+              Génération en cours — comptez environ 30 secondes. Ne fermez pas cette fenêtre.
             </p>
           </div>
         )}
@@ -266,7 +333,7 @@ export default function RefineVisualDialog({
             data-testid="refine-submit"
             className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
           >
-            {busy ? "Génération..." : "Affiner"}
+            {busy ? "En cours..." : "Affiner"}
           </button>
         </div>
       </div>

@@ -140,8 +140,8 @@ export default function RoomPreviewView({
                         setRefineTarget({ visualId: v.visual_id, src })
                       }
                       data-testid={`room-preview-refine-${v.visual_id}`}
-                      aria-label={`Affiner le visuel ${isAnchor ? "principal" : "secondaire"}`}
-                      className="absolute bottom-xs right-xs inline-flex items-center gap-xs px-sm py-xs rounded-md bg-bg-card/95 border border-border-default text-xs font-medium text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary shadow-sm min-h-[36px]"
+                      aria-label="Affiner ce visuel"
+                      className="absolute bottom-xs right-xs inline-flex items-center gap-xs px-sm py-xs rounded-md bg-bg-card/95 border border-border-default text-xs font-medium text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary shadow-sm min-h-[44px]"
                     >
                       {/* Icône sparkles SVG inline (pas de dépendance) */}
                       <svg

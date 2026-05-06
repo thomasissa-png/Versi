@@ -141,6 +141,7 @@ export default function VisualWizardRoomStep({
   const [recentlyCreatedIds, setRecentlyCreatedIds] = useState<Set<string>>(new Set()); // B6
   const [errorPlacementIds, setErrorPlacementIds] = useState<Map<string, string>>(new Map()); // B10 — erreur par placement
   const [showMobileDragHint, setShowMobileDragHint] = useState<boolean>(false); // V3.1 D2 — hint drag mobile (1ère apparition)
+  const [showVertexDragHint, setShowVertexDragHint] = useState<boolean>(false); // C4 itér. — hint sommets blancs (1ère apparition desktop+mobile)
   // ─── s32 V3 — Drag direct contour (preview live, commit immédiat) ──
   /**
    * Offset visuel pendant le drag du contour (preview). Au pointer up, le
@@ -328,6 +329,44 @@ export default function VisualWizardRoomStep({
     }
   }, [showMobileDragHint]);
 
+  // C4 itér. — hint sommet drag (1ère apparition, desktop ET mobile).
+  // Pattern identique au hint mobile drag mais sans filtre coarse pointer.
+  // Affiché 5s, puis persistance via localStorage (clé `versi.vertexDragHintShown`).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const seen = window.localStorage.getItem("versi.vertexDragHintShown");
+      if (seen) return;
+      setShowVertexDragHint(true);
+      const timer = setTimeout(() => {
+        setShowVertexDragHint(false);
+        try {
+          window.localStorage.setItem("versi.vertexDragHintShown", "1");
+        } catch {
+          /* localStorage indisponible — best-effort */
+        }
+      }, 5000);
+      return () => {
+        setShowVertexDragHint(false);
+        clearTimeout(timer);
+      };
+    } catch {
+      // localStorage indisponible (mode privé Safari, etc.) → pas de hint.
+      return;
+    }
+  }, [room.id]);
+
+  // C4 itér. — au 1er commit de sommet, on consomme le hint définitivement.
+  const dismissVertexDragHint = useCallback(() => {
+    if (!showVertexDragHint) return;
+    setShowVertexDragHint(false);
+    try {
+      window.localStorage.setItem("versi.vertexDragHintShown", "1");
+    } catch {
+      /* localStorage indisponible — best-effort */
+    }
+  }, [showVertexDragHint]);
+
   // ─── s32 V3 — load segments à l'ouverture pièce ──────────────────
   useEffect(() => {
     let cancelled = false;
@@ -401,6 +440,8 @@ export default function VisualWizardRoomStep({
    */
   const handleVertexCommit = useCallback(
     async (newPolygon: Array<{ x_percent: number; y_percent: number }>) => {
+      // C4 itér. — au 1er commit, on masque le hint sommet définitivement.
+      dismissVertexDragHint();
       try {
         const res = await fetch(`/api/vs/rooms/${room.id}`, {
           method: "PATCH",
@@ -427,7 +468,7 @@ export default function VisualWizardRoomStep({
         console.error("[VisualWizardRoomStep] PATCH polygon vertex error:", err);
       }
     },
-    [room.id, onPolygonChange]
+    [room.id, onPolygonChange, dismissVertexDragHint]
   );
 
   // ─── s32 V3 — change type segment depuis le panel latéral ─────────
@@ -631,6 +672,19 @@ export default function VisualWizardRoomStep({
             >
               <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-interactive-primary/40 shadow-md">
                 Glissez le contour pour le recaler.
+              </p>
+            </div>
+          )}
+          {/* C4 itér. — hint sommet drag (1ère apparition desktop+mobile, auto-clear 5s) */}
+          {showVertexDragHint && !showMobileDragHint && (
+            <div
+              className="absolute top-md left-1/2 -translate-x-1/2 pointer-events-none animate-in fade-in duration-200"
+              role="status"
+              aria-live="polite"
+              data-testid="wizard-vertex-drag-hint"
+            >
+              <p className="text-xs text-text-default bg-bg-card/95 px-md py-xs rounded-md border border-interactive-primary/40 shadow-md">
+                Glissez un sommet blanc pour ajuster la forme du contour.
               </p>
             </div>
           )}
@@ -854,11 +908,8 @@ export default function VisualWizardRoomStep({
             id="room-target-count-title"
             className="text-sm uppercase tracking-wide font-semibold text-text-default"
           >
-            Nombre de visuels à générer
+            Visuels par pièce
           </h3>
-          <span className="text-xs text-text-muted">
-            Sélectionné : <span className="font-semibold text-text-default">{targetVisualCount}</span>
-          </span>
         </div>
         <p className="text-xs text-text-muted">
           Plus de visuels = plus de variations d&apos;angles et de cadrages pour le même style.
@@ -866,7 +917,7 @@ export default function VisualWizardRoomStep({
         <div
           role="radiogroup"
           aria-label="Nombre de visuels à générer pour cette pièce"
-          className="inline-flex rounded-md border border-border-default overflow-hidden self-start"
+          className="inline-flex rounded-md border border-border-default isolate self-start [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md"
         >
           {[1, 2, 3, 4, 5].map((n) => {
             const selected = targetVisualCount === n;
@@ -879,7 +930,7 @@ export default function VisualWizardRoomStep({
                 onClick={() => void onTargetVisualCountChange(n)}
                 data-testid={`wizard-target-count-${n}`}
                 className={[
-                  "min-h-[44px] min-w-[44px] px-md py-sm text-sm font-medium border-r last:border-r-0 border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                  "relative min-h-[44px] min-w-[44px] px-md py-sm text-sm font-medium border-r last:border-r-0 border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary focus-visible:z-10",
                   selected
                     ? "bg-interactive-primary text-text-inverse"
                     : "bg-bg-card text-text-default hover:bg-bg-default",
