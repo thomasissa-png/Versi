@@ -10,9 +10,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { VsLot } from "@/lib/vs/types";
+import type { VsLot, ArchitecturalProfile } from "@/lib/vs/types";
 import type { ExtractedRoom } from "@/lib/vs/schemas";
 import { getLotColor, computeZoneAreaM2, parseZone } from "@/lib/vs/types";
+import LotArchitecturalPanel from "@/components/vs/LotArchitecturalPanel";
 
 // ─── Types ────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ interface LotPanelProps {
   selectedLotId: string | null;
   onSelectLot: (lotId: string | null) => void;
   onRenameLot: (lotId: string, name: string) => void;
+  /** s32 — mise à jour profil architectural (5 champs marchand) */
+  onUpdateLotProfile?: (lotId: string, profile: ArchitecturalProfile) => void;
   onDeleteLot: (lotId: string) => void;
   onAddLot: () => void;
   onValidate: () => void;
@@ -299,6 +302,7 @@ export default function LotPanel({
   selectedLotId,
   onSelectLot,
   onRenameLot,
+  onUpdateLotProfile,
   onDeleteLot,
   onAddLot,
   onValidate,
@@ -406,6 +410,20 @@ export default function LotPanel({
           </div>
         )}
       </div>
+
+      {/* s32 — Profil architectural du lot sélectionné (5 champs marchand) */}
+      {selectedLotId && onUpdateLotProfile && (() => {
+        const selectedLot = lots.find((l) => l.id === selectedLotId);
+        if (!selectedLot) return null;
+        return (
+          <div className="mt-md">
+            <LotArchitecturalPanel
+              lot={selectedLot}
+              onChange={(profile) => onUpdateLotProfile(selectedLot.id, profile)}
+            />
+          </div>
+        );
+      })()}
 
       {/* I7 — Pièces non assignées : bloc supprimé s23 (spec @ux)
           Données préservées en DB et dans la prop `unassignedRooms` (réutilisable Étape 3). */}

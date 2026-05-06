@@ -28,6 +28,7 @@ import type {
   Zone,
   ZonePolygonPoint,
   ApiResponse,
+  ArchitecturalProfile,
 } from "@/lib/vs/types";
 import type { ExtractedRoom } from "@/lib/vs/schemas";
 import {
@@ -364,6 +365,37 @@ export default function LotsPage({
       setError("Le renommage n'a pas pu être enregistré. Réessayez ou rechargez la page.");
     }
   }, []);
+
+  // ─── s32 — Mettre à jour le profil architectural d'un lot ────
+  // Optimistic update + PATCH /api/vs/lots/[id]. Pas de snapshot historique
+  // (UX simple, granularité grossière des changements de pills).
+  const handleUpdateLotProfile = useCallback(
+    async (lotId: string, profile: ArchitecturalProfile) => {
+      setLots((prev) =>
+        prev.map((l) =>
+          l.id === lotId ? { ...l, architectural_profile: profile } : l
+        )
+      );
+      try {
+        const res = await fetch(`/api/vs/lots/${lotId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ architectural_profile: profile }),
+        });
+        const json = (await res.json()) as ApiResponse<VsLot>;
+        if (!json.success) {
+          setError(
+            "Le profil architectural n'a pas pu être enregistré. Réessayez ou rechargez la page."
+          );
+        }
+      } catch {
+        setError(
+          "Le profil architectural n'a pas pu être enregistré. Réessayez ou rechargez la page."
+        );
+      }
+    },
+    []
+  );
 
   // ─── Supprimer un lot ─────────────────────────────────────────
 
@@ -1124,6 +1156,7 @@ export default function LotsPage({
             selectedLotId={selectedLotId}
             onSelectLot={setSelectedLotId}
             onRenameLot={handleRenameLot}
+            onUpdateLotProfile={handleUpdateLotProfile}
             onDeleteLot={handleDeleteLot}
             onAddLot={handleAddLot}
             onValidate={handleValidate}
