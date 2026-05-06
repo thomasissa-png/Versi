@@ -23,7 +23,14 @@ import {
   useMemo,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { VsRoom, VsPhoto, ZoneRect } from "@/lib/vs/types";
+import type {
+  VsRoom,
+  VsPhoto,
+  ZoneRect,
+  VsRoomSegment,
+  VsRoomSegmentType,
+  ZonePolygonPoint,
+} from "@/lib/vs/types";
 import { polygonCentroid, pointInPolygon } from "@/lib/vs/types";
 import {
   computeRenderLayout,
@@ -33,6 +40,12 @@ import {
   type NormalizedPoint,
   type RenderLayout,
 } from "@/lib/vs/ui/photo-placement";
+import {
+  renderSegment,
+  renderAnnotatingFill,
+  findNearestSegment,
+  type ScreenPoint,
+} from "@/lib/vs/ui/segment-render";
 
 // ─── Props ────────────────────────────────────────────────────────
 
@@ -65,6 +78,30 @@ export interface RoomZoomCanvasProps {
   onPlacementMoveCommit?: (id: string, point: NormalizedPoint) => void;
   /** s32 itér.4 — notifie début/fin d'un drag move (id quand actif, null sinon). */
   onPlacementMoving?: (id: string | null) => void;
+  // ─── s32 (autopilot) Feature A — Ajustement contour ───────────────
+  /** Mode courant du canvas. Default 'normal'. */
+  mode?: "normal" | "adjusting" | "annotating";
+  /**
+   * Offset preview en cours pendant un drag adjusting. Le parent stocke
+   * l'offset committed (dans VsRoom) et passe ici l'offset visuel.
+   * Unité = lot-local % (-10 à +10). Null = pas de drag actif.
+   */
+  adjustingOffsetPreview?: { x: number; y: number } | null;
+  /** Drag visuel (sans commit) — appelé pendant le drag du polygone entier. */
+  onAdjustingDrag?: (offset: { x: number; y: number }) => void;
+  /** Drag terminé (mouseup) — commit l'offset final. */
+  onAdjustingCommit?: (offset: { x: number; y: number }) => void;
+  // ─── s32 (autopilot) Feature B — Annotations segments ─────────────
+  /** Segments persistés (un par arête du polygone). */
+  segments?: VsRoomSegment[];
+  /** Demande l'ouverture du popover pour annoter un segment. */
+  onSegmentClick?: (
+    segmentIndex: number,
+    /** Position écran (px relatif au container) pour positionner le popover. */
+    anchor: { x: number; y: number }
+  ) => void;
+  /** Index du segment dont le popover est ouvert (highlight permanent). */
+  activeSegmentIndex?: number | null;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -122,6 +159,13 @@ export default function RoomZoomCanvas({
   onPlacementDrag,
   onPlacementMoveCommit,
   onPlacementMoving,
+  mode = "normal",
+  adjustingOffsetPreview = null,
+  onAdjustingDrag,
+  onAdjustingCommit,
+  segments = [],
+  onSegmentClick,
+  activeSegmentIndex = null,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -141,6 +185,22 @@ export default function RoomZoomCanvas({
   // s32 #1 — seuil avant qu'un pointerdown sur pastille bascule de "select" à "drag move"
   const MOVE_DRAG_THRESHOLD_PX = 4;
   const moveDragArmedRef = useRef<{ id: string; downX: number; downY: number; offsetX: number; offsetY: number; startPoint: NormalizedPoint } | null>(null);
+
+  // ─── s32 (autopilot) Feature A — drag adjusting (translation polygone) ───
+  /**
+   * Drag actif en mode adjusting. On capture la position canvas du clic et
+   * l'offset committed au moment du downpress. Pendant le drag, on calcule
+   * delta canvas → delta lot-local % et on push via onAdjustingDrag.
+   */
+  const adjustingDragRef = useRef<{
+    startCanvasX: number;
+    startCanvasY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+  } | null>(null);
+
+  // ─── s32 (autopilot) Feature B — hover sur segment en mode annotating ───
+  const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
 
   // ─── Render layout (letterbox classique) ───────────────────────
   const renderLayout = useMemo<RenderLayout>(
@@ -254,6 +314,26 @@ export default function RoomZoomCanvas({
     setContainerSize({ width: rect.width, height: rect.height });
     return () => ro.disconnect();
   }, []);
+
+  // ─── s32 (autopilot — Feature A) — polygone EFFECTIF (avec offset) ─
+  // Le polygone DB n'est jamais muté ; on dérive un polygone "rendu" en
+  // appliquant l'offset committed (DB) + l'offset preview en cours.
+  const effectivePolygon = useMemo<ZonePolygonPoint[] | null>(() => {
+    if (!room.polygon || room.polygon.length < 3) return null;
+    const committedX = typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0;
+    const committedY = typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0;
+    const previewX = adjustingOffsetPreview?.x ?? 0;
+    const previewY = adjustingOffsetPreview?.y ?? 0;
+    // Si on est en train de drag, le preview REMPLACE le committed (pour un
+    // feedback immédiat). Sinon on applique le committed.
+    const totalX = adjustingOffsetPreview ? previewX : committedX;
+    const totalY = adjustingOffsetPreview ? previewY : committedY;
+    if (totalX === 0 && totalY === 0) return room.polygon;
+    return room.polygon.map((p) => ({
+      x_percent: Math.max(0, Math.min(100, p.x_percent + totalX)),
+      y_percent: Math.max(0, Math.min(100, p.y_percent + totalY)),
+    }));
+  }, [room.polygon, room.polygon_offset_x, room.polygon_offset_y, adjustingOffsetPreview]);
 
   // ─── Helpers projection ────────────────────────────────────────
   const projectLotPct = useCallback(
@@ -377,16 +457,16 @@ export default function RoomZoomCanvas({
     }
 
     // Layer 2 : overlay atténuant tout SAUF le polygone (clip inverse simulé)
-    if (room.polygon && room.polygon.length >= 3) {
+    if (effectivePolygon && effectivePolygon.length >= 3) {
       ctx.save();
       ctx.fillStyle = COLOR_DIM_OUTSIDE;
       ctx.beginPath();
       // Rectangle plein canvas
       ctx.rect(0, 0, w, h);
       // Trou polygone (winding inverse)
-      const last = room.polygon.length - 1;
+      const last = effectivePolygon.length - 1;
       for (let i = last; i >= 0; i--) {
-        const pt = room.polygon[i];
+        const pt = effectivePolygon[i];
         const { x, y } = projectLotPct(pt.x_percent, pt.y_percent);
         if (i === last) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -396,25 +476,63 @@ export default function RoomZoomCanvas({
       ctx.restore();
     }
 
-    // Layer 3 : polygone pièce (fill + border)
-    if (room.polygon && room.polygon.length >= 3) {
+    // Layer 3 : polygone pièce (fill + segments typés)
+    if (effectivePolygon && effectivePolygon.length >= 3) {
       const inHover = hover?.inPolygon ?? false;
-      ctx.beginPath();
-      for (let i = 0; i < room.polygon.length; i++) {
-        const pt = room.polygon[i];
-        const { x, y } = projectLotPct(pt.x_percent, pt.y_percent);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      // Calcule les sommets projetés une fois pour fill + segments + label
+      const verticesScreen: ScreenPoint[] = effectivePolygon.map((pt) =>
+        projectLotPct(pt.x_percent, pt.y_percent)
+      );
+
+      // Fill (utilise highlight bleu en mode annotating, sinon fill standard)
+      if (mode === "annotating") {
+        renderAnnotatingFill(ctx, verticesScreen);
+      } else {
+        ctx.beginPath();
+        for (let i = 0; i < verticesScreen.length; i++) {
+          const v = verticesScreen[i];
+          if (i === 0) ctx.moveTo(v.x, v.y);
+          else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = inHover ? COLOR_POLY_FILL_HOVER : COLOR_POLY_FILL;
+        ctx.fill();
       }
-      ctx.closePath();
-      ctx.fillStyle = inHover ? COLOR_POLY_FILL_HOVER : COLOR_POLY_FILL;
-      ctx.fill();
-      ctx.strokeStyle = COLOR_POLY_BORDER;
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
+
+      // s32 (Feature B) — rendu typé par segment (un type par arête).
+      // En mode adjusting, on conserve la bordure simple bleue (clarté drag).
+      if (mode === "adjusting") {
+        ctx.beginPath();
+        for (let i = 0; i < verticesScreen.length; i++) {
+          const v = verticesScreen[i];
+          if (i === 0) ctx.moveTo(v.x, v.y);
+          else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = COLOR_POLY_BORDER;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        // Map segments par index pour lookup O(1)
+        const segByIndex = new Map<number, VsRoomSegmentType>();
+        for (const s of segments) {
+          segByIndex.set(s.segment_index, s.type);
+        }
+        for (let i = 0; i < verticesScreen.length; i++) {
+          const a = verticesScreen[i];
+          const b = verticesScreen[(i + 1) % verticesScreen.length];
+          const type: VsRoomSegmentType = segByIndex.get(i) ?? "wall";
+          const highlight =
+            mode === "annotating" &&
+            (i === activeSegmentIndex || i === hoveredSegmentIndex);
+          renderSegment(ctx, a, b, type, highlight);
+        }
+      }
 
       // Label pièce centroïde (haut)
-      const c = polygonCentroid(room.polygon);
+      const c = polygonCentroid(effectivePolygon);
       const { x: cx, y: cy } = projectLotPct(c.x_percent, c.y_percent);
       ctx.fillStyle = "#141C28";
       ctx.font = "600 13px system-ui, -apple-system, sans-serif";
@@ -520,11 +638,39 @@ export default function RoomZoomCanvas({
     lotZone,
     dragPreviewAngle,
     movePreviewPoint,
+    effectivePolygon,
+    mode,
+    segments,
+    activeSegmentIndex,
+    hoveredSegmentIndex,
   ]);
 
   useEffect(() => {
     draw();
   }, [draw, imageLoaded]);
+
+  // ─── s32 Feature A — helpers projection vertices (pour adjusting drag) ─
+  // Convertit un delta pixel canvas en delta lot-local %. La conversion passe
+  // par le viewport (échelle zoom) et la lotZone (ratio plan ↔ lot).
+  const canvasDeltaToLotPct = useCallback(
+    (dxPx: number, dyPx: number): { x: number; y: number } => {
+      // Le polygone est exprimé en % lot-local (0-100). Pour passer un delta px
+      // canvas → delta lot %, il faut connaître la dimension PIXEL d'un % lot
+      // sur le canvas. En reprojetant 0 et 100 lot-local-% (toutes 100 pour x)
+      // on obtient la largeur écran du lot (≈ renderW * lotZone.w% / 100 *
+      // viewport.scale). Plus simple : appeler projectLotPct deux fois.
+      const a = projectLotPct(0, 0);
+      const b = projectLotPct(100, 100);
+      const lotWidthPx = Math.abs(b.x - a.x);
+      const lotHeightPx = Math.abs(b.y - a.y);
+      if (lotWidthPx === 0 || lotHeightPx === 0) return { x: 0, y: 0 };
+      return {
+        x: (dxPx / lotWidthPx) * 100,
+        y: (dyPx / lotHeightPx) * 100,
+      };
+    },
+    [projectLotPct]
+  );
 
   // ─── Pointer events ────────────────────────────────────────────
   const handlePointerDown = useCallback(
@@ -532,6 +678,39 @@ export default function RoomZoomCanvas({
       if (isCommitting) return;
       if (e.button !== 0) return;
       const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+
+      // ─── Mode adjusting : drag du polygone entier ─────────────
+      if (mode === "adjusting") {
+        // Drag autorisé partout dans le canvas. On enregistre la position
+        // initiale du clic + l'offset committed pour calculer les deltas.
+        e.currentTarget.setPointerCapture(e.pointerId);
+        adjustingDragRef.current = {
+          startCanvasX: x,
+          startCanvasY: y,
+          startOffsetX:
+            typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0,
+          startOffsetY:
+            typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0,
+        };
+        return;
+      }
+
+      // ─── Mode annotating : clic sur segment → ouvre popover ───
+      if (mode === "annotating") {
+        if (!effectivePolygon || effectivePolygon.length < 3) return;
+        const vertices: ScreenPoint[] = effectivePolygon.map((pt) =>
+          projectLotPct(pt.x_percent, pt.y_percent)
+        );
+        const hitSeg = findNearestSegment(x, y, vertices, 16);
+        if (hitSeg) {
+          onSegmentClick?.(hitSeg.segmentIndex, {
+            x: hitSeg.closest.x,
+            y: hitSeg.closest.y,
+          });
+        }
+        return;
+      }
+
       const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
       const hit = findPlacementHandle(x, y, ptype);
       if (hit && hit.isHandle) {
@@ -590,18 +769,51 @@ export default function RoomZoomCanvas({
       placements,
       screenToLotPoint,
       room.polygon,
+      room.polygon_offset_x,
+      room.polygon_offset_y,
       renderLayout,
       viewport,
       lotZone,
       onPlaceClick,
       onSelectPlacement,
       onClickOutsidePolygon,
+      mode,
+      effectivePolygon,
+      projectLotPct,
+      onSegmentClick,
     ]
   );
 
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLCanvasElement>) => {
       const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+
+      // ─── Mode adjusting : drag du polygone entier ─────────────
+      if (mode === "adjusting" && adjustingDragRef.current) {
+        const start = adjustingDragRef.current;
+        const dxPx = x - start.startCanvasX;
+        const dyPx = y - start.startCanvasY;
+        const delta = canvasDeltaToLotPct(dxPx, dyPx);
+        const newOffsetX = Math.max(-10, Math.min(10, start.startOffsetX + delta.x));
+        const newOffsetY = Math.max(-10, Math.min(10, start.startOffsetY + delta.y));
+        onAdjustingDrag?.({ x: newOffsetX, y: newOffsetY });
+        return;
+      }
+
+      // ─── Mode annotating : hover sur segment ──────────────────
+      if (mode === "annotating") {
+        if (!effectivePolygon || effectivePolygon.length < 3) {
+          setHoveredSegmentIndex(null);
+          return;
+        }
+        const vertices: ScreenPoint[] = effectivePolygon.map((pt) =>
+          projectLotPct(pt.x_percent, pt.y_percent)
+        );
+        const hitSeg = findNearestSegment(x, y, vertices, 16);
+        setHoveredSegmentIndex(hitSeg ? hitSeg.segmentIndex : null);
+        return;
+      }
+
       // Drag flèche en cours
       if (dragRef.current) {
         // Calculer angle vs centre pastille
@@ -688,11 +900,36 @@ export default function RoomZoomCanvas({
       onAngleDrag,
       onPlacementDrag,
       findPlacementHandle,
+      mode,
+      effectivePolygon,
+      projectLotPct,
+      canvasDeltaToLotPct,
+      onAdjustingDrag,
+      onPlacementMoving,
     ]
   );
 
   const handlePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLCanvasElement>) => {
+      // ─── Mode adjusting : commit final ────────────────────────
+      if (mode === "adjusting" && adjustingDragRef.current) {
+        const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+        const start = adjustingDragRef.current;
+        const dxPx = x - start.startCanvasX;
+        const dyPx = y - start.startCanvasY;
+        const delta = canvasDeltaToLotPct(dxPx, dyPx);
+        const newOffsetX = Math.max(-10, Math.min(10, start.startOffsetX + delta.x));
+        const newOffsetY = Math.max(-10, Math.min(10, start.startOffsetY + delta.y));
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* déjà relâché */
+        }
+        adjustingDragRef.current = null;
+        onAdjustingCommit?.({ x: newOffsetX, y: newOffsetY });
+        return;
+      }
+
       if (dragRef.current) {
         const id = dragRef.current.placementId;
         const angle = dragPreviewAngle ?? dragRef.current.startAngle;
@@ -733,7 +970,17 @@ export default function RoomZoomCanvas({
         moveDragArmedRef.current = null;
       }
     },
-    [dragPreviewAngle, movePreviewPoint, onAngleCommit, onPlacementMoveCommit, onPlacementMoving]
+    [
+      dragPreviewAngle,
+      movePreviewPoint,
+      onAngleCommit,
+      onPlacementMoveCommit,
+      onPlacementMoving,
+      mode,
+      getCanvasCoords,
+      canvasDeltaToLotPct,
+      onAdjustingCommit,
+    ]
   );
 
   // s32 itér.4 (A1) — pointercancel : rollback (jamais commit).
@@ -763,16 +1010,34 @@ export default function RoomZoomCanvas({
       if (moveDragArmedRef.current) {
         moveDragArmedRef.current = null;
       }
+      // s32 (Feature A) — drag adjusting annulé → rollback (pas de commit).
+      if (adjustingDragRef.current) {
+        adjustingDragRef.current = null;
+        // Le parent revient au committed quand adjustingOffsetPreview = null.
+        onAdjustingDrag?.({
+          x: typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0,
+          y: typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0,
+        });
+      }
     },
-    [onPlacementMoving]
+    [onPlacementMoving, room.polygon_offset_x, room.polygon_offset_y, onAdjustingDrag]
   );
 
   // dragPreviewAngle est un state mis à jour à chaque drag move → utilisé comme
   // proxy pour "drag actif" (refs ne peuvent pas être lus pendant le render).
   const isDraggingAngle = dragPreviewAngle !== null;
   const isDraggingMove = movePreviewPoint !== null;
+  const isDraggingAdjusting = adjustingOffsetPreview !== null;
   const cursorClass = isCommitting
     ? "cursor-wait"
+    : mode === "adjusting"
+    ? isDraggingAdjusting
+      ? "cursor-grabbing"
+      : "cursor-grab"
+    : mode === "annotating"
+    ? hoveredSegmentIndex !== null
+      ? "cursor-pointer"
+      : "cursor-default"
     : isDraggingAngle || isDraggingMove
     ? "cursor-grabbing"
     : hoverHandleId || hoverDotId
