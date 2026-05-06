@@ -17,16 +17,21 @@ de la branche s29 — elles ne sont PAS automatisées par CI.
 2. Sans `output: "standalone"` Next.js, l'image Cloud Run dépasse plusieurs
    centaines de Mo (sharp + heic-convert + tesseract.js + pdfjs-dist + openai)
    → timeout au boot ou OOM.
-3. Le standalone Next.js en monorepo génère `.next/standalone/versi-studio/server.js`
-   (pas `.next/standalone/server.js`) — un `start:standalone` mal pathé crash
-   immédiatement avec `MODULE_NOT_FOUND`.
+3. Le standalone Next.js en monorepo place `server.js` dans un sous-dossier qui
+   DIFFÈRE entre environnements selon la racine git/lockfile détectée :
+   - Local (`versi-studio/`) → `.next/standalone/versi-studio/server.js`
+   - Replit (sous-dossier `src/`) → `.next/standalone/server.js` à la racine
+   Un hardcode du path crash l'autre environnement avec `MODULE_NOT_FOUND`.
 
-**Fix livré (commit s32 deploy)** :
+**Fix livré (commit s32 deploy + s32 hotfix path dynamique)** :
 - `next.config.ts` : ajout `output: "standalone"` (image compacte ~50-80 Mo)
 - `package.json` : `build` enchaîne `next build` puis `scripts/copy-standalone-assets.mjs`
   (copie `.next/static` et `public/` dans le standalone, indispensable sinon 404 sur les chunks JS)
-- `package.json` : `start` lance désormais le standalone server depuis le bon path
-  monorepo (`.next/standalone/versi-studio/server.js`) avec `HOSTNAME=0.0.0.0`
+- `scripts/copy-standalone-assets.mjs` : détection DYNAMIQUE du path standalone
+  (server.js à la racine OU dans premier sous-dossier qui le contient)
+- `scripts/start-standalone.mjs` : nouveau lanceur qui détecte dynamiquement
+  le chemin de `server.js` puis spawn `node` avec `HOSTNAME=0.0.0.0`
+- `package.json` : `start` = `node scripts/start-standalone.mjs` (plus de hardcode)
 - `versi-studio/.replit` créé : config Replit dédiée à recopier dans le Deployment
   Replit Versi Studio (Replit dashboard → Deployment → settings) si pas de `.replit`
   natif au sous-projet
@@ -38,7 +43,9 @@ de la branche s29 — elles ne sont PAS automatisées par CI.
 3. Reconfigurer build/run du Deployment depuis le dashboard avec ces commandes
    (équivalent du `versi-studio/.replit`) :
    - **Build** : `cd versi-studio && npm install && npm run build`
-   - **Run** : `cd versi-studio && HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js`
+   - **Run** : `cd versi-studio && npm start`
+     (`npm start` lance `scripts/start-standalone.mjs` qui détecte dynamiquement
+     le path de `server.js` — fonctionne local ET Replit sans modification)
 4. Re-déployer (Stop puis Run)
 5. Vérifier `/api/health` répond `{ status: "healthy" }`
 

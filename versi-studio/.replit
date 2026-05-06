@@ -36,8 +36,11 @@ build = ["sh", "-c", "npm install && npm run build"]
 
 # Run : standalone server (image compacte, ~50-80 Mo vs ~500 Mo bundle complet
 # avec sharp + heic-convert + tesseract.js + pdfjs-dist + openai).
-# Path versi-studio/ car Next.js préserve la structure monorepo dans standalone.
-run = ["sh", "-c", "HOSTNAME=0.0.0.0 PORT=${PORT:-5000} node .next/standalone/versi-studio/server.js"]
+# `npm start` lance scripts/start-standalone.mjs qui détecte dynamiquement
+# le path de server.js (racine `.next/standalone/` sur Replit, sous-dossier
+# `.next/standalone/versi-studio/` en local — Next.js change le path selon
+# la racine git/lockfile détectée, on ne peut pas hardcoder).
+run = ["sh", "-c", "npm start"]
 
 # Variables d'environnement OBLIGATOIRES (à configurer dans Replit Secrets,
 # JAMAIS en dur dans ce fichier) :

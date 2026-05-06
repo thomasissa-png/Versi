@@ -7,37 +7,57 @@
  *  - `.next/static/` (chunks JS/CSS hashés référencés par les pages)
  *  - `public/` (images, favicons, fichiers servis directement)
  *
- * En monorepo (versi-studio est un sous-dossier du repo Versi), Next.js
- * place le serveur dans `.next/standalone/versi-studio/server.js`.
- * On copie donc :
- *   .next/static  →  .next/standalone/versi-studio/.next/static
- *   public        →  .next/standalone/versi-studio/public
- *
- * Sans cette copie, le déploiement Replit boote mais sert 404 sur tous les
- * chunks JS, et next/image crash sur les fichiers de `public/`.
+ * DÉTECTION DYNAMIQUE DU SUBDIR (s32 fix) :
+ * Next.js standalone monorepo place le serveur soit :
+ *  - directement à `.next/standalone/server.js` (cas Replit, sous-dossier `src/`)
+ *  - dans un sous-dossier `.next/standalone/<projectName>/server.js` (cas monorepo local)
+ * Le nom du subdir varie selon la racine git/lockfile détectée. On détecte donc
+ * dynamiquement où se trouve `server.js` au lieu de hardcoder `versi-studio/`.
  *
  * Pattern documenté Next.js :
  * https://nextjs.org/docs/app/api-reference/config/next-config-js/output#automatically-copying-traced-files
  */
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-
-// En monorepo, le standalone server est dans .next/standalone/versi-studio/
-// Détection automatique : on cherche server.js récursivement dans .next/standalone
 const STANDALONE_ROOT = join(ROOT, ".next", "standalone");
-const STANDALONE_APP = join(STANDALONE_ROOT, "versi-studio"); // monorepo path
 
-if (!existsSync(STANDALONE_APP)) {
+function detectStandaloneApp() {
+  // Cas 1 : server.js directement à la racine du standalone (Replit / app au top)
+  if (existsSync(join(STANDALONE_ROOT, "server.js"))) {
+    return STANDALONE_ROOT;
+  }
+  // Cas 2 : monorepo — chercher le premier sous-dossier contenant server.js
+  if (!existsSync(STANDALONE_ROOT)) {
+    return null;
+  }
+  const entries = readdirSync(STANDALONE_ROOT, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const candidate = join(STANDALONE_ROOT, entry.name);
+      if (existsSync(join(candidate, "server.js"))) {
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+const STANDALONE_APP = detectStandaloneApp();
+
+if (!STANDALONE_APP) {
   console.error(
-    `[copy-standalone-assets] ERREUR : ${STANDALONE_APP} introuvable. ` +
-      `Le build standalone a-t-il bien tourné ? Vérifier next.config.ts (output: "standalone").`,
+    `[copy-standalone-assets] ERREUR : aucun server.js trouvé dans ${STANDALONE_ROOT} ` +
+      `(ni à la racine, ni dans un sous-dossier). Le build standalone a-t-il bien tourné ? ` +
+      `Vérifier next.config.ts (output: "standalone").`,
   );
   process.exit(1);
 }
+
+console.log(`[copy-standalone-assets] standalone app détecté : ${STANDALONE_APP}`);
 
 const STATIC_SRC = join(ROOT, ".next", "static");
 const STATIC_DST = join(STANDALONE_APP, ".next", "static");
