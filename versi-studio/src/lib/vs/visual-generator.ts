@@ -472,6 +472,7 @@ export function buildArchitecturalBrief(
     }
 
     // Specifics : ignorer "Aucune"
+    // s32 P1-4 — tag "(low confidence)" sur source='vision' && confidence < 0.7
     const specifics = (details.specifics ?? [])
       .filter((s) => s.value && s.value !== "Aucune")
       .map((s) => {
@@ -482,10 +483,58 @@ export function buildArchitecturalBrief(
           Mansardé: "sloped attic ceiling",
         };
         const v = map[s.value!] ?? s.value!.toLowerCase();
-        return v;
+        const lowConf =
+          s.source === "vision" &&
+          typeof s.confidence === "number" &&
+          s.confidence < 0.7;
+        return lowConf ? `${v} (visually identified, low confidence)` : v;
       });
     if (specifics.length > 0) {
       lines.push(`- Room features: ${specifics.join(", ")}`);
+    }
+
+    // s32 P0-1 — Niveau de prestation par pièce (single-select)
+    // Mapping eco/standard/premium → libellé EN explicite pour gpt-image-2.
+    if (details.level?.value) {
+      const levelMap: Record<string, string> = {
+        eco: "budget-friendly quality level",
+        standard: "standard quality level",
+        premium: "premium quality level",
+      };
+      const v =
+        levelMap[details.level.value] ??
+        `quality level: ${details.level.value}`;
+      const tag =
+        details.level.source === "user"
+          ? " (dealer-confirmed)"
+          : details.level.source === "vision"
+          ? " (visually identified)"
+          : "";
+      lines.push(`- Quality level: ${v}${tag}`);
+    }
+
+    // s32 P0-1 — Contraintes techniques (multi-select, immuables)
+    // Mapping clé stable → directive EN claire pour gpt-image-2.
+    const constraints = (details.technical_constraints ?? [])
+      .filter((c) => c.value)
+      .map((c) => {
+        const map: Record<string, string> = {
+          duct_immovable: "fixed ductwork that cannot be relocated",
+          beam_preserved: "preserved structural beam",
+          window_sealed: "sealed window opening (do not reopen)",
+          other: "other technical constraint",
+        };
+        const v = map[c.value!] ?? c.value!.toLowerCase();
+        const tag =
+          c.source === "user"
+            ? " (dealer-confirmed)"
+            : c.source === "vision"
+            ? " (visually identified)"
+            : "";
+        return `${v}${tag}`;
+      });
+    if (constraints.length > 0) {
+      lines.push(`- Technical constraints (immutable, must be preserved): ${constraints.join(", ")}`);
     }
   }
 
