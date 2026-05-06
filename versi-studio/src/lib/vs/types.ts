@@ -74,7 +74,59 @@ export interface VsLot {
   confidence_avg: number | null;
   /** s32 — profil architectural marchand (saisie Étape 2 panneau latéral). */
   architectural_profile?: ArchitecturalProfile;
+  /** s32 (Phase 9) — mémoire opération chat architecte (style, public, budget,
+   *  notes transversales). Persistée entre pièces du même lot. */
+  operation_chat_context?: OperationChatContext;
   created_at: string;
+}
+
+// ─── s32 (Phase 9) — Architecte conversationnel ───────────────────
+
+/** s32 (Phase 9) — message d'un transcript chat architecte par pièce.
+ *  Structure inspirée OpenAI chat completions, étendue avec :
+ *   - `suggestions[]` : 3-4 réponses suggérées dynamiques (tool ask_question)
+ *   - `tool_call`     : trace de l'appel outil par l'IA (debugging) */
+export interface ChatMessage {
+  role: "assistant" | "user" | "system" | "tool";
+  content: string;
+  /** Suggestions cliquables dynamiques (uniquement role=assistant + tool=ask_question). */
+  suggestions?: string[];
+  /** Trace de l'appel outil (assistant uniquement). result optionnel pour
+   *  les tools sans retour direct (ex: validate_brief signal pur). */
+  tool_call?: {
+    name: string;
+    args: Record<string, unknown>;
+    result?: string;
+  };
+  /** ISO timestamp de l'émission. */
+  timestamp: string;
+}
+
+/** s32 (Phase 9) — mémoire opération partagée par lot.
+ *  Stockée dans `vs_lots.operation_chat_context`. Pièce 2+ peut référer
+ *  aux décisions pièce 1 (ex: « Je retiens [scandinave premium] »). */
+export interface OperationChatContext {
+  /** Style décoratif global (ex: "scandinave", "industriel chic"). */
+  style?: string;
+  /** Public cible global (ex: "famille avec 2 enfants"). */
+  target_audience?: string;
+  /** Budget global indicatif (ex: "premium", "luxe contenu"). */
+  budget_estimate?: string;
+  /** Notes transversales sur l'opération (cohérence multi-pièces). */
+  custom_notes?: string[];
+}
+
+/** s32 (Phase 9) — vue persistée d'un transcript chat pièce.
+ *  Mappe la table `vs_room_chats` (1 ligne par pièce, UNIQUE room_id). */
+export interface RoomChatTranscript {
+  room_id: string;
+  transcript: ChatMessage[];
+  /** Signal LLM `validate_brief` reçu → bouton Générer passe en vert. */
+  brief_validated: boolean;
+  /** Infos hors-pills capturées via tool record_extra_context (clé→valeur).
+   *  Ex: { "cloison_amovible": "mur Sud, démontable", "cheminée": "déco seulement" }
+   *  Injectées dans le prompt de génération (Phase 7). */
+  extra_context: Record<string, string>;
 }
 
 // ─── s32 — Architectural Brief (saisie marchand + Vision) ──────────

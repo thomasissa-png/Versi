@@ -205,6 +205,10 @@ export async function ensureVsTables(): Promise<void> {
     ALTER TABLE vs_lots
       ADD COLUMN IF NOT EXISTS architectural_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
 
+    -- S32 (migration 013) : mémoire opération chat architecte (lot-level)
+    ALTER TABLE vs_lots
+      ADD COLUMN IF NOT EXISTS operation_chat_context JSONB NOT NULL DEFAULT '{}'::jsonb;
+
     CREATE TABLE IF NOT EXISTS vs_rooms (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       lot_id UUID NOT NULL REFERENCES vs_lots(id) ON DELETE CASCADE,
@@ -400,6 +404,29 @@ export async function ensureVsTables(): Promise<void> {
     CREATE TRIGGER trg_vs_visual_jobs_updated_at
       BEFORE UPDATE ON vs_visual_jobs
       FOR EACH ROW EXECUTE FUNCTION vs_visual_jobs_set_updated_at();
+
+    -- ─── Migration s32 (013) — Architecte conversationnel ──────────
+    -- Transcript chat par pièce + flag validate_brief + extra_context.
+    CREATE TABLE IF NOT EXISTS vs_room_chats (
+      id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+      room_id         UUID         NOT NULL REFERENCES vs_rooms(id) ON DELETE CASCADE,
+      transcript      JSONB        NOT NULL DEFAULT '[]'::jsonb,
+      brief_validated BOOLEAN      NOT NULL DEFAULT FALSE,
+      extra_context   JSONB        NOT NULL DEFAULT '{}'::jsonb,
+      created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      UNIQUE (room_id)
+    );
+    CREATE INDEX IF NOT EXISTS vs_room_chats_room_idx
+      ON vs_room_chats(room_id);
+    CREATE OR REPLACE FUNCTION vs_room_chats_set_updated_at()
+    RETURNS TRIGGER AS $vs_rc_upd$
+    BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+    $vs_rc_upd$ LANGUAGE plpgsql;
+    DROP TRIGGER IF EXISTS trg_vs_room_chats_updated_at ON vs_room_chats;
+    CREATE TRIGGER trg_vs_room_chats_updated_at
+      BEFORE UPDATE ON vs_room_chats
+      FOR EACH ROW EXECUTE FUNCTION vs_room_chats_set_updated_at();
   `;
 
   try {
