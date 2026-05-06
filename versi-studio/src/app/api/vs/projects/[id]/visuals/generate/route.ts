@@ -108,7 +108,7 @@ export async function POST(
     }
 
     // Compter le nombre de visuels attendus.
-    // BUG P0 fix s32 (Thomas prod) : `COALESCE(rs.target_visual_count, 1)` au
+    // BUG P0 fix s32 (Thomas prod) : `COALESCE(rs.target_visual_count, 3)` au
     // lieu de 0 pour considérer "settings absente = pièce active par défaut"
     // (cohérent avec le default DB DEFAULT 1 de vs_room_settings et avec
     // settings/route.ts:54 + ambiguity-detector.ts:287). Avant le fix, une
@@ -118,12 +118,12 @@ export async function POST(
     const sumResult = roomIdsFilter
       ? await query<{ total: string }>(
           `
-          SELECT COALESCE(SUM(COALESCE(rs.target_visual_count, 1)), 0)::TEXT AS total
+          SELECT COALESCE(SUM(COALESCE(rs.target_visual_count, 3)), 0)::TEXT AS total
             FROM vs_rooms r
             JOIN vs_lots l ON l.id = r.lot_id
             LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
            WHERE l.project_id = $1
-             AND COALESCE(rs.target_visual_count, 1) > 0
+             AND COALESCE(rs.target_visual_count, 3) > 0
              AND COALESCE(r.status, 'suggested') <> 'skipped'
              AND r.id = ANY($2::uuid[])
           `,
@@ -131,12 +131,12 @@ export async function POST(
         )
       : await query<{ total: string }>(
           `
-          SELECT COALESCE(SUM(COALESCE(rs.target_visual_count, 1)), 0)::TEXT AS total
+          SELECT COALESCE(SUM(COALESCE(rs.target_visual_count, 3)), 0)::TEXT AS total
             FROM vs_rooms r
             JOIN vs_lots l ON l.id = r.lot_id
             LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
            WHERE l.project_id = $1
-             AND COALESCE(rs.target_visual_count, 1) > 0
+             AND COALESCE(rs.target_visual_count, 3) > 0
              AND COALESCE(r.status, 'suggested') <> 'skipped'
           `,
           [projectId]

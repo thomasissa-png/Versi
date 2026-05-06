@@ -284,7 +284,7 @@ export async function detectAmbiguities(
       r.custom_label,
       r.surface_m2::FLOAT AS surface_m2,
       rs.comment_text,
-      COALESCE(rs.target_visual_count, 1) AS target_visual_count,
+      COALESCE(rs.target_visual_count, 3) AS target_visual_count,
       (SELECT COUNT(*)::INT FROM vs_photos p
          WHERE p.room_id = r.id AND p.is_placed_on_plan = true) AS photo_count
     FROM vs_rooms r

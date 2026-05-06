@@ -69,6 +69,10 @@ export interface VisualWizardRoomStepProps {
   onCommentChange: (comment: string) => Promise<void>;
   /** s32 #3 (autopilot) — commentaire courant (lu depuis vs_room_settings côté parent). */
   comment: string | null;
+  /** s32 #P3 (Thomas prod) — nb visuels souhaités pour cette pièce (1-5, default 3). */
+  targetVisualCount: number;
+  /** s32 #P3 (Thomas prod) — handler PATCH /settings (optimistic). */
+  onTargetVisualCountChange: (count: number) => Promise<void>;
   /** s32 #5 (autopilot) — skip pièce (pas de visuels). */
   onSkipRoom: () => Promise<void>;
   /** s32 #4 (autopilot) — génère uniquement cette pièce (preview puis next). */
@@ -106,6 +110,8 @@ export default function VisualWizardRoomStep({
   onFurnishedChange,
   onCommentChange,
   comment,
+  targetVisualCount,
+  onTargetVisualCountChange,
   onSkipRoom,
   onGenerateThisRoom,
   onPrevRoom,
@@ -786,6 +792,54 @@ export default function VisualWizardRoomStep({
           selectedStyleId={styleId}
           onSelect={onStyleSelect}
         />
+      </section>
+
+      {/* s32 #P3 (Thomas prod) — Nombre de visuels par pièce (pills 1-5, default 3) */}
+      <section
+        aria-labelledby="room-target-count-title"
+        className="rounded-md border border-border-default bg-bg-card p-md flex flex-col gap-sm"
+      >
+        <div className="flex items-baseline justify-between gap-sm">
+          <h3
+            id="room-target-count-title"
+            className="text-sm uppercase tracking-wide font-semibold text-text-default"
+          >
+            Nombre de visuels à générer
+          </h3>
+          <span className="text-xs text-text-muted">
+            Sélectionné : <span className="font-semibold text-text-default">{targetVisualCount}</span>
+          </span>
+        </div>
+        <p className="text-xs text-text-muted">
+          Plus de visuels = plus de variations d&apos;angles et de cadrages pour le même style.
+        </p>
+        <div
+          role="radiogroup"
+          aria-label="Nombre de visuels à générer pour cette pièce"
+          className="inline-flex rounded-md border border-border-default overflow-hidden self-start"
+        >
+          {[1, 2, 3, 4, 5].map((n) => {
+            const selected = targetVisualCount === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => void onTargetVisualCountChange(n)}
+                data-testid={`wizard-target-count-${n}`}
+                className={[
+                  "min-h-[44px] min-w-[44px] px-md py-sm text-sm font-medium border-r last:border-r-0 border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary",
+                  selected
+                    ? "bg-interactive-primary text-text-inverse"
+                    : "bg-bg-card text-text-default hover:bg-bg-default",
+                ].join(" ")}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* s32 #3 (autopilot) — Détails pièce : meublé + commentaires libres */}

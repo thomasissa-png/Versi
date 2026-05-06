@@ -51,7 +51,8 @@ export async function GET(
       target_visual_count: number;
       comment_text: string | null;
     }>(
-      `SELECT COALESCE(rs.target_visual_count, 1) AS target_visual_count, rs.comment_text
+      // s32 #P3 (Thomas prod) — default applicatif aligné sur le default DB (3).
+      `SELECT COALESCE(rs.target_visual_count, 3) AS target_visual_count, rs.comment_text
          FROM vs_rooms r
          LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
         WHERE r.id = $1`,
@@ -125,12 +126,12 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Pièce introuvable." }, { status: 404 });
     }
 
-    // INSERT : COALESCE($2, 1) → si target absent à la création, default 1.
+    // INSERT : COALESCE($2, 3) → si target absent à la création, default 3 (s32 #P3).
     // UPDATE : COALESCE(EXCLUDED.target, current) → préserve la valeur existante
     // si l'appelant n'a pas fourni target. Idem pour comment si absent.
     await query(
       `INSERT INTO vs_room_settings (room_id, target_visual_count, comment_text)
-       VALUES ($1, COALESCE($2, 1), $3)
+       VALUES ($1, COALESCE($2, 3), $3)
        ON CONFLICT (room_id) DO UPDATE
          SET target_visual_count = COALESCE(EXCLUDED.target_visual_count, vs_room_settings.target_visual_count),
              comment_text = CASE WHEN $4::boolean THEN EXCLUDED.comment_text ELSE vs_room_settings.comment_text END,
@@ -143,7 +144,7 @@ export async function PUT(
       `SELECT target_visual_count, comment_text FROM vs_room_settings WHERE room_id = $1`,
       [roomId]
     );
-    const finalTarget = finalRow.rows[0]?.target_visual_count ?? 1;
+    const finalTarget = finalRow.rows[0]?.target_visual_count ?? 3;
     const finalComment = finalRow.rows[0]?.comment_text ?? null;
 
     // P1 persona : flag warning si target>0 mais 0 photo placée

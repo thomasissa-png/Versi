@@ -54,7 +54,7 @@ export default function RoomSettingsSidebar({
     const m = new Map<string, RoomSettingsState>();
     for (const r of rooms) {
       const s = initialSettings.find((x) => x.room_id === r.id);
-      const target = s?.target_visual_count ?? 1;
+      const target = s?.target_visual_count ?? 3; // s32 #P3 — default applicatif aligné DB
       const placed = photos.some((p) => p.room_id === r.id && p.is_placed_on_plan);
       m.set(r.id, {
         target_visual_count: target,

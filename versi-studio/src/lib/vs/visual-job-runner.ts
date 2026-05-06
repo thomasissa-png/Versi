@@ -122,7 +122,7 @@ async function loadRoomsToGenerate(
       r.style_id,
       COALESCE(r.is_furnished, TRUE) AS is_furnished,
       rs.comment_text,
-      COALESCE(rs.target_visual_count, 1) AS target_visual_count,
+      COALESCE(rs.target_visual_count, 3) AS target_visual_count,
       r.polygon,
       r.polygon_offset_x::FLOAT AS polygon_offset_x,
       r.polygon_offset_y::FLOAT AS polygon_offset_y,
@@ -138,7 +138,7 @@ async function loadRoomsToGenerate(
     JOIN vs_lots l ON l.id = r.lot_id
     LEFT JOIN vs_room_settings rs ON rs.room_id = r.id
     WHERE l.project_id = $1
-      AND COALESCE(rs.target_visual_count, 1) > 0
+      AND COALESCE(rs.target_visual_count, 3) > 0
       AND COALESCE(r.status, 'suggested') <> 'skipped'
       ${roomIds && roomIds.length > 0 ? "AND r.id = ANY($2::uuid[])" : ""}
     `,

@@ -315,11 +315,18 @@ export async function ensureVsTables(): Promise<void> {
     CREATE TABLE IF NOT EXISTS vs_room_settings (
       room_id              UUID         PRIMARY KEY REFERENCES vs_rooms(id) ON DELETE CASCADE,
       comment_text         TEXT,
-      target_visual_count  INT          NOT NULL DEFAULT 1
+      target_visual_count  INT          NOT NULL DEFAULT 3
                                         CHECK (target_visual_count BETWEEN 0 AND 5),
       created_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
       updated_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW()
     );
+    -- s32 (migration 010) : nouveau default à 3 + backfill pièces non touchées
+    ALTER TABLE vs_room_settings
+      ALTER COLUMN target_visual_count SET DEFAULT 3;
+    UPDATE vs_room_settings
+       SET target_visual_count = 3, updated_at = NOW()
+     WHERE target_visual_count = 1
+       AND comment_text IS NULL;
     CREATE OR REPLACE FUNCTION vs_room_settings_set_updated_at()
     RETURNS TRIGGER AS $vs_rs_upd$
     BEGIN NEW.updated_at = NOW(); RETURN NEW; END;

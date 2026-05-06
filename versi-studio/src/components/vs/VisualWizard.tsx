@@ -136,6 +136,10 @@ export default function VisualWizard({
   // sur la pièce courante, persistés via PATCH /rooms/:id/settings (debounce
   // côté composant enfant). Map<room_id, comment_text>.
   const [commentsByRoom, setCommentsByRoom] = useState<Map<string, string>>(new Map());
+  // s32 #P3 (Thomas prod) — target_visual_count par pièce, exposé dans le
+  // wizard via pills 1-5 (default 3). Lu en même temps que le commentaire
+  // (route GET /rooms/:id/settings retourne les deux).
+  const [targetCountByRoom, setTargetCountByRoom] = useState<Map<string, number>>(new Map());
 
   // s32 Phase 4 — state machine par pièce (configuring/generating/preview/validated).
   const [roomStepStates, setRoomStepStates] = useState<Map<string, RoomStepState>>(
@@ -609,22 +613,29 @@ export default function VisualWizard({
   }, [currentRoom, visibleRooms, currentStepIndex]);
 
   // s32 #3 (autopilot) — fetch initial des paramètres room_settings (commentaire
-  // déjà en DB) lors du changement de pièce courante.
+  // + target_visual_count) lors du changement de pièce courante. s32 #P3
+  // (Thomas prod) : target_visual_count est désormais exposé dans le wizard.
   useEffect(() => {
     if (!currentRoom) return;
-    if (commentsByRoom.has(currentRoom.id)) return; // déjà fetché/édité
+    if (commentsByRoom.has(currentRoom.id) && targetCountByRoom.has(currentRoom.id)) return;
     let cancelled = false;
     void (async () => {
       try {
         const res = await fetch(`/api/vs/rooms/${currentRoom.id}/settings`);
         const json = (await res.json()) as ApiResponse<{
           comment_text: string | null;
+          target_visual_count: number;
         }>;
         if (cancelled) return;
         if (json.success) {
           setCommentsByRoom((prev) => {
             const next = new Map(prev);
             next.set(currentRoom.id, json.data.comment_text ?? "");
+            return next;
+          });
+          setTargetCountByRoom((prev) => {
+            const next = new Map(prev);
+            next.set(currentRoom.id, json.data.target_visual_count ?? 3);
             return next;
           });
         }
@@ -635,7 +646,48 @@ export default function VisualWizard({
     return () => {
       cancelled = true;
     };
-  }, [currentRoom, commentsByRoom]);
+  }, [currentRoom, commentsByRoom, targetCountByRoom]);
+
+  // s32 #P3 (Thomas prod) — handler pills nb visuels (1-5).
+  // PATCH partiel : on n'envoie QUE target_visual_count, comment préservé via COALESCE.
+  // Optimistic update : on met à jour la map AVANT l'API, rollback via re-fetch en cas d'erreur.
+  const handleTargetCountChange = useCallback(
+    async (count: number) => {
+      if (!currentRoom) return;
+      if (!Number.isInteger(count) || count < 1 || count > 5) return;
+      // Optimistic — UI réactive instantanément.
+      setTargetCountByRoom((prev) => {
+        const next = new Map(prev);
+        next.set(currentRoom.id, count);
+        return next;
+      });
+      try {
+        const res = await fetch(`/api/vs/rooms/${currentRoom.id}/settings`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_visual_count: count }),
+        });
+        const json = (await res.json()) as ApiResponse<{ target_visual_count: number }>;
+        if (!json.success) {
+          setError(json.error);
+          // rollback : on supprime l'entrée pour forcer un re-fetch au prochain render.
+          setTargetCountByRoom((prev) => {
+            const next = new Map(prev);
+            next.delete(currentRoom.id);
+            return next;
+          });
+        }
+      } catch {
+        setError("Nombre de visuels non enregistré.");
+        setTargetCountByRoom((prev) => {
+          const next = new Map(prev);
+          next.delete(currentRoom.id);
+          return next;
+        });
+      }
+    },
+    [currentRoom]
+  );
 
   const handleStyleSelect = useCallback(
     async (styleId: StyleId) => {
@@ -899,6 +951,8 @@ export default function VisualWizard({
           onFurnishedChange={handleFurnishedChange}
           onCommentChange={handleCommentChange}
           comment={commentsByRoom.get(currentRoom.id) ?? null}
+          targetVisualCount={targetCountByRoom.get(currentRoom.id) ?? 3}
+          onTargetVisualCountChange={handleTargetCountChange}
           onSkipRoom={handleSkipRoom}
           onGenerateThisRoom={handleGenerateThisRoom}
           onPlacementMoveCommit={handlePlacementMoveCommit}
