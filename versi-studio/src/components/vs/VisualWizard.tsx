@@ -120,6 +120,11 @@ export default function VisualWizard({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [photos, setPhotos] = useState<VsPhoto[]>(initialPhotos);
   const [roomsState, setRoomsState] = useState<VsRoom[]>(() => rooms.map(normalizeRoom));
+  // s32 (Thomas prod) — true pendant l'analyse Vision auto sur la pièce courante
+  const [visionAnalyzingRoomId, setVisionAnalyzingRoomId] = useState<string | null>(null);
+  // s32 (Thomas prod) — set des room.id déjà analysés cette session pour éviter
+  // re-déclencher Vision quand l'utilisateur revient sur une pièce déjà visitée
+  const [visionAnalyzedRoomIds] = useState<Set<string>>(() => new Set());
   // C3 itér.4 — expected_count par pièce (persisté à la POST /generate, lu par
   // RoomGenerationProgress via targetCount). Évite le hardcode 1.
   const [roomExpectedCount, setRoomExpectedCount] = useState<Map<string, number>>(
@@ -523,6 +528,116 @@ export default function VisualWizard({
     },
     [currentRoom]
   );
+
+  // s32 (Thomas prod) — Pré-remplissage Vision automatique au mount d'une pièce.
+  // Conditions :
+  //   - currentRoom existe + a au moins 1 photo
+  //   - Pas déjà analysé cette session (Set)
+  //   - Aucun champ détail n'a source='user' (saisie marchand prime)
+  //
+  // Comportement : POST /api/vs/rooms/:id/architectural-vision en background.
+  // Pour chaque champ retourné avec confidence ≥ 0.7 et pas déjà 'user', on
+  // PATCH les détails. Erreur silencieuse (console seul, pas de toast).
+  useEffect(() => {
+    if (!currentRoom) return;
+    if (visionAnalyzedRoomIds.has(currentRoom.id)) return;
+    if (visionAnalyzingRoomId === currentRoom.id) return;
+
+    const hasPhotos = photos.some((p) => p.room_id === currentRoom.id);
+    if (!hasPhotos) return;
+
+    const existing = currentRoom.architectural_details;
+    const hasUserInput =
+      existing != null &&
+      [existing.floor, existing.walls, existing.lighting]
+        .some((f) => f.source === "user") ||
+      (existing?.specifics ?? []).some((s) => s.source === "user");
+    if (hasUserInput) {
+      visionAnalyzedRoomIds.add(currentRoom.id);
+      return;
+    }
+
+    const roomId = currentRoom.id;
+    visionAnalyzedRoomIds.add(roomId); // marquer immédiatement (idempotence StrictMode)
+    setVisionAnalyzingRoomId(roomId);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/vs/rooms/${roomId}/architectural-vision`,
+          { method: "POST", headers: { "Content-Type": "application/json" } }
+        );
+        const json = (await res.json()) as ApiResponse<ArchitecturalDetails>;
+        if (cancelled) return;
+        if (!json.success) {
+          console.warn("[wizard] Vision archi échouée", json.error);
+          return;
+        }
+        const visionData = json.data;
+        const CONFIDENCE_FLOOR = 0.7;
+
+        // Merge : ne touche aux champs que si confidence ≥ 0.7. Sinon laisse vide
+        // (l'utilisateur peut saisir manuellement).
+        const merged: ArchitecturalDetails = {
+          floor:
+            visionData.floor.value != null &&
+            (visionData.floor.confidence ?? 0) >= CONFIDENCE_FLOOR
+              ? visionData.floor
+              : { value: null, source: null },
+          walls:
+            visionData.walls.value != null &&
+            (visionData.walls.confidence ?? 0) >= CONFIDENCE_FLOOR
+              ? visionData.walls
+              : { value: null, source: null },
+          lighting:
+            visionData.lighting.value != null &&
+            (visionData.lighting.confidence ?? 0) >= CONFIDENCE_FLOOR
+              ? visionData.lighting
+              : { value: null, source: null },
+          specifics: visionData.specifics.filter(
+            (s) =>
+              s.value != null && (s.confidence ?? 0) >= CONFIDENCE_FLOOR
+          ),
+        };
+
+        const hasAnything =
+          merged.floor.value != null ||
+          merged.walls.value != null ||
+          merged.lighting.value != null ||
+          merged.specifics.length > 0;
+        if (!hasAnything) return;
+
+        // Optimistic update local + PATCH
+        setRoomsState((prev) =>
+          prev.map((r) =>
+            r.id === roomId ? { ...r, architectural_details: merged } : r
+          )
+        );
+        try {
+          await fetch(`/api/vs/rooms/${roomId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ architectural_details: merged }),
+          });
+        } catch (err) {
+          console.warn("[wizard] PATCH vision merge échoué", err);
+        }
+      } catch (err) {
+        if (!cancelled) console.warn("[wizard] Vision auto erreur", err);
+      } finally {
+        if (!cancelled) setVisionAnalyzingRoomId(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // photos.length déclenche aussi quand un upload arrive, mais visionAnalyzedRoomIds
+    // empêche le double-trigger. Si l'utilisateur ajoute une photo APRÈS analyse,
+    // il faudra ré-analyser manuellement (V2).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRoom?.id, photos.length]);
 
   // s32 #3 (autopilot) — commentaire pièce (debounce côté child, persisté
   // dans vs_room_settings.comment_text via /rooms/:id/settings).
@@ -1054,6 +1169,7 @@ export default function VisualWizard({
           onStyleSelect={handleStyleSelect}
           onFurnishedChange={handleFurnishedChange}
           onArchitecturalDetailsChange={handleArchitecturalDetailsChange}
+          visionAnalyzing={visionAnalyzingRoomId === currentRoom.id}
           onCommentChange={handleCommentChange}
           comment={commentsByRoom.get(currentRoom.id) ?? null}
           targetVisualCount={targetCountByRoom.get(currentRoom.id) ?? 3}
