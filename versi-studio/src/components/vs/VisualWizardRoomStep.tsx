@@ -85,6 +85,16 @@ export interface VisualWizardRoomStepProps {
   onAngleDrag?: (placementId: string, angle: number) => void;
   /** s32 #1 (autopilot) — commit final déplacement pastille. */
   onPlacementMoveCommit: (placementId: string, point: NormalizedPoint) => Promise<void>;
+  /**
+   * s32 #P1 (Thomas prod) — notifie le parent que le polygone DB a changé
+   * (drag d'un sommet validé). Le parent doit mettre à jour son state
+   * local `roomsState` pour que le prochain render reflète le nouveau
+   * polygone (sans offsets, déjà baked).
+   */
+  onPolygonChange?: (
+    roomId: string,
+    newPolygon: Array<{ x_percent: number; y_percent: number }>
+  ) => void;
 }
 
 /**
@@ -117,6 +127,7 @@ export default function VisualWizardRoomStep({
   onPrevRoom,
   onAngleDrag,
   onPlacementMoveCommit,
+  onPolygonChange,
 }: VisualWizardRoomStepProps) {
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
   const [busyPlacementId, setBusyPlacementId] = useState<string | null>(null);
@@ -381,6 +392,44 @@ export default function VisualWizardRoomStep({
     [room.id]
   );
 
+  // ─── s32 #P1 (Thomas prod) — drag par sommet du polygone ──────────
+  /**
+   * Au commit, le polygone reçu est en lot-local % EFFECTIF (DB + offset
+   * appliqué par RoomZoomCanvas). On le persiste tel quel et on RESET les
+   * offsets à 0 pour éviter une double application au prochain render.
+   * Pattern : "bake l'offset dans le polygone au commit d'un sommet".
+   */
+  const handleVertexCommit = useCallback(
+    async (newPolygon: Array<{ x_percent: number; y_percent: number }>) => {
+      try {
+        const res = await fetch(`/api/vs/rooms/${room.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            polygon: newPolygon,
+            // Bake : offsets remis à null (= 0 effectif) car déjà inclus
+            // dans le polygone que l'on persiste.
+            polygon_offset_x: null,
+            polygon_offset_y: null,
+          }),
+        });
+        const json = (await res.json()) as ApiResponse<VsRoom>;
+        if (!json.success) {
+          console.error("[VisualWizardRoomStep] PATCH polygon vertex failed:", json.error);
+          return;
+        }
+        // Reset preview contour (l'offset baked est dans newPolygon).
+        setContourPreview(null);
+        // Notifie le parent pour qu'il rafraîchisse roomsState (sinon le prochain
+        // render utilisera l'ancien polygone DB → flash visuel).
+        onPolygonChange?.(room.id, newPolygon);
+      } catch (err) {
+        console.error("[VisualWizardRoomStep] PATCH polygon vertex error:", err);
+      }
+    },
+    [room.id, onPolygonChange]
+  );
+
   // ─── s32 V3 — change type segment depuis le panel latéral ─────────
   const handleSegmentTypeChange = useCallback(
     async (segmentIndex: number, type: VsRoomSegmentType) => {
@@ -558,6 +607,7 @@ export default function VisualWizardRoomStep({
             segments={segments}
             highlightedSegmentIndex={highlightedSegmentIndex}
             onSegmentHover={setHighlightedSegmentIndex}
+            onVertexCommit={handleVertexCommit}
           />
           {/* A7 — toast clic hors polygone (auto-clear 2s) */}
           {outsideHint && (

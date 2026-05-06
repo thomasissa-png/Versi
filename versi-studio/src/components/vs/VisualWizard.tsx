@@ -689,6 +689,28 @@ export default function VisualWizard({
     [currentRoom]
   );
 
+  // s32 #P1 (Thomas prod) — drag d'un sommet du polygone : le PATCH a déjà
+  // été émis côté enfant (offset baked dans newPolygon, offsets reset à null).
+  // Ici on synchronise le state local roomsState pour que le prochain render
+  // utilise immédiatement le polygone à jour (sinon flash visuel sur l'ancien).
+  const handlePolygonChange = useCallback(
+    (roomId: string, newPolygon: Array<{ x_percent: number; y_percent: number }>) => {
+      setRoomsState((prev) =>
+        prev.map((r) =>
+          r.id === roomId
+            ? {
+                ...r,
+                polygon: newPolygon,
+                polygon_offset_x: null,
+                polygon_offset_y: null,
+              }
+            : r
+        )
+      );
+    },
+    []
+  );
+
   const handleStyleSelect = useCallback(
     async (styleId: StyleId) => {
       if (!currentRoom) return;
@@ -953,6 +975,7 @@ export default function VisualWizard({
           comment={commentsByRoom.get(currentRoom.id) ?? null}
           targetVisualCount={targetCountByRoom.get(currentRoom.id) ?? 3}
           onTargetVisualCountChange={handleTargetCountChange}
+          onPolygonChange={handlePolygonChange}
           onSkipRoom={handleSkipRoom}
           onGenerateThisRoom={handleGenerateThisRoom}
           onPlacementMoveCommit={handlePlacementMoveCommit}

@@ -31,7 +31,7 @@ import type {
   VsRoomSegmentType,
   ZonePolygonPoint,
 } from "@/lib/vs/types";
-import { polygonCentroid, pointInPolygon } from "@/lib/vs/types";
+import { polygonCentroid, pointInPolygon, polygonHasSelfIntersection } from "@/lib/vs/types";
 import {
   computeRenderLayout,
   lotLocalToScreen,
@@ -101,6 +101,19 @@ export interface RoomZoomCanvasProps {
    * correspondante. Reçoit `null` quand le curseur quitte la zone d'arête.
    */
   onSegmentHover?: (segmentIndex: number | null) => void;
+  // ─── s32 #P1 (Thomas prod) — Drag par sommet du polygone ──────────
+  /**
+   * Drag visuel d'UN sommet (sans commit). Appelé pendant le drag pour
+   * permettre au parent de prévisualiser. Si non fourni, la prévisualisation
+   * est purement locale (state interne). Coords lot-local %.
+   */
+  onVertexDrag?: (vertexIndex: number, point: ZonePolygonPoint) => void;
+  /**
+   * Drag terminé (mouseup) — commit le polygone complet (avec le sommet
+   * déplacé). Le parent persiste via PATCH /rooms/:id { polygon }.
+   * Coords lot-local %. Si non fourni, le drag est désactivé.
+   */
+  onVertexCommit?: (newPolygon: ZonePolygonPoint[]) => void;
 }
 
 // ─── Constantes rendu ────────────────────────────────────────────
@@ -113,6 +126,13 @@ const ANGLE_HANDLE_HIT_RADIUS_TOUCH = 22; // touch target a11y minimum 44px diam
 const ZOOM_MAX_SCALE = 8; // plafond auto-zoom (anti-pixelisation polygones petits)
 const ZOOM_PADDING_RATIO = 0.18; // 18% padding autour du polygone
 
+// s32 #P1 (Thomas prod) — pattern PlanCanvas étape 3 : poignées par sommet
+const VERTEX_HANDLE_RADIUS = 5; // rayon visuel cercle blanc (Ø 10 px desktop)
+const VERTEX_HANDLE_RADIUS_HOVER = 7; // grossi à 14 px au hover
+const VERTEX_HIT_RADIUS = 14; // hit-test desktop (priorité absolue vs arête/intérieur)
+const VERTEX_HIT_RADIUS_TOUCH = 22; // hit-test touch (a11y 44 px diamètre)
+const EDGE_NEAR_GUARD_PX = 16; // distance MIN à toute arête/sommet pour autoriser placement photo
+
 const COLOR_POLY_FILL = "rgba(46, 102, 220, 0.10)";
 const COLOR_POLY_FILL_HOVER = "rgba(46, 102, 220, 0.18)";
 const COLOR_DIM_OUTSIDE = "rgba(240, 237, 232, 0.72)"; // overlay design system hors polygone
@@ -124,6 +144,12 @@ const PHOTO_DOT_BORDER = "#FFFFFF";
 const ANGLE_INDICATOR_COLOR = "#141C28";
 const ANGLE_HANDLE_FILL = "#141C28";
 const ANGLE_HANDLE_BORDER = "#FFFFFF";
+
+// s32 #P1 — poignées sommet (cohérence visuelle avec PlanCanvas étape 3)
+const VERTEX_FILL = "#FFFFFF";
+const VERTEX_BORDER = "#141C28";
+const VERTEX_BORDER_HOVER = "#2E66DC"; // interactive-primary design system
+const VERTEX_HALO_HOVER = "rgba(46, 102, 220, 0.18)";
 
 // ─── Component ────────────────────────────────────────────────────
 
@@ -163,6 +189,8 @@ export default function RoomZoomCanvas({
   segments = [],
   highlightedSegmentIndex = null,
   onSegmentHover,
+  onVertexDrag,
+  onVertexCommit,
 }: RoomZoomCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -197,6 +225,26 @@ export default function RoomZoomCanvas({
   } | null>(null);
   const MIN_DRAG_PX = 3; // seuil avant de considérer un drag actif (vs simple clic)
   const [contourDragActive, setContourDragActive] = useState<boolean>(false);
+
+  // ─── s32 #P1 (Thomas prod) — Drag par sommet du polygone ──────────
+  /**
+   * Pattern PlanCanvas étape 3 : un sommet est saisi avec une poignée
+   * dédiée (cercle blanc 10 px). Le drag déplace UN sommet, les autres
+   * restent fixes. Au mouseup, le polygone complet est commit via
+   * onVertexCommit (PATCH /rooms/:id { polygon }).
+   *
+   * Coords lot-local % (cohérent avec room.polygon).
+   */
+  const vertexDragRef = useRef<{
+    vertexIndex: number;
+    /** Polygone DB de référence au début du drag (sans offset). */
+    startPolygon: ZonePolygonPoint[];
+  } | null>(null);
+  const [vertexPreview, setVertexPreview] = useState<{
+    index: number;
+    point: ZonePolygonPoint;
+  } | null>(null);
+  const [hoverVertexIdx, setHoverVertexIdx] = useState<number | null>(null);
 
   // ─── Render layout (letterbox classique) ───────────────────────
   const renderLayout = useMemo<RenderLayout>(
@@ -314,6 +362,8 @@ export default function RoomZoomCanvas({
   // ─── s32 V3 — polygone EFFECTIF (offset DB + preview drag direct) ──
   // Le polygone DB n'est jamais muté ; on dérive un polygone "rendu" en
   // appliquant l'offset committed (DB) + l'offset preview en cours.
+  // s32 #P1 : si un drag par sommet est actif, le sommet `vertexPreview.index`
+  // est remplacé par sa position prévisualisée (autres sommets inchangés).
   const effectivePolygon = useMemo<ZonePolygonPoint[] | null>(() => {
     if (!room.polygon || room.polygon.length < 3) return null;
     const committedX = typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0;
@@ -323,12 +373,22 @@ export default function RoomZoomCanvas({
     // Drag actif → preview REMPLACE committed (feedback immédiat).
     const totalX = contourOffsetPreview ? previewX : committedX;
     const totalY = contourOffsetPreview ? previewY : committedY;
-    if (totalX === 0 && totalY === 0) return room.polygon;
-    return room.polygon.map((p) => ({
-      x_percent: Math.max(0, Math.min(100, p.x_percent + totalX)),
-      y_percent: Math.max(0, Math.min(100, p.y_percent + totalY)),
-    }));
-  }, [room.polygon, room.polygon_offset_x, room.polygon_offset_y, contourOffsetPreview]);
+    const offset = (p: ZonePolygonPoint): ZonePolygonPoint =>
+      totalX === 0 && totalY === 0
+        ? p
+        : {
+            x_percent: Math.max(0, Math.min(100, p.x_percent + totalX)),
+            y_percent: Math.max(0, Math.min(100, p.y_percent + totalY)),
+          };
+    return room.polygon.map((p, i) => {
+      // s32 #P1 : si ce sommet est en drag actif, projeter sur la position
+      // prévisualisée (déjà en lot-local % effectif, pas besoin d'offset).
+      if (vertexPreview && vertexPreview.index === i) {
+        return vertexPreview.point;
+      }
+      return offset(p);
+    });
+  }, [room.polygon, room.polygon_offset_x, room.polygon_offset_y, contourOffsetPreview, vertexPreview]);
 
   // ─── Helpers projection ────────────────────────────────────────
   const projectLotPct = useCallback(
@@ -364,6 +424,38 @@ export default function RoomZoomCanvas({
     (canvasX: number, canvasY: number): NormalizedPoint =>
       screenToLotLocal(canvasX, canvasY, renderLayout, viewport, lotZone),
     [renderLayout, viewport, lotZone]
+  );
+
+  // ─── s32 #P1 — Hit test : sommet du polygone sous la souris ────
+  /**
+   * Hit-test priorité 1 (avant pastilles, avant arêtes, avant intérieur).
+   * Pattern PlanCanvas étape 3 : on itère sur les sommets effectifs
+   * (donc déjà offsetés visuellement) et on retourne l'index du plus
+   * proche dans le rayon de hit. Le drag opère sur ces coords effectives.
+   */
+  const hitTestVertex = useCallback(
+    (
+      canvasX: number,
+      canvasY: number,
+      pointerType: "mouse" | "touch" | "pen" = "mouse"
+    ): number | null => {
+      if (!effectivePolygon || effectivePolygon.length < 3) return null;
+      const hitRadius =
+        pointerType === "touch" ? VERTEX_HIT_RADIUS_TOUCH : VERTEX_HIT_RADIUS;
+      let bestIdx: number | null = null;
+      let bestDist = hitRadius;
+      for (let i = 0; i < effectivePolygon.length; i++) {
+        const v = effectivePolygon[i];
+        const { x: vx, y: vy } = projectLotPct(v.x_percent, v.y_percent);
+        const d = Math.hypot(canvasX - vx, canvasY - vy);
+        if (d <= bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    },
+    [effectivePolygon, projectLotPct]
   );
 
   // ─── Hit test : pastille sous la souris ────────────────────────
@@ -530,6 +622,36 @@ export default function RoomZoomCanvas({
       ctx.strokeStyle = "rgba(255,255,255,0.85)";
       ctx.strokeText(label, cx, cy);
       ctx.fillText(label, cx, cy);
+
+      // s32 #P1 (Thomas prod) — Poignées par sommet (cercles 10 px)
+      // Rendues UNIQUEMENT si onVertexCommit est fourni (mode édition).
+      // Pattern PlanCanvas étape 3 : cercle blanc, border noir 2px, halo
+      // bleu au hover/drag. Rendu APRÈS le label pour rester au-dessus.
+      if (onVertexCommit) {
+        const draggingIdx = vertexDragRef.current?.vertexIndex ?? -1;
+        for (let i = 0; i < verticesScreen.length; i++) {
+          const v = verticesScreen[i];
+          const isHover = i === hoverVertexIdx;
+          const isDragging = i === draggingIdx;
+          const radius = isHover || isDragging
+            ? VERTEX_HANDLE_RADIUS_HOVER
+            : VERTEX_HANDLE_RADIUS;
+          // Halo doux au hover/drag (anneau translucide)
+          if (isHover || isDragging) {
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, radius + 5, 0, Math.PI * 2);
+            ctx.fillStyle = VERTEX_HALO_HOVER;
+            ctx.fill();
+          }
+          ctx.beginPath();
+          ctx.arc(v.x, v.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = VERTEX_FILL;
+          ctx.fill();
+          ctx.strokeStyle = isHover || isDragging ? VERTEX_BORDER_HOVER : VERTEX_BORDER;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
     }
 
     // Layer 4 : photos placées (pastille + flèche d'angle)
@@ -629,6 +751,9 @@ export default function RoomZoomCanvas({
     highlightedSegmentIndex,
     contourDragActive,
     contourOffsetPreview,
+    onVertexCommit,
+    hoverVertexIdx,
+    vertexPreview,
   ]);
 
   useEffect(() => {
@@ -666,6 +791,23 @@ export default function RoomZoomCanvas({
       const { x, y } = getCanvasCoords(e.clientX, e.clientY);
 
       const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
+
+      // ─── s32 #P1 — Hit-test priorité 1 : SOMMET du polygone ──────
+      // Doit être testé AVANT pastilles, arêtes, intérieur, sinon un clic
+      // pile sur un sommet déclenche le placement photo (bug Thomas prod).
+      if (onVertexCommit && effectivePolygon && effectivePolygon.length >= 3) {
+        const vIdx = hitTestVertex(x, y, ptype);
+        if (vIdx !== null) {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          vertexDragRef.current = {
+            vertexIndex: vIdx,
+            startPolygon: effectivePolygon.slice(),
+          };
+          setVertexPreview({ index: vIdx, point: effectivePolygon[vIdx] });
+          return;
+        }
+      }
+
       const hit = findPlacementHandle(x, y, ptype);
       if (hit && hit.isHandle) {
         // Démarre le drag de l'angle
@@ -715,22 +857,32 @@ export default function RoomZoomCanvas({
           const verticesScreen: ScreenPoint[] = effectivePolygon.map((pt) =>
             projectLotPct(pt.x_percent, pt.y_percent)
           );
-          const nearEdge = findNearestSegment(x, y, verticesScreen, 12);
-          if (!nearEdge) {
-            // Drag contour armé (commit au up, ou clic simple si pas de move).
-            e.currentTarget.setPointerCapture(e.pointerId);
-            contourDragRef.current = {
-              startCanvasX: x,
-              startCanvasY: y,
-              startOffsetX:
-                typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0,
-              startOffsetY:
-                typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0,
-            };
+          // s32 #P1 (Thomas prod) — guard EDGE_NEAR_GUARD_PX : si curseur
+          // proche du contour (arête ou sommet), on n'autorise PLUS le
+          // placement photo (bug "clic sur contour = photo placée") ni le
+          // drag global (sinon conflit avec le drag de sommet voisin).
+          // Le clic est simplement ignoré → l'utilisateur doit cliquer
+          // franchement à l'intérieur pour placer une photo.
+          const nearEdge = findNearestSegment(x, y, verticesScreen, EDGE_NEAR_GUARD_PX);
+          if (nearEdge) {
+            // Clic dans le no-mans-land du contour — on ignore (pas de
+            // placement, pas de drag). Le hit-test sommet a déjà été fait
+            // en amont, donc si on arrive ici c'est qu'on est sur une arête.
             return;
           }
+          // Drag contour armé (commit au up, ou clic simple si pas de move).
+          e.currentTarget.setPointerCapture(e.pointerId);
+          contourDragRef.current = {
+            startCanvasX: x,
+            startCanvasY: y,
+            startOffsetX:
+              typeof room.polygon_offset_x === "number" ? room.polygon_offset_x : 0,
+            startOffsetY:
+              typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0,
+          };
+          return;
         }
-        // Click-to-place classique (autorise hors polygone aussi)
+        // Click-to-place hors polygone (autorisé, l'IA interprète la distance).
         onPlaceClick(point);
         if (!inside) {
           onClickOutsidePolygon?.();
@@ -753,12 +905,37 @@ export default function RoomZoomCanvas({
       onClickOutsidePolygon,
       effectivePolygon,
       projectLotPct,
+      hitTestVertex,
+      onVertexCommit,
     ]
   );
 
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLCanvasElement>) => {
       const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+
+      // ─── s32 #P1 — Drag par sommet (priorité absolue) ─────────────
+      if (vertexDragRef.current) {
+        const vd = vertexDragRef.current;
+        // Convertir position curseur canvas → coords lot-local %
+        // (cohérent avec effectivePolygon, déjà offset si applicable).
+        const a = projectLotPct(0, 0);
+        const b = projectLotPct(100, 100);
+        const lotWidthPx = Math.abs(b.x - a.x);
+        const lotHeightPx = Math.abs(b.y - a.y);
+        if (lotWidthPx > 0 && lotHeightPx > 0) {
+          const xPct = ((x - a.x) / lotWidthPx) * 100;
+          const yPct = ((y - a.y) / lotHeightPx) * 100;
+          // Clamp 0-100 — un sommet ne doit pas sortir du lot.
+          const newPoint: ZonePolygonPoint = {
+            x_percent: Math.max(0, Math.min(100, xPct)),
+            y_percent: Math.max(0, Math.min(100, yPct)),
+          };
+          setVertexPreview({ index: vd.vertexIndex, point: newPoint });
+          onVertexDrag?.(vd.vertexIndex, newPoint);
+        }
+        return;
+      }
 
       // ─── s32 V3 — Drag direct du contour (translation polygone) ──
       if (contourDragRef.current) {
@@ -839,6 +1016,15 @@ export default function RoomZoomCanvas({
 
       // Hover detection — utilisé pour highlight polygone + curseur grab sur poignée
       const ptype = (e.pointerType as "mouse" | "touch" | "pen") || "mouse";
+
+      // s32 #P1 — hover sommet (priorité 1, avant pastilles)
+      if (onVertexCommit) {
+        const vIdx = hitTestVertex(x, y, ptype);
+        if (vIdx !== hoverVertexIdx) setHoverVertexIdx(vIdx);
+      } else if (hoverVertexIdx !== null) {
+        setHoverVertexIdx(null);
+      }
+
       const handleHit = findPlacementHandle(x, y, ptype);
       setHoverHandleId(handleHit && handleHit.isHandle ? handleHit.id : null);
       // s32 #1 — hover sur corps de pastille → cursor grab
@@ -884,11 +1070,42 @@ export default function RoomZoomCanvas({
       effectivePolygon,
       projectLotPct,
       onSegmentHover,
+      hitTestVertex,
+      onVertexDrag,
+      onVertexCommit,
+      hoverVertexIdx,
     ]
   );
 
   const handlePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLCanvasElement>) => {
+      // ─── s32 #P1 — Fin drag par sommet : commit polygone complet ──
+      if (vertexDragRef.current) {
+        const vd = vertexDragRef.current;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* déjà relâché */
+        }
+        const finalPreview = vertexPreview;
+        vertexDragRef.current = null;
+        setVertexPreview(null);
+        if (!finalPreview || !effectivePolygon) return;
+        // Reconstruire le polygone complet : N-1 sommets inchangés (pris depuis
+        // effectivePolygon = DB + offset), + le sommet drag à sa position finale.
+        const newPolygon: ZonePolygonPoint[] = vd.startPolygon.map((p, i) =>
+          i === vd.vertexIndex ? finalPreview.point : p
+        );
+        // Guard self-intersection : si le drag a créé un polygone qui se croise,
+        // on annule (rollback visuel). Pattern PlanCanvas étape 3.
+        if (polygonHasSelfIntersection(newPolygon)) {
+          // Pas de commit — la state vertexPreview est déjà reset.
+          return;
+        }
+        onVertexCommit?.(newPolygon);
+        return;
+      }
+
       // ─── s32 V3 — fin drag direct contour : commit immédiat ──
       if (contourDragRef.current) {
         const { x, y } = getCanvasCoords(e.clientX, e.clientY);
@@ -969,6 +1186,9 @@ export default function RoomZoomCanvas({
       onPlaceClick,
       screenToLotPoint,
       contourDragActive,
+      vertexPreview,
+      effectivePolygon,
+      onVertexCommit,
     ]
   );
 
@@ -1008,6 +1228,11 @@ export default function RoomZoomCanvas({
           y: typeof room.polygon_offset_y === "number" ? room.polygon_offset_y : 0,
         });
       }
+      // s32 #P1 — drag sommet annulé : rollback preview (pas de commit).
+      if (vertexDragRef.current) {
+        vertexDragRef.current = null;
+        setVertexPreview(null);
+      }
     },
     [onPlacementMoving, room.polygon_offset_x, room.polygon_offset_y, onContourDrag]
   );
@@ -1016,12 +1241,17 @@ export default function RoomZoomCanvas({
   // proxy pour "drag actif" (refs ne peuvent pas être lus pendant le render).
   const isDraggingAngle = dragPreviewAngle !== null;
   const isDraggingMove = movePreviewPoint !== null;
+  const isDraggingVertex = vertexPreview !== null;
   const cursorClass = isCommitting
     ? "cursor-wait"
+    : isDraggingVertex
+    ? "cursor-grabbing"
     : contourDragActive
     ? "cursor-grabbing"
     : isDraggingAngle || isDraggingMove
     ? "cursor-grabbing"
+    : hoverVertexIdx !== null
+    ? "cursor-grab" // s32 #P1 — sommet sous le curseur
     : hoverHandleId || hoverDotId
     ? "cursor-grab"
     : hover?.inPolygon
