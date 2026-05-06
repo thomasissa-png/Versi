@@ -52,6 +52,8 @@ interface ChatApiData {
     result: string;
   }>;
   brief_validated: boolean;
+  /** s32 Phase 9 itér. — confidence remontée par validate_brief (LLM tool). */
+  brief_confidence?: "high" | "medium" | "low" | null;
   field_updates: FieldUpdate[];
   transcript: ChatMessage[];
 }
@@ -85,9 +87,10 @@ export default function ArchitectChatPanel({
         onFieldUpdate(update);
       }
       if (data.brief_validated) {
-        // Confidence non remontée explicitement par l'API ; on défaut à "high"
-        // (le LLM n'appelle validate_brief que quand il a assez d'infos).
-        onBriefValidated("high");
+        // s32 Phase 9 itér. — lecture vraie confidence LLM (validate_brief.confidence).
+        // Si "low" : le parent peut refuser d'activer le bouton vert.
+        const conf = data.brief_confidence ?? "medium";
+        onBriefValidated(conf);
       }
     },
     [onFieldUpdate, onBriefValidated]
@@ -108,7 +111,7 @@ export default function ArchitectChatPanel({
         const json = (await res.json()) as ApiResponse<ChatApiData>;
         if (cancelled) return;
         if (!json.success || !json.data) {
-          setError(json.error ?? "Erreur démarrage chat.");
+          setError(json.error ?? "La connexion au service n'a pas abouti. Réessayez.");
           return;
         }
         setTranscript(json.data.transcript);
@@ -117,7 +120,7 @@ export default function ArchitectChatPanel({
       } catch (err) {
         if (cancelled) return;
         console.error("[ArchitectChatPanel] init error:", err);
-        setError("Connexion impossible.");
+        setError("Connexion interrompue — vos données sont préservées.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -160,7 +163,7 @@ export default function ArchitectChatPanel({
         });
         const json = (await res.json()) as ApiResponse<ChatApiData>;
         if (!json.success || !json.data) {
-          setError(json.error ?? "Erreur réponse IA.");
+          setError(json.error ?? "La réponse n'a pas pu être générée. Réessayez.");
           // Rollback : on retire le message optimiste si erreur définitive
           // (on garde quand même pour permettre un nouvel envoi manuel)
           return;
@@ -170,7 +173,7 @@ export default function ArchitectChatPanel({
         applyToolSideEffects(json.data);
       } catch (err) {
         console.error("[ArchitectChatPanel] send error:", err);
-        setError("Connexion impossible.");
+        setError("Connexion interrompue — vos données sont préservées.");
       } finally {
         setLoading(false);
         textareaRef.current?.focus();
@@ -259,8 +262,8 @@ export default function ArchitectChatPanel({
   // ─── Render ──────────────────────────────────────────────────────
   return (
     <aside
-      className="flex flex-col w-full lg:w-[280px] lg:flex-shrink-0 rounded-md border border-border-default bg-bg-card overflow-hidden"
-      style={{ height: "100%", minHeight: "400px", maxHeight: "calc(100vh - 200px)" }}
+      className="flex flex-col w-full max-h-[60dvh] lg:w-[280px] lg:flex-shrink-0 lg:max-h-[calc(100dvh-200px)] min-h-[400px] rounded-md border border-border-default bg-bg-card overflow-hidden"
+      style={{ height: "100%" }}
       aria-labelledby="architect-chat-title"
       data-testid="architect-chat-panel"
     >
@@ -275,7 +278,7 @@ export default function ArchitectChatPanel({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer le chat et revenir aux segments"
+          aria-label="Fermer — revenir au plan de la pièce"
           className="text-text-muted hover:text-text-default w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
           data-testid="architect-chat-close"
         >
@@ -321,25 +324,30 @@ export default function ArchitectChatPanel({
             return (
               <div
                 key={i}
-                className="self-start max-w-[95%] rounded-md px-sm py-sm bg-bg-default border border-border-default text-text-default"
+                className="self-start max-w-[88%] rounded-md px-sm py-sm bg-bg-default border border-border-default text-text-default"
                 data-testid={`chat-msg-assistant-${i}`}
               >
                 {renderAssistantContent(msg.content)}
                 {msg.suggestions && msg.suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-xs mt-sm">
-                    {msg.suggestions.map((s, j) => (
-                      <button
-                        key={j}
-                        type="button"
-                        onClick={() => handleSuggestion(s)}
-                        disabled={loading}
-                        className="text-xs px-sm py-xs rounded-md border border-interactive-primary text-interactive-primary hover:bg-interactive-primary/10 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
-                        data-testid={`chat-suggestion-${i}-${j}`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <p className="text-[11px] text-text-muted uppercase tracking-wide mt-sm mb-xs">
+                      Suggestions
+                    </p>
+                    <div className="flex flex-wrap gap-xs">
+                      {msg.suggestions.map((s, j) => (
+                        <button
+                          key={j}
+                          type="button"
+                          onClick={() => handleSuggestion(s)}
+                          disabled={loading}
+                          className="text-xs px-sm rounded-md border border-interactive-primary text-interactive-primary hover:bg-interactive-primary/10 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px] inline-flex items-center"
+                          data-testid={`chat-suggestion-${i}-${j}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             );
@@ -348,8 +356,15 @@ export default function ArchitectChatPanel({
         })}
 
         {loading && initialized && (
-          <div className="self-start max-w-[60%] rounded-md px-sm py-sm bg-bg-default border border-border-default">
-            <p className="text-xs text-text-muted italic">L'architecte réfléchit…</p>
+          <div
+            className="self-start max-w-[60%] rounded-md px-sm py-sm bg-bg-default border border-border-default"
+            aria-label="L'architecte réfléchit"
+          >
+            <span className="inline-flex gap-1 items-center" aria-hidden="true">
+              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:300ms]" />
+            </span>
           </div>
         )}
 
@@ -360,6 +375,14 @@ export default function ArchitectChatPanel({
             data-testid="chat-error"
           >
             <p className="text-xs">{error}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-xs text-xs underline text-error hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary inline-flex items-center min-h-[32px]"
+              data-testid="chat-error-back-segments"
+            >
+              Revenir aux segments
+            </button>
           </div>
         )}
       </div>
@@ -368,6 +391,7 @@ export default function ArchitectChatPanel({
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-xs px-md py-sm border-t border-border-default flex-shrink-0 bg-bg-default"
+        style={{ paddingBottom: "max(var(--space-sm), env(safe-area-inset-bottom))" }}
       >
         <label htmlFor="chat-input" className="sr-only">
           Votre message à l'architecte
@@ -378,7 +402,7 @@ export default function ArchitectChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Décrivez ou posez une question…"
+          placeholder="Votre réponse ou précision…"
           rows={2}
           disabled={loading}
           className="text-sm px-sm py-xs rounded-md border border-border-default bg-bg-card text-text-default placeholder:text-text-muted resize-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50"
@@ -388,10 +412,35 @@ export default function ArchitectChatPanel({
           <button
             type="submit"
             disabled={loading || input.trim().length === 0}
-            className="text-xs font-semibold px-md py-xs rounded-md bg-interactive-primary text-bg-canvas hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            className="inline-flex items-center gap-xs text-xs font-semibold px-md py-xs rounded-md bg-interactive-primary text-bg-canvas hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
             data-testid="chat-send"
           >
-            {loading ? "…" : "Envoyer"}
+            {loading && (
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="animate-spin"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeOpacity="0.25"
+                />
+                <path
+                  d="M22 12a10 10 0 0 0-10-10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+            {loading ? "Envoi…" : "Envoyer"}
           </button>
         </div>
       </form>

@@ -85,6 +85,8 @@ export interface ChatProcessResult {
   reply: ChatMessage;
   toolCalls: ChatToolCall[];
   briefValidated: boolean;
+  /** Confidence retournée par validate_brief (high/medium/low). null si non appelé. */
+  briefConfidence: "high" | "medium" | "low" | null;
   /** Patch d'extra_context à merger côté API (clé→valeur). */
   extraContextPatch: Record<string, string>;
   /** Patch operation_chat_context à merger côté API (lot-level). */
@@ -324,7 +326,7 @@ RÈGLES IMPÉRATIVES :
 5. Quand tu as assez d'infos pour générer un visuel pertinent (au moins style + sol + murs + luminosité OU 80% des pills + style) → appelle validate_brief avec confidence=high.
 6. Maximum 5 tours de questions. Au-delà, appelle validate_brief même si incomplet.
 7. Suggestions dynamiques OBLIGATOIRES — adaptées à la pièce, jamais génériques. Exemple bon : pour une chambre 14m² style scandinave → "Parquet clair", "Béton ciré gris", "Carrelage imitation bois". Exemple INTERDIT : "Oui", "Non", "Je ne sais pas".
-8. Réponses brèves, ton professionnel et chaleureux, en français.
+8. Réponses brèves, ton professionnel et direct, en français.
 9. Tu peux appeler PLUSIEURS tools dans le même tour (ex: update_field + ask_question pour la suite).`;
 }
 
@@ -345,6 +347,35 @@ function isoNow(): string {
 
 // ─── Mode dégradé (sans LLM ou parsing échoué) ─────────────────────
 
+// Mapping FR pour traduire les snake_case techniques en libellés lisibles
+// (utilisé en mode dégradé dans la synthèse "Ce qui reste ambigu pour moi").
+const FIELD_LABELS_FR: Record<string, string> = {
+  ceiling_height: "Hauteur sous plafond",
+  orientation: "Orientation",
+  general_state: "État général",
+  target_level: "Niveau visé",
+  target_audience: "Cible",
+  floor: "Sol",
+  walls: "Murs",
+  lighting: "Luminosité",
+  specifics: "Particularités",
+};
+
+function humanizeMissingField(raw: string): string {
+  // Format reçu : "ceiling_height (lot)" ou "specifics (room — peut être 'Aucune')"
+  const match = raw.match(/^(\w+)/);
+  const key = match ? match[1] : raw;
+  const label = FIELD_LABELS_FR[key] ?? key;
+  // Récupère le suffixe entre parenthèses (scope ou note) et le simplifie
+  const scopeMatch = raw.match(/\(([^)]+)\)/);
+  if (!scopeMatch) return label;
+  const scope = scopeMatch[1];
+  if (scope === "lot") return `${label} (niveau lot)`;
+  if (scope === "room") return label;
+  // Note libre (ex: "room — peut être 'Aucune'") : on garde le label seul
+  return label;
+}
+
 function buildFallbackInitMessage(params: ChatProcessParams): ChatProcessResult {
   const { lot, room } = params.context;
   const missing = listMissingFields(
@@ -359,22 +390,23 @@ function buildFallbackInitMessage(params: ChatProcessParams): ChatProcessResult 
 - Détails pièce : ${describeDetails(room.architectural_details)}
 
 **Ce qui reste ambigu pour moi**
-${missing.length === 0 ? "- Rien — tout est renseigné. Vous pouvez générer." : missing.slice(0, 3).map((m) => `- ${m}`).join("\n")}`;
+${missing.length === 0 ? "- Rien — tout est renseigné. Vous pouvez générer." : missing.slice(0, 3).map((m) => `- ${humanizeMissingField(m)}`).join("\n")}
+
+Service IA temporairement indisponible. Utilisez les pills ci-dessous pour renseigner les détails de la pièce.`;
 
   const reply: ChatMessage = {
     role: "assistant",
     content: synthesis,
-    suggestions: [
-      "Je veux générer maintenant",
-      "Précisons la luminosité",
-      "Ajouter une particularité",
-    ],
+    // Pas de suggestions hardcodées en mode dégradé — l'utilisateur revient
+    // aux pills (source de vérité). Honnêteté > faux engagement.
+    suggestions: [],
     timestamp: isoNow(),
   };
   return {
     reply,
     toolCalls: [],
     briefValidated: false,
+    briefConfidence: null,
     extraContextPatch: {},
     operationContextPatch: {},
     fieldUpdates: [],
@@ -386,12 +418,13 @@ function buildFallbackUserReply(): ChatProcessResult {
     reply: {
       role: "assistant",
       content:
-        "Bien noté. Vous pouvez continuer à préciser, ou cliquer sur Générer dès que vous êtes prêt.",
+        "Noté. Vous pouvez affiner d'autres détails ou lancer la génération dès que vous êtes prêt.",
       suggestions: ["Générer maintenant", "Préciser un autre détail"],
       timestamp: isoNow(),
     },
     toolCalls: [],
     briefValidated: false,
+    briefConfidence: null,
     extraContextPatch: {},
     operationContextPatch: {},
     fieldUpdates: [],
@@ -436,6 +469,7 @@ export async function processChatMessage(
   const extraContextPatch: Record<string, string> = {};
   const operationContextPatch: Partial<OperationChatContext> = {};
   let briefValidated = false;
+  let briefConfidence: "high" | "medium" | "low" | null = null;
   let askQuestionPayload: { question: string; suggestions: string[] } | null = null;
   let textContent = "";
 
@@ -551,6 +585,7 @@ export async function processChatMessage(
             const conf = String(parsedArgs.confidence ?? "");
             if (conf === "high" || conf === "medium" || conf === "low") {
               briefValidated = true;
+              briefConfidence = conf;
               result = `Brief validé (confidence=${conf}).`;
             } else {
               result = "validate_brief : confidence invalide.";
@@ -605,7 +640,7 @@ export async function processChatMessage(
   if (!finalContent) {
     finalContent = isInit
       ? "Bonjour, on va préparer ensemble la génération de cette pièce."
-      : "Bien noté.";
+      : "Noté.";
   }
 
   const reply: ChatMessage = {
@@ -619,6 +654,7 @@ export async function processChatMessage(
     reply,
     toolCalls,
     briefValidated,
+    briefConfidence,
     extraContextPatch,
     operationContextPatch,
     fieldUpdates,

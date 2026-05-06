@@ -53,6 +53,9 @@ export interface RoomSegmentsPanelProps {
   /** s32 (Phase 9) — toggle vers le chat architecte. Si défini, affiche
    *  une icône chat dans le header. */
   onOpenChat?: () => void;
+  /** s32 Phase 9 itér. — true si le panel chat est actuellement ouvert
+   *  (utilisé pour aria-pressed + état visuel actif du toggle). */
+  chatActive?: boolean;
 }
 
 // ─── Couleurs pastilles (synchro avec segment-render.ts) ──────────
@@ -73,6 +76,7 @@ export default function RoomSegmentsPanel({
   highlightedSegmentIndex = null,
   onRowHover,
   onOpenChat,
+  chatActive = false,
 }: RoomSegmentsPanelProps) {
   // ─── Mapping horaire depuis Nord (segment_index_db → display_index) ──
   const horaireMap = useMemo(() => {
@@ -183,8 +187,14 @@ export default function RoomSegmentsPanel({
               type="button"
               onClick={onOpenChat}
               aria-label="Ouvrir le chat avec l'architecte virtuel"
+              aria-pressed={chatActive}
               title="Architecte virtuel — préciser des détails par chat"
-              className="text-text-muted hover:text-text-default w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary flex-shrink-0"
+              className={[
+                "w-8 h-8 inline-flex items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary flex-shrink-0",
+                chatActive
+                  ? "bg-interactive-primary text-bg-canvas hover:opacity-90"
+                  : "text-text-muted hover:text-text-default hover:bg-bg-subtle",
+              ].join(" ")}
               data-testid="open-architect-chat"
             >
               <svg
@@ -201,9 +211,9 @@ export default function RoomSegmentsPanel({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <circle cx="6" cy="7.5" r="0.7" fill="currentColor" />
-                <circle cx="9" cy="7.5" r="0.7" fill="currentColor" />
-                <circle cx="12" cy="7.5" r="0.7" fill="currentColor" />
+                <circle cx="6" cy="7.5" r="1" fill="currentColor" />
+                <circle cx="9" cy="7.5" r="1" fill="currentColor" />
+                <circle cx="12" cy="7.5" r="1" fill="currentColor" />
               </svg>
             </button>
           )}

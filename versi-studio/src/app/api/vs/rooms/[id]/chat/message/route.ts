@@ -126,6 +126,7 @@ export async function POST(
         reply: result.reply,
         toolCalls: result.toolCalls,
         briefValidated,
+        briefConfidence: result.briefConfidence,
         fieldUpdates: result.fieldUpdates,
         transcript: newTranscript,
       }),

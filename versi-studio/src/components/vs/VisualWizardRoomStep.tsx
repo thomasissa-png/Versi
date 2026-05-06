@@ -171,6 +171,8 @@ export default function VisualWizardRoomStep({
   const [panelMode, setPanelMode] = useState<"segments" | "chat">("segments");
   const [chatBriefValidated, setChatBriefValidated] = useState<boolean>(false);
   const [chatToast, setChatToast] = useState<string | null>(null);
+  // s32 Phase 9 itér. — distinction succès / erreur du toast chat (a11y + couleur).
+  const [chatToastType, setChatToastType] = useState<"success" | "error">("success");
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map()); // B7 — auto-scroll
   const headerRef = useRef<HTMLHeadingElement>(null); // B9 — focus reset
@@ -278,10 +280,11 @@ export default function VisualWizardRoomStep({
         orientation: "Orientation",
         general_state: "État général",
         target_level: "Niveau visé",
-        target_audience: "Public cible",
+        target_audience: "Cible",
         style: "Style",
       };
       const label = FIELD_LABELS[update.field] ?? update.field;
+      setChatToastType("success");
       setChatToast(`J'ai mis à jour : ${label} → ${update.value}`);
 
       try {
@@ -340,6 +343,7 @@ export default function VisualWizardRoomStep({
         }
       } catch (err) {
         console.error("[VisualWizardRoomStep] chat field update failed:", err);
+        setChatToastType("error");
         setChatToast(`Mise à jour échouée : ${label}`);
       }
     },
@@ -359,7 +363,18 @@ export default function VisualWizardRoomStep({
   );
 
   const handleOpenChat = useCallback(() => setPanelMode("chat"), []);
-  const handleCloseChat = useCallback(() => setPanelMode("segments"), []);
+  const handleCloseChat = useCallback(() => {
+    setPanelMode("segments");
+    // s32 Phase 9 itér. — focus restoration : on rend la main au bouton
+    // qui a ouvert le chat (toggle du panel segments). requestAnimationFrame
+    // pour attendre le re-render du panel segments.
+    requestAnimationFrame(() => {
+      const btn = document.querySelector<HTMLButtonElement>(
+        '[data-testid="open-architect-chat"]'
+      );
+      btn?.focus();
+    });
+  }, []);
   // B9 itér.4 — auto-clear skipToast après 3s
   useEffect(() => {
     if (skipToast === null) return;
@@ -838,6 +853,7 @@ export default function VisualWizardRoomStep({
             onRowHover={setHighlightedSegmentIndex}
             onSegmentTypeChange={handleSegmentTypeChange}
             onOpenChat={handleOpenChat}
+            chatActive={false}
           />
         ) : (
           <ArchitectChatPanel
@@ -855,9 +871,16 @@ export default function VisualWizardRoomStep({
           role="status"
           aria-live="polite"
           data-testid="wizard-chat-toast"
-          className="fixed bottom-md right-md z-50 max-w-xs"
+          className="fixed bottom-md right-md mb-[60px] sm:mb-0 z-50 max-w-xs"
         >
-          <p className="text-xs text-text-default bg-bg-card/95 px-md py-sm rounded-md border border-interactive-primary/40 shadow-md">
+          <p
+            className={[
+              "text-xs text-text-default bg-bg-card/95 px-md py-sm rounded-md border shadow-md",
+              chatToastType === "error"
+                ? "border-error/40 bg-error/5"
+                : "border-success/40 bg-success/5",
+            ].join(" ")}
+          >
             {chatToast}
           </p>
         </div>
@@ -1246,17 +1269,34 @@ export default function VisualWizardRoomStep({
               data-testid="wizard-generate-this-room"
               data-brief-validated={chatBriefValidated ? "true" : "false"}
               className={[
-                "min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50 disabled:cursor-not-allowed",
+                "inline-flex items-center justify-center gap-xs min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300 ease-out",
                 chatBriefValidated
                   ? "bg-success text-bg-canvas hover:opacity-90"
                   : "bg-bg-card border border-border-default text-text-default hover:bg-bg-subtle",
               ].join(" ")}
             >
+              {chatBriefValidated && !generatingThis && (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 8.5l3 3 7-7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
               {generatingThis
                 ? "Lancement..."
                 : chatBriefValidated
                 ? "Générer — brief complet"
-                : "Générer quand même"}
+                : "Générer sans l'architecte"}
             </button>
           </div>
         </div>

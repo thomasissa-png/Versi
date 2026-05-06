@@ -279,12 +279,14 @@ export function buildResponsePayload(params: {
   reply: ChatMessage;
   toolCalls: Array<{ name: string; args: Record<string, unknown>; result: string }>;
   briefValidated: boolean;
+  briefConfidence?: "high" | "medium" | "low" | null;
   fieldUpdates: Array<{ field: string; value: string; scope: "room" | "lot" }>;
   transcript: ChatMessage[];
 }): {
   reply: ChatMessage;
   tool_calls: Array<{ name: string; args: Record<string, unknown>; result: string }>;
   brief_validated: boolean;
+  brief_confidence: "high" | "medium" | "low" | null;
   field_updates: Array<{ field: string; value: string; scope: "room" | "lot" }>;
   transcript: ChatMessage[];
 } {
@@ -292,6 +294,7 @@ export function buildResponsePayload(params: {
     reply: params.reply,
     tool_calls: params.toolCalls,
     brief_validated: params.briefValidated,
+    brief_confidence: params.briefConfidence ?? null,
     field_updates: params.fieldUpdates,
     transcript: params.transcript,
   };

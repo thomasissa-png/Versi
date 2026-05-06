@@ -87,6 +87,7 @@ export async function POST(
         reply: result.reply,
         toolCalls: result.toolCalls,
         briefValidated: result.briefValidated,
+        briefConfidence: result.briefConfidence,
         fieldUpdates: result.fieldUpdates,
         transcript: newTranscript,
       }),
