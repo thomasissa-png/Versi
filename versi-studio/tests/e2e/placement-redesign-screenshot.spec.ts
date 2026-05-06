@@ -611,3 +611,315 @@ test.describe("s32 iter3 — Wizard configuring enrichi + preview", () => {
     await context.close();
   });
 });
+
+// ─── Suite 3 : SUJET ARCHITECTE — pills level/constraints + Vision orange + brief ─
+test.describe("s32 architect — Détails architecturaux + brief modale", () => {
+  /**
+   * Fixture architecte (sujet strict s32) :
+   *  - Sol : "Parquet" CONFIRMÉ par user (badge absent, pill bleu plein)
+   *  - Murs : "Défraîchie" Vision NON confirmée (confidence 0.85) → pill orange + badge "À confirmer"
+   *  - Niveau : "premium" sélectionné par user → pill bleu plein "Premium"
+   *  - Contraintes techniques (multi) : "beam_preserved" + "window_sealed" user-confirmed
+   */
+  const ARCHITECT_ROOMS = ROOMS_WIZARD_FIXTURE.map((r, idx) =>
+    idx === 0
+      ? {
+          ...r,
+          architectural_details: {
+            floor: { value: "Parquet", source: "user" as const, confirmed: true },
+            walls: {
+              value: "Défraîchie",
+              source: "vision" as const,
+              confidence: 0.85,
+              confirmed: false,
+            },
+            lighting: { value: null, source: null },
+            specifics: [],
+            level: { value: "premium", source: "user" as const, confirmed: true },
+            technical_constraints: [
+              {
+                value: "beam_preserved",
+                source: "user" as const,
+                confirmed: true,
+              },
+              {
+                value: "window_sealed",
+                source: "user" as const,
+                confirmed: true,
+              },
+            ],
+          },
+        }
+      : r
+  );
+
+  const ARCHITECT_COMMENT =
+    "Salon premium avec poutre conservée. Conserver fenêtre condamnée mur Est.";
+
+  /**
+   * Setup commun : routes /settings + /chat (extra_context riche pour brief)
+   * + /rooms PATCH passthrough.
+   */
+  async function setupArchitectFixture(page: Page): Promise<void> {
+    await blockExternalOpenAI(page);
+    await setupVisualsStepV2(page, {
+      rooms: ARCHITECT_ROOMS,
+      photos: REALISTIC_PHOTOS,
+    });
+
+    // Settings → commentaire pré-rempli pour ROOM_ID_1.
+    await page.route(`**/api/vs/rooms/*/settings`, async (route) => {
+      const url = route.request().url();
+      if (url.includes(ROOM_ID_1) && route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              room_id: ROOM_ID_1,
+              target_visual_count: 1,
+              comment_text: ARCHITECT_COMMENT,
+            },
+          }),
+        });
+        return;
+      }
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: { room_id: "x", target_visual_count: 1, comment_text: null },
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: { room_id: "x" } }),
+        });
+      }
+    });
+
+    // PATCH /rooms/:id passthrough (architectural_details / style / is_furnished)
+    await page.route(`**/api/vs/rooms/*`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        const body = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: true, data: { id: ROOM_ID_1, ...body } }),
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // GET /chat → extra_context humain (utilisé par briefSummary).
+    await page.route(`**/api/vs/rooms/*/chat`, async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              extra_context: {
+                ambiance: "Lumière naturelle dominante, chaleureuse",
+                public_cible: "Famille avec 1-2 enfants",
+                rythme_vie: "Télétravail occasionnel, repas en famille",
+              },
+            },
+          }),
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // POST /visuals/generate (au cas où le user confirme la modale, on évite 404)
+    await page.route(
+      `**/api/vs/projects/${PROJECT_ID}/visuals/generate`,
+      async (route) => {
+        if (route.request().method() === "POST") {
+          await route.fulfill({
+            status: 202,
+            contentType: "application/json",
+            body: JSON.stringify({
+              success: true,
+              data: {
+                job_id: "job-mock-architect",
+                expected_count: 3,
+                estimated_cost_usd: 0.12,
+              },
+            }),
+          });
+        } else {
+          await route.fallback();
+        }
+      }
+    );
+  }
+
+  // ─── Test A : section "Détails architecturaux" enrichie (configuring) ─
+  test("desktop — architect details (level Premium + constraints + Vision orange)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupArchitectFixture(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("room-zoom-canvas")).toBeVisible({ timeout: 10_000 });
+
+    // Vérifications visuelles attendues (pré-screenshot) — fail-fast si fixture mal câblée
+    await expect(page.getByTestId("room-arch-level-premium")).toBeVisible();
+    await expect(page.getByTestId("room-arch-constraint-beam_preserved")).toBeVisible();
+    await expect(page.getByTestId("room-arch-constraint-window_sealed")).toBeVisible();
+    await expect(page.getByTestId("room-arch-confirm-hint")).toBeVisible();
+
+    // Scroll vers la section pour cadrage screenshot
+    await page
+      .getByTestId("room-arch-confirm-hint")
+      .evaluate((el) =>
+        el.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior })
+      );
+    await page.evaluate(() => window.scrollBy(0, -100));
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1200);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-architect-final-configuring-desktop.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+
+  test("mobile — architect details (level Premium + constraints + Vision orange)", async ({
+    browser,
+  }) => {
+    const iphone = devices["iPhone 14"] ?? devices["iPhone 13"];
+    const context = await browser.newContext({
+      ...iphone,
+      viewport: { width: 390, height: 844 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupArchitectFixture(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("room-arch-level-premium")).toBeVisible();
+    await expect(page.getByTestId("room-arch-constraint-beam_preserved")).toBeVisible();
+    await expect(page.getByTestId("room-arch-constraint-window_sealed")).toBeVisible();
+
+    await page
+      .getByTestId("room-arch-confirm-hint")
+      .evaluate((el) =>
+        el.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior })
+      );
+    await page.evaluate(() => window.scrollBy(0, -80));
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1200);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-architect-final-configuring-mobile.png",
+      fullPage: true,
+    });
+
+    await context.close();
+  });
+
+  // ─── Test B : modale BriefSummaryDialog ouverte ────────────────────
+  test("desktop — modale brief « Avant de générer » ouverte", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupArchitectFixture(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Cliquer "Générer cette pièce" → ouvre BriefSummaryDialog (sans déclencher generate)
+    await page.getByTestId("wizard-generate-this-room").click();
+
+    await expect(page.getByTestId("brief-summary-dialog")).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByTestId("brief-summary-text")).toBeVisible();
+    await expect(page.getByTestId("brief-summary-cancel")).toBeVisible();
+    await expect(page.getByTestId("brief-summary-confirm")).toBeVisible();
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-architect-final-brief-desktop.png",
+      fullPage: false,
+    });
+
+    await context.close();
+  });
+
+  test("mobile — modale brief « Avant de générer » ouverte", async ({ browser }) => {
+    const iphone = devices["iPhone 14"] ?? devices["iPhone 13"];
+    const context = await browser.newContext({
+      ...iphone,
+      viewport: { width: 390, height: 844 },
+      locale: "fr-FR",
+    });
+    const page = await context.newPage();
+
+    await setupArchitectFixture(page);
+
+    await page.goto(PLACEMENT_URL);
+
+    await expect(page.getByTestId("visual-wizard")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("visual-wizard-room-step")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByTestId("wizard-generate-this-room").click();
+
+    await expect(page.getByTestId("brief-summary-dialog")).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByTestId("brief-summary-text")).toBeVisible();
+
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    await page.screenshot({
+      path: "tests/screenshots/s32-architect-final-brief-mobile.png",
+      fullPage: false,
+    });
+
+    await context.close();
+  });
+});
