@@ -589,6 +589,10 @@ export async function processChatMessage(
   // Pour les champs Vision non confirmés OU les champs vides : OK.
   const userLockedRoom = new Set<string>();
   const userLockedLot = new Set<string>();
+  // s32 P0-4 — pour les champs multi-select (specifics, technical_constraints),
+  // on ne lock pas le set entier ; on lock uniquement les valeurs déjà
+  // user-confirmed (autorise l'append d'une nouvelle valeur identifiée).
+  const userLockedRoomMulti = new Map<string, Set<string>>();
   const det = params.context.room.architectural_details;
   const prof = params.context.lot.architectural_profile;
   // Helper : un champ est "user-locked" si source='user' ET (confirmed!==false).
@@ -601,12 +605,23 @@ export async function processChatMessage(
     if (isUserLocked(det.walls)) userLockedRoom.add("walls");
     if (isUserLocked(det.lighting)) userLockedRoom.add("lighting");
     if (det.level && isUserLocked(det.level)) userLockedRoom.add("level");
-    // specifics et technical_constraints sont multi-select : on ne lock pas
-    // l'ajout d'une valeur supplémentaire, mais on lock le retrait. On laisse
-    // l'IA suggérer textuellement plutôt qu'écrire (cf. règle prompt #2).
-    if (det.specifics?.some(isUserLocked)) userLockedRoom.add("specifics");
-    if (det.technical_constraints?.some(isUserLocked)) {
-      userLockedRoom.add("technical_constraints");
+    // s32 P0-4 — multi-select : on collecte les valeurs user-confirmed
+    // par champ. L'IA peut AJOUTER une nouvelle valeur (vision identifie
+    // « Poutres apparentes » alors que marchand a confirmé « Cheminée »),
+    // mais NE PEUT PAS écraser une valeur déjà user-confirmed.
+    if (det.specifics?.length) {
+      const lockedVals = new Set(
+        det.specifics.filter(isUserLocked).map((v) => String(v.value))
+      );
+      if (lockedVals.size > 0) userLockedRoomMulti.set("specifics", lockedVals);
+    }
+    if (det.technical_constraints?.length) {
+      const lockedVals = new Set(
+        det.technical_constraints.filter(isUserLocked).map((v) => String(v.value))
+      );
+      if (lockedVals.size > 0) {
+        userLockedRoomMulti.set("technical_constraints", lockedVals);
+      }
     }
   }
   // Profile lot : pas de "source/confirmed" tracking (saisie marchand 100%
@@ -707,6 +722,19 @@ export async function processChatMessage(
               result = `Field already confirmed by dealer (${field}, scope=${scope}, current value preserved). Cannot overwrite. Suggest the change as a question instead.`;
               break;
             }
+            // s32 P0-4 — multi-select (specifics, technical_constraints) :
+            // on autorise l'append d'une NOUVELLE valeur, mais on refuse
+            // l'écrasement d'une valeur déjà user-confirmed.
+            if (scope === "room" && userLockedRoomMulti.has(field)) {
+              const lockedVals = userLockedRoomMulti.get(field)!;
+              if (lockedVals.has(value)) {
+                result = `Value '${value}' already confirmed by dealer (${field}). Cannot overwrite. Suggest a different value or as a question instead.`;
+                break;
+              }
+              // valeur nouvelle → autorisée en append (on ne la lock pas
+              // dans userLockedRoom global pour préserver les autres
+              // valeurs déjà confirmées).
+            }
             fieldUpdates.push({ field, value, scope });
             // Synchroniser operation_chat_context si pertinent
             if (scope === "lot") {
@@ -721,8 +749,18 @@ export async function processChatMessage(
             }
             // s32 Phase 4 — après application, on lock pour le reste du
             // tour (évite qu'un autre tool_call dans la même boucle écrase).
-            if (scope === "lot") userLockedLot.add(field);
-            else userLockedRoom.add(field);
+            // s32 P0-4 — pour multi-select, on lock uniquement la valeur
+            // précise dans userLockedRoomMulti (autres valeurs restent
+            // ouvertes à l'append dans le même tour).
+            if (scope === "lot") {
+              userLockedLot.add(field);
+            } else if (field === "specifics" || field === "technical_constraints") {
+              const set = userLockedRoomMulti.get(field) ?? new Set<string>();
+              set.add(value);
+              userLockedRoomMulti.set(field, set);
+            } else {
+              userLockedRoom.add(field);
+            }
             result = `Pill mis à jour : ${field} = ${value} (${scope}).`;
             break;
           }
