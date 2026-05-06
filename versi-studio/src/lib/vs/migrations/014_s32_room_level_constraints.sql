@@ -1,0 +1,45 @@
+-- Migration s32 — Niveau de prestation pièce + contraintes techniques + champ confirmed
+-- Idempotente : peut être rejouée sans effet secondaire.
+--
+-- Source : Thomas s32 — gaps persona architecte 7/10 :
+--   1. Le niveau de prestation devrait être paramétrable PAR PIÈCE (pas seulement
+--      au niveau lot via target_level). Ex : « salon premium, chambres standard ».
+--   2. Les contraintes techniques (gaine non déplaçable, poutre conservée, fenêtre
+--      condamnée) impactent fortement la génération mais n'étaient pas captées.
+--   3. Les champs détectés par Vision étaient validés passivement (pas de signal
+--      explicite d'accord du marchand) → ambiguïté brief.
+--
+-- ─── Stratégie ───────────────────────────────────────────────────────
+-- AUCUN DDL ici : tous les nouveaux champs vivent dans le JSONB existant
+-- `vs_rooms.architectural_details` qui est déjà un JSONB libre côté DB.
+-- Cette migration sert de SIGNAL VERSIONNÉ qu'un schéma applicatif étendu
+-- est attendu, et documente la forme des nouveaux champs.
+--
+-- Schéma applicatif étendu (TS : ArchitecturalDetails) :
+--   {
+--     floor:    { value, source, confidence?, confirmed? },
+--     walls:    { value, source, confidence?, confirmed? },
+--     lighting: { value, source, confidence?, confirmed? },
+--     specifics: [{ value, source, confidence?, confirmed? }, ...],
+--     -- NOUVEAUX champs s32 :
+--     level:    { value, source, confidence?, confirmed? },   -- 'eco'|'standard'|'premium'
+--     technical_constraints: [{ value, source, confidence?, confirmed? }, ...],
+--                                                              -- values:
+--                                                              -- 'duct_immovable' | 'beam_preserved'
+--                                                              -- | 'window_sealed' | 'other'
+--   }
+--
+-- Champ `confirmed?: boolean` ajouté sur ArchitecturalFieldValue :
+--   - source='user'   → confirmed=true par défaut (saisie volontaire)
+--   - source='vision' → confirmed=false tant que le marchand n'a pas cliqué le pill
+--                       (badge « À confirmer » orange en UI tant que false)
+--   - source=null     → champ vide, confirmed n'a pas de sens
+--
+-- ─── Compatibilité ascendante ────────────────────────────────────────
+-- Les anciens documents JSONB sans `level` / `technical_constraints` / `confirmed`
+-- restent valides : la lecture côté TS retombe sur des defaults (level=null,
+-- technical_constraints=[], confirmed=true pour user).
+
+-- Pas de changement DDL nécessaire — JSONB déjà permissif.
+-- Cette migration est un no-op SQL volontaire (versionnage applicatif uniquement).
+SELECT 1;

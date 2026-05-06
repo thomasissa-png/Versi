@@ -164,14 +164,27 @@ export const ARCHITECTURAL_PROFILE_OPTIONS = {
 /** s32 — un champ détail pièce avec source (user/vision) et confidence éventuelle.
  *  - source='user'   → saisie marchand, pas de confidence
  *  - source='vision' → analyse OpenAI, confidence ∈ [0,1]
- *  - source=null + value=null → champ vide (jamais analysé / saisi) */
+ *  - source=null + value=null → champ vide (jamais analysé / saisi)
+ *
+ *  s32 (migration 014) — `confirmed` :
+ *  - source='user'   → confirmed défaut true (saisie volontaire = accord implicite)
+ *  - source='vision' → confirmed défaut false (badge « À confirmer » orange)
+ *                      passe à true au clic explicite du marchand sur le pill.
+ *  - source=null     → confirmed n'a pas de sens (champ vide). */
 export interface ArchitecturalFieldValue {
   value: string | null;
   source: "user" | "vision" | null;
   confidence?: number;
+  /** s32 (migration 014) — true si le marchand a confirmé/saisi cette valeur. */
+  confirmed?: boolean;
 }
 
-/** s32 — 4 champs détails architecturaux niveau pièce (Étape 4 wizard). */
+/** s32 — 4 champs détails architecturaux niveau pièce (Étape 4 wizard).
+ *  s32 (migration 014) — étendu avec :
+ *   - `level` (single-select) : niveau de prestation PAR PIÈCE
+ *     (≠ target_level lot — gap persona Thomas s32).
+ *   - `technical_constraints` (multi-select) : contraintes immuables impactant
+ *     la génération (gaine non déplaçable, poutre conservée, fenêtre condamnée). */
 export interface ArchitecturalDetails {
   /** Sol actuel — 'Parquet' | 'Carrelage' | 'Moquette' | 'Béton' | 'À rénover' */
   floor: ArchitecturalFieldValue;
@@ -181,6 +194,12 @@ export interface ArchitecturalDetails {
   lighting: ArchitecturalFieldValue;
   /** Particularités multi-select — 'Cheminée' | 'Poutres apparentes' | 'Niche' | 'Mansardé' | 'Aucune' */
   specifics: ArchitecturalFieldValue[];
+  /** s32 (migration 014) — niveau de prestation par pièce. Optionnel pour
+   *  back-compat avec les documents JSONB existants. */
+  level?: ArchitecturalFieldValue;
+  /** s32 (migration 014) — contraintes techniques immuables (multi-select).
+   *  Optionnel pour back-compat. */
+  technical_constraints?: ArchitecturalFieldValue[];
 }
 
 /** s32 — valeurs autorisées par champ détail pièce. Validation API. */
@@ -200,7 +219,31 @@ export const ARCHITECTURAL_DETAILS_OPTIONS = {
     "Mansardé",
     "Aucune",
   ] as const,
+  /** s32 (migration 014) — niveau prestation par pièce. */
+  level: ["eco", "standard", "premium"] as const,
+  /** s32 (migration 014) — contraintes techniques (clés stables, libellés UI séparés). */
+  technical_constraints: [
+    "duct_immovable",
+    "beam_preserved",
+    "window_sealed",
+    "other",
+  ] as const,
 } as const;
+
+/** s32 (migration 014) — libellés FR pour les valeurs du champ `level`. */
+export const ARCHITECTURAL_LEVEL_LABELS: Record<string, string> = {
+  eco: "Économique",
+  standard: "Standard",
+  premium: "Premium",
+};
+
+/** s32 (migration 014) — libellés FR pour les contraintes techniques. */
+export const TECHNICAL_CONSTRAINTS_LABELS: Record<string, string> = {
+  duct_immovable: "Gaine non déplaçable",
+  beam_preserved: "Poutre conservée",
+  window_sealed: "Fenêtre condamnée",
+  other: "Autre",
+};
 
 /** s32 — helper : crée un détail vide (default DB row sans données). */
 export function emptyArchitecturalDetails(): ArchitecturalDetails {
@@ -209,6 +252,8 @@ export function emptyArchitecturalDetails(): ArchitecturalDetails {
     walls: { value: null, source: null },
     lighting: { value: null, source: null },
     specifics: [],
+    level: { value: null, source: null },
+    technical_constraints: [],
   };
 }
 

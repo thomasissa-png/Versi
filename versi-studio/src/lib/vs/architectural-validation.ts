@@ -130,6 +130,19 @@ function validateFieldValue(
     };
   }
 
+  // s32 (migration 014) — confirmed (booléen optionnel).
+  // Sémantique : true si le marchand a explicitement confirmé/saisi la valeur.
+  // Default si absent : true pour source='user', false pour source='vision'.
+  if (obj.confirmed !== undefined && obj.confirmed !== null) {
+    if (typeof obj.confirmed !== "boolean") {
+      return {
+        ok: false,
+        error: `${fieldLabel}.confirmed doit être un booléen.`,
+      };
+    }
+    out.confirmed = obj.confirmed;
+  }
+
   return { ok: true, value: out };
 }
 
@@ -143,17 +156,21 @@ export function validateArchitecturalDetails(
   }
   const obj = raw as Record<string, unknown>;
 
-  // floor / walls / lighting
-  const single: Array<keyof Omit<ArchitecturalDetails, "specifics">> = [
+  // floor / walls / lighting / level (single-select)
+  // s32 (migration 014) — `level` ajouté au niveau pièce.
+  const single: Array<"floor" | "walls" | "lighting" | "level"> = [
     "floor",
     "walls",
     "lighting",
+    "level",
   ];
   const out: ArchitecturalDetails = {
     floor: { value: null, source: null },
     walls: { value: null, source: null },
     lighting: { value: null, source: null },
     specifics: [],
+    level: { value: null, source: null },
+    technical_constraints: [],
   };
 
   for (const key of single) {
@@ -177,6 +194,28 @@ export function validateArchitecturalDetails(
       items.push(r.value);
     }
     out.specifics = items;
+  }
+
+  // s32 (migration 014) — technical_constraints (multi-select)
+  if (obj.technical_constraints !== undefined) {
+    if (!Array.isArray(obj.technical_constraints)) {
+      return {
+        ok: false,
+        error: "technical_constraints doit être un tableau.",
+      };
+    }
+    const allowed = ARCHITECTURAL_DETAILS_OPTIONS.technical_constraints as readonly string[];
+    const items: ArchitecturalFieldValue[] = [];
+    for (let i = 0; i < obj.technical_constraints.length; i++) {
+      const r = validateFieldValue(
+        obj.technical_constraints[i],
+        allowed,
+        `technical_constraints[${i}]`
+      );
+      if (!r.ok) return r;
+      items.push(r.value);
+    }
+    out.technical_constraints = items;
   }
 
   return { ok: true, value: out };
