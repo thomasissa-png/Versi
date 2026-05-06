@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   // pour que le dev server accepte les requêtes du proxy Replit.
   allowedDevOrigins: ["*.replit.dev", "*.repl.co", "*.picard.replit.dev"],
 
-  // pdf-to-img casse le bundling Next.js côté serveur s'il est importé
+  // s32 — pdf-to-img casse le bundling Next.js côté serveur s'il est importé
   // statiquement — on le traite comme package externe au runtime (Node.js).
   // Complémentaire du pattern `await import("pdf-to-img")` déjà appliqué.
   // s24 — tesseract.js même problème : Turbopack ne résout pas le worker
@@ -27,6 +27,26 @@ const nextConfig: NextConfig = {
   // Externaliser comme pdf-to-img / tesseract.js résout. Cause root du bug
   // 5102 reporté par Thomas après commit 4d8a519.
   serverExternalPackages: ["pdf-to-img", "tesseract.js", "pdfjs-dist"],
+
+  // s32 hotfix Cloud Run — `serverExternalPackages` dit à Next de ne PAS
+  // bundler ces packages (résolution runtime depuis node_modules). MAIS en
+  // standalone, Next copie SEULEMENT les modules tracés. Les workers chargés
+  // dynamiquement (pdf.worker.mjs via import.meta.url, tesseract worker-script)
+  // ne sont PAS tracés → MODULE_NOT_FOUND en prod.
+  // Fix : forcer l'inclusion explicite de leurs fichiers dans le standalone.
+  // Reproduit en prod Replit après upload PDF avec :
+  //   "Setting up fake worker failed: Cannot find module
+  //   '.../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'"
+  outputFileTracingIncludes: {
+    "*": [
+      "node_modules/pdfjs-dist/legacy/build/**/*",
+      "node_modules/pdfjs-dist/cmaps/**/*",
+      "node_modules/pdfjs-dist/standard_fonts/**/*",
+      "node_modules/pdf-to-img/**/*",
+      "node_modules/tesseract.js/**/*",
+      "node_modules/tesseract.js-core/**/*",
+    ],
+  },
 
   // s32 — autoriser next/image à optimiser les fichiers servis par notre
   // route `/api/vs/files?path=...` (query string requise par Next.js 16
