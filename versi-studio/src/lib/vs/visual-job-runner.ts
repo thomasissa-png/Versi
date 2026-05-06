@@ -27,7 +27,7 @@ import { preprocessPhoto } from "@/lib/vs/photo-preprocessor";
 import { storeVisualImage, loadVisualImage } from "@/lib/vs/visual-storage";
 import { emitJobEvent } from "@/lib/vs/visual-job-bus";
 import { readFile } from "node:fs/promises";
-import type { ZonePolygonPoint } from "@/lib/vs/types";
+import type { ZonePolygonPoint, VsRoomSegment } from "@/lib/vs/types";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -44,6 +44,9 @@ interface RoomToGenerate {
   style_id: string | null;
   /** s32 (autopilot) — true = pièce déjà meublée à transformer, false = vide à meubler. */
   is_furnished: boolean;
+  /** s32 (autopilot — Feature A) — offset polygone (lot-local %, [-10, +10]). */
+  polygon_offset_x: number | null;
+  polygon_offset_y: number | null;
 }
 
 interface PhotoRow {
@@ -108,6 +111,8 @@ async function loadRoomsToGenerate(
     structural_instructions: string | null;
     style_id: string | null;
     is_furnished: boolean;
+    polygon_offset_x: number | null;
+    polygon_offset_y: number | null;
   }>(
     `
     SELECT
@@ -119,6 +124,8 @@ async function loadRoomsToGenerate(
       rs.comment_text,
       COALESCE(rs.target_visual_count, 1) AS target_visual_count,
       r.polygon,
+      r.polygon_offset_x::FLOAT AS polygon_offset_x,
+      r.polygon_offset_y::FLOAT AS polygon_offset_y,
       (
         SELECT COALESCE(json_agg(q.user_answer ORDER BY q.answered_at)::TEXT, '[]')
           FROM vs_visual_questions q
@@ -148,7 +155,46 @@ async function loadRoomsToGenerate(
     structural_instructions: row.structural_instructions,
     style_id: row.style_id,
     is_furnished: row.is_furnished,
+    polygon_offset_x: row.polygon_offset_x,
+    polygon_offset_y: row.polygon_offset_y,
   }));
+}
+
+/**
+ * s32 (Feature A autopilot) — applique le offset committed au polygone DB
+ * pour obtenir le polygone "effectif" tel que l'utilisateur le voit.
+ * Le pipeline IA reçoit le polygone effectif → la position des photos et
+ * le centroïde restent cohérents.
+ */
+function applyPolygonOffset(
+  polygon: ZonePolygonPoint[] | null,
+  offsetX: number | null,
+  offsetY: number | null
+): ZonePolygonPoint[] | null {
+  if (!polygon || polygon.length < 3) return polygon;
+  const dx = typeof offsetX === "number" ? offsetX : 0;
+  const dy = typeof offsetY === "number" ? offsetY : 0;
+  if (dx === 0 && dy === 0) return polygon;
+  return polygon.map((p) => ({
+    x_percent: Math.max(0, Math.min(100, p.x_percent + dx)),
+    y_percent: Math.max(0, Math.min(100, p.y_percent + dy)),
+  }));
+}
+
+/**
+ * s32 (Feature B autopilot) — charge les segments annotés d'une pièce. Si
+ * aucun segment n'est en BDD (utilisateur n'a jamais ouvert le mode annoter),
+ * on retourne tableau vide → buildSegmentDescriptionEn n'injecte rien.
+ */
+async function loadRoomSegments(roomId: string): Promise<VsRoomSegment[]> {
+  const result = await query<VsRoomSegment>(
+    `SELECT id, room_id, segment_index, type, notes, updated_at
+       FROM vs_room_segments
+      WHERE room_id = $1
+      ORDER BY segment_index ASC`,
+    [roomId]
+  );
+  return result.rows;
 }
 
 async function loadPlacedPhotos(roomId: string): Promise<PlacedPhoto[]> {
@@ -245,7 +291,10 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         console.warn(`[visual-job-runner] Room ${room.room_id} : target>0 mais 0 photo placée — skip.`);
         continue;
       }
-      const polygon = room.polygon ?? [];
+      // s32 (Feature A) — applique le offset committed pour utiliser le
+      // polygone tel que l'utilisateur l'a ajusté.
+      const polygon =
+        applyPolygonOffset(room.polygon, room.polygon_offset_x, room.polygon_offset_y) ?? [];
       if (polygon.length < 3) {
         console.warn(`[visual-job-runner] Room ${room.room_id} : polygone invalide — skip.`);
         continue;
@@ -256,6 +305,8 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
       // continuent à fonctionner. Le wizard s32 force le choix par pièce, donc
       // tout nouveau flow passera par room.style_id ≠ NULL.
       const effectiveStyleId = room.style_id ?? style_id;
+      // s32 (Feature B autopilot) — segments annotés à injecter dans le prompt.
+      const segments = await loadRoomSegments(room.room_id);
       const genInput: CoherentGenerationInput = {
         room_id: room.room_id,
         room_polygon: polygon,
@@ -268,6 +319,7 @@ export async function runVisualJob(input: RunVisualJobInput): Promise<void> {
         user_answers: room.user_answers,
         structural_instructions: room.structural_instructions,
         is_furnished: room.is_furnished,
+        segments,
       };
 
       try {

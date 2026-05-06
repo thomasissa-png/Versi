@@ -21,7 +21,11 @@
 
 import OpenAI, { toFile } from "openai";
 import { query } from "@/lib/vs/db";
-import { polygonCentroid, type ZonePolygonPoint } from "@/lib/vs/types";
+import {
+  polygonCentroid,
+  type ZonePolygonPoint,
+  type VsRoomSegment,
+} from "@/lib/vs/types";
 import { imagesEditLimiter } from "@/lib/vs/openai-rate-limiter";
 import {
   buildVisualPromptAnchor,
@@ -30,6 +34,7 @@ import {
   type AnchorPromptParams,
   type VisualSignature,
 } from "@/lib/vs/visual-generator";
+import { buildSegmentDescriptionEn } from "@/lib/vs/ui/segment-prompt";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -66,6 +71,9 @@ export interface CoherentGenerationInput {
   /** s32 (autopilot) — true = pièce déjà meublée à transformer/améliorer,
    *  false = pièce vide à meubler intégralement. Default true (back-compat). */
   is_furnished?: boolean;
+  /** s32 (autopilot — Feature B) — segments annotés du polygone. Si vide ou
+   *  100% 'wall', aucune injection prompt (pas de pollution). */
+  segments?: VsRoomSegment[];
 }
 
 export interface SecondaryVisualResult {
@@ -136,6 +144,11 @@ async function generateAnchorVisual(
   input: CoherentGenerationInput,
   anchorPhoto: PlacedPhoto
 ): Promise<{ image_base64: string; prompt_used: string }> {
+  // s32 (Feature B) — description segments à injecter (vide si pas annoté)
+  const segmentDescription = buildSegmentDescriptionEn(
+    input.room_polygon,
+    input.segments ?? []
+  );
   const params: AnchorPromptParams = {
     roomType: input.room_type,
     styleId: input.style_id,
@@ -145,6 +158,7 @@ async function generateAnchorVisual(
     userAnswers: input.user_answers,
     structuralInstructions: input.structural_instructions,
     isFurnished: input.is_furnished,
+    segmentDescription,
   };
   const prompt = buildVisualPromptAnchor(params);
 
@@ -177,6 +191,12 @@ async function generateSecondaryVisual(
   anchorImageBase64: string,
   anchorSignature: VisualSignature
 ): Promise<{ image_base64: string; prompt_used: string; coherence_mode: "multi_image_native" | "textual_signature" }> {
+  // s32 (Feature B) — description segments injectée aussi sur les secondaires
+  // pour cohérence (pas de divergence anchor/secondary sur les ouvertures).
+  const segmentDescription = buildSegmentDescriptionEn(
+    input.room_polygon,
+    input.segments ?? []
+  );
   const baseParams: AnchorPromptParams = {
     roomType: input.room_type,
     styleId: input.style_id,
@@ -186,6 +206,7 @@ async function generateSecondaryVisual(
     userAnswers: input.user_answers,
     structuralInstructions: input.structural_instructions,
     isFurnished: input.is_furnished,
+    segmentDescription,
   };
   const prompt = buildVisualPromptSecondary({ ...baseParams, anchorSignature });
 

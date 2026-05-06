@@ -54,6 +54,10 @@ export interface AnchorPromptParams {
    *  false = pièce vide à meubler intégralement.
    *  undefined = back-compat (default true comportement V2 historique). */
   isFurnished?: boolean;
+  /** s32 (autopilot — Feature B) — description textuelle des segments annotés
+   *  (porte/fenêtre/baie/ouverture/flexible) à injecter telle quelle dans
+   *  le prompt. Vide = aucune annotation faite, on n'injecte rien. */
+  segmentDescription?: string | null;
 }
 
 /** Signature visuelle extraite de l'ancre — sert à uniformiser les secondaires. */
@@ -363,6 +367,12 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
   const structuralBlock = hasTransformations
     ? `\n\nSTRUCTURAL TRANSFORMATIONS — TOP PRIORITY:\n${p.structuralInstructions!.trim()}`
     : "";
+  // s32 (autopilot — Feature B) — annotations sémantiques des segments du
+  // polygone (porte/fenêtre/baie/ouverture/flexible). Source de vérité :
+  // l'utilisateur a typé chaque arête sur le canvas. Bloc injecté tel quel.
+  const segmentBlock = p.segmentDescription && p.segmentDescription.trim().length > 0
+    ? `\n\n${p.segmentDescription.trim()}`
+    : "";
   const structuralRule = hasTransformations
     ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE."
     : "1. KEEP all structural elements EXACTLY (walls, windows, doors, ceiling, floor shape).";
@@ -379,7 +389,7 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? "9. EXISTING FURNITURE: the room is already furnished — keep the general layout (sofa zone, dining zone, bed orientation) consistent with what's visible, but upgrade the pieces, materials and palette to the chosen style."
     : "9. EMPTY ROOM: the room is empty — fully furnish it with all standard pieces expected for this room type, properly placed for circulation and function.";
 
-  return `${openingSentence}${structuralBlock}
+  return `${openingSentence}${structuralBlock}${segmentBlock}
 
 STYLE DETAILS: ${styleHint}.
 
