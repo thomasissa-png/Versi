@@ -290,7 +290,10 @@ export default function VisualWizardRoomStep({
       if (seen) return;
       setShowMobileDragHint(true);
       const timer = setTimeout(() => setShowMobileDragHint(false), 5000);
-      return () => clearTimeout(timer);
+      return () => {
+        setShowMobileDragHint(false);
+        clearTimeout(timer);
+      };
     } catch {
       // localStorage indisponible (mode privé Safari, etc.) → pas de hint.
       return;

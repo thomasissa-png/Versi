@@ -1046,7 +1046,7 @@ export default function RoomZoomCanvas({
       />
       {!planImageUrl && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-sm text-text-muted">Aucun plan disponible.</p>
+          <p className="text-sm text-text-muted">Aucun plan importé — ajoutez un plan depuis les paramètres du lot.</p>
         </div>
       )}
       {planImageUrl && !imageLoaded && (
