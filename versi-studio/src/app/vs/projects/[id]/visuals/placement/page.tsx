@@ -313,6 +313,7 @@ export default function VisualPlacementPage({
           projectId={projectId}
           planImageUrl={planImageUrl}
           lotZone={lotZone}
+          selectedLot={selectedLot}
           rooms={roomsForLot}
           initialPhotos={photosForLot}
         />

@@ -39,6 +39,7 @@ import RoomGenerationProgress from "@/components/vs/RoomGenerationProgress";
 import { useVisualsStream, type VisualGenerated } from "@/hooks/useVisualsStream";
 import type {
   VsRoom,
+  VsLot,
   VsPhoto,
   VsVisual,
   ZoneRect,
@@ -64,6 +65,12 @@ export interface VisualWizardProps {
   projectId: string;
   planImageUrl: string | null;
   lotZone: ZoneRect;
+  /**
+   * Lot sélectionné — propagé jusqu'à VisualWizardRoomStep pour :
+   * (a) snapshot undo réel sur update_field scope=lot (chat architecte),
+   * (b) synthèse brief incluant le profil architectural lot.
+   */
+  selectedLot: VsLot | null;
   rooms: VsRoom[];
   initialPhotos: VsPhoto[];
 }
@@ -103,6 +110,7 @@ export default function VisualWizard({
   projectId,
   planImageUrl,
   lotZone,
+  selectedLot,
   rooms,
   initialPhotos,
 }: VisualWizardProps) {
@@ -1158,6 +1166,7 @@ export default function VisualWizard({
           stepIndex={currentStepIndex + 1}
           totalSteps={visibleRooms.length}
           room={currentRoom}
+          currentLot={selectedLot}
           planImageUrl={planImageUrl}
           lotZone={lotZone}
           placements={placementsForCurrentRoom}

@@ -26,6 +26,7 @@ import BriefSummaryDialog from "@/components/vs/BriefSummaryDialog";
 import { buildHumanReadableBrief } from "@/lib/vs/brief-summary";
 import type {
   VsRoom,
+  VsLot,
   VsPhoto,
   ZoneRect,
   VsRoomSegment,
@@ -45,6 +46,12 @@ export interface VisualWizardRoomStepProps {
   totalSteps: number;
   /** Pièce courante. */
   room: VsRoom;
+  /**
+   * Lot parent de la pièce courante. Permet d'accéder au profil architectural
+   * (5 champs) pour : (a) snapshot undo réel sur update_field scope=lot,
+   * (b) inclure le profil dans la synthèse brief (BriefSummaryDialog).
+   */
+  currentLot: VsLot | null;
   /** URL plan global. */
   planImageUrl: string | null;
   /** Zone du lot (% du plan global). */
@@ -121,6 +128,7 @@ export default function VisualWizardRoomStep({
   stepIndex,
   totalSteps,
   room,
+  currentLot,
   planImageUrl,
   lotZone,
   placements,
@@ -407,15 +415,19 @@ export default function VisualWizardRoomStep({
             "target_audience",
           ];
           if (!VALID_LOT_FIELDS.includes(update.field)) return;
-          // Snapshot lot value : on ne le tient pas dans `room` ; on tente
-          // un GET avant patch pour avoir la previousValue. Approche simple :
-          // on stocke null (l'undo PATCHera avec null = unset).
-          // NB : le brief autorise "le choix le plus simple, documenter".
+          // s32 micro-fix architecte (10/10) — snapshot undo VRAIE valeur précédente
+          // lue depuis currentLot.architectural_profile (prop propagée par parent).
+          // Avant : null forcé → undo unsettait au lieu de revert. Maintenant :
+          // currentLot peut être null si parent ne l'a pas encore propagé → fallback null.
+          const previousLotValue =
+            (currentLot?.architectural_profile?.[
+              update.field as keyof typeof currentLot.architectural_profile
+            ] as string | null | undefined) ?? null;
           setChatToastUndo({
             revertField: update.field,
-            previousValue: null,
+            previousValue: previousLotValue,
             scope: "lot",
-            previousLotValue: null,
+            previousLotValue,
           });
           await fetch(`/api/vs/lots/${room.lot_id}`, {
             method: "PATCH",
@@ -435,6 +447,7 @@ export default function VisualWizardRoomStep({
       room.architectural_details,
       room.lot_id,
       room.style_id,
+      currentLot,
       onArchitecturalDetailsChange,
       onStyleSelect,
     ]
@@ -919,9 +932,9 @@ export default function VisualWizardRoomStep({
     const briefText = buildHumanReadableBrief({
       room,
       details: room.architectural_details,
-      // profile: pas dispo dans ce composant — l'orchestrateur parent le tient.
-      // Acceptable V1 : la synthèse omet le profil lot. À enrichir si on remonte le lot.
-      profile: null,
+      // s32 micro-fix architecte (10/10) — profil lot inclus dans la synthèse brief.
+      // Lu depuis currentLot.architectural_profile (prop propagée par parent).
+      profile: currentLot?.architectural_profile ?? null,
       segments,
       styleId,
       comment,
@@ -932,6 +945,7 @@ export default function VisualWizardRoomStep({
     setBriefDialogOpen(true);
   }, [
     room,
+    currentLot,
     segments,
     styleId,
     comment,
