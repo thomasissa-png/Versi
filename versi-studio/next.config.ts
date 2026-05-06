@@ -39,12 +39,31 @@ const nextConfig: NextConfig = {
   //   '.../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'"
   outputFileTracingIncludes: {
     "*": [
+      // pdfjs-dist : worker chargé via import.meta.url + assets statiques
       "node_modules/pdfjs-dist/legacy/build/**/*",
       "node_modules/pdfjs-dist/cmaps/**/*",
       "node_modules/pdfjs-dist/standard_fonts/**/*",
+      // pdf-to-img : wrapper qui require pdfjs-dist en runtime
       "node_modules/pdf-to-img/**/*",
+      // tesseract.js : worker-script + core WASM (fra.traineddata téléchargé runtime via CDN)
       "node_modules/tesseract.js/**/*",
       "node_modules/tesseract.js-core/**/*",
+      // s32 audit Cloud Run — heic-convert chargé via `await import("heic-convert")`
+      // dans photo-preprocessor.ts. Le tracer Next.js ne suit pas les imports
+      // dynamiques string-literal → MODULE_NOT_FOUND quand iPhone HEIC arrive en prod.
+      "node_modules/heic-convert/**/*",
+      // libheif-js : dep transitive de heic-convert (WASM bundle libheif décode HEIC).
+      // Pas dans le bundle de heic-convert lui-même → à inclure explicitement.
+      "node_modules/libheif-js/**/*",
+      // exifr : dynamic import dans photo-preprocessor pour lire EXIF orientation.
+      "node_modules/exifr/**/*",
+      // sharp : prebuilds natifs par OS (libvips bindings). Le tracer copie sharp
+      // mais peut rater @img/sharp-libvips-* (libvips C lib partagée). On force
+      // l'inclusion de TOUS les @img/* pour couvrir linux-x64 (gnu) et linuxmusl-x64
+      // (Alpine/Cloud Run). Sans ça, "Cannot find module @img/sharp-libvips-..."
+      // au premier appel sharp().
+      "node_modules/@img/**/*",
+      "node_modules/sharp/**/*",
     ],
   },
 
