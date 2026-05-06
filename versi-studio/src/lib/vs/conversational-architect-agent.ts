@@ -581,6 +581,45 @@ export async function processChatMessage(
   let askQuestionPayload: { question: string; suggestions: string[] } | null = null;
   let textContent = "";
 
+  // ─── s32 Phase 4 — Guardrails update_field (Thomas marchand audit) ──
+  // Snapshot de l'état initial des champs « user-confirmed » (verrouillés).
+  // Le LLM a beau être briefé via le system prompt, on défend en profondeur :
+  // si une valeur est saisie volontairement par le marchand (source='user' ET
+  // confirmed=true), aucun update_field venant de l'IA ne peut l'écraser.
+  // Pour les champs Vision non confirmés OU les champs vides : OK.
+  const userLockedRoom = new Set<string>();
+  const userLockedLot = new Set<string>();
+  const det = params.context.room.architectural_details;
+  const prof = params.context.lot.architectural_profile;
+  // Helper : un champ est "user-locked" si source='user' ET (confirmed!==false).
+  // Default confirmed=true pour source='user' (saisie volontaire).
+  const isUserLocked = (
+    f?: { value: string | null; source: "user" | "vision" | null; confirmed?: boolean }
+  ): boolean => f != null && f.value != null && f.source === "user" && f.confirmed !== false;
+  if (det) {
+    if (isUserLocked(det.floor)) userLockedRoom.add("floor");
+    if (isUserLocked(det.walls)) userLockedRoom.add("walls");
+    if (isUserLocked(det.lighting)) userLockedRoom.add("lighting");
+    if (det.level && isUserLocked(det.level)) userLockedRoom.add("level");
+    // specifics et technical_constraints sont multi-select : on ne lock pas
+    // l'ajout d'une valeur supplémentaire, mais on lock le retrait. On laisse
+    // l'IA suggérer textuellement plutôt qu'écrire (cf. règle prompt #2).
+    if (det.specifics?.some(isUserLocked)) userLockedRoom.add("specifics");
+    if (det.technical_constraints?.some(isUserLocked)) {
+      userLockedRoom.add("technical_constraints");
+    }
+  }
+  // Profile lot : pas de "source/confirmed" tracking (saisie marchand 100%
+  // via panneau latéral V3). Tout champ NON-NULL est lock pour update_field.
+  if (prof) {
+    if (prof.ceiling_height) userLockedLot.add("ceiling_height");
+    if (prof.orientation) userLockedLot.add("orientation");
+    if (prof.general_state) userLockedLot.add("general_state");
+    if (prof.target_level) userLockedLot.add("target_level");
+    if (prof.target_audience) userLockedLot.add("target_audience");
+  }
+  if (params.context.room.style_id) userLockedRoom.add("style");
+
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const completion = await openai.chat.completions.create(
@@ -655,23 +694,36 @@ export async function processChatMessage(
             const scope = (parsedArgs.scope === "lot" ? "lot" : "room") as
               | "room"
               | "lot";
-            if (field && value) {
-              fieldUpdates.push({ field, value, scope });
-              // Synchroniser operation_chat_context si pertinent
-              if (scope === "lot") {
-                if (field === "target_audience") {
-                  operationContextPatch.target_audience = value;
-                } else if (field === "target_level") {
-                  operationContextPatch.budget_estimate = value;
-                }
-              }
-              if (field === "style") {
-                operationContextPatch.style = value;
-              }
-              result = `Pill mis à jour : ${field} = ${value} (${scope}).`;
-            } else {
+            if (!field || !value) {
               result = "update_field invalide.";
+              break;
             }
+            // s32 Phase 4 — guardrail user-confirmed.
+            // Si le champ a été saisi/confirmé par le marchand (pill bleu),
+            // on REFUSE l'écrasement. L'IA voit l'erreur tool et doit
+            // reformuler en suggestion textuelle (« Voulez-vous changer X ? »).
+            const lockedSet = scope === "lot" ? userLockedLot : userLockedRoom;
+            if (lockedSet.has(field)) {
+              result = `Field already confirmed by dealer (${field}, scope=${scope}, current value preserved). Cannot overwrite. Suggest the change as a question instead.`;
+              break;
+            }
+            fieldUpdates.push({ field, value, scope });
+            // Synchroniser operation_chat_context si pertinent
+            if (scope === "lot") {
+              if (field === "target_audience") {
+                operationContextPatch.target_audience = value;
+              } else if (field === "target_level") {
+                operationContextPatch.budget_estimate = value;
+              }
+            }
+            if (field === "style") {
+              operationContextPatch.style = value;
+            }
+            // s32 Phase 4 — après application, on lock pour le reste du
+            // tour (évite qu'un autre tool_call dans la même boucle écrase).
+            if (scope === "lot") userLockedLot.add(field);
+            else userLockedRoom.add(field);
+            result = `Pill mis à jour : ${field} = ${value} (${scope}).`;
             break;
           }
           case "record_extra_context": {

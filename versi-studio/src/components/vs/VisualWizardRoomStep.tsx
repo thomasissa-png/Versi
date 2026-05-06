@@ -173,6 +173,17 @@ export default function VisualWizardRoomStep({
   const [chatToast, setChatToast] = useState<string | null>(null);
   // s32 Phase 9 itér. — distinction succès / erreur du toast chat (a11y + couleur).
   const [chatToastType, setChatToastType] = useState<"success" | "error">("success");
+  // s32 Phase 4 — Annuler le dernier update_field IA (toast bouton inline).
+  // null = pas d'undo possible. Auto-clear après 5s ou après clic Annuler.
+  const [chatToastUndo, setChatToastUndo] = useState<{
+    revertField: string;
+    previousValue: ArchitecturalFieldValue | string | null;
+    scope: "lot" | "room";
+    /** Pour multi-select (specifics/technical_constraints) on snapshot la liste entière. */
+    previousList?: ArchitecturalFieldValue[];
+    /** previousLotValue spécifique scope='lot' (5 champs profile). */
+    previousLotValue?: string | null;
+  } | null>(null);
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map()); // B7 — auto-scroll
   const headerRef = useRef<HTMLHeadingElement>(null); // B9 — focus reset
@@ -259,16 +270,24 @@ export default function VisualWizardRoomStep({
     setPanelMode("segments");
     setChatBriefValidated(false);
     setChatToast(null);
+    setChatToastUndo(null);
   }, [room.id]);
-  // s32 (Phase 9) — auto-clear chat toast après 3s
+  // s32 (Phase 9) — auto-clear chat toast.
+  // s32 Phase 4 : durée étendue à 5s si undo possible (donne le temps de cliquer
+  // « Annuler »). Sinon 3s standard.
   useEffect(() => {
     if (chatToast === null) return;
-    const t = setTimeout(() => setChatToast(null), 3000);
+    const duration = chatToastUndo !== null ? 5000 : 3000;
+    const t = setTimeout(() => {
+      setChatToast(null);
+      setChatToastUndo(null);
+    }, duration);
     return () => clearTimeout(t);
-  }, [chatToast]);
+  }, [chatToast, chatToastUndo]);
 
   // s32 (Phase 9) — handler chat update_field : applique le patch côté UI
   // (room ou lot scope) + toast feedback. Persistance API immédiate.
+  // s32 Phase 4 — capture la valeur précédente pour permettre Annuler 5s.
   const handleChatFieldUpdate = useCallback(
     async (update: ChatFieldUpdate) => {
       const FIELD_LABELS: Record<string, string> = {
@@ -276,6 +295,8 @@ export default function VisualWizardRoomStep({
         walls: "Murs",
         lighting: "Luminosité",
         specifics: "Particularités",
+        level: "Niveau prestation",
+        technical_constraints: "Contraintes techniques",
         ceiling_height: "Hauteur",
         orientation: "Orientation",
         general_state: "État général",
@@ -290,7 +311,14 @@ export default function VisualWizardRoomStep({
       try {
         if (update.scope === "room") {
           if (update.field === "style") {
+            // Snapshot pour undo (style)
+            const previousStyle = room.style_id;
             await onStyleSelect(update.value as StyleId);
+            setChatToastUndo({
+              revertField: "style",
+              previousValue: previousStyle,
+              scope: "room",
+            });
             return;
           }
           const current =
@@ -300,29 +328,68 @@ export default function VisualWizardRoomStep({
             walls: { ...current.walls },
             lighting: { ...current.lighting },
             specifics: [...current.specifics],
+            level: current.level ? { ...current.level } : { value: null, source: null },
+            technical_constraints: current.technical_constraints
+              ? [...current.technical_constraints]
+              : [],
           };
+          // s32 Phase 4 — snapshot avant patch (selon type single/multi)
+          let undoPayload: typeof chatToastUndo = null;
           if (update.field === "specifics") {
+            undoPayload = {
+              revertField: "specifics",
+              previousValue: null,
+              scope: "room",
+              previousList: current.specifics.map((s) => ({ ...s })),
+            };
             const fv: ArchitecturalFieldValue = {
               value: update.value,
               source: "user",
+              confirmed: true,
             };
-            // Évite doublon si la valeur existe déjà
             if (!next.specifics.some((s) => s.value === update.value)) {
               next.specifics.push(fv);
+            }
+          } else if (update.field === "technical_constraints") {
+            undoPayload = {
+              revertField: "technical_constraints",
+              previousValue: null,
+              scope: "room",
+              previousList: (current.technical_constraints ?? []).map((s) => ({ ...s })),
+            };
+            const fv: ArchitecturalFieldValue = {
+              value: update.value,
+              source: "user",
+              confirmed: true,
+            };
+            if (!(next.technical_constraints ?? []).some((s) => s.value === update.value)) {
+              next.technical_constraints = [...(next.technical_constraints ?? []), fv];
             }
           } else if (
             update.field === "floor" ||
             update.field === "walls" ||
-            update.field === "lighting"
+            update.field === "lighting" ||
+            update.field === "level"
           ) {
-            next[update.field] = { value: update.value, source: "user" };
+            const prev = current[update.field];
+            undoPayload = {
+              revertField: update.field,
+              previousValue: prev ? { ...prev } : null,
+              scope: "room",
+            };
+            next[update.field] = {
+              value: update.value,
+              source: "user",
+              confirmed: true,
+            };
           } else {
-            // Champ inconnu pour scope room (ex: style déjà géré au-dessus)
+            // Champ inconnu pour scope room
             return;
           }
           if (onArchitecturalDetailsChange) {
             await onArchitecturalDetailsChange(next);
           }
+          if (undoPayload) setChatToastUndo(undoPayload);
         } else if (update.scope === "lot") {
           // Patch direct PATCH /api/vs/lots/:id (champ profile)
           const VALID_LOT_FIELDS = [
@@ -333,6 +400,16 @@ export default function VisualWizardRoomStep({
             "target_audience",
           ];
           if (!VALID_LOT_FIELDS.includes(update.field)) return;
+          // Snapshot lot value : on ne le tient pas dans `room` ; on tente
+          // un GET avant patch pour avoir la previousValue. Approche simple :
+          // on stocke null (l'undo PATCHera avec null = unset).
+          // NB : le brief autorise "le choix le plus simple, documenter".
+          setChatToastUndo({
+            revertField: update.field,
+            previousValue: null,
+            scope: "lot",
+            previousLotValue: null,
+          });
           await fetch(`/api/vs/lots/${room.lot_id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -350,10 +427,95 @@ export default function VisualWizardRoomStep({
     [
       room.architectural_details,
       room.lot_id,
+      room.style_id,
       onArchitecturalDetailsChange,
       onStyleSelect,
     ]
   );
+
+  // s32 Phase 4 — Annuler la dernière mise à jour IA.
+  // Restaure la valeur précédente côté DB + UI. Clear le toast.
+  const handleChatToastUndo = useCallback(async () => {
+    const undo = chatToastUndo;
+    if (!undo) return;
+    try {
+      if (undo.scope === "room") {
+        if (undo.revertField === "style") {
+          // Restaure style_id via PATCH room direct (onStyleSelect ne supporte pas null)
+          await fetch(`/api/vs/rooms/${room.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ style_id: undo.previousValue ?? null }),
+          });
+          // Notifier le parent pour rafraîchir
+          if (typeof undo.previousValue === "string") {
+            await onStyleSelect(undo.previousValue as StyleId);
+          }
+        } else {
+          const current =
+            room.architectural_details ?? emptyArchitecturalDetails();
+          const next: ArchitecturalDetails = {
+            floor: { ...current.floor },
+            walls: { ...current.walls },
+            lighting: { ...current.lighting },
+            specifics: [...current.specifics],
+            level: current.level ? { ...current.level } : { value: null, source: null },
+            technical_constraints: current.technical_constraints
+              ? [...current.technical_constraints]
+              : [],
+          };
+          if (
+            undo.revertField === "specifics" ||
+            undo.revertField === "technical_constraints"
+          ) {
+            const list = undo.previousList ?? [];
+            if (undo.revertField === "specifics") next.specifics = list;
+            else next.technical_constraints = list;
+          } else if (
+            undo.revertField === "floor" ||
+            undo.revertField === "walls" ||
+            undo.revertField === "lighting" ||
+            undo.revertField === "level"
+          ) {
+            const prev =
+              undo.previousValue && typeof undo.previousValue === "object"
+                ? (undo.previousValue as ArchitecturalFieldValue)
+                : { value: null, source: null };
+            next[undo.revertField] = prev;
+          }
+          if (onArchitecturalDetailsChange) {
+            await onArchitecturalDetailsChange(next);
+          }
+        }
+      } else if (undo.scope === "lot") {
+        // Restaure le champ lot via PATCH (null = unset)
+        await fetch(`/api/vs/lots/${room.lot_id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            architectural_profile: {
+              [undo.revertField]: undo.previousLotValue ?? null,
+            },
+          }),
+        });
+      }
+      setChatToastType("success");
+      setChatToast("Modification annulée.");
+    } catch (err) {
+      console.error("[VisualWizardRoomStep] chat undo failed:", err);
+      setChatToastType("error");
+      setChatToast("Annulation échouée.");
+    } finally {
+      setChatToastUndo(null);
+    }
+  }, [
+    chatToastUndo,
+    room.id,
+    room.lot_id,
+    room.architectural_details,
+    onArchitecturalDetailsChange,
+    onStyleSelect,
+  ]);
 
   const handleChatBriefValidated = useCallback(
     (confidence: "high" | "medium" | "low") => {
@@ -868,24 +1030,53 @@ export default function VisualWizardRoomStep({
         )}
       </div>
 
-      {/* s32 (Phase 9) — toast feedback chat update_field (auto-clear 3s) */}
+      {/* s32 (Phase 9) — toast feedback chat update_field (auto-clear 3s).
+          s32 Phase 4 — bouton « Annuler » inline si chatToastUndo défini (5s). */}
       {chatToast && (
         <div
           role="status"
           aria-live="polite"
           data-testid="wizard-chat-toast"
-          className="fixed bottom-md right-md mb-[60px] sm:mb-0 z-50 max-w-xs"
+          className="fixed bottom-md right-md mb-[60px] sm:mb-0 z-50 max-w-sm"
         >
-          <p
+          <div
             className={[
-              "text-xs text-text-default bg-bg-card/95 px-md py-sm rounded-md border shadow-md",
+              "flex items-center gap-sm text-xs text-text-default bg-bg-card/95 px-md py-sm rounded-md border shadow-md",
               chatToastType === "error"
                 ? "border-error/40 bg-error/5"
                 : "border-success/40 bg-success/5",
             ].join(" ")}
           >
-            {chatToast}
-          </p>
+            <p className="flex-1 min-w-0">{chatToast}</p>
+            {chatToastUndo && chatToastType === "success" && (
+              <button
+                type="button"
+                onClick={() => void handleChatToastUndo()}
+                data-testid="wizard-chat-toast-undo"
+                className="text-xs font-semibold text-interactive-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary px-xs py-2xs rounded"
+              >
+                Annuler
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setChatToast(null);
+                setChatToastUndo(null);
+              }}
+              aria-label="Fermer la notification"
+              className="text-text-muted hover:text-text-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M4 4l8 8M12 4l-8 8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
