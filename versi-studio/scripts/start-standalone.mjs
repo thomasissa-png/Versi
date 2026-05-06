@@ -50,11 +50,15 @@ function findServer() {
 const serverPath = findServer();
 console.log(`[start-standalone] Lancement de ${serverPath}`);
 
+// HOSTNAME forcé à 0.0.0.0 (et NON via fallback ??) car Cloud Run définit
+// process.env.HOSTNAME à l'IP publique externe (ex: 34.117.33.233) qui n'est
+// PAS bindable par le serveur → EADDRNOTAVAIL crash loop. Le fallback `??`
+// ne se déclenche que sur null/undefined, donc inopérant ici.
 const proc = spawn("node", [serverPath], {
   stdio: "inherit",
   env: {
     ...process.env,
-    HOSTNAME: process.env.HOSTNAME ?? "0.0.0.0",
+    HOSTNAME: "0.0.0.0",
     PORT: process.env.PORT ?? "5000",
   },
 });
