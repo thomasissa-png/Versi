@@ -356,7 +356,10 @@ export default function VisualWizardRoomStep({
   );
 
   const handleChatBriefValidated = useCallback(
-    (_confidence: "high" | "medium" | "low") => {
+    (confidence: "high" | "medium" | "low") => {
+      // s32 Phase 9 — defense-in-depth : ignore validate_brief avec confidence='low'.
+      // Le system prompt LLM empêche en principe ce cas, mais robustesse > confiance aveugle.
+      if (confidence === "low") return;
       setChatBriefValidated(true);
     },
     []
@@ -1296,7 +1299,7 @@ export default function VisualWizardRoomStep({
                 ? "Lancement..."
                 : chatBriefValidated
                 ? "Générer — brief complet"
-                : "Générer sans l'architecte"}
+                : "Générer quand même"}
             </button>
           </div>
         </div>

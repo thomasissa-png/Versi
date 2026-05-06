@@ -278,7 +278,7 @@ export default function ArchitectChatPanel({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer — revenir au plan de la pièce"
+          aria-label="Fermer — revenir aux segments"
           className="text-text-muted hover:text-text-default w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
           data-testid="architect-chat-close"
         >
