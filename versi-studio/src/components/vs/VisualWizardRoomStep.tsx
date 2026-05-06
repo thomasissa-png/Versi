@@ -22,6 +22,8 @@ import RoomArchitecturalDetails from "@/components/vs/RoomArchitecturalDetails";
 import ArchitectChatPanel, {
   type FieldUpdate as ChatFieldUpdate,
 } from "@/components/vs/ArchitectChatPanel";
+import BriefSummaryDialog from "@/components/vs/BriefSummaryDialog";
+import { buildHumanReadableBrief } from "@/lib/vs/brief-summary";
 import type {
   VsRoom,
   VsPhoto,
@@ -184,6 +186,9 @@ export default function VisualWizardRoomStep({
     /** previousLotValue spécifique scope='lot' (5 champs profile). */
     previousLotValue?: string | null;
   } | null>(null);
+  // s32 Phase 5 — modale récap brief avant POST /visuals/generate.
+  const [briefDialogOpen, setBriefDialogOpen] = useState<boolean>(false);
+  const [briefDialogText, setBriefDialogText] = useState<string>("");
   const fileInputsRef = useRef<Map<string, HTMLInputElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map()); // B7 — auto-scroll
   const headerRef = useRef<HTMLHeadingElement>(null); // B9 — focus reset
@@ -271,6 +276,8 @@ export default function VisualWizardRoomStep({
     setChatBriefValidated(false);
     setChatToast(null);
     setChatToastUndo(null);
+    setBriefDialogOpen(false);
+    setBriefDialogText("");
   }, [room.id]);
   // s32 (Phase 9) — auto-clear chat toast.
   // s32 Phase 4 : durée étendue à 5s si undo possible (donne le temps de cliquer
@@ -890,6 +897,57 @@ export default function VisualWizardRoomStep({
   // B3 — au chargement Pièce 1 = 0%, pas (1/N)*100
   const progressPct = Math.round(((stepIndex - 1) / totalSteps) * 100);
 
+  // s32 Phase 5 — ouvrir la modale récap brief avant POST /visuals/generate.
+  // On fetch GET /chat pour récupérer l'extra_context, puis on construit la
+  // synthèse via buildHumanReadableBrief.
+  // En cas d'échec fetch chat → on continue sans extra_context (best-effort).
+  const handleOpenBriefDialog = useCallback(async () => {
+    let chatExtra: Record<string, string> = {};
+    try {
+      const res = await fetch(`/api/vs/rooms/${room.id}/chat`, { method: "GET" });
+      if (res.ok) {
+        const json = (await res.json()) as
+          | { success: true; data: { extra_context: Record<string, string> } }
+          | { success: false; error: string };
+        if (json.success && json.data.extra_context) {
+          chatExtra = json.data.extra_context;
+        }
+      }
+    } catch (err) {
+      console.warn("[VisualWizardRoomStep] fetch chat extra_context failed (non-bloquant):", err);
+    }
+    const briefText = buildHumanReadableBrief({
+      room,
+      details: room.architectural_details,
+      // profile: pas dispo dans ce composant — l'orchestrateur parent le tient.
+      // Acceptable V1 : la synthèse omet le profil lot. À enrichir si on remonte le lot.
+      profile: null,
+      segments,
+      styleId,
+      comment,
+      chatExtraContext: chatExtra,
+      targetVisualCount,
+    });
+    setBriefDialogText(briefText);
+    setBriefDialogOpen(true);
+  }, [
+    room,
+    segments,
+    styleId,
+    comment,
+    targetVisualCount,
+  ]);
+
+  const handleBriefConfirm = useCallback(() => {
+    setBriefDialogOpen(false);
+    setGeneratingThis(true);
+    void onGenerateThisRoom().finally(() => setGeneratingThis(false));
+  }, [onGenerateThisRoom]);
+
+  const handleBriefCancel = useCallback(() => {
+    setBriefDialogOpen(false);
+  }, []);
+
   return (
     <div className="flex flex-col gap-lg w-full" data-testid="visual-wizard-room-step">
       {/* Header progression */}
@@ -1456,8 +1514,8 @@ export default function VisualWizardRoomStep({
             <button
               type="button"
               onClick={() => {
-                setGeneratingThis(true);
-                void onGenerateThisRoom().finally(() => setGeneratingThis(false));
+                // s32 Phase 5 — ouverture modale récap au lieu de POST direct.
+                void handleOpenBriefDialog();
               }}
               disabled={generatingThis}
               data-testid="wizard-generate-this-room"
@@ -1495,6 +1553,14 @@ export default function VisualWizardRoomStep({
           </div>
         </div>
       </div>
+
+      {/* s32 Phase 5 — modale récap brief avant POST /visuals/generate */}
+      <BriefSummaryDialog
+        open={briefDialogOpen}
+        briefText={briefDialogText}
+        onConfirm={handleBriefConfirm}
+        onCancel={handleBriefCancel}
+      />
     </div>
   );
 }
