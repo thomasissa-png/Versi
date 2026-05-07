@@ -145,9 +145,12 @@ describe("buildSegmentDescriptionEn (EN)", () => {
     ).toBe("");
   });
 
-  it("inclut le bloc ROOM CHARACTERISTICS quand annotation utilisateur", () => {
+  it("inclut le bloc ROOM OPENINGS AUTHORITATIVE quand annotation utilisateur (s33)", () => {
     const out = buildSegmentDescriptionEn(square, [seg(0, "door")]);
-    expect(out).toContain("ROOM CHARACTERISTICS");
+    expect(out).toContain("ROOM OPENINGS");
+    expect(out).toContain("dealer-confirmed");
+    expect(out).toContain("AUTHORITATIVE");
+    expect(out).toContain("override anything inferred from the source photo");
     expect(out).toContain("door");
     expect(out).toContain("top side");
   });

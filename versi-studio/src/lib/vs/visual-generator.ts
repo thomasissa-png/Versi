@@ -381,9 +381,11 @@ export function buildArchitecturalBrief(
     : null;
 
   // ─── Profil lot (5 champs) ──────────────────────────────────
+  // s33 (Lot A — fix #6.5) : ces 5 champs sont 100% saisis marchand (jamais
+  // inférés Vision pour le profil lot) → tag (dealer-confirmed) systématique.
   if (profile) {
     const parts: string[] = [];
-    if (profile.ceiling_height) parts.push(`ceiling ${profile.ceiling_height}`);
+    if (profile.ceiling_height) parts.push(`ceiling ${profile.ceiling_height} (dealer-confirmed)`);
     if (profile.orientation) {
       const map: Record<string, string> = {
         Nord: "north-facing",
@@ -392,7 +394,7 @@ export function buildArchitecturalBrief(
         Ouest: "west-facing",
         Mixte: "mixed orientation",
       };
-      parts.push(map[profile.orientation] ?? profile.orientation.toLowerCase());
+      parts.push(`${map[profile.orientation] ?? profile.orientation.toLowerCase()} (dealer-confirmed)`);
     }
     if (profile.general_state) {
       const map: Record<string, string> = {
@@ -400,7 +402,7 @@ export function buildArchitecturalBrief(
         "À rafraîchir": "needs refresh",
         "À rénover entièrement": "full renovation needed",
       };
-      parts.push(map[profile.general_state] ?? profile.general_state);
+      parts.push(`${map[profile.general_state] ?? profile.general_state} (dealer-confirmed)`);
     }
     if (profile.target_level) {
       const map: Record<string, string> = {
@@ -408,7 +410,7 @@ export function buildArchitecturalBrief(
         Premium: "premium finish",
         Luxe: "luxury finish",
       };
-      parts.push(map[profile.target_level] ?? profile.target_level);
+      parts.push(`${map[profile.target_level] ?? profile.target_level} (dealer-confirmed)`);
     }
     if (profile.target_audience) {
       const map: Record<string, string> = {
@@ -418,7 +420,7 @@ export function buildArchitecturalBrief(
         Senior: "target audience: senior",
         Mixte: "target audience: mixed",
       };
-      parts.push(map[profile.target_audience] ?? profile.target_audience);
+      parts.push(`${map[profile.target_audience] ?? profile.target_audience} (dealer-confirmed)`);
     }
     if (parts.length > 0) {
       lines.push(`- Lot profile: ${parts.join(", ")}`);
@@ -649,11 +651,14 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
   const angleLine = p.angleDegrees != null
     ? `Camera angle: ${angleDegreesToCardinal(p.angleDegrees)}.`
     : "";
+  // s33 (Lot A — fix #6.6) : comment_text + user_answers sont 100% saisie
+  // marchand → taggés (dealer-confirmed, AUTHORITATIVE) pour cohérence avec
+  // le DEALER INPUT brief et la STRICT RULE 0.
   const commentLine = p.commentText
-    ? `User-specified constraints (MUST respect): ${p.commentText}.`
+    ? `User-specified constraints (dealer-confirmed, AUTHORITATIVE — MUST respect): ${p.commentText}.`
     : "";
   const answersLine = p.userAnswers.length > 0
-    ? `Clarifications from operator: ${p.userAnswers.join(" | ")}.`
+    ? `Clarifications from operator (dealer-confirmed, AUTHORITATIVE): ${p.userAnswers.join(" | ")}.`
     : "";
   const hasTransformations = p.structuralInstructions && p.structuralInstructions.trim().length > 0;
   const structuralBlock = hasTransformations
@@ -675,9 +680,15 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     p.operationChatContext ?? null,
     p.chatExtraContext ?? null
   );
+  // s33 (Lot A — fix issue #2) — STRICT RULE 0 : priorité absolue saisie marchand.
+  // Sans cette règle, les blocs DEALER INPUT et ROOM OPENINGS étaient noyés ;
+  // le LLM image suivait la photo par défaut (path of least resistance).
+  // STRICT RULE 1 reformulée pour ne plus contredire (préserve géométrie photo
+  // SAUF si dealer override explicite via segments/brief).
+  const priorityRule = "0. PRIORITY OF SOURCES (in case of conflict): (a) ARCHITECTURAL BRIEF — DEALER INPUT and ROOM OPENINGS — OPERATOR-ANNOTATED override the source photo. The operator has the ground truth for floor type, wall finish, opening positions, opening counts and quality level. The photo is a visual reference for current state and camera framing only. (b) STRUCTURAL TRANSFORMATIONS override both the photo and the current state. (c) STYLE DETAILS apply to all elements not constrained above.";
   const structuralRule = hasTransformations
-    ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE. EXCEPT for doors explicitly modified by the transformation, preserve all existing doors visible in the source photo (position, size, opening direction, frame). Do not invent doors that are not visible in the source."
-    : "1. KEEP all structural elements EXACTLY (walls, windows, doors, openings, bay windows, ceiling, floor shape). Specifically, preserve every existing door, window and opening visible in the source photo with its exact position, size, opening direction, frame and sill. The doors visible in the source must remain in the output, even if partially hidden by furniture. Do not invent doors, windows or openings that are not visible in the source.";
+    ? "1. APPLY the structural transformations above as the PRIMARY OBJECTIVE. Preserve doors/windows/openings visible in the source photo UNLESS the dealer brief or operator-annotated openings explicitly override them (then follow the dealer override). Do not invent openings that are neither in the source nor in the dealer annotations."
+    : "1. KEEP structural elements (walls, windows, doors, openings, bay windows, ceiling, floor shape) consistent with the source photo, UNLESS the dealer brief or operator-annotated openings (ROOM OPENINGS section above) explicitly override them. When a conflict exists between the photo and the dealer annotations, the dealer annotations win (per RULE 0). Otherwise preserve every existing door, window and opening visible in the source with its exact position, size, opening direction, frame and sill. Do not invent openings that are neither in the source nor in the dealer annotations.";
 
   // s32 (autopilot) — directive meublé/vide. Default true = comportement V2
   // historique (la photo est censée être brute, à meubler). Si Thomas indique
@@ -691,7 +702,11 @@ export function buildVisualPromptAnchor(p: AnchorPromptParams): string {
     ? "9. EXISTING FURNITURE: the room is already furnished — keep the general layout (sofa zone, dining zone, bed orientation) consistent with what's visible, but upgrade the pieces, materials and palette to the chosen style."
     : "9. EMPTY ROOM: the room is empty — fully furnish it with all standard pieces expected for this room type, properly placed for circulation and function.";
 
-  return `${openingSentence}${structuralBlock}${segmentBlock}${architecturalBrief}${chatInsightsBrief}
+  // s33 (Lot A — fix issue #2) — Ordre revu : DEALER INPUT (architecturalBrief)
+  // EN TÊTE, suivi des segments (eux aussi dealer-confirmed), puis transformations
+  // structurelles (directives explicites travaux). Le LLM lit le contexte de
+  // priorité avant la directive technique.
+  return `${openingSentence}${architecturalBrief}${segmentBlock}${structuralBlock}${chatInsightsBrief}
 
 STYLE DETAILS: ${styleHint}.
 
@@ -702,6 +717,7 @@ ${commentLine}
 ${answersLine}
 
 STRICT RULES:
+${priorityRule}
 ${structuralRule}
 2. ADD furniture, decorations, lighting consistent with ${styleName} style.
 3. Furniture MUST be PROPORTIONAL to surface (${surfaceQual}).

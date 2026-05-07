@@ -156,9 +156,14 @@ async function generateAnchorVisual(
   anchorPhoto: PlacedPhoto
 ): Promise<{ image_base64: string; prompt_used: string }> {
   // s32 (Feature B) — description segments à injecter (vide si pas annoté)
+  // s33 (Lot A — fix issue #3) : passer l'angle caméra anchor pour pré-calculer
+  // la position frame caméra de chaque segment. Le bloc segment de l'anchor
+  // sera donc DIFFÉRENT de celui des secondaires (sinon LLM rend 3 vues
+  // identiques car même phrase "door right side" partout).
   const segmentDescription = buildSegmentDescriptionEn(
     input.room_polygon,
-    input.segments ?? []
+    input.segments ?? [],
+    anchorPhoto.angle_degrees
   );
   const params: AnchorPromptParams = {
     roomType: input.room_type,
@@ -208,9 +213,14 @@ async function generateSecondaryVisual(
 ): Promise<{ image_base64: string; prompt_used: string; coherence_mode: "multi_image_native" | "textual_signature" }> {
   // s32 (Feature B) — description segments injectée aussi sur les secondaires
   // pour cohérence (pas de divergence anchor/secondary sur les ouvertures).
+  // s33 (Lot A — fix issue #3) : passer l'angle caméra du SECONDAIRE (pas de
+  // l'ancre) pour que la position frame soit recalculée vue depuis CETTE
+  // caméra. Sans ça, anchor et secondary partagent le même bloc → LLM produit
+  // visuellement la même image quel que soit l'angle.
   const segmentDescription = buildSegmentDescriptionEn(
     input.room_polygon,
-    input.segments ?? []
+    input.segments ?? [],
+    secondaryPhoto.angle_degrees
   );
   const baseParams: AnchorPromptParams = {
     roomType: input.room_type,

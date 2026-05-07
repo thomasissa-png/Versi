@@ -47,6 +47,73 @@ const SIDE_LABELS: Record<RelativeSide, string> = {
   "haut-gauche": "côté haut-gauche",
 };
 
+// ─── s33 (Lot A — fix issue #3) — Transform side du plan → frame caméra ────
+//
+// Les côtés "droit/gauche/haut/bas" de SIDE_LABELS sont exprimés dans le
+// référentiel CANVAS DU PLAN vu de dessus (x croissant = droite du plan,
+// y croissant = bas du plan). Mais le LLM image reçoit en plus une caméra
+// avec angle cardinal (0=nord, 90=est, etc.). Sans transformation, le LLM
+// hallucine la correspondance → toutes les vues finissent identiques (bug #3).
+//
+// Cette fonction calcule où apparaît un segment dans le frame caméra en
+// composant l'angle du segment (depuis le centroïde) avec l'angle de la
+// caméra. Convention :
+//   - angle plan (sideAngleDeg) : 0=est du plan, 90=sud du plan, 180=ouest, 270=nord
+//   - angle caméra (cameraAngleDeg) : direction d'où regarde le photographe
+//     (0=nord, 90=est… cf. angleDegreesToCardinal()). La caméra REGARDE VERS
+//     le centroïde, donc son axe optique pointe à cameraAngleDeg + 180.
+//   - relative : angle du segment vu DEPUIS la caméra, dans son repère.
+//     [-45°,+45°] → centre du frame. ]+45°,+135°] → droite. etc.
+//
+// Si cameraAngleDeg est null (pas de photo placée) → "unknown" (le LLM
+// continuera de recevoir le côté du plan sans transformation, comportement
+// historique préservé).
+export type CameraFramePosition =
+  | "left of frame"
+  | "center of frame"
+  | "right of frame"
+  | "behind camera"
+  | "unknown";
+
+const SIDE_TO_PLAN_ANGLE_DEG: Record<RelativeSide, number> = {
+  droit: 0,
+  "bas-droit": 45,
+  bas: 90,
+  "bas-gauche": 135,
+  gauche: 180,
+  "haut-gauche": 225,
+  haut: 270,
+  "haut-droit": 315,
+};
+
+export function transformSideToCameraFrame(
+  plansSide: RelativeSide,
+  cameraAngleDeg: number | null
+): CameraFramePosition {
+  if (cameraAngleDeg == null) return "unknown";
+  const sideAngle = SIDE_TO_PLAN_ANGLE_DEG[plansSide];
+  // La caméra REGARDE VERS le centroïde depuis cameraAngleDeg (boussole 0=nord).
+  // Pour aligner avec l'angle plan (0=est), on convertit la boussole caméra :
+  // boussole 0 (nord) = plan 270°, boussole 90 (est) = plan 0°, etc.
+  // → cameraOnPlanAxis = (cameraAngleDeg - 90 + 360) % 360.
+  // Le segment vu DEPUIS la caméra est en (sideAngle - axe-vers-centroïde).
+  // Axe optique caméra (regardant vers le centroïde) = cameraOnPlanAxis + 180.
+  const cameraOnPlanAxis = (cameraAngleDeg - 90 + 360) % 360;
+  const opticalAxis = (cameraOnPlanAxis + 180) % 360;
+  // Angle relatif segment / axe optique : 0° = pile en face (centre du frame),
+  // ±90° = sur les côtés, ±180° = derrière la caméra.
+  const relative = (sideAngle - opticalAxis + 540) % 360 - 180; // [-180, 180]
+  // Convention canvas (y croissant vers le bas) inverse le sens horaire
+  // par rapport à un repère mathématique standard : relative > 0 (segment
+  // à "+90° anti-horaire" dans le canvas) signifie en réalité que le
+  // photographe a ce segment à sa GAUCHE physique (car y-bas = miroir).
+  // → relative > 0 = gauche du frame, relative < 0 = droite du frame.
+  if (relative > 135 || relative <= -135) return "behind camera";
+  if (relative > 45 && relative <= 135) return "right of frame";
+  if (relative >= -45 && relative <= 45) return "center of frame";
+  return "left of frame"; // -135 < relative < -45
+}
+
 /**
  * Calcule le secteur relatif d'un segment en se basant sur l'angle entre
  * son milieu et le centroïde du polygone. Convention canvas :
@@ -245,7 +312,11 @@ export function buildSegmentDescription(
  */
 export function buildSegmentDescriptionEn(
   polygon: ZonePolygonPoint[] | null,
-  segments: VsRoomSegment[]
+  segments: VsRoomSegment[],
+  /** s33 (Lot A — fix issue #3) — angle caméra (boussole 0=nord) pour
+   *  composer côté plan → côté frame caméra. NULL/undefined = back-compat
+   *  (pas de transformation, comportement historique). */
+  cameraAngleDeg: number | null = null
 ): string {
   const described = describeSegments(polygon, segments);
   if (described.length === 0) return "";
@@ -278,6 +349,15 @@ export function buildSegmentDescriptionEn(
     flexible: "flexible opening (AI may reinterpret)",
   };
 
+  // s33 (Lot A) — formate "right side (= right of frame for this camera angle)"
+  // si caméra connue. Sinon retourne juste le côté plan (back-compat).
+  const formatSide = (side: RelativeSide): string => {
+    const planLabel = sideEn[side];
+    const frame = transformSideToCameraFrame(side, cameraAngleDeg);
+    if (frame === "unknown") return planLabel;
+    return `${planLabel} (= ${frame} for this camera angle)`;
+  };
+
   const lines: string[] = [];
   const order: VsRoomSegmentType[] = [
     "door",
@@ -291,19 +371,19 @@ export function buildSegmentDescriptionEn(
     const list = byType.get(t);
     if (!list || list.length === 0) continue;
     if (t === "wall") {
-      const sides = list.map((d) => sideEn[d.side]).join(", ");
+      const sides = list.map((d) => formatSide(d.side)).join(", ");
       lines.push(`- Solid walls on: ${sides}.`);
       continue;
     }
     if (t === "bay_window") {
-      const sides = list.map((d) => sideEn[d.side]).join(", ");
+      const sides = list.map((d) => formatSide(d.side)).join(", ");
       lines.push(
         `- TO BE ADDED in the render: ${list.length} bay window(s) on ${sides}. This is a structural change — the bay window must be clearly visible.`
       );
       continue;
     }
     if (t === "flexible") {
-      const sides = list.map((d) => sideEn[d.side]).join(", ");
+      const sides = list.map((d) => formatSide(d.side)).join(", ");
       lines.push(
         `- Flexible segment(s) (you may reinterpret as you see fit): ${sides}.`
       );
@@ -312,7 +392,7 @@ export function buildSegmentDescriptionEn(
     const bySide = new Map<RelativeSide, number>();
     for (const d of list) bySide.set(d.side, (bySide.get(d.side) ?? 0) + 1);
     for (const [side, count] of bySide) {
-      lines.push(`- On ${sideEn[side]}: ${count} ${typeEn[t]}${count > 1 ? "s" : ""}.`);
+      lines.push(`- On ${formatSide(side)}: ${count} ${typeEn[t]}${count > 1 ? "s" : ""}.`);
     }
   }
 
@@ -322,10 +402,18 @@ export function buildSegmentDescriptionEn(
   if (withNotes.length > 0) {
     for (const d of withNotes) {
       lines.push(
-        `- Note (${typeEn[d.type]} on ${sideEn[d.side]}): ${d.notes!.trim()}.`
+        `- Note (${typeEn[d.type]} on ${formatSide(d.side)}) (dealer-confirmed): ${d.notes!.trim()}.`
       );
     }
   }
 
-  return `ROOM CHARACTERISTICS (annotated by the operator on the plan):\n${lines.join("\n")}`;
+  // s33 (Lot A — fix issue #1) — tag AUTHORITATIVE + override directive.
+  // Sans ce tag, le LLM voyait deux instructions concurrentes (segments vs
+  // STRICT RULE 1 « keep photo exactly ») et choisissait la photo. Désormais
+  // le bloc segments override explicitement la photo source.
+  const cameraNote = cameraAngleDeg != null
+    ? `\n\nNote: the camera angle for THIS specific photo is provided in the CONTEXT section. Per-segment "X of frame" annotations above are pre-computed for this angle — place openings accordingly in the rendered image.`
+    : `\n\nNote: positions are expressed relative to the floor plan viewed from above. Translate these floor-plan sides into the camera's frame using the camera angle described in the CONTEXT section. If a door is on "right side of the floor plan" and the camera looks "from the south-west", the door appears in the right portion of the frame; if the camera looks "from the north-east", the same door appears in the LEFT portion of the frame.`;
+
+  return `ROOM OPENINGS — OPERATOR-ANNOTATED (dealer-confirmed, AUTHORITATIVE: these locations override anything inferred from the source photo):\n${lines.join("\n")}${cameraNote}`;
 }
