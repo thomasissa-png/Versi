@@ -1400,50 +1400,10 @@ export default function VisualWizardRoomStep({
         />
       </section>
 
-      {/* s32 #P3 (Thomas prod) — Nombre de visuels par pièce (pills 1-5, default 3) */}
-      <section
-        aria-labelledby="room-target-count-title"
-        className="rounded-md border border-border-default bg-bg-card p-md flex flex-col gap-sm"
-      >
-        <div className="flex items-baseline justify-between gap-sm">
-          <h3
-            id="room-target-count-title"
-            className="text-sm uppercase tracking-wide font-semibold text-text-default"
-          >
-            Visuels par pièce
-          </h3>
-        </div>
-        <p className="text-xs text-text-muted">
-          Plus de visuels = plus de variations d&apos;angles et de cadrages pour le même style.
-        </p>
-        <div
-          role="radiogroup"
-          aria-label="Nombre de visuels à générer pour cette pièce"
-          className="inline-flex rounded-md border border-border-default isolate self-start [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md"
-        >
-          {[1, 2, 3, 4, 5].map((n) => {
-            const selected = targetVisualCount === n;
-            return (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => void onTargetVisualCountChange(n)}
-                data-testid={`wizard-target-count-${n}`}
-                className={[
-                  "relative min-h-[44px] min-w-[44px] px-md py-sm text-sm font-medium border-r last:border-r-0 border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary focus-visible:z-10",
-                  selected
-                    ? "bg-interactive-primary text-text-inverse"
-                    : "bg-bg-card text-text-default hover:bg-bg-default",
-                ].join(" ")}
-              >
-                {n}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      {/* s33 Lot F #F-4 — Sélecteur "Visuels par pièce" déplacé dans le footer
+          du wizard (à côté du bouton "Générer"). Audit @ux : la section
+          inline ici perturbait la lecture (entre style picker et détails).
+          Le sélecteur est plus naturel à côté du CTA principal de génération. */}
 
       {/* s32 #3 (autopilot) — Détails pièce : meublé + commentaires libres */}
       <section
@@ -1546,7 +1506,59 @@ export default function VisualWizardRoomStep({
       )}
 
       {/* Footer navigation */}
-      <div className="flex flex-col gap-sm pt-sm border-t border-border-default">
+      <div
+        className="flex flex-col gap-md pt-sm border-t border-border-default"
+        data-testid="wizard-footer"
+      >
+        {/* s33 Lot F #F-4 — Sélecteur "Visuels par pièce" dans le footer (à
+            côté du CTA Générer). Avant : section inline entre style picker et
+            détails (perturbait la lecture). Après : compact, immédiatement
+            visible avant l'action de génération. */}
+        <div
+          className="flex flex-wrap items-center justify-between gap-sm"
+          data-testid="wizard-footer-target-count"
+        >
+          <div className="flex flex-col gap-2xs">
+            <span
+              id="room-target-count-title"
+              className="text-xs font-medium text-text-default"
+            >
+              Visuels à générer pour cette pièce
+            </span>
+            <span className="text-xs text-text-muted">
+              Plus de visuels = plus de variations d&apos;angles et de cadrages.
+            </span>
+          </div>
+          <div
+            role="radiogroup"
+            aria-labelledby="room-target-count-title"
+            aria-label="Nombre de visuels à générer pour cette pièce"
+            className="inline-flex rounded-md border border-border-default isolate self-start [&>button:first-child]:rounded-l-md [&>button:last-child]:rounded-r-md"
+          >
+            {[1, 2, 3, 4, 5].map((n) => {
+              const selected = targetVisualCount === n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => void onTargetVisualCountChange(n)}
+                  data-testid={`wizard-target-count-${n}`}
+                  className={[
+                    "relative min-h-[44px] min-w-[44px] px-md py-sm text-sm font-medium border-r last:border-r-0 border-border-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary focus-visible:z-10",
+                    selected
+                      ? "bg-interactive-primary text-text-inverse"
+                      : "bg-bg-card text-text-default hover:bg-bg-default",
+                  ].join(" ")}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
           <div className="flex items-center gap-sm flex-wrap">
             {onPrevRoom && (

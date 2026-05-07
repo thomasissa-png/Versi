@@ -18,7 +18,10 @@ import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
 import RoomCanvas from "@/components/vs/RoomCanvas";
 import RoomPanel from "@/components/vs/RoomPanel";
-import ConfirmModal from "@/components/vs/ConfirmModal";
+import {
+  TOAST_DURATION_MS,
+  UNDO_WINDOW_MS,
+} from "@/lib/vs/ui/toast-duration";
 import type {
   VsProject,
   VsLot,
@@ -33,6 +36,27 @@ import type {
 
 interface RoomsByLot {
   [lotId: string]: VsRoom[];
+}
+
+/**
+ * s33 Lot F #F-3 — état pour suppression réversible avec undo.
+ * Pattern Gmail/Linear : suppression optimistic immédiate + toast 8s avec
+ * bouton "Annuler" qui restaure. Si timeout sans clic Annuler → DELETE
+ * confirmé en DB.
+ */
+interface PendingDelete {
+  /** ID de la pièce supprimée (optimistic). */
+  roomId: string;
+  /** ID du lot parent (pour rollback dans le bon bucket). */
+  lotId: string;
+  /** Snapshot du VsRoom complet pour restauration si Annuler cliqué. */
+  snapshot: VsRoom;
+  /** Index original dans currentRooms (pour réinsertion à la même position). */
+  originalIndex: number;
+  /** Timer du commit DELETE après UNDO_WINDOW_MS. */
+  commitTimer: ReturnType<typeof setTimeout>;
+  /** Nom affichable dans le toast. */
+  displayName: string;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────
@@ -60,12 +84,14 @@ export default function RoomsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<{
-    id: string;
-    name?: string;
-  } | null>(null);
+  // s33 Lot F #F-3 — suppression réversible (toast undo). Remplace l'ancien
+  // roomToDelete (modal de confirmation 2-step). Pattern Gmail/Linear :
+  // suppression optimistic + 8s pour annuler.
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [validationBlocked, setValidationBlocked] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  // s33 Lot F #F-1 — feedback visuel pendant le bulk "Tout confirmer".
+  const [isConfirmingAll, setIsConfirmingAll] = useState(false);
   // s23 fix régression — re-résolution des overlaps sur pièces IA existantes
   const [isResolvingOverlaps, setIsResolvingOverlaps] = useState(false);
 
@@ -484,19 +510,61 @@ export default function RoomsPage({
     }
   }, [selectedLotId, pushRoomsSnapshot]);
 
-  const handleDeleteRoom = useCallback(
-    (roomId: string) => {
-      const room = currentRooms.find((r) => r.id === roomId);
-      setRoomToDelete({ id: roomId, name: room?.name ?? undefined });
+  // s33 Lot F #F-3 — Commit DELETE en DB (appelé après UNDO_WINDOW_MS si pas
+  // d'Annuler). Extrait pour pouvoir aussi être appelé manuellement via
+  // flushPendingDelete (ex: navigation, autre suppression).
+  const commitPendingDelete = useCallback(
+    async (target: PendingDelete) => {
+      try {
+        const res = await fetch(`/api/vs/rooms/${target.roomId}`, {
+          method: "DELETE",
+        });
+        const json = (await res.json()) as ApiResponse<{ deleted: boolean }>;
+
+        if (!json.success) {
+          // Rollback : recharger les pièces du lot
+          setError(json.error);
+          const refetch = await fetch(`/api/vs/lots/${target.lotId}/rooms`);
+          const refetchJson =
+            (await refetch.json()) as ApiResponse<VsRoom[]>;
+          if (refetchJson.success) {
+            setRoomsByLot((prev) => ({
+              ...prev,
+              [target.lotId]: refetchJson.data,
+            }));
+          }
+        }
+      } catch {
+        setError("Impossible de supprimer la pièce.");
+      }
     },
-    [currentRooms]
+    []
   );
 
-  const handleConfirmDelete = useCallback(
-    async (roomId: string) => {
+  // s33 Lot F #F-3 — Suppression avec toast undo. Optimistic delete immédiat
+  // + setTimeout UNDO_WINDOW_MS pour le commit DB. Si l'utilisateur clique
+  // "Annuler" pendant la fenêtre, on restaure le snapshot et on annule le
+  // commit. Si une AUTRE pièce est supprimée pendant la fenêtre, on flushe
+  // immédiatement la précédente (pas de queue, simple LIFO).
+  const handleDeleteRoom = useCallback(
+    (roomId: string) => {
       if (!selectedLotId) return;
+      const lotRooms = roomsByLot[selectedLotId] ?? [];
+      const room = lotRooms.find((r) => r.id === roomId);
+      if (!room) return;
+      const originalIndex = lotRooms.findIndex((r) => r.id === roomId);
 
-      // Optimistic delete
+      // Si une suppression est déjà en attente, on la commit immédiatement
+      // pour rester en LIFO simple (1 toast undo à la fois).
+      setPendingDelete((current) => {
+        if (current) {
+          clearTimeout(current.commitTimer);
+          void commitPendingDelete(current);
+        }
+        return current;
+      });
+
+      // Optimistic delete : retire la pièce de l'UI immédiatement.
       setRoomsByLot((prev) => {
         const updated = {
           ...prev,
@@ -512,31 +580,141 @@ export default function RoomsPage({
         setSelectedRoomId(null);
       }
 
-      try {
-        const res = await fetch(`/api/vs/rooms/${roomId}`, {
-          method: "DELETE",
-        });
-        const json = (await res.json()) as ApiResponse<{ deleted: boolean }>;
-
-        if (!json.success) {
-          // Rollback : recharger les pièces du lot
-          setError(json.error);
-          const refetch = await fetch(`/api/vs/lots/${selectedLotId}/rooms`);
-          const refetchJson =
-            (await refetch.json()) as ApiResponse<VsRoom[]>;
-          if (refetchJson.success) {
-            setRoomsByLot((prev) => ({
-              ...prev,
-              [selectedLotId]: refetchJson.data,
-            }));
-          }
-        }
-      } catch {
-        setError("Impossible de supprimer la pièce.");
-      }
+      // Programme le commit DELETE après UNDO_WINDOW_MS.
+      const target: PendingDelete = {
+        roomId,
+        lotId: selectedLotId,
+        snapshot: room,
+        originalIndex: originalIndex >= 0 ? originalIndex : 0,
+        displayName:
+          room.name ||
+          (room.custom_label as string | null) ||
+          room.room_type ||
+          "Pièce",
+        commitTimer: setTimeout(() => {
+          // À l'échéance : commit + clear le state si encore présent.
+          setPendingDelete((current) => {
+            if (current && current.roomId === roomId) {
+              void commitPendingDelete(current);
+              return null;
+            }
+            return current;
+          });
+        }, UNDO_WINDOW_MS),
+      };
+      setPendingDelete(target);
     },
-    [selectedLotId, selectedRoomId]
+    [
+      selectedLotId,
+      selectedRoomId,
+      roomsByLot,
+      pushRoomsSnapshot,
+      commitPendingDelete,
+    ]
   );
+
+  // s33 Lot F #F-3 — Annuler la suppression en attente : restaure le snapshot
+  // dans la liste à sa position originale, annule le commit DB.
+  const handleUndoDelete = useCallback(() => {
+    setPendingDelete((current) => {
+      if (!current) return null;
+      clearTimeout(current.commitTimer);
+      setRoomsByLot((prev) => {
+        const lotRooms = prev[current.lotId] ?? [];
+        const insertAt = Math.min(current.originalIndex, lotRooms.length);
+        const restored = [
+          ...lotRooms.slice(0, insertAt),
+          current.snapshot,
+          ...lotRooms.slice(insertAt),
+        ];
+        const updated = { ...prev, [current.lotId]: restored };
+        pushRoomsSnapshot(updated, "undo_delete_room");
+        return updated;
+      });
+      return null;
+    });
+  }, [pushRoomsSnapshot]);
+
+  // s33 Lot F #F-3 — Cleanup unmount : si une suppression est en attente,
+  // commit immédiat avant unmount (pas de fuite de DELETE).
+  useEffect(() => {
+    return () => {
+      if (pendingDelete) {
+        clearTimeout(pendingDelete.commitTimer);
+        void commitPendingDelete(pendingDelete);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // s33 Lot F #F-1 — Bulk action "Tout confirmer" pour pièces IA pending.
+  // Préf fondateur s22 "minimum de clics par défaut" : 8 pièces à confirmer
+  // = 8 clics → 1 clic. Optimistic update + PATCH parallèle. Toast indique
+  // le nombre confirmé.
+  const handleConfirmAllPending = useCallback(async () => {
+    if (!selectedLotId || isConfirmingAll) return;
+    const pendingRooms = currentRooms.filter(
+      (r) => r.source === "ai" && !r.touched
+    );
+    if (pendingRooms.length === 0) return;
+
+    setIsConfirmingAll(true);
+    setError(null);
+    const pendingIds = new Set(pendingRooms.map((r) => r.id));
+
+    // Optimistic update : marquer toutes les pièces concernées comme touched.
+    setRoomsByLot((prev) => {
+      const lotRooms = prev[selectedLotId] ?? [];
+      const updated = {
+        ...prev,
+        [selectedLotId]: lotRooms.map((r) =>
+          pendingIds.has(r.id) ? { ...r, touched: true } : r
+        ),
+      };
+      pushRoomsSnapshot(updated, "confirm_all_pending");
+      return updated;
+    });
+
+    // PATCH parallèle (Promise.allSettled pour ne pas tout perdre si 1 fail).
+    try {
+      const results = await Promise.allSettled(
+        pendingRooms.map((r) =>
+          fetch(`/api/vs/rooms/${r.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ touched: true }),
+          })
+            .then((res) => res.json() as Promise<ApiResponse<VsRoom>>)
+            .then((json) => {
+              if (!json.success) throw new Error(json.error);
+              return json.data;
+            })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const ok = results.length - failed;
+
+      if (failed > 0) {
+        setError(
+          `${ok}/${results.length} pièces confirmées — ${failed} ont échoué, réessayez.`
+        );
+      } else {
+        setWarningMessage(
+          `${ok} pièce${ok > 1 ? "s" : ""} confirmée${ok > 1 ? "s" : ""}.`
+        );
+        setTimeout(() => setWarningMessage(null), TOAST_DURATION_MS);
+      }
+    } catch {
+      setError("Impossible de confirmer les pièces. Réessayez.");
+    } finally {
+      setIsConfirmingAll(false);
+    }
+  }, [
+    selectedLotId,
+    currentRooms,
+    isConfirmingAll,
+    pushRoomsSnapshot,
+  ]);
 
   const handleConfirmRoom = useCallback(
     async (roomId: string) => {
@@ -685,8 +863,8 @@ export default function RoomsPage({
           `${json.data.rooms_updated} pièces recalculées sur ${json.data.lots_resolved} lots.`
         );
       }
-      // Auto-dismiss le warning après 5s
-      setTimeout(() => setWarningMessage(null), 5000);
+      // Auto-dismiss le warning après TOAST_DURATION_MS (s33 #F-2).
+      setTimeout(() => setWarningMessage(null), TOAST_DURATION_MS);
     } catch {
       setError("Impossible de recalculer la disposition des pièces.");
     } finally {
@@ -724,7 +902,8 @@ export default function RoomsPage({
         setWarningMessage(
           `${json.data.rooms_created} pièce${json.data.rooms_created > 1 ? "s" : ""} régénérée${json.data.rooms_created > 1 ? "s" : ""} par l'IA.`
         );
-        setTimeout(() => setWarningMessage(null), 5000);
+        // s33 #F-2 — durée toast standard 8s.
+        setTimeout(() => setWarningMessage(null), TOAST_DURATION_MS);
       }
     } catch {
       setError("Impossible de régénérer les pièces. Réessayez.");
@@ -960,6 +1139,8 @@ export default function RoomsPage({
             onValidateLot={handleValidateLot}
             onContinue={handleContinue}
             onConfirmRoom={handleConfirmRoom}
+            onConfirmAllPending={handleConfirmAllPending}
+            isConfirmingAll={isConfirmingAll}
             onResolveOverlaps={handleResolveOverlaps}
             hasAiRooms={hasAiRooms}
             isResolvingOverlaps={isResolvingOverlaps}
@@ -972,21 +1153,30 @@ export default function RoomsPage({
           />
         </div>
       </div>
-      <ConfirmModal
-        isOpen={roomToDelete !== null}
-        title="Supprimer cette pièce ?"
-        message="Cette action est irréversible."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
-        variant="danger"
-        onConfirm={() => {
-          if (roomToDelete) {
-            handleConfirmDelete(roomToDelete.id);
-            setRoomToDelete(null);
-          }
-        }}
-        onCancel={() => setRoomToDelete(null)}
-      />
+      {/* s33 Lot F #F-3 — Toast undo suppression pièce. Pattern Gmail/Linear :
+          la pièce est déjà retirée de l'UI (optimistic). 8s pour annuler,
+          sinon DELETE confirmé en DB. */}
+      {pendingDelete && (
+        <div
+          className="fixed bottom-lg left-1/2 -translate-x-1/2 z-50 max-w-[90vw] sm:max-w-md px-md py-sm rounded-md shadow-lg border border-border-default bg-bg-card flex items-center gap-md"
+          role="status"
+          aria-live="polite"
+          data-testid="rooms-delete-undo-toast"
+        >
+          <span className="text-sm text-text-default">
+            Pièce supprimée — &laquo;&nbsp;{pendingDelete.displayName}&nbsp;&raquo;
+          </span>
+          <button
+            type="button"
+            onClick={handleUndoDelete}
+            className="text-sm font-medium text-interactive-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary min-h-[44px] px-sm rounded"
+            aria-label="Annuler la suppression"
+            data-testid="rooms-delete-undo-button"
+          >
+            Annuler
+          </button>
+        </div>
+      )}
     </div>
   );
 }

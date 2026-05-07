@@ -35,6 +35,10 @@ interface RoomPanelProps {
   onValidateLot: () => void;
   onContinue: () => void;
   onConfirmRoom: (roomId: string) => void;
+  /** s33 Lot F #F-1 — bulk "Tout confirmer" pièces IA pending (1 clic vs N). */
+  onConfirmAllPending?: () => void;
+  /** s33 Lot F #F-1 — true pendant le PATCH parallèle bulk. */
+  isConfirmingAll?: boolean;
   /** s23 fix régression — re-apply resolver sur les pièces IA existantes. */
   onResolveOverlaps?: () => void;
   /** s23 fix régression — visible uniquement si au moins 1 pièce IA existe. */
@@ -75,6 +79,8 @@ export default function RoomPanel({
   onValidateLot,
   onContinue,
   onConfirmRoom,
+  onConfirmAllPending,
+  isConfirmingAll = false,
   onResolveOverlaps,
   hasAiRooms = false,
   isResolvingOverlaps = false,
@@ -95,6 +101,11 @@ export default function RoomPanel({
   const hasUntouchedAiRooms = rooms.some(
     (r) => r.source === "ai" && !r.touched
   );
+
+  // s33 Lot F #F-1 — nb de pièces IA pending pour le label du bouton bulk.
+  const pendingAiCount = rooms.filter(
+    (r) => r.source === "ai" && !r.touched
+  ).length;
 
   // Scroll vers la card sélectionnée quand selectedRoomId change (CORR-B5)
   useEffect(() => {
@@ -458,6 +469,41 @@ export default function RoomPanel({
               ? "Régénérer les pièces (avec l'IA)"
               : "Régénérer les pièces (avec l'IA)"}
         </button>
+      )}
+
+      {/* s33 Lot F #F-1 — Bulk "Tout confirmer" pièces IA pending.
+          Préf fondateur s22 "minimum de clics par défaut" : 8 pièces à
+          confirmer = 8 clics → 1 clic. Désactivé visuellement quand toutes
+          les pièces IA sont déjà confirmées (pendingAiCount === 0). */}
+      {onConfirmAllPending && hasAiRooms && (
+        <div className="mt-md flex items-center justify-between gap-sm flex-wrap">
+          <p className="text-xs text-text-muted">
+            {pendingAiCount > 0
+              ? `${pendingAiCount} pièce${pendingAiCount > 1 ? "s" : ""} IA à confirmer`
+              : "Toutes les pièces IA sont confirmées"}
+          </p>
+          <button
+            type="button"
+            onClick={onConfirmAllPending}
+            disabled={isConfirmingAll || pendingAiCount === 0}
+            data-testid="rooms-confirm-all-pending"
+            aria-label="Confirmer toutes les pièces IA en attente"
+            className="
+              min-h-[44px] px-md py-sm rounded-md text-sm font-medium
+              bg-bg-card border border-border-default text-text-default
+              hover:bg-bg-default active:opacity-80
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors duration-200
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary
+            "
+          >
+            {isConfirmingAll
+              ? "Confirmation en cours…"
+              : pendingAiCount > 0
+                ? `Tout confirmer (${pendingAiCount})`
+                : "Tout confirmer"}
+          </button>
+        </div>
       )}
 
       {/* Grille des pièces (s22 Point 4 — cards en grille au lieu de liste latérale) */}
