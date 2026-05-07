@@ -58,6 +58,8 @@ Avant tout verdict GO ou claim « PASS / final / 10/10 », faire un compte-rendu
 
 **Vérifier le câblage route active** (s31 HOTFIX-2 commit `735761b`). Pour toute livraison UI v2 ou refonte d'écran, exiger preuve que la **route active utilisateur** rend bien la nouvelle UI : `grep -rn "<ComposantV2>\|import.*ComposantV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 résultat ET vérifier l'URL effective via Stepper/navigation. Tests verts en isolation (sous-route v2, composants unitaires) **ne suffisent pas** comme preuve de livraison. Source s31 : Vitest 107/107 + Playwright 18/0/2 + persona Thomas 8.5/10 sur composants v2 MAIS route active `/visuals` rendait toujours v1 → 10 min de Thomas bloqué en prod. Anti-pattern à bannir : valider une feature sur la base de la couverture de test sans confronter à la route que l'utilisateur emprunte réellement (chemin Stepper, URL canonique du parcours).
 
+**Audit cleanup obligatoire post-HOTFIX UI v2** (s31 propagé s32). Pour toute livraison HOTFIX UI v2 prête à merger sur main : auditer (1) composants v1 orphelins (`grep -rn "import.*OldV1Component"` → 0 → suppression DEMANDÉE), (2) routes legacy en pattern fire-and-forget violant CLAUDE.md (à déprécier en 410 Gone). Sans cet audit : la dette technique reste invisible derrière les tests passants sur la nouvelle UI.
+
 ## Protocole d'entrée obligatoire
 
 Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificités :

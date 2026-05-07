@@ -322,3 +322,20 @@ Rotation : à chaque clôture de session, les entrées dont le TTL expire sont d
 | s23 | 2026-04-20 | pattern | P1 | "Fail fast, ask early" — 2 tentatives puis question | Pattern adopté `_base-agent-protocol` | Stable, promu (s26) | règle-globale | _base-agent-protocol.md | fait | propagé |
 | s23 | 2026-04-20 | pattern | P1 | 10/10 objectif strict — technique adjacente si plafond | Pattern adopté @moi + @reviewer | Stable, promu (s26) | agent-spécifique | .claude/agents/moi.md, .claude/agents/reviewer.md | fait | propagé |
 | s23 | 2026-04-20 | pattern | P1 | Ressources réelles fournies = reality check immédiat | Pattern adopté CLAUDE.md s23 | Stable, propagé | règle-globale | CLAUDE.md | fait | propagé |
+
+---
+
+## Archive s32 (2026-05-06) — Entrées s26 P0/P1 propagées s27 (TTL > 5 sessions)
+
+| s26 | P0 | **Sandbox Claude Code = "DNS cache overflow" 18 B 503** sur domaines non-whitelistés (google, drive, leboncoin, microsoft, ...). Confondu 6 fois cette session avec de vrais bugs prod (versi.fr/versi-immobilier/Drive). Toujours **distinguer** via body curl : 18 B `text/plain` "DNS cache overflow" = sandbox bloque, sinon vrai 503. | propagé s27 | `_base-agent-protocol.md` section "Règles s26" |
+| s26 | P0 | **Compléter ≠ remplacer** sur édition copy demandée. Quand Thomas dit "ajouter 3 mots Cashflow/TRI/CoC", garder TOUTE la phrase d'origine + ajouter les 3 mots. Réécrire = violation. | propagé s27 | `_base-agent-protocol.md` + `docs/founder-preferences.md` |
+| s26 | P0 | **Reality check VISUEL pixel-par-pixel** (cmd n°7) violé 3 fois en s26. À chaque fois corrigé après plainte Thomas. | propagé s27 | `_base-agent-protocol.md` |
+| s26 | P1 | **Pattern audit visuel @moi via Read multimodal direct** : copier photos vers `/tmp/<slug>.jpg` ASCII-only depuis sandbox NFC-bug, puis Read pour notation /10. | propagé s27 | `_base-agent-protocol.md` |
+| s26 | P1 | **Architecture photos durable = pré-compilation locale + commit JPEG dans repo + sharp en devDep**. Pattern `generate-photos.js` → `manifest.json` source de vérité → autoSeed prod ne fait QUE INSERT URLs (~1s). | propagé s27 | `docs/founder-preferences.md` |
+| s26 | P1 | **Net-zero cmd n°8 enforced via archive-first** : avant trim, créer fichier archive et copier le contenu, puis trim. Zéro perte garantie. | propagé s27 | `_base-agent-protocol.md` |
+| s26 | P2 | **Anti-doublon photos partagées** entre 2 projets utilisant même dossier source. | brut | `@creative-strategy` |
+| s26 | P0 | **[PRÉFÉRENCE FONDATEUR]** Thomas REFUSE les rallonges textuelles non demandées. Ton minimaliste, factuel, identique au pattern existant. | propagé s27 | `docs/founder-preferences.md` |
+| s26 | P0 | **[PRÉFÉRENCE FONDATEUR]** Thomas exige solution **propre et durable**, JAMAIS quick fix. | propagé s27 | `docs/founder-preferences.md` |
+| s26 | P1 | **[PRÉFÉRENCE FONDATEUR]** Thomas demande des **chiffres ronds** pour la communication publique. | propagé s27 | `docs/founder-preferences.md` |
+| s26 | P1 | **[PRÉFÉRENCE FONDATEUR]** Thomas exige **anonymisation des adresses** sur les fiches publiques refs. | propagé s27 | `docs/founder-preferences.md` |
+| s26 | P1 | **[PRÉFÉRENCE FONDATEUR]** Thomas considère que **le hero d'une fiche immobilière = la photo qui fait cliquer**. | propagé s27 | `docs/founder-preferences.md` |

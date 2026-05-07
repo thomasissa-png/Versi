@@ -56,6 +56,8 @@ Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords 
 
 **Câblage route active obligatoire** (s31 HOTFIX-2 commit `735761b`). Quand on livre une nouvelle UI v2, modifier explicitement la **route active du Stepper / chemin utilisateur** — pas seulement créer une sous-route v2 testée. Vérification post-fix obligatoire : `grep -rn "VisualPlacementView\|<ComposantV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 résultat. Sinon : tests verts en isolation, prod sur ancienne UI. Source s31 : 19 commits s30 (worker SSE, AngleController, VisualPlacementView, Vitest 107/107) MAIS `visuals/page.tsx` rendait toujours `VisualRoom` v1 → Thomas bloqué 10 min sur ancienne UI. Pattern wire-grep s27.2 (route prod vs diagnostic) **étendu aux routes UI**, pas que pipelines backend. Fix Option A redirect (Server Component `redirect()`) recommandé pour HOTFIX UI v2 → v1 (zéro flash, zéro client JS).
 
+**Cleanup v1 pre-merge** (s31 propagé s32). Avant merge HOTFIX UI v2 → main : (1) `grep -rn "import.*OldComponent" src/ tests/` confirme 0 import → supprimer fichiers v1, (2) `grep -rn "void.*runCoherent\|fire-and-forget" src/` détecte routes legacy → migrer ou déprécier en 410 Gone. Source s31 : -1450 L code mort supprimé + route legacy 248L → 36L (410 Gone). Sans cleanup : dette technique masquée par tests nouvelle UI.
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found
