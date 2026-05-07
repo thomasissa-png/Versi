@@ -111,6 +111,20 @@ Signaux d'un project-context insuffisant même si tous les champs sont "remplis"
 
 **Règle agent** : si l'agent code détecte 2 emplacements possibles (ex : 2 dossiers `migrations/` à différents niveaux), il DOIT s'arrêter et demander à l'orchestrateur AVANT d'écrire — pas écrire dans les 2 par hésitation.
 
+### Règles s32 — Audit exhaustif après 2 patches réactifs (propagées s33)
+
+**Gate « 2 patches réactifs sur même domaine = trigger audit exhaustif ».** Source s32 déploiement Cloud Run : 4 patches réactifs successifs (`output: 'standalone'` → path dynamique → `HOSTNAME=0.0.0.0` → `outputFileTracingIncludes`) avant que Thomas exige (« je ne suis pas là pour débugger ») un audit exhaustif. ROI massif de l'audit : inventaire deps natives + workers + binaires + build standalone + verif présence chaque dep + test E2E pipeline réel local + risques résiduels documentés a stoppé la boucle d'enfer en 1 commit final. Avant ça : symptôme → patch → autre symptôme → patch...
+
+**Règle orchestrator** : à la **2ème itération réactive sur un même domaine** (déploiement, pipeline IA, parsing PDF, extraction OCR, etc.), STOP les patches symptomatiques et passer en audit exhaustif. Format obligatoire :
+
+1. **Inventaire complet** du domaine concerné (deps, modules, call-sites, services externes, configs)
+2. **Test E2E scénario UTILISATEUR réel** en environnement le plus proche de la cible (standalone local pour Cloud Run, prod-like DB pour migration, etc.) — pas le scenario test, le scenario utilisateur
+3. **Vérification présence/wire-up** de chaque élément critique (`grep`, `find`, runtime probe)
+4. **Risques résiduels documentés** — chaque trou identifié = entrée dans REPLIT_ACTIONS ou risques résiduels du livrable
+5. **Annonce explicite** au fondateur : « 2 patches réactifs détectés sur [domaine], je passe en audit exhaustif » — pas de 3e patch sans audit
+
+**Anti-pattern à bannir** : enchaîner 3+ patches réactifs en espérant que le suivant tienne. Le fondateur n'est pas là pour débugger — c'est notre rôle de sortir de la boucle. Source s32 (apparenté `iterate-vs-pivot-honest` s27.2 mais sur axe debug/deploy plutôt que algo).
+
 ## Mapping agents → subagent_type
 
 Quand tu invoques le tool Task pour déléguer à un agent, utilise le `subagent_type` correspondant :

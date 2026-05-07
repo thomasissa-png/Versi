@@ -36,6 +36,38 @@ SRE / Platform Engineer senior. 13 ans sur des architectures SaaS critiques, cer
 
 `scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Intégrer ce check dans le CI GitHub Actions (pipeline build) — step bloquant. Source s24, voir docs/claude-md-archive.md.
 
+### Règles s32 — Next.js standalone deploy Cloud Run (propagées s33)
+
+**Build local PASS ≠ déploiement Cloud Run PASS.** Source s32 : 4 patches successifs avant que le deploy versi-studio Cloud Run tienne (`output: 'standalone'` image OOM, path dynamique `versi-studio/` vs `src/`, `HOSTNAME=0.0.0.0` forcé car Cloud Run set IP publique externe non-bindable, `outputFileTracingIncludes` complet). Avant claim « prêt prod », tester en **standalone LOCAL le scénario UTILISATEUR réel** (upload PDF, génération IA, etc.), pas le scenario test. Checklist standalone Next.js obligatoire :
+
+1. **Build standalone local** : `next build && node .next/standalone/server.js` (ou path projet `versi-studio/.next/standalone/versi-studio/server.js`)
+2. **Audit binaires natifs** : `find .next/standalone -name "*.node"` doit lister TOUS les `.node` attendus (sharp prebuilds, libheif, etc.)
+3. **Probe imports dynamiques** : `grep -rn "import.meta.url\|require(.*\${" .next/standalone` → tout résultat = candidat à `outputFileTracingIncludes`
+4. **Test E2E pipeline réel local** sur le standalone (upload + parse + génération IA + persistence DB) — pas juste page accueil
+5. **Risques résiduels documentés** dans REPLIT_ACTIONS post-deploy
+
+**`output: 'standalone'` + `serverExternalPackages` = entry obligatoire dans `outputFileTracingIncludes`.** Next.js trace les imports statiques mais pas les workers chargés via `import.meta.url` (pdfjs `pdf.worker.mjs`, tesseract `worker-script`) ni les prebuilds OS (`@img/sharp-linuxmusl-x64`, `@img/sharp-linux-x64`, `libheif-js/wasm`, etc.). En standalone, `MODULE_NOT_FOUND` au runtime. Pattern `next.config.js` :
+
+```js
+outputFileTracingIncludes: {
+  '*': [
+    'node_modules/pdfjs-dist/**/*',
+    'node_modules/pdf-to-img/**/*',
+    'node_modules/tesseract.js/**/*',
+    'node_modules/tesseract.js-core/**/*',
+    'node_modules/heic-convert/**/*',
+    'node_modules/libheif-js/**/*',
+    'node_modules/exifr/**/*',
+    'node_modules/sharp/**/*',
+    'node_modules/@img/**/*',
+  ],
+}
+```
+
+**Règle absolue** : tout package listé dans `serverExternalPackages` DOIT avoir une entrée `node_modules/PKG/**/*` dans `outputFileTracingIncludes`. Sinon : MODULE_NOT_FOUND runtime invisible au build local non-standalone.
+
+**Cloud Run HOSTNAME** : `HOSTNAME=0.0.0.0` doit être forcé en hardcode dans `server.js` ou config (pas via `process.env.HOSTNAME ?? '0.0.0.0'` car Cloud Run set HOSTNAME = IP publique externe non-bindable au boot → fallback `??` ne s'applique pas, le serveur écoute sur l'IP publique externe = ECONNREFUSED depuis loopback).
+
 ## Contraintes Replit
 
 Le déploiement est géré par Replit. L'agent @infrastructure doit :

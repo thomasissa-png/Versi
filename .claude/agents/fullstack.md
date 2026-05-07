@@ -58,6 +58,25 @@ Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords 
 
 **Cleanup v1 pre-merge** (s31 propagé s32). Avant merge HOTFIX UI v2 → main : (1) `grep -rn "import.*OldComponent" src/ tests/` confirme 0 import → supprimer fichiers v1, (2) `grep -rn "void.*runCoherent\|fire-and-forget" src/` détecte routes legacy → migrer ou déprécier en 410 Gone. Source s31 : -1450 L code mort supprimé + route legacy 248L → 36L (410 Gone). Sans cleanup : dette technique masquée par tests nouvelle UI.
 
+### Règles s32 — Migration JSONB defensive + wire-grep brief consolidé (propagées s33)
+
+- **Migration JSONB structuré DOIT inclure 3 couches défense + tests régression rows pre-migration.** Source s32 fix `aca8e31` : migration 012 ajoute `architectural_details JSONB DEFAULT '{}'`. Code accède `details.floor.source` mais `details.floor` undefined sur rows existantes → `Cannot read properties of undefined (reading 'source')` au passage étape 3→4. Pattern obligatoire pour toute nouvelle migration JSONB dont le shape est consommé par du code component-level :
+  1. **Normalize au load API** (GET/PATCH) — l'API ne renvoie JAMAIS de JSONB mal-formé, défaut structurel injecté avant retour
+  2. **Migration backfill SQL** — `UPDATE rows existantes SET col = jsonb_build_object(...)` pour combler les rows pre-migration
+  3. **Defensive `useMemo`/normalize component-level** — defense-in-depth si l'API a un bug
+  4. **Tests Vitest régression** sur shape pre-migration (mock row vide + assert no throw + shape complète après normalize)
+  Anti-pattern : ajouter `DEFAULT '{}'` et accéder `.X.source` sans backfill ni normalize → crash garanti sur rows existantes.
+
+- **Nouveau pill / champ structuré : wire-grep TOUS les call-sites consommateurs du brief consolidé.** Source s32 bug silencieux `level` + `technical_constraints` saisis UI mais OUBLIÉS dans `buildArchitecturalBrief` qui construit le prompt image — saisie marchand ignorée silencieusement (decoy). Détecté par audit @ia, invisible aux audits visuels. Checklist obligatoire pour CHAQUE nouveau pill/champ ajouté à un objet structuré (lot profile, room details, brief consolidé) :
+  - [ ] UI saisie + binding (PATCH API)
+  - [ ] System prompt agent conversationnel (chat)
+  - [ ] Brief humain modal récap
+  - [ ] **Brief consolidé prompt image** (`buildXxxBrief`)
+  - [ ] Brief consolidé prompt secondary (si plusieurs prompts)
+  - [ ] Persistance DB (colonne ou JSONB)
+  - [ ] Tags `(dealer-confirmed)` vs `(visually identified)` cohérents
+  Commande pre-commit : `grep -rn "build.*Brief\|buildXxx" src/lib/` → vérifier que TOUS les builders consomment le nouveau champ.
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found

@@ -46,6 +46,27 @@ Quand un pipeline IA a raffinement + données brutes coexistantes, les agrégats
   ```
   Anti-pattern à bannir : chiffrer en se basant sur estimation brief, sur tarif d'un modèle voisin, ou sur la mémoire d'une session précédente. Les tarifs OpenAI/Anthropic évoluent — toujours revérifier. Source s29 (commit `fc4dfac` Phase 2 Étape 4 v2 Versi Studio).
 
+### Règles s32 — Discipline LLM agents conversationnels : known-fields-list strict (propagées s33)
+
+- **Pour TOUT agent conversationnel qui complète des données structurées, le system prompt DOIT contenir une section explicite « champs déjà connus — ne jamais re-demander ».** Source s32 (architecte conversationnel Versi Studio, persona 10/10 V3 vs V1 décevant). Pattern V1 (« évite ce qui est dans les pills ») = LLM repose les questions par exhaustivité — la discipline conversationnelle implicite ne tient pas. Pattern V3 obligatoire dans le system prompt :
+
+  ```
+  ═ CHAMPS DÉJÀ RENSEIGNÉS — NE JAMAIS RE-DEMANDER ═
+  - typology: T2 (dealer-confirmed)
+  - surface: 42m² (dealer-confirmed)
+  - level: premium (dealer-confirmed)
+  - technical_constraints: gaine immuable centre (dealer-confirmed)
+  - [...liste exhaustive valeurs réelles non-null...]
+
+  Règle absolue : Tu ne dois POSER AUCUNE QUESTION sur les champs ci-dessus
+  s'ils ont une valeur ci-dessus. Tu peux les CITER pour personnaliser ta réponse,
+  mais jamais demander de les confirmer ou compléter.
+  ```
+
+  Implémentation : injecter la section dans le system prompt à chaque tour, dérivée dynamiquement des valeurs DB non-null. Format `[champ]: [valeur] (source-tag)`. Pattern à appliquer pour tout agent OpenAI Function Calling / Tool Use qui complète une fiche, un brief, un profil structuré.
+
+  Anti-pattern à bannir : se reposer sur une formulation soft (« évite si possible », « tu peux passer si... »). Le LLM choisit l'exhaustivité par défaut — il faut un interdit explicite + liste exhaustive des valeurs.
+
 ## Domaines de compétence
 
 ### APIs LLM et intégration

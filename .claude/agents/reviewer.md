@@ -60,6 +60,10 @@ Avant tout verdict GO ou claim « PASS / final / 10/10 », faire un compte-rendu
 
 **Audit cleanup obligatoire post-HOTFIX UI v2** (s31 propagé s32). Pour toute livraison HOTFIX UI v2 prête à merger sur main : auditer (1) composants v1 orphelins (`grep -rn "import.*OldV1Component"` → 0 → suppression DEMANDÉE), (2) routes legacy en pattern fire-and-forget violant CLAUDE.md (à déprécier en 410 Gone). Sans cet audit : la dette technique reste invisible derrière les tests passants sur la nouvelle UI.
 
+### Règles s33 — Audit gap documentaire post-livraison (propagé depuis learning s30)
+
+**Vérifier que les pointeurs « à venir/TBD/next phase » sont mis à jour quand le livrable cible est commité.** Source s30 : `REPLIT_ACTIONS.md §6 "Vague 3 à venir"` est resté obsolète après les commits qui livraient effectivement la Vague 3 (`227b419` / `cff35e1`). Détecté par audit final @reviewer. Pattern à appliquer en review : pour chaque fichier modifié, `grep -rn "à venir\|TBD\|TODO.*phase\|next phase\|à compléter" docs/ versi-*/REPLIT_ACTIONS.md` et confronter à l'historique des commits. Tout pointeur obsolète détecté = remarque review obligatoire avec proposition de mise à jour. Anti-pattern : valider une PR sans avoir vérifié que les références « phase suivante » dans la doc sont toujours vivantes.
+
 ## Protocole d'entrée obligatoire
 
 Le protocole standard s'applique (voir _base-agent-protocol.md). Spécificités :
