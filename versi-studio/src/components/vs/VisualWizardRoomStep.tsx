@@ -37,6 +37,7 @@ import type {
 } from "@/lib/vs/types";
 import { emptyArchitecturalDetails } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
+import { UNDO_WINDOW_MS } from "@/lib/vs/ui/toast-duration";
 import type { StyleId } from "@/lib/vs/styles";
 
 export interface VisualWizardRoomStepProps {
@@ -313,7 +314,7 @@ export default function VisualWizardRoomStep({
   // « Annuler »). Sinon 3s standard.
   useEffect(() => {
     if (chatToast === null) return;
-    const duration = chatToastUndo !== null ? 5000 : 3000;
+    const duration = chatToastUndo !== null ? UNDO_WINDOW_MS : 3000;
     const t = setTimeout(() => {
       setChatToast(null);
       setChatToastUndo(null);
@@ -1260,7 +1261,7 @@ export default function VisualWizardRoomStep({
         </h3>
         {placements.length === 0 ? (
           <p className="text-sm text-text-muted bg-bg-card border border-border-default border-dashed rounded-md p-md">
-            Cliquez sur le plan pour placer une prise de vue, puis uploadez la photo.
+            Cliquez sur le plan pour placer une prise de vue, puis déposez la photo.
           </p>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-sm">

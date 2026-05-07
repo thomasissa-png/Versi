@@ -49,7 +49,7 @@ export default function CostEstimator({ roomTargets, ariaLabel = "Coût estimé"
 
   const containerClass = isWarning
     ? "inline-flex items-center gap-sm px-md py-xs rounded-md bg-warning/10 border border-warning/30 text-warning text-xs"
-    : "inline-flex items-center gap-sm px-md py-xs rounded-md bg-info/10 border border-info/30 text-info text-xs";
+    : "inline-flex items-center gap-sm px-md py-xs rounded-md bg-bg-card border border-border-default text-text-default text-xs";
 
   return (
     <div

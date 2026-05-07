@@ -200,7 +200,7 @@ export default function VisualWizardRecap({
                           )}
                           {isAnchor && (
                             <span
-                              className="absolute top-xs left-xs inline-flex items-center text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-info/90 text-text-inverse"
+                              className="absolute top-xs left-xs inline-flex items-center text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-text-default text-text-inverse"
                               title="Visuel principal"
                             >
                               Principal

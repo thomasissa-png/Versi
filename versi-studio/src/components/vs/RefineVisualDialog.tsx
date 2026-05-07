@@ -327,7 +327,7 @@ export default function RefineVisualDialog({
               "flex items-center gap-sm rounded-md border px-md py-sm",
               phase === "long-wait"
                 ? "border-warning/40 bg-warning/5"
-                : "border-info/40 bg-info/5",
+                : "border-border-default bg-bg-card",
             ].join(" ")}
             role="alert"
             aria-live="assertive"
@@ -338,7 +338,7 @@ export default function RefineVisualDialog({
             <div
               className={[
                 "inline-block w-4 h-4 border-2 border-t-transparent rounded-full animate-spin shrink-0",
-                phase === "long-wait" ? "border-warning" : "border-info",
+                phase === "long-wait" ? "border-warning" : "border-text-default",
               ].join(" ")}
             />
             <p className="text-sm text-text-default">
@@ -350,7 +350,7 @@ export default function RefineVisualDialog({
         {/* s33 issue #5 — phase 'background' : UI rend la main, message rassurant */}
         {phase === "background" && (
           <div
-            className="rounded-md border border-info/40 bg-info/5 px-md py-sm"
+            className="rounded-md border border-border-default bg-bg-card px-md py-sm"
             role="status"
             aria-live="polite"
             data-testid="refine-background-message"

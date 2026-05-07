@@ -148,7 +148,7 @@ export default function RoomPreviewView({
                   )}
                   {isAnchor && (
                     <span
-                      className="absolute top-xs left-xs z-10 pointer-events-none inline-flex items-center gap-2xs text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-info/90 text-text-inverse"
+                      className="absolute top-xs left-xs z-10 pointer-events-none inline-flex items-center gap-2xs text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-text-default text-text-inverse"
                       title="Visuel principal — sa palette guide les autres"
                     >
                       Principal

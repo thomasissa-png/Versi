@@ -252,7 +252,7 @@ function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegene
             )}
             {isFallback && (
               <span
-                className="inline-flex items-center text-xs px-xs py-2xs rounded-full bg-warning/10 text-warning border border-warning/30"
+                className="inline-flex items-center text-xs px-xs py-2xs rounded-full bg-bg-card text-text-default border border-border-default"
                 title="Le multi-image natif n'a pas pu être appliqué : la cohérence visuelle entre l'ancre et ce secondaire est garantie par signature textuelle uniquement (palette + meubles + ambiance), pas par référence pixel-à-pixel."
                 aria-label="Cohérence réduite : signature textuelle"
                 data-testid="badge-coherence-fallback"
