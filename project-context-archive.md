@@ -1,8 +1,91 @@
 # Archive — Mémos de reprise sessions anciennes (Versi)
 
-Ce fichier archive les mémos de reprise des sessions > 5 sessions (règle TTL commandement n°8 CLAUDE.md). Sessions conservées dans `project-context.md` : s22, s23, s24, s25, s26. Sessions archivées ci-dessous : s21, s20, s19, s18, s17, s16, s14.
+Ce fichier archive les mémos de reprise des sessions > 5 sessions (règle TTL commandement n°8 CLAUDE.md). Sessions conservées dans `project-context.md` : s28, s29, s30, s31, s32. Sessions archivées ci-dessous : s27, s26, s25, s24, s23, s22, s21, s20, s19, s18, s17, s16, s14.
 
-Rotation : à la clôture de chaque nouvelle session, la session la plus ancienne de `project-context.md` (6ème rang) migre ici.
+Rotation : à la clôture de chaque nouvelle session, la session la plus ancienne de `project-context.md` (6ème rang) migre ici. Audit volumineux s33 : migration en bloc de s22-s27 (TTL > 5 sessions vs s33 active).
+
+---
+
+### Mémo de reprise versi-s27 → s28 (archive)
+
+**Branche dernière clôturée** : `claude/session-recovery-setup-iDOWX` (HEAD `05d0998`)
+**Date de clôture** : 2026-04-30
+**Numéro de session** : 27
+**Statut s27** : CLÔTURÉE — 2e moitié de session entièrement focalisée Versi Studio plan extractor. **Pivot vectoriel pixel-perfect réussi** après 9 itérations bitmap échouées (plateau IoU 0.80). 9 commits feat/fix/copy poussés. Wire route prod + 3 fixes UX feedback Thomas livrés.
+
+**Résumé** : (1) Bitmap iter 1-9 plateau IoU 0.80, NO-GO unanime audits @design/@ux/@moi, décision pivot. (2) Pivot vectoriel `670efba` création `lot-vector-extractor.ts` parsant `pdfjs-dist.getOperatorList()` — découverte clé : pdfjs ne pré-applique pas `viewport.transform`. (3) Robustesse vectorielle `c8e5963` filtre longueur ≥ 50px + bbox PERCENTILE 2-98. (4) Wire route prod `d7d10b0`. (5) UX 3 fixes `24351b8` : drag = 1 undo + lot présélectionné + labels boutons. (6) Copy labels round 2 fermes Thomas : `Ajouter un lot (forme rectangulaire)` / `Ajouter un lot (forme libre)`.
+
+**Décisions clés** : Bitmap a un plafond mathématique (~0.80 IoU à scale=3 sur 9M pixels), Vector PDF = seule voie pixel-perfect, viewport.transform = pièce manquante 3 fois ratée, pattern unifié action+précision > formulations marketing.
+
+**Patterns validés s27** : iterate-but-pivot-when-plateau, step-back-source-truth, probe-runtime-pdf-parser, autopilot-grid-time-limit, drag-commit-séparé, preselect-default-visibility.
+
+---
+
+### Mémo de reprise versi-s26 → s27 (archive)
+
+**Branche dernière clôturée** : `claude/update-gradient-agents-Y0BKa` (HEAD `ffec913`)
+**Date de clôture** : 2026-04-26
+**Numéro de session** : 26
+
+**Résumé (36 commits, ~3 jours)** : (1) Mise à jour Gradient Agents 2026-04-17 : net-zero cmd n°8, gates G31 favicon + G32 typo, 14 règles s22-s24 promues. (2) Audit SEO 4 sites Versi : favicons G31 PASS sur 4/4, Twitter cards ajoutées partout. (3) 3 nouvelles références immobilières Lille (rue d'Arras, Friedland, Prieuré) avec curation manuelle 137→55 photos. (4) Refonte fiches versi-invest : recalcul taux Nanterre 3,1% + Arras 3,5%, anonymisation. (5) Migration architecture photos versi-immobilier : base64 DB (262 Mo) → fichiers statiques précompilés en local (33 Mo) + manifest.json. Sharp drop du runtime → fix bug Neon timeout 57P01. (6) Fix résilience 503 infra Replit Autoscale.
+
+**Décisions clés** : architecture photos = pré-compilation locale + commit JPEG dans repo + sharp en devDep, tone factuel-éditorial Nanterre, qualité > quantité.
+
+**Patterns validés s26** : gates G31/G32 propagés, sandbox NFC du framework distinct vrai bug prod, build standalone Replit Autoscale (binding 0.0.0.0 + autoSeed fire-and-forget).
+
+---
+
+### Mémo de reprise versi-s25 → s26 (archive)
+
+**Branche dernière clôturée** : `claude/versi-s25-reality-check-ux-audit-UHDfK` (HEAD `65fffe6`)
+**Date de clôture** : 2026-04-23
+**Numéro de session** : 25
+**Statut s25** : CLÔTURÉE — session mammoth multi-phases (20+ commits, 6 phases). GO TECHNIQUE CONDITIONNEL (2.5/4 conditions @moi).
+
+**Résumé** : (A) Reality check prod + fix 3 bugs P0/P1 + bouton "Régénérer pièces" + viewport zoom partagé étape 2↔3. (B) Refonte canonicalisation étape 1 : PM V1 + benchmark 6 concurrents + POC Approche B (image-to-image gpt-image-1) + impl + Yann baseline 5.5/10. (C) Gate @moi 2.5/4 GO TECHNIQUE CONDITIONNEL. (D) Refonte UX persona @qa Round 3 10/10 PASS, étape "Reformatage" SUPPRIMÉE, mot "reformat/canoniqu" BANNI, route `/reformatage` → 404. (E) Bug Muguets "lot T2 RDC déborde 47m²" : prompt v8 single-doctrine 40L + skip lot IA si manuel + outline-shrinker.ts post-process déterministe (8.8/10 prédit). (F) Prompt v9 CoT 4-step + few-shot Muguets + migration gpt-image-2 primary + fallback gpt-image-1.
+
+**Patterns validés s25** : technique adjacente si plafond prompt-only (renforcé), feature flag + mocks pour CI, autopilote 4 agents parallèles scope disjoint, @moi gate intermédiaire 4 conditions strictes, feature invisible persona = à supprimer, lot manuel prime sur IA, itération prompt avec auto-note pondérée, brief @ia anti-timeout.
+
+**Note** : 15 learnings s25 ont été propagés en gate bloquante s26 (commit propagation s26).
+
+---
+
+### Mémo de reprise versi-s24 → s25 (archive)
+
+**Branche dernière clôturée** : `claude/versi-s24-propagation-learnings-Au1vk`
+**Date de clôture** : 2026-04-21
+**Numéro de session** : 24
+**Statut s24** : CLÔTURÉE — session massive 10+ feedback loops Thomas. Bug P0 Étape 1→2 "Impossible de lancer l'analyse" RÉSOLU + pipeline pass-4 envelope polygon + pass-5 room tiling power diagram (0 overlap / 0 gap garanti mathématiquement). 14 learnings s23 propagés. 12 commits.
+
+**Résumé** : (1) Propagation 14 learnings s23 (gate bloquante reprise) : CLAUDE.md section s23, 6 agents modifiés. (2) Bug P0 Étape 1→2 timeout proxy Replit 60s + tesseract.js crash : parallélisation pipeline (Promise.all) + serverExternalPackages "tesseract.js" + import dynamique. Temps 190s → 41-55s E2E. (3) Envelope lot déborde : canvas letterbox bug + fix floor override. (4) @ia prompt v7.1 building_outline = private unit footprint. (5) @ia passe-5 power diagram (Voronoï pondéré pur TS, Sutherland-Hodgman clipping) : 23/23 tiles valides, 0 overlap, 0 gap. (6) Fix TS r.name → r.name_raw build prod Replit.
+
+**Patterns validés s24** : power diagram pour tiling géométrique (garanties mathématiques par construction), convex hull + expansion radiale pour envelope polygon, parallélisation pipeline complet (3.4-6.3x gain), reality check E2E via Postgres local + curl + Playwright, brief @ia anti-timeout (max 1500 mots, 1 Write par fichier).
+
+---
+
+### Mémo de reprise versi-s23 → s24 (archive)
+
+**Branche dernière clôturée** : `claude/extract-project-context-GjKJ3`
+**Date de clôture** : 2026-04-20
+**Numéro de session** : 23
+**Statut s23** : CLÔTURÉE — session massive 10+ feedback loops Thomas. Framework upgradé. Versi Studio amélioré : Étape 2 calibration m² + copy métier "Dessiner un lot" + envelope lot recalculée depuis polygones ; Étape 3 plan entier + drag polygone + non-overlap + désync fix ; pipeline IA passe-1 v5 label-anchoring + passe-3 visual-verifier + snap-to-label OCR. Score IA empirique P00 : 6.03/10 → pic **9.35/10**.
+
+**Résumé** : (1) Framework sync + propagation 18 learnings s22 dans agents upstream. (2) Fix calibration m² (helpers + conversions natives) + fix Étape 3 plan rogné (fit-to-lot viewport). (3) Bug 1 superposition (resolver v2 cleanPolygon + 3 passes) + Bug 2 drag polygone + reality check E2E révèle lacunes tests unit mockés. (4) Audit copy Étape 2 complet (16 reformulations) + UX "Pièces non assignées" SUPPRIMÉ + copywriter v2 "Dessiner un lot" métier. (5) Prompts IA itérés 5x (7/10 plafond prompt-only) + passe-3 visual-verifier + hard clipping building_outline. (6) Fix CRITIQUE envelope lot recalculée depuis polygones finaux (bug Thomas 6 fois remonté). (7) Fix désync Étape 3 polygon/bbox (3 fixes coordonnés) + snap-to-label OCR (9.35/10 pic).
+
+**Patterns validés s23** : technique adjacente si plafond prompt-only, mot pivot métier banni de l'UI, agrégats sur données raffinées (pas brutes), sync représentations multiples = point source unique, reality check E2E avant claim, fail fast ask early après 2 tentatives.
+
+---
+
+### Mémo de reprise versi-s22 → s23 (archive)
+
+**Branche dernière clôturée** : `claude/extract-project-context-wh51y`
+**Date de clôture** : 2026-04-17
+**Numéro de session** : 22
+**Statut s22** : CLÔTURÉE — session massive 8+ feedback loops Thomas : corrections 3 bugs P0 Étape 3 + POC OCR + polygones v4 2-pass + UI refonte (nav+layout+bouton unique+undo/redo+comparateur) + transformations structurelles Étape 4 à **10/10 unanime** + import agents Versimo + workflow audit visuel.
+
+**Résumé** : (1) 3 bugs Étape 3 (plan gris, IA vide, rectangle fixe) corrigés + POC OCR GO (4/4 plans à 0.98). (2) Polygones IA v3 + v4 2-pass (24/24 rooms confidence 0.98). (3) Refonte UI : navigation stepper cliquable, layout stack vertical Étapes 2+3, pan curseur, undo/redo, bouton unique "Valider et passer aux pièces", fix rendu Étape 3 letterbox, comparateur avant/après Étape 4. (4) Transformations structurelles Étape 4 (casser mur / ajouter cloison / percer porte / déplacer cuisine) : prompt v3 + textarea UI + badges → **10/10 unanime 4 transformations**. (5) Import 3 agents experts Versimo (Yann Duval @interior-architect, Lucas Moreau @ai-image-expert, Camille Verdier @paysagiste) + workflow audit visuel documenté dans CLAUDE.md.
+
+**Patterns validés s22** : POC OCR avant scaling, 2-pass polygones (extract puis refine), comparateur avant/après pour transformations structurelles, agents experts métier importés (interior-architect, ai-image-expert, paysagiste), workflow audit visuel multi-experts.
 
 ---
 
