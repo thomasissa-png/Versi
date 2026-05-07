@@ -21,6 +21,7 @@ import Image from "next/image";
 import { useState } from "react";
 import type { VisualGenerated } from "@/hooks/useVisualsStream";
 import RefineVisualDialog from "@/components/vs/RefineVisualDialog";
+import VisualLightbox from "@/components/vs/VisualLightbox";
 
 export interface RoomPreviewViewProps {
   roomName: string;
@@ -62,6 +63,11 @@ export default function RoomPreviewView({
   const [refineTarget, setRefineTarget] = useState<{
     visualId: string;
     src: string | null;
+  } | null>(null);
+  // s33 issue #4 — état modal Lightbox (visuel cliqué pour agrandir).
+  const [zoomTarget, setZoomTarget] = useState<{
+    src: string;
+    alt: string;
   } | null>(null);
 
   return (
@@ -111,14 +117,30 @@ export default function RoomPreviewView({
               >
                 <div className="relative aspect-[4/3] bg-bg-canvas">
                   {src ? (
-                    <Image
-                      src={src}
-                      alt={`Visuel ${isAnchor ? "principal" : "secondaire"} — ${roomName}`}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      loading="lazy"
-                      className="object-cover"
-                    />
+                    <>
+                      <Image
+                        src={src}
+                        alt={`Visuel ${isAnchor ? "principal" : "secondaire"} — ${roomName}`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        loading="lazy"
+                        className="object-cover"
+                      />
+                      {/* s33 issue #4 — bouton transparent superposé pour ouvrir le lightbox.
+                          Z-index inférieur au bouton "Affiner" (qui reste au-dessus). */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setZoomTarget({
+                            src,
+                            alt: `Visuel ${isAnchor ? "principal" : "secondaire"} — ${roomName}`,
+                          })
+                        }
+                        aria-label={`Agrandir le visuel ${isAnchor ? "principal" : "secondaire"} — ${roomName}`}
+                        data-testid={`room-preview-zoom-${v.visual_id}`}
+                        className="absolute inset-0 z-0 cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-interactive-primary"
+                      />
+                    </>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-text-muted text-xs">
                       Image indisponible
@@ -126,13 +148,15 @@ export default function RoomPreviewView({
                   )}
                   {isAnchor && (
                     <span
-                      className="absolute top-xs left-xs inline-flex items-center gap-2xs text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-info/90 text-text-inverse"
+                      className="absolute top-xs left-xs z-10 pointer-events-none inline-flex items-center gap-2xs text-[10px] uppercase tracking-wide font-semibold px-xs py-2xs rounded-sm bg-info/90 text-text-inverse"
                       title="Visuel principal — sa palette guide les autres"
                     >
                       Principal
                     </span>
                   )}
-                  {/* s32 #P4 (Thomas prod) — bouton "Affiner" sur chaque card */}
+                  {/* s32 #P4 (Thomas prod) — bouton "Affiner" sur chaque card.
+                      s33 issue #4 : z-10 obligatoire pour rester cliquable au-dessus
+                      du bouton transparent de zoom. */}
                   {onVisualRefined && src && (
                     <button
                       type="button"
@@ -141,7 +165,7 @@ export default function RoomPreviewView({
                       }
                       data-testid={`room-preview-refine-${v.visual_id}`}
                       aria-label="Affiner ce visuel"
-                      className="absolute bottom-xs right-xs inline-flex items-center gap-xs px-sm py-xs rounded-md bg-bg-card/95 border border-border-default text-xs font-medium text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary shadow-sm min-h-[44px]"
+                      className="absolute bottom-xs right-xs z-10 inline-flex items-center gap-xs px-sm py-xs rounded-md bg-bg-card/95 border border-border-default text-xs font-medium text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary shadow-sm min-h-[44px]"
                     >
                       {/* Icône sparkles SVG inline (pas de dépendance) */}
                       <svg
@@ -180,6 +204,15 @@ export default function RoomPreviewView({
             // visuel dans la liste avant fermeture (évite un flash visuel).
             setTimeout(() => setRefineTarget(null), 300);
           }}
+        />
+      )}
+
+      {/* s33 issue #4 — modal Lightbox (zoom au clic) */}
+      {zoomTarget && (
+        <VisualLightbox
+          src={zoomTarget.src}
+          alt={zoomTarget.alt}
+          onClose={() => setZoomTarget(null)}
         />
       )}
 

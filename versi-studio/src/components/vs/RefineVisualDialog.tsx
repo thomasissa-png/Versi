@@ -22,6 +22,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { ApiResponse } from "@/lib/vs/types";
+import {
+  REFINE_COPY,
+  REFINE_MAX_INSTRUCTION_LENGTH,
+  REFINE_POLL_INTERVAL_MS,
+  computeRefinePhase,
+  shouldStopPolling,
+} from "@/lib/vs/ui/refine-timing";
 
 /**
  * Sélecteur des éléments focusables internes au dialog (focus trap).
@@ -43,9 +50,11 @@ export interface RefineVisualDialogProps {
   onRefined: (newVisualId: string) => void;
 }
 
-const MAX_INSTRUCTION_LENGTH = 500;
-const POLL_INTERVAL_MS = 4000;
-const POLL_MAX_DURATION_MS = 120_000; // 2 min — au-delà on déclare timeout côté UI
+// s33 : timing centralisé dans `@/lib/vs/ui/refine-timing` (helper-first testable).
+// Note : POLL_MAX_DURATION_MS n'est plus référencé directement — la décision
+// "stop polling" passe par shouldStopPolling(elapsed) (helper testé).
+const MAX_INSTRUCTION_LENGTH = REFINE_MAX_INSTRUCTION_LENGTH;
+const POLL_INTERVAL_MS = REFINE_POLL_INTERVAL_MS;
 
 interface VisualStatus {
   id: string;
@@ -65,6 +74,13 @@ export default function RefineVisualDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingVisualId, setPendingVisualId] = useState<string | null>(null);
+  /**
+   * s33 issue #5 — pilote l'UI :
+   *  - 'generating' : 0-90 s (message standard)
+   *  - 'long-wait'  : 90-240 s (warning non bloquant)
+   *  - 'background' : > 240 s (UI rend la main, polling parent prend le relais)
+   */
+  const [phase, setPhase] = useState<"generating" | "long-wait" | "background">("generating");
   const pollAbortRef = useRef<AbortController | null>(null);
   // B1 / B2 — refs focus management (autoFocus textarea + focus trap + restore)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -123,14 +139,17 @@ export default function RefineVisualDialog({
     return () => window.removeEventListener("keydown", handleTab);
   }, []);
 
-  // Escape pour fermer (uniquement si pas en cours de génération)
+  // Escape pour fermer (uniquement si pas en cours de génération active).
+  // s33 issue #5 : en phase 'background', on autorise la fermeture par Escape
+  // (le polling parent prend le relais — voir audit §5).
   useEffect(() => {
+    const canClose = !busy || phase === "background";
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onClose();
+      if (e.key === "Escape" && canClose) onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [busy, onClose]);
+  }, [busy, phase, onClose]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = instruction.trim();
@@ -144,6 +163,7 @@ export default function RefineVisualDialog({
     }
     setError(null);
     setBusy(true);
+    setPhase("generating");
     try {
       const res = await fetch(`/api/vs/visuals/${parentVisualId}/iterate`, {
         method: "POST",
@@ -158,7 +178,7 @@ export default function RefineVisualDialog({
       }
       const newId = json.data.visual_id;
       setPendingVisualId(newId);
-      // Polling status (jusqu'à generated/failed/timeout)
+      // Polling status (jusqu'à generated/failed/timeout-UI)
       const ac = new AbortController();
       pollAbortRef.current = ac;
       const startedAt = Date.now();
@@ -176,6 +196,10 @@ export default function RefineVisualDialog({
           }
           const st = sJson.data.status;
           if (st === "generated" || st === "validated") {
+            // s33 issue #5 — cleanup obligatoire : si on était passé en 'background'
+            // ou que l'erreur traînait, on clear pour éviter l'erreur figée.
+            setError(null);
+            setPhase("generating");
             onRefined(newId);
             setBusy(false);
             // onClose appelé par parent via setTimeout après MAJ liste
@@ -190,9 +214,15 @@ export default function RefineVisualDialog({
             setPendingVisualId(null);
             return;
           }
-          // processing : on continue
-          if (Date.now() - startedAt > POLL_MAX_DURATION_MS) {
-            setError("Délai dépassé — réessayez dans quelques instants.");
+          // processing : on continue, mais on met à jour la phase selon l'elapsed
+          const elapsed = Date.now() - startedAt;
+          const newPhase = computeRefinePhase(elapsed);
+          setPhase(newPhase);
+          if (shouldStopPolling(elapsed)) {
+            // s33 issue #5 — phase 'background' : on rend la main à l'utilisateur.
+            // Le polling parent (useVisualsStream) prendra le relais et injectera
+            // le visuel dans la galerie quand il sera prêt.
+            // PAS de message d'erreur — l'utilisateur peut fermer la fenêtre.
             setBusy(false);
             setPendingVisualId(null);
             return;
@@ -223,8 +253,9 @@ export default function RefineVisualDialog({
       aria-labelledby="refine-dialog-title"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-md animate-in fade-in duration-200"
       onClick={(e) => {
-        // Click sur backdrop ferme (sauf busy)
-        if (e.target === e.currentTarget && !busy) onClose();
+        // Click sur backdrop ferme (sauf busy actif — phase 'background' OK).
+        const canClose = !busy || phase === "background";
+        if (e.target === e.currentTarget && canClose) onClose();
       }}
       data-testid="refine-visual-dialog"
     >
@@ -289,19 +320,42 @@ export default function RefineVisualDialog({
           </p>
         </div>
 
-        {/* État busy : spinner + message */}
-        {busy && pendingVisualId && (
+        {/* État busy : spinner + message — s33 phase-aware */}
+        {busy && pendingVisualId && phase !== "background" && (
           <div
-            className="flex items-center gap-sm rounded-md border border-info/40 bg-info/5 px-md py-sm"
+            className={[
+              "flex items-center gap-sm rounded-md border px-md py-sm",
+              phase === "long-wait"
+                ? "border-warning/40 bg-warning/5"
+                : "border-info/40 bg-info/5",
+            ].join(" ")}
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
             data-testid="refine-busy-feedback"
+            data-phase={phase}
           >
-            <div className="inline-block w-4 h-4 border-2 border-info border-t-transparent rounded-full animate-spin shrink-0" />
+            <div
+              className={[
+                "inline-block w-4 h-4 border-2 border-t-transparent rounded-full animate-spin shrink-0",
+                phase === "long-wait" ? "border-warning" : "border-info",
+              ].join(" ")}
+            />
             <p className="text-sm text-text-default">
-              Génération en cours — comptez environ 30 secondes. Ne fermez pas cette fenêtre.
+              {phase === "long-wait" ? REFINE_COPY.longWait : REFINE_COPY.generating}
             </p>
+          </div>
+        )}
+
+        {/* s33 issue #5 — phase 'background' : UI rend la main, message rassurant */}
+        {phase === "background" && (
+          <div
+            className="rounded-md border border-info/40 bg-info/5 px-md py-sm"
+            role="status"
+            aria-live="polite"
+            data-testid="refine-background-message"
+          >
+            <p className="text-sm text-text-default">{REFINE_COPY.background}</p>
           </div>
         )}
 
@@ -315,26 +369,39 @@ export default function RefineVisualDialog({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — s33 phase-aware : phase 'background' propose "Voir la galerie" */}
         <div className="flex flex-col sm:flex-row sm:justify-end gap-sm pt-sm border-t border-border-default">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            data-testid="refine-cancel"
-            className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-default disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={busy || instruction.trim().length === 0}
-            data-testid="refine-submit"
-            className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
-          >
-            {busy ? "En cours..." : "Affiner"}
-          </button>
+          {phase === "background" ? (
+            <button
+              type="button"
+              onClick={onClose}
+              data-testid="refine-background-close"
+              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+            >
+              {REFINE_COPY.backgroundCta}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                data-testid="refine-cancel"
+                className="min-h-[44px] px-md py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-default disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={busy || instruction.trim().length === 0}
+                data-testid="refine-submit"
+                className="min-h-[44px] px-xl py-sm rounded-md text-sm font-semibold bg-interactive-primary text-text-inverse hover:bg-interactive-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
+              >
+                {busy ? "En cours..." : "Affiner"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -24,6 +24,7 @@ import Image from "next/image";
 import type { VsRoom, ApiResponse } from "@/lib/vs/types";
 import { getRoomLabel, STYLES, type StyleId } from "@/lib/vs/styles";
 import type { VisualGenerated } from "@/hooks/useVisualsStream";
+import VisualLightbox from "@/components/vs/VisualLightbox";
 
 export interface VisualGalleryProps {
   rooms: VsRoom[];
@@ -52,6 +53,9 @@ export default function VisualGallery({
 }: VisualGalleryProps) {
   const [regenerating, setRegenerating] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
+  // s33 issue #4 — état modal Lightbox (zoom au clic). Monté une seule fois au
+  // niveau parent, partagé entre toutes les cards.
+  const [zoomTarget, setZoomTarget] = useState<{ src: string; alt: string } | null>(null);
 
   const styleName = STYLES[styleId as StyleId]?.name ?? styleId;
 
@@ -115,6 +119,15 @@ export default function VisualGallery({
         </button>
       </div>
 
+      {/* s33 issue #4 — modal Lightbox (zoom au clic), monté une fois pour la galerie */}
+      {zoomTarget && (
+        <VisualLightbox
+          src={zoomTarget.src}
+          alt={zoomTarget.alt}
+          onClose={() => setZoomTarget(null)}
+        />
+      )}
+
       {/* Liste pièces */}
       {roomsWithVisuals.length === 0 ? (
         <p className="text-sm text-text-muted">Aucun visuel généré.</p>
@@ -141,6 +154,7 @@ export default function VisualGallery({
                       isRegenerating={regenerating.has(v.visual_id)}
                       error={errors.get(v.visual_id) ?? null}
                       onRegenerate={handleRegenerate}
+                      onZoom={(src, alt) => setZoomTarget({ src, alt })}
                     />
                   ))}
                 </div>
@@ -163,9 +177,11 @@ interface VisualCardProps {
   isRegenerating: boolean;
   error: string | null;
   onRegenerate: (roomId: string, visual: VisualGenerated) => void;
+  /** s33 issue #4 — callback ouverture lightbox. */
+  onZoom: (src: string, alt: string) => void;
 }
 
-function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegenerate }: VisualCardProps) {
+function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegenerate, onZoom }: VisualCardProps) {
   const src = visual.file_path
     ? `/api/vs/files?path=${encodeURIComponent(visual.file_path)}`
     : null;
@@ -180,22 +196,36 @@ function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegene
       {/* Image */}
       <div className="relative aspect-[4/3] bg-bg-canvas">
         {src ? (
-          <Image
-            src={src}
-            alt={`Visuel ${isAnchor ? "ancre" : "secondaire"} — ${roomLabel}`}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            loading="lazy"
-            className="object-cover"
-          />
+          <>
+            <Image
+              src={src}
+              alt={`Visuel ${isAnchor ? "ancre" : "secondaire"} — ${roomLabel}`}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              loading="lazy"
+              className="object-cover"
+            />
+            {/* s33 issue #4 — bouton transparent superposé pour ouvrir le lightbox.
+                Désactivé pendant la régénération pour éviter un clic accidentel. */}
+            <button
+              type="button"
+              onClick={() =>
+                onZoom(src, `Visuel ${isAnchor ? "ancre" : "secondaire"} — ${roomLabel}`)
+              }
+              disabled={isRegenerating}
+              aria-label={`Agrandir le visuel ${isAnchor ? "ancre" : "secondaire"} — ${roomLabel}`}
+              data-testid={`visual-card-zoom-${visual.visual_id}`}
+              className="absolute inset-0 z-0 cursor-zoom-in disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-interactive-primary"
+            />
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-text-muted text-xs">
             Image indisponible
           </div>
         )}
-        {/* Overlay regen */}
+        {/* Overlay regen — z-10 pour rester au-dessus du bouton zoom */}
         {isRegenerating && (
-          <div className="absolute inset-0 bg-bg-dark/60 flex items-center justify-center" aria-live="polite">
+          <div className="absolute inset-0 z-10 bg-bg-dark/60 flex items-center justify-center" aria-live="polite">
             <span className="inline-block w-6 h-6 border-2 border-text-inverse/40 border-t-text-inverse rounded-full animate-spin" />
           </div>
         )}
