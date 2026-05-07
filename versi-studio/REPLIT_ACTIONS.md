@@ -261,3 +261,39 @@ pub/sub si besoin réel multi-instance.
 **Aucune action Replit additionnelle** : pas de nouveau secret, pas de nouvelle dépendance npm (sauf `@vitest/coverage-v8` optionnel pour CI coverage strict).
 
 ---
+
+## s33 Lot D — pre-commit + CI GitHub Actions (gates G29 + G30)
+
+**Contexte** : bug s33 commit `1da2d78` poussé avec 1 test Vitest FAIL silencieusement (timeout 5s vs cold-start ~10s). Cause root : aucun hook pre-commit ne lançait Vitest, aucune CI GitHub Actions n'existait.
+
+**Fix livré (Lot D)** :
+- `versi-studio/vitest.config.ts` : `testTimeout: 30000` (et `hookTimeout: 30000`) — fix cold-start sharp + pg + pdf-to-img + tesseract.js. Run hot reste à ~7s pour 460 tests.
+- `versi-studio/package.json` : ajout scripts `test`, `test:watch`, `test:coverage`.
+- `.githooks/pre-commit` : ajout pipeline QA Versi Studio (tsc + lint + test + build) déclenché si `versi-studio/` est staged. Skip via `SKIP_VS_PRECOMMIT=1` (déconseillé).
+- `.github/workflows/ci-versi-studio.yml` : 5 jobs (install, typecheck, lint, test, build) sur push `main` + `claude/**` et PR `main`. Lint en `continue-on-error: true` (dette s33 — 91 erreurs ESLint préexistantes à fixer en s34).
+
+**Action manuelle développeur (1 fois par clone)** :
+```bash
+git config core.hooksPath .githooks
+```
+Sans ça, le hook ne s'active pas. À documenter dans onboarding dev.
+
+**Action manuelle Thomas sur GitHub UI (1 fois, après premier run du workflow)** :
+1. Aller sur GitHub repo → Settings → Branches → Branch protection rules → Add rule
+2. Branch name pattern : `main`
+3. Cocher « Require status checks to pass before merging »
+4. Sélectionner les checks requis : `TypeScript typecheck`, `Vitest unit tests`, `Next.js production build` (PAS `ESLint` tant que dette s33 non absorbée)
+5. Save
+
+**Validation locale (commit s33 Lot D)** :
+- `tsc --noEmit` : PASS (0 erreur)
+- `npm run lint` : 91 erreurs préexistantes (non-bloquant temporaire)
+- `npm run test` : 460/460 PASS en 6.93s
+- `npm run build` : PASS, standalone copié
+
+**Dette s34 ouverte** :
+- Fixer les 91 erreurs ESLint (tests/* surtout : `@typescript-eslint/no-explicit-any`, `@typescript-eslint/no-unused-vars`)
+- Une fois 0 erreur ESLint : retirer `continue-on-error: true` du job `lint` CI + retirer le `if !` non bloquant dans `.githooks/pre-commit`
+- Activer branch protection avec `ESLint` requis
+
+---

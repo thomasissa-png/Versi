@@ -1,0 +1,133 @@
+name: CI Versi Studio
+
+# Pipeline CI s33 Lot D (gate G30) — exécute typecheck + lint + test + build
+# sur tout push branche claude/* ou main, ainsi que sur les PRs vers main.
+# Mirror du pre-commit local (.githooks/pre-commit) : si l'un passe, l'autre
+# doit passer. Branch protection main à activer manuellement par Thomas
+# dans GitHub UI une fois le workflow tourné une première fois.
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Évite les runs concurrents sur la même branche (économie minutes Actions)
+concurrency:
+  group: ci-versi-studio-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: versi-studio
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1 : install dépendances + cache npm partagé entre jobs suivants
+  # ─────────────────────────────────────────────────────────────────────────
+  install:
+    name: Install dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: versi-studio/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2 : typecheck TypeScript (npx tsc --noEmit)
+  # ─────────────────────────────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: versi-studio/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 3 : ESLint (npm run lint)
+  # s33 Lot D : non bloquant temporairement (91 erreurs préexistantes dans
+  # tests/* à fixer en s34). `continue-on-error: true` rend ce job
+  # informatif. À retirer une fois la dette absorbée.
+  # ─────────────────────────────────────────────────────────────────────────
+  lint:
+    name: ESLint (informatif — dette s33 à absorber)
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: versi-studio/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 4 : Vitest (tests unitaires)
+  # Pas d'accès DB en CI — les tests qui exigent DATABASE_URL doivent être
+  # gardés par `if (!process.env.CI)` ou .skip dans le fichier de test.
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    name: Vitest unit tests
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 15
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: versi-studio/package-lock.json
+      - run: npm ci
+      - run: npm run test
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 5 : build Next.js prod (npm run build)
+  # Vérifie que le bundle SSR compile — gate G30 final.
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Next.js production build
+    runs-on: ubuntu-latest
+    # lint volontairement absent de needs : non bloquant (dette s33).
+    needs: [typecheck, test]
+    timeout-minutes: 20
+    env:
+      # Variables minimales pour que `next build` ne crash pas sur env.ts
+      # (les vraies valeurs prod sont dans Replit Secrets, pas GitHub).
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      OPENAI_API_KEY: sk-ci-fake-key-for-build-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: versi-studio/package-lock.json
+      - run: npm ci
+      - run: npm run build

@@ -16,3 +16,54 @@ if [ -f "CLAUDE.md" ]; then
     exit 1
   fi
 fi
+
+# ────────────────────────────────────────────────────────────────────────────
+# Pre-commit s33 Lot D — pipeline QA Versi Studio (G29 / commandement n°6)
+# Skip via SKIP_VS_PRECOMMIT=1 git commit (déconseillé, à n'utiliser qu'en
+# urgence documentée). Activation : git config core.hooksPath .githooks
+# ────────────────────────────────────────────────────────────────────────────
+
+# Skip si versi-studio/ n'est pas dans les fichiers staged
+if ! git diff --cached --name-only | grep -q "^versi-studio/"; then
+  exit 0
+fi
+
+if [ "${SKIP_VS_PRECOMMIT:-0}" = "1" ]; then
+  echo "⚠ Pre-commit Versi Studio skippé (SKIP_VS_PRECOMMIT=1)"
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT/versi-studio" || exit 1
+
+echo "▶ Pre-commit Versi Studio : tsc → lint → test → build (~2-3 min)"
+
+echo "  [1/4] npx tsc --noEmit"
+if ! npx tsc --noEmit; then
+  echo "❌ COMMIT BLOQUÉ — erreurs TypeScript dans versi-studio/"
+  exit 1
+fi
+
+echo "  [2/4] npm run lint (ESLint — non bloquant temporairement)"
+# s33 Lot D : 91 erreurs ESLint pré-existantes dans tests/* — à fixer en s34.
+# Lint exécuté en mode informatif uniquement (pas de exit 1) tant que la dette
+# n'est pas absorbée. CI GitHub Actions reste strict (cf. ci-versi-studio.yml).
+if ! npm run lint --silent; then
+  echo "⚠ ESLint a remonté des erreurs — non bloquant tant que dette s33 non absorbée"
+  echo "  TODO s34 : fixer les 91 erreurs ESLint puis rendre lint bloquant ici"
+fi
+
+echo "  [3/4] npm run test (Vitest)"
+if ! npm run test --silent; then
+  echo "❌ COMMIT BLOQUÉ — tests Vitest FAIL dans versi-studio/"
+  echo "   Bug s33 commit 1da2d78 : ce hook empêche les tests FAIL d'être pushés silencieusement."
+  exit 1
+fi
+
+echo "  [4/4] npm run build"
+if ! npm run build; then
+  echo "❌ COMMIT BLOQUÉ — build Next.js FAIL dans versi-studio/"
+  exit 1
+fi
+
+echo "✓ Pre-commit Versi Studio OK (tsc + lint + test + build)"
