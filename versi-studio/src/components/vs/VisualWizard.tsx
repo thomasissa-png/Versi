@@ -1212,7 +1212,7 @@ export default function VisualWizard({
           onCancel={handleCancelRoomGeneration}
           errorMessage={
             stream.status === "error"
-              ? "Connexion difficile — la génération continue côté serveur, on rattrape l'état."
+              ? "Connexion instable — la génération se poursuit, les résultats apparaîtront dès la reconnexion."
               : null
           }
         />

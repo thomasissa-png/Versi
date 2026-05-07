@@ -455,8 +455,8 @@ export default function RoomPanel({
           {isRegeneratingRooms
             ? "Régénération en cours…"
             : rooms.length === 0
-              ? "Régénérer les pièces avec l'IA"
-              : "Régénérer les pièces IA"}
+              ? "Régénérer les pièces (avec l'IA)"
+              : "Régénérer les pièces (avec l'IA)"}
         </button>
       )}
 

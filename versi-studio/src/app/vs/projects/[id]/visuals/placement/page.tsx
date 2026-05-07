@@ -289,7 +289,7 @@ export default function VisualPlacementPage({
           )}
         </div>
         <p className="text-sm text-text-muted mt-xs">
-          Pour chaque pièce : placez une prise de vue sur le plan, uploadez la photo, orientez la flèche, choisissez un style.
+          Pour chaque pièce : placez une prise de vue sur le plan, déposez la photo, orientez la flèche, choisissez un style.
         </p>
       </div>
 
