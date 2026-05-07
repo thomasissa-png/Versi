@@ -66,18 +66,59 @@ Audit READ-ONLY couverture tests Étape 3 placement pièces + Étape 4 wizard vi
 | G31 | Favicon checklist | N/A (outil interne) |
 | G32 | Validation tracking-plan | N/A (outil interne, pas d'analytics critique) |
 
-## 5. Tests régression patterns clés (SSE / JSONB / multi-context / wire-grep)
+## 5. Tests régression patterns clés
 
-[À remplir]
+| Pattern | Source learning | Test régression | Statut |
+|---|---|---|---|
+| **SSE 4 patterns Replit** (replay initial / keep-alive 25s / heartbeat 60s / cleanup abort) | s30 commits SSE | `visuals-step-v2-edge-cases.spec.ts` mention SSE partielle ; **aucun test unit `useVisualsStream`** | **NON COUVERT correctement** |
+| **Polling 4s fallback** | s32 (SSE indispo Replit) | Aucun test | **NON COUVERT** |
+| **JSONB defensive** (backfill + normalize au load) | s32 | `normalize-architectural-details.test.ts` | PRÉSENT (côté pipeline IA) ; backfill SQL non testé |
+| **Multi-context UI `[0]` interdit** | s28 (`firstPlan = plans[0]`) | `s28-invariants.spec.ts`, `s28-rooms-fix.spec.ts`, `s28-rooms-with-plan-bg.spec.ts`, `clustering.test.ts`, `room-mini-preview.test.ts`, `visuals-step-v2-placement.spec.ts` | PRÉSENT (forte couverture s28) |
+| **Wire-grep route active v2** | s31 (HOTFIX-2) | Aucun grep automatisé sur `import.*V2` route active | **NON COUVERT** |
+| **Mocks Vitest hoisted** | s30 | `vi.hoisted` utilisé dans certains test files | À auditer en revue de code |
+| **Audit visuel ≠ numérique** | s28 | Aucun gate auto qui exige audit visuel sur 3 premiers livrables | **NON COUVERT** |
 
 ## 6. Tests régression issues s33 fixées
 
-[À remplir]
+| Issue s33 | Invariant à protéger | Test régression existant | Couverture |
+|---|---|---|---|
+| #1 Portes mal placées | Tag `(dealer-confirmed, AUTHORITATIVE)` présent dans prompt | `visual-prompt-s33.test.ts` + `segment-prompt.test.ts` | **OUI** (grep PASS) |
+| #2 Saisie marchand prioritaire | `architecturalBrief` en tête + `STRICT RULE 0` priorité dealer | `visual-prompt-s33.test.ts` | **OUI** |
+| #3 Multi-angles distincts | `anchorPrompt !== secondaryPrompt` ; helper `transformSideToCameraFrame` 4 angles | `visual-prompt-s33.test.ts` | **OUI** (à confirmer 4 angles testés) |
+| #4 Zoom preview | Handler clic ouvre lightbox + Esc ferme | **AUCUN test** | **NON COUVERT** — risque régression élevé |
+| #5 Refine timeout | 240s + warning 90s + cleanup `setError` sur unmount | `refine-timing.test.ts` (24 cas) | **PARTIEL** — timing OUI ; cleanup `setError` sur unmount à vérifier dans les 24 cas |
+| (#6 reportée s34) | — | — | hors scope |
+
+Note : `visual-prompt-s33.test.ts` (14 cas) et `refine-timing.test.ts` (24 cas) sont les **bons gardiens** des invariants pipeline IA et timing. À conserver tels quels.
 
 ## 7. Recommandations s34 prioritisées
 
-[À remplir]
+| # | Priorité | Recommandation | Effort estimé |
+|---|---|---|---|
+| 1 | **P0** | **Pre-commit Vitest + scripts `test`/`test:e2e` dans `package.json`** + `.husky/pre-commit` qui lance `npx vitest run` (cf. fix `20b98da` à propager). Promote pattern `pre-commit-vitest-manquant` en règle P1 dans lessons-learned | 30 min |
+| 2 | **P0** | **Tests unit `useVisualsStream`** : 4 patterns SSE (replay/keep-alive 25s/heartbeat 60s/cleanup abort) + polling 4s fallback. Mock `EventSource` + timers. Cible 12-16 cas | 3 h |
+| 3 | **P0** | **Test E2E lightbox issue #4** : ouvrir Étape 4 → cliquer card → assert lightbox visible → Esc → assert fermé. Inclure navigation prev/next | 1 h |
+| 4 | **P1** | **CI/CD GitHub Actions** : workflow `.github/workflows/test.yml` lint + tsc + vitest + playwright bloquant merge. Branch protection main | 1 h |
+| 5 | **P1** | **Reality check VISUEL pixel-diff bloquant** : 1 baseline approuvée par parcours critique Étape 3 + Étape 4 dans `tests/screenshots/`, comparaison < 0.5% en CI (gate G26). Lecture visuelle Read() obligatoire dans handoff @qa | 2 h |
+| 6 | **P2** | Matrice traçabilité user stories Étape 3+4 dans `docs/qa/TESTING.md` (gate G27) + axe-core dans E2E placement + génération | 2 h |
+| 7 | **P2** | Wire-grep automatisé : script CI qui assert `grep -rn "VisualGalleryV2\|RoomCanvasV2" src/app/.../page.tsx` ≥ 1 ligne (anti régression s31) | 30 min |
 
 ## 8. Risques résiduels
 
-[À remplir]
+- **Pipeline IA réel vs mock** : `visual-prompt-s33.test.ts` valide la STRUCTURE du prompt mais pas le rendu IA réel. Risque s28 (mock divergent du réel) toujours actif si dataset de mock pas régulièrement comparé aux sorties OpenAI prod. **Mitigation** : 1 audit visuel humain sur 3 premiers livrables s34 avant industrialisation.
+- **SSE testable hors prod ?** : `useVisualsStream` dépend de `EventSource` browser + comportement Replit (proxy buffering, timeout 60s). Tests unit avec `EventSource` mocké couvrent les patterns code-level mais **pas le comportement réseau réel**. Reality check E2E sur Replit prod requis avant GO PRODUCTION (gate G25).
+- **Reality check VISUEL pixel-près** : critères « 10/10 » Thomas (PRO, BEAU, BRAND-ALIGNED, etc.) non automatisables. Screenshots `tests/screenshots/` actuels = sessions s22-s28 figées, **non rafraîchies depuis refonte s30-s32**. Risque : pixel-diff PASS sur baselines obsolètes alors que UI a changé. Action s34 : régénérer baselines Étape 3+4 + lecture visuelle @qa via `Read()`.
+- **Concurrent modification** Étape 4 : 2 onglets ouvrent même projet → refine simultané → quel comportement ? Non testé, non documenté.
+- **Cleanup `setError` sur unmount** issue #5 : 24 cas `refine-timing.test.ts` valident les timings, mais l'invariant « pas de setState après unmount » nécessite test React Testing Library (env jsdom) — actuellement env node. À ajouter en s34 P0.
+- **Dataset adversarial** absent pour annotations segments (caractères spéciaux dans labels, segments à longueur 0, polygones dégénérés) — tests existants utilisent fixtures « propres ».
+
+---
+
+**Handoff → @orchestrator**
+- Fichier produit : `/home/user/Versi/docs/qa/s33-audit-qa-etape3-4.md`
+- Verdict : 6/10 — fondations Vitest solides sur logique pure ; CI/CD + pre-commit ABSENTS (gate G29/G30 FAIL) ; `useVisualsStream` non testé (critique s30/s32) ; lightbox issue #4 sans régression
+- Top 3 trous critiques : (1) pre-commit Vitest + CI GitHub Actions absents ; (2) `useVisualsStream` 506 L jamais testé (SSE 4 patterns + polling 4s) ; (3) régressions issue #4 lightbox + cleanup unmount issue #5 non automatisées
+- Top 5 effort fix : ~7 h cumul (P0 = 4h30 ; P1 = 3h)
+- Tests existants `visual-prompt-s33.test.ts` (14 cas) et `refine-timing.test.ts` (24 cas) à CONSERVER tels quels — bons gardiens
+- Pattern à propager P1 : `pre-commit-vitest-manquant` (s33 commit `1da2d78` régression silencieuse, fix `20b98da`)
+- Toutes les validations ci-dessus sont `[STATIQUE]` (Grep/Read uniquement) — aucun `vitest run` ni `playwright test` exécuté en mode read-only
