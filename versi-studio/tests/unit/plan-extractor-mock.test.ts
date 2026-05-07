@@ -33,17 +33,31 @@ describe("extractPlanDataMock", () => {
     expect(result.rooms.every((r) => r.floor === 0)).toBe(true);
   });
 
-  it("retourne données valides pour P03 (floor=3) — 2 lots distincts", async () => {
+  it("retourne données valides pour P03 (floor=3) — 1 lot T2 étroit avec 5 rooms", async () => {
+    // s28 : R+3 a un lot vectoriel étroit (33.6 × 49.6) — un seul T2 (5 rooms)
     const result = await extractPlanDataMock(
       dummyBase64,
       mime,
       typeBien,
       "[MOCK_FLOOR=3]",
     );
+    expect(result.rooms.length).toBe(5);
+    const unitIds = new Set(result.rooms.map((r) => r.unit_id));
+    expect(unitIds.size).toBe(1);
+    expect(result.rooms.every((r) => r.floor === 3)).toBe(true);
+  });
+
+  it("retourne données valides pour P01 (floor=1) — 2 lots T2+T3 avec 8 rooms", async () => {
+    const result = await extractPlanDataMock(
+      dummyBase64,
+      mime,
+      typeBien,
+      "[MOCK_FLOOR=1]",
+    );
     expect(result.rooms.length).toBe(8);
     const unitIds = new Set(result.rooms.map((r) => r.unit_id));
     expect(unitIds.size).toBe(2);
-    expect(result.rooms.every((r) => r.floor === 3)).toBe(true);
+    expect(result.rooms.every((r) => r.floor === 1)).toBe(true);
   });
 
   it("building_outline est un rectangle valide avec surface > 0", async () => {
