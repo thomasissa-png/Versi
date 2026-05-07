@@ -1558,37 +1558,48 @@ export default function RoomCanvas({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-7-7h14" />
           </svg>
         </button>
-        {/* Undo/Redo (versi-s22 P3) */}
-        {(onUndo || onRedo) && (
-          <>
-            <div className="w-px h-6 bg-[var(--color-border-default)]" aria-hidden="true" />
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              aria-label="Annuler"
-              title="Annuler (Ctrl+Z)"
-              className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              aria-label="Rétablir"
-              title="Rétablir (Ctrl+Maj+Z)"
-              className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
-              </svg>
-            </button>
-          </>
-        )}
       </div>
+
+      {/* s33 fix B-2 — Toolbar Undo/Redo en haut à droite (pattern Figma/Miro).
+          Avant : boutons enterrés dans la barre de zoom en bas-droit, peu
+          identifiables comme des actions d'édition. Après : toolbar dédiée
+          top-right, distincte visuellement. Préf fondateur s22 :
+          « canvas éditeur = undo/redo obligatoire avec boutons UI visibles ».
+          WCAG 2.5.5 : 44×44px. Tooltips : raccourcis Ctrl+Z / Ctrl+Maj+Z. */}
+      {(onUndo || onRedo) && (
+        <div
+          className="absolute top-3 right-3 z-20 flex items-center gap-1 rounded-lg bg-white/95 border border-[var(--color-border-default)] shadow-sm p-1"
+          role="toolbar"
+          aria-label="Annuler ou rétablir"
+        >
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            aria-label="Annuler"
+            title="Annuler (Ctrl+Z)"
+            data-testid="canvas-undo-btn"
+            className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            aria-label="Rétablir"
+            title="Rétablir (Ctrl+Maj+Z)"
+            data-testid="canvas-redo-btn"
+            className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-md text-[var(--color-text-default)] hover:bg-[var(--color-background-default)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interactive-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Menu contextuel clic droit (versi-s22 P4) */}
       {contextMenu && onDeleteRoom && (

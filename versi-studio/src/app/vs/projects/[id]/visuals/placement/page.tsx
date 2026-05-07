@@ -23,6 +23,7 @@
 
 import { useEffect, useState, useCallback, use, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Stepper from "@/components/vs/Stepper";
 import VisualWizard from "@/components/vs/VisualWizard";
 import type {
   VsProject,
@@ -34,6 +35,7 @@ import type {
   ZoneRect,
   ZonePolygonPoint,
   ApiResponse,
+  StepId,
 } from "@/lib/vs/types";
 
 const DEFAULT_LOT_ZONE: ZoneRect = {
@@ -197,14 +199,47 @@ export default function VisualPlacementPage({
     return photos.filter((p) => roomIds.has(p.room_id));
   }, [photos, roomsForLot]);
 
+  // ─── Étapes complétées (s33 fix B-1) ──────────────────────────
+  // Pattern aligné avec rooms/page.tsx pour cohérence Stepper Étape 3 → 4.
+  // Le Stepper était absent en Étape 4 → cassure visuelle du parcours
+  // (audit s33 §8.3, persona GP8 FAIL).
+  const completedSteps = useMemo<StepId[]>(() => {
+    const steps: StepId[] = [];
+    const status = project?.status;
+    if (
+      status === "step_1_complete" ||
+      status === "step_2_complete" ||
+      status === "step_3_complete" ||
+      status === "completed"
+    ) {
+      steps.push(1);
+    }
+    if (
+      status === "step_2_complete" ||
+      status === "step_3_complete" ||
+      status === "completed"
+    ) {
+      steps.push(2);
+    }
+    if (status === "step_3_complete" || status === "completed") {
+      steps.push(3);
+    }
+    return steps;
+  }, [project?.status]);
+
   // ─── États UI ──────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
-        <div className="text-center">
-          <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin mb-md" />
-          <p className="text-sm text-text-muted">Chargement du plan…</p>
+      <div className="flex gap-2xl h-[calc(100vh-120px)]">
+        <aside className="hidden sm:block w-64 flex-shrink-0">
+          <Stepper currentStep={4} projectId={projectId} completedSteps={completedSteps} />
+        </aside>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block w-6 h-6 border-2 border-border-default border-t-interactive-primary rounded-full animate-spin mb-md" />
+            <p className="text-sm text-text-muted">Chargement du plan…</p>
+          </div>
         </div>
       </div>
     );
@@ -229,27 +264,52 @@ export default function VisualPlacementPage({
 
   if (rooms.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
-        <div className="text-center max-w-md">
-          <p className="text-sm text-text-muted mb-md">
-            Aucune pièce définie — retournez à l&apos;étape précédente pour
-            identifier vos pièces.
-          </p>
-          <button
-            onClick={() => router.push(`/vs/projects/${projectId}/rooms`)}
-            className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover"
-          >
-            Retour aux pièces
-          </button>
+      <div className="flex gap-2xl h-[calc(100vh-120px)]">
+        <aside className="hidden sm:block w-64 flex-shrink-0">
+          <Stepper currentStep={4} projectId={projectId} completedSteps={completedSteps} />
+        </aside>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <p className="text-sm text-text-muted mb-md">
+              Aucune pièce définie — retournez à l&apos;étape précédente pour
+              identifier vos pièces.
+            </p>
+            <button
+              onClick={() => router.push(`/vs/projects/${projectId}/rooms`)}
+              className="min-h-[44px] px-xl py-sm rounded-md text-sm font-medium bg-interactive-primary text-text-inverse hover:bg-interactive-hover"
+            >
+              Retour aux pièces
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex gap-2xl">
+      {/* Stepper latéral — caché sur mobile (s33 fix B-1) */}
+      <aside className="hidden sm:block w-64 flex-shrink-0">
+        <Stepper
+          currentStep={4}
+          projectId={projectId}
+          completedSteps={completedSteps}
+        />
+      </aside>
+
+      {/* Zone principale */}
+      <div className="flex-1 flex flex-col min-w-0">
       {/* En-tête + sélecteur lot */}
       <div className="px-lg pt-lg pb-md border-b border-border-default">
+        {/* Stepper horizontal — visible mobile uniquement (s33 fix B-1) */}
+        <div className="sm:hidden mb-md">
+          <Stepper
+            currentStep={4}
+            projectId={projectId}
+            completedSteps={completedSteps}
+            variant="horizontal"
+          />
+        </div>
         {/* HOTFIX-2 s31 : `/visuals` redirige désormais vers `/visuals/placement`,
             le bouton retour pointe directement vers l'étape précédente (pièces)
             pour éviter la boucle de redirect. */}
@@ -317,6 +377,7 @@ export default function VisualPlacementPage({
           rooms={roomsForLot}
           initialPhotos={photosForLot}
         />
+      </div>
       </div>
     </div>
   );

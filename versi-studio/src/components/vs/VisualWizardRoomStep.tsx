@@ -227,6 +227,27 @@ export default function VisualWizardRoomStep({
     return null;
   }, [styleId, placementsWithPhoto.length]);
 
+  // s33 fix B-4 — checklist conditionnelle des pré-requis pour
+  // « Générer cette pièce ». Remplace le message texte unique par une liste
+  // ✓/✗ qui dit explicitement à l'utilisateur ce qui manque encore.
+  // Audit : bouton actif mais l'utilisateur ne savait pas si tout était OK.
+  const generateChecklist = useMemo(
+    () => [
+      {
+        ok: placementsWithPhoto.length > 0,
+        label:
+          placementsWithPhoto.length > 0
+            ? `Photo${placementsWithPhoto.length > 1 ? "s" : ""} déposée${placementsWithPhoto.length > 1 ? "s" : ""} (${placementsWithPhoto.length})`
+            : "Placez au moins une prise de vue",
+      },
+      {
+        ok: !!styleId,
+        label: styleId ? "Style choisi" : "Choisissez un style",
+      },
+    ],
+    [placementsWithPhoto.length, styleId]
+  );
+
   const triggerFilePicker = useCallback((placementId: string) => {
     const input = fileInputsRef.current.get(placementId);
     input?.click();
@@ -1027,6 +1048,49 @@ export default function VisualWizardRoomStep({
             onSegmentHover={setHighlightedSegmentIndex}
             onVertexCommit={handleVertexCommit}
           />
+          {/* s33 fix B-3 — Empty state guidance au 1er accès pièce.
+              Affiché uniquement si aucune photo n'est encore placée ET
+              aucun pending non plus → l'utilisateur arrive face à un canvas
+              "vide" et ne sait pas par où commencer. Disparaît dès la 1re
+              prise de vue placée. Pointer-events-none pour ne pas bloquer
+              le clic-pour-placer du canvas en dessous. */}
+          {placements.length === 0 && (
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none px-md"
+              role="status"
+              aria-live="polite"
+              data-testid="wizard-empty-state"
+            >
+              <div className="max-w-sm bg-bg-card/95 border border-interactive-primary/30 rounded-md shadow-md px-md py-sm text-center">
+                <svg
+                  className="w-6 h-6 mx-auto mb-xs text-interactive-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+                  />
+                </svg>
+                <p className="text-sm text-text-default font-medium mb-2xs">
+                  Cliquez sur le plan pour placer une prise de vue
+                </p>
+                <p className="text-xs text-text-muted">
+                  Puis déposez la photo source de l&apos;intérieur depuis cet
+                  emplacement.
+                </p>
+              </div>
+            </div>
+          )}
           {/* A7 — toast clic hors polygone (auto-clear 2s) */}
           {outsideHint && (
             <div
@@ -1516,10 +1580,37 @@ export default function VisualWizardRoomStep({
             </button>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-xs sm:gap-sm">
+            {/* s33 fix B-4 — checklist ✓/✗ visible quand pré-requis incomplets.
+                Avant : un seul message texte (« Ajoutez au moins une photo. »).
+                Après : checklist explicite qui liste TOUS les pré-requis pour
+                que l'utilisateur sache exactement où il en est. */}
             {disabledReason && !chatBriefValidated && (
-              <p className="text-xs text-text-muted text-right">
-                {disabledReason}
-              </p>
+              <ul
+                className="flex flex-col gap-2xs text-xs text-text-muted sm:text-right"
+                aria-label="Pré-requis pour générer cette pièce"
+                data-testid="wizard-generate-checklist"
+              >
+                {generateChecklist.map((item, idx) => (
+                  <li
+                    key={idx}
+                    className="inline-flex items-center gap-2xs sm:justify-end"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={
+                        item.ok
+                          ? "text-success font-semibold"
+                          : "text-text-muted"
+                      }
+                    >
+                      {item.ok ? "✓" : "○"}
+                    </span>
+                    <span className={item.ok ? "text-text-default" : ""}>
+                      {item.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
             {/* s32 Phase 9 — bouton Générer dynamique :
                 - état initial : gris-bleu « Générer quand même » (toujours actif)
