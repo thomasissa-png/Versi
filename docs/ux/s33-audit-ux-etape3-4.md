@@ -86,8 +86,22 @@ Verdict : pas de régression bloquante par rapport à s32, mais 2 P0 UX (blocage
 
 ## 7. Recommandations s34 prioritisées
 
-<!-- À remplir -->
+| Priorité | Action | Effort estimé | Impact |
+|---|---|---|---|
+| **P0-1** | **Boutons ↶/↷ Undo/Redo visibles sur RoomCanvas** — ajouter FAB `position: absolute bottom-right` sur le canvas, `disabled` si stack vide. Raccourcis Ctrl+Z/Y déjà câblés. | 1-2h (HTML + CSS, pas de logique nouvelle) | Préf fondateur s22 bloquante, Thomas perd des pièces sans le savoir |
+| **P0-2** | **Empty state canvas étape 4** — overlay centré sur `RoomZoomCanvas` si `placements.length === 0` : texte « Cliquez sur le plan pour indiquer où vous photographiez cette pièce ». Disparaît au 1er placement. | 30min (condition + overlay JSX) | Friction P0 découverte, Thomas abandonne l'étape 4 sans comprendre pourquoi |
+| **P0-3** | **Hint blocage bouton « Générer cette pièce »** — afficher sous le bouton (toujours visible) les conditions manquantes : « Photo manquante » et/ou « Style non sélectionné ». Pas au hover — texte inline. | 1h (logique conditionnelle + affichage) | P0 blocage silencieux, Thomas ne sait pas pourquoi il est bloqué |
+| **P1-1** | **Toast 5s→8s pour annulation update_field chat architecte** — `chatToastUndo` auto-clear passe à 8 000ms. | 5min (constante) | Respect WCAG timing + Thomas rate l'opportunité d'annuler en 5s sur mobile |
+| **P1-2** | **Suppression pièce avec toast Undo (pattern s32)** — remplacer le `window.confirm` ou le clic direct par un toast 5s « Pièce supprimée — Annuler » cohérent avec le pattern déjà posé pour update_field. | 2h (state + logique undo delete) | Cohérence UX interne + prévention perte accidentelle |
 
 ## 8. Risques résiduels
 
-<!-- À remplir -->
+1. **Jargon métier dans strings UI** : les termes `polygon`, `zone_data`, `segment_index` vivent dans le code mais doivent être 0% visibles dans les labels UI. Non vérifié exhaustivement dans ce READ-ONLY — @qa devrait grepper toutes les strings JSX de `versi-studio/src/` pour détecter toute occurrence de termes bannis (cf. préf fondateur s23/s25 : `polygone`, `zone`, `calque`, `contour`, `vectoriel`).
+
+2. **Contraste pastilles overlay 40% opacity** : les couleurs par type de pièce (overlay semi-transparent sur image de plan) n'ont pas été testées avec un outil de contraste. Sur une image de plan claire, certains overlays (vert clair, bleu clair) peuvent passer sous le seuil WCAG 3:1. → Audit visuel couleurs par @design ou test apca-w3 ciblé.
+
+3. **`aria-label` canvas HTML5** : le `<canvas>` de `RoomCanvas` n'a probablement pas de `role="application"` ni de `aria-label`. Les lecteurs d'écran n'ont aucune information sur le contenu interactif. → Test screen reader VoiceOver/NVDA ciblé par @qa.
+
+4. **File inputs upload sans label associé** : `fileInputsRef` gère des `<input type="file">` invisibles triggés programmatiquement. Si ces inputs n'ont pas de `<label>` ou `aria-label` visibles, les lecteurs d'écran ne peuvent pas les annoncer. → Vérification @qa WCAG 1.3.1.
+
+5. **Test persona Thomas smoke test s34** : les 3 P0 identifiés dans ce rapport (undo UI, empty state canvas, hint bouton grisé) n'ont pas été validés en conditions réelles prod. Le verdict 10/10 Thomas s32 portait sur l'architecte conversationnel, pas sur le flow complet étape 3 → étape 4 bout-en-bout. Un test persona ciblé sur le workflow Plans → Lots → Pièces → Visuels complet est recommandé après fix des 3 P0.
