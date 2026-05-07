@@ -80,12 +80,83 @@ Pseudo-diff, **pas de code écrit** :
 
 ## 6. Issue #6 — Inventaire persistance avant/après (existant vs Versimo)
 
-[À remplir]
+**Inventaire `vs_visuals` actuel** (source : `versi-studio/src/lib/vs/db.ts:288-300` + migration `005_s29_visuals_coherence.sql`) :
+
+| Champ | Table | Stocké ? | Exposé via API ? | Interface admin ? |
+|---|---|---|---|---|
+| Image source (photo originale envoyée à OpenAI) | `vs_visuals.photo_id` → `vs_photos.file_path` | OUI (lien indirect via FK) | OUI (`/api/vs/files?path=...`) | NON |
+| Image générée (output OpenAI) | `vs_visuals.file_path` | OUI | OUI | NON |
+| Prompt utilisé (texte complet envoyé à gpt-image-2) | `vs_visuals.prompt_used` | OUI (TEXT) | NON exposé directement | NON |
+| Version du prompt (template v2.0.0 etc.) | `vs_visuals.prompt_version` | OUI (VARCHAR 20) | NON | NON |
+| Style choisi (scandinave, bohème, ...) | `vs_visuals.style_id` | OUI | OUI | NON |
+| Lien parent → enfant (itérations Affiner) | `vs_visuals.parent_visual_id` | OUI (FK self) | NON exposé | NON |
+| Numéro d'itération | `vs_visuals.iteration_count` | OUI | NON | NON |
+| Lien ancre → secondaire | `vs_visuals.anchor_visual_id` | OUI (FK self) | partiellement (`coherence_mode`) | NON |
+| Signature visuelle (palette, meubles, lumière) | `vs_visuals.visual_signature_json` | OUI (JSONB) | NON | NON |
+| Mode de cohérence | `vs_visuals.coherence_mode` | OUI | OUI | NON |
+| Statut (processing/generated/validated/failed) | `vs_visuals.status` | OUI | OUI | NON |
+| Message d'erreur si fail | `vs_visuals.error_message` | OUI (TEXT) | NON | NON |
+| Timestamp création | `vs_visuals.created_at` | OUI | NON | NON |
+| Modèle OpenAI exact (gpt-image-2 vs futur) | — | **NON** | — | NON |
+| Temps de génération (latence) | — | **NON** | — | NON |
+| Coût exact ($) par visuel | — | **NON** (estimé au niveau job seulement, `vs_visual_jobs.estimated_cost_usd`) | — | NON |
+| Score persona / feedback humain | — | **NON** (aucune table) | — | NON |
+| Brief consolidé qui a généré le prompt | — | **NON** stocké, reconstruit à la volée par `buildArchitecturalBrief` | — | NON |
+| Pills profil lot + détails pièce au moment de la génération (snapshot) | — | **NON** (lu en live depuis `vs_lots`/`vs_rooms.architectural_details` — peut avoir muté depuis) | — | NON |
+| Image input réellement envoyée à OpenAI (toFile result) | — | **NON** (le `vs_photos.file_path` est l'original, mais des transformations sharp/heic peuvent avoir lieu en route) | — | NON |
+| Tags qualité (good / bad / needs_review) | — | **NON** | — | NON |
+
+**Synthèse des manques pour matcher Versimo** :
+1. **Données quantitatives manquantes** : modèle exact, latence, coût exact, paramètres OpenAI (`size`, `quality`, `n`).
+2. **Snapshot brief manquant** : le brief consolidé est reconstruit à la volée. Si `vs_lots.architectural_details` ou `vs_rooms.architectural_details` mute après génération, on ne peut plus reproduire l'input qui a généré le prompt → audit impossible. **Critique pour audit Versimo.**
+3. **Feedback humain manquant** : aucune table `vs_visual_feedback` ou colonne `quality_score` / `human_label` / `notes_audit`. Le statut `validated` est binaire (validé par marchand) mais ne capture pas la qualité.
+4. **Interface admin manquante** : aucune page `/vs/admin/visuals` ou similaire pour parcourir les paires avant/après. Tout est accessible via SQL direct uniquement.
+5. **Pas d'export structuré** : pas d'API `GET /api/vs/visuals/audit?since=...` pour bootstrap d'un agent d'audit prompts.
+
+**Décision Thomas A/B/C en attente** (orchestrateur) — cet audit fournit la base, sans trancher.
 
 ## 7. Plan de prioritisation (effort)
 
-[À remplir]
+| Issue | Effort | Description |
+|---|---|---|
+| **#4 Lightbox preview** | **< 1 h** | 1 nouveau composant `VisualLightbox.tsx` (≈ 70 L copié de `PlanLightbox`) + 2 patches dans `RoomPreviewView.tsx` et `VisualGallery.tsx` (≈ 15 L chacun, state local + button trigger). Tests Vitest sur le composant pur (pattern helper-first). Pre-commit `tsc --noEmit && next lint && next build`. |
+| **#5 Affiner timeout** | **30 min — 1 h** (Option A) | 1 fichier modifié (`RefineVisualDialog.tsx`) : 240_000 + warning intermédiaire à 90 s + dégradation UX du message timeout final. Aucune migration DB, aucun API change. Test manuel = 1 Affiner forcé en cold start. |
+| **#5 Affiner robuste** | **1 j** (Option B/C + persistance backend) | Migrer `iterateVisualAsync` vers `vs_visual_jobs` + worker reprenable + cron reprise + sync polling parent. À envisager si Affiner devient critique en prod après V2. |
+| **#6 Persistance avant/après — additive minimale** | **0,5 — 1 j** | Migration 016 `ALTER TABLE vs_visuals ADD COLUMN IF NOT EXISTS` : `model_used VARCHAR(50)`, `generation_latency_ms INT`, `cost_usd_actual NUMERIC(6,4)`, `brief_snapshot JSONB`, `human_quality_label VARCHAR(20)`, `human_notes TEXT`. Patcher les 2 routes qui créent/updaten visuels (`/iterate` + `/regenerate` + le worker generate) pour remplir ces champs au moment de l'appel OpenAI. Aucune interface admin encore. |
+| **#6 Interface admin audit** | **1 — 2 j** | Page `/vs/admin/visuals` (Server Component) avec liste paginée (image source + image générée côte à côte + prompt + métadonnées) + filtres (style, statut, label). API `GET /api/vs/visuals/audit?cursor=...`. Si scope minimal : viewer read-only sans labelisation interactive. |
+| **#6 Boucle feedback complète** | **2 — 3 j** | Boutons « Bon / À auditer / Mauvais » sur la page admin + table `vs_visual_feedback` séparée + export CSV pour fine-tuning prompts. Décision Thomas requise sur scope final (A/B/C). |
+
+**Recommandation orchestrateur** :
+- **Sprint immédiat (s33)** : Issue #4 + Issue #5 Option A → 2 h fullstack. Débloque Thomas en prod.
+- **Sprint suivant (s34)** : Issue #6 additive minimale (migration 016 + remplissage des nouveaux champs) → fondation prête pour audit même sans UI.
+- **Sprint ultérieur (s35+)** : Interface admin + boucle feedback selon décision Thomas A/B/C.
 
 ## 8. Risques résiduels
 
-[À remplir]
+**Ce que cet audit NE couvre PAS** :
+
+1. **Pas testé en prod** : audit READ-ONLY sur le code uniquement. Le diagnostic du timeout 120 s n'est pas reproduit avec un vrai cold start Replit + gpt-image-2 chronométré. Si la latence réelle est < 120 s en moyenne, la cause peut être ailleurs (ex : `iterateVisualAsync` jamais relancé après kill worker, le visuel n'arrive donc JAMAIS, et le polling parent finit par stagner au lieu de récupérer). À valider par Thomas en re-testant Affiner avec console ouverte (`Network` tab pour observer la séquence des polls + Performance tab pour mesurer le délai réel).
+
+2. **Pas d'analyse de la concurrence Affiner + génération job** : si Thomas clique Affiner pendant qu'un job de génération principal tourne pour la même pièce, y a-t-il des collisions entre les 2 polls (`useVisualsStream` parent + `RefineVisualDialog` interne) ? Non analysé.
+
+3. **Compatibilité ascendante migration 016 (issue #6)** : les `ALTER TABLE ADD COLUMN IF NOT EXISTS` sont safe (rows existantes auront NULL sur les nouveaux champs). Mais le code consommateur doit gérer NULL gracefully (defensive normalize au load API, pattern règle s32 documenté dans `.claude/agents/fullstack.md` règle « Migration JSONB defensive »). Sinon crash garanti sur visuels antérieurs à la migration.
+
+4. **Volume historique non quantifié** : combien de visuels sont déjà persistés en prod ? Si > 10 000, l'interface admin (issue #6) doit prévoir pagination + indexes. Si < 100, scope minimal viewer suffit. À demander à Thomas.
+
+5. **Perfs lightbox issue #4** : `<img>` non optimisé Next.js sur lightbox plein écran avec image gpt-image-2 1024x1024. Acceptable (1 seule image affichée à la fois). Si Thomas demande zoom/pan pour voir les détails fins (ex : cohérence ancre/secondaire), prévoir `react-zoom-pan-pinch` (out of scope V1).
+
+6. **Sécurité** : la route `/api/vs/files?path=...` (utilisée pour servir les visuels) — pas auditée ici pour exposition path traversal. Si l'interface admin (issue #6) liste tous les visuels d'utilisateurs différents, vérifier en amont qu'il y a bien filter par `user_id` au niveau API.
+
+7. **i18n / copy** : les nouveaux messages UX (Option A timeout dégradé, lightbox alt, etc.) doivent être validés par @copywriter avant prod, et alignés sur `docs/copy/ux-writing-guide.md` si présent.
+
+8. **Pas testé sur mobile** : l'effet zoom (issue #4) est testé seulement en logique. Sur mobile, la lightbox doit gérer pinch-to-zoom natif si attendu — `<img>` standard supporte le pinch sur iOS/Android tant que `meta viewport user-scalable` n'est pas désactivé. À vérifier en `tests/screenshots/`.
+
+---
+
+**Handoff → @orchestrator**
+- **Fichiers produits** : `/home/user/Versi/docs/ux/s33-audit-ui-etape4-issues-prod.md` (livrable unique, 8 sections, ≈ 195 L).
+- **Fichiers lus** (READ-ONLY, aucune modification de code) : `versi-studio/src/components/vs/VisualPlacementView.tsx`, `RefineVisualDialog.tsx`, `VisualGallery.tsx`, `RoomPreviewView.tsx`, `PlanLightbox.tsx`, `versi-studio/src/hooks/useVisualsStream.ts`, `versi-studio/src/app/api/vs/visuals/[id]/iterate/route.ts`, `versi-studio/src/lib/vs/types.ts:413-440`, `versi-studio/src/lib/vs/db.ts:288-300`, `versi-studio/src/lib/vs/migrations/005_s29_visuals_coherence.sql`, `006_s30_visual_jobs.sql`, `project-context.md:500-575`.
+- **Décisions** : aucune — audit pur. Recommandations classées priorité dans section 7. La décision Thomas A/B/C pour issue #6 reste ouverte (fondation déjà bien dimensionnée — scope dépend de la profondeur d'audit voulue).
+- **Points d'attention** : (a) issue #5 nécessite reproduction console ouverte côté Thomas pour confirmer le scénario timeout vs autre cause ; (b) issue #6 demande snapshot brief consolidé au moment de la génération sinon audit a posteriori impossible (mutation `vs_lots.architectural_details` post-génération invalide tout) ; (c) backend `iterate` est en fire-and-forget → anti-pattern Replit autoscale à corriger en moyen terme.
+- **Actions Replit requises** : aucune (audit pur, pas de migration ni redémarrage).
+- **Pre-commit check** : non applicable (1 seul livrable Markdown, pas de code source dans `src/`). Si Thomas approuve les fixes proposés, le prochain agent (@fullstack) devra exécuter `npx tsc --noEmit && npx next lint && npm run build` avant commit.
