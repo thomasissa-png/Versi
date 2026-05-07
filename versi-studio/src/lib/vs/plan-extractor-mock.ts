@@ -1,5 +1,28 @@
 /**
+ * ============================================================================
+ * /!\ SCÉNARIO FICTIF GÉNÉRIQUE — NE REPRÉSENTE AUCUN VRAI PDF /!\
+ * ============================================================================
+ *
+ * Ce mock retourne des données INVENTÉES (haussmannien archétype 4 niveaux).
+ * Il ne reflète AUCUN PDF réel client (notamment PAS les Muguets).
+ *
+ * Si tu compares la sortie de ce mock à un screenshot Muguets (ou tout
+ * autre vrai PDF) et que les structures divergent (nombre de lots, nombre
+ * de pièces, surfaces) : C'EST NORMAL. Le mock invente, il ne réplique pas.
+ *
+ * Historique du piège (s28) :
+ *   En s28, l'orchestrator a interprété des screenshots produits par ce
+ *   mock comme s'ils représentaient les Muguets, ce qui a causé 3 tours
+ *   d'investigation faussés (mock dit 2 lots T2+T3 R+1 = 8 rooms, vrai
+ *   PDF Muguets R+1 = 1 appartement 8 pièces). Toujours valider l'origine
+ *   d'un screenshot AVANT de l'analyser : provient-il d'un vrai PDF ou
+ *   du chemin `VS_USE_MOCK_EXTRACTOR=true` ? Si mock → ignorer la sémantique
+ *   métier, ne valider que les invariants pipeline (polygones cohérents,
+ *   lots peuplés, downstream non-cassé).
+ *
+ * ----------------------------------------------------------------------------
  * Versi Studio — Mock extracteur IA (s28 — invariants métier)
+ * ----------------------------------------------------------------------------
  *
  * Retourne des PlanExtractionResult fixes mais COHÉRENTS pour permettre
  * de valider tout le pipeline downstream (lots, rooms, canvas, power
@@ -13,11 +36,17 @@
  *   polygone Séjour DOIT être ≈ (25/12) × aire pixel Chambre. Sinon
  *   l'UI affiche un label incohérent avec la géométrie (bug s28 Thomas).
  *
- * Données conçues pour 4 plans test haussmanniens (P00 RDC → P03 R+3) :
+ * Données FICTIVES conçues pour 4 plans archétypes (P00 RDC → P03 R+3) :
  *   - P00 (floor=0) : 1 lot "T2 RDC" avec 5 rooms (≈52 m² habitables)
  *   - P01 (floor=1) : 2 lots (T2 + T3) soit 8 rooms
  *   - P02 (floor=2) : 2 lots (T2 + T3) soit 8 rooms
- *   - P03 (floor=3) : 2 lots (T2 + T3) soit 8 rooms
+ *   - P03 (floor=3) : 1 seul T2 (5 rooms, lot vectoriel étroit)
+ *
+ * Note : les bornes `LOT_BOUNDS_BY_FLOOR` ont été calibrées empiriquement
+ * sur les PDF Muguets pour que les pièces tombent dans le lot vectoriel
+ * (sinon le clip s28 les couperait). Cela ne fait PAS de ce mock une
+ * réplique des Muguets — la structure interne (nombre de lots, surfaces,
+ * découpage des pièces) reste fictive et générique.
  *
  * Signature ALIGNÉE sur `extractPlanData` réel.
  */

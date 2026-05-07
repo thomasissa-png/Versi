@@ -11,6 +11,12 @@
  * 4. Vérifie en DB que vs_rooms et vs_lots sont peuplés
  * 5. POST /rooms/regenerate sur 1 lot pour vérifier que ça fonctionne
  *
+ * /!\ ATTENTION (rappel s33) : ce script utilise VS_USE_MOCK_EXTRACTOR=true.
+ * Le mock retourne un scénario haussmannien FICTIF (cf. plan-extractor-mock.ts),
+ * il NE reflète PAS la structure réelle des PDF Muguets. Ne pas comparer la
+ * sortie de ce script à un screenshot Muguets pour valider la sémantique
+ * métier — uniquement pour valider que le pipeline downstream tourne.
+ *
  * Run : pnpm tsx scripts/s28-rooms-bugs-e2e.ts
  */
 

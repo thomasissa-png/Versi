@@ -1,11 +1,17 @@
 /**
- * Tests unit — plan-extractor-mock (s25 Round D)
+ * Tests unit — plan-extractor-mock (s25 Round D, garde-fou s33)
  *
  * Valide que le mock retourne des données cohérentes pour chaque floor
  * (P00 → P03), compatibles avec le pipeline downstream (lots, rooms,
  * power diagram, envelope polygon, label snap).
+ *
+ * Garde-fou s33 : un test vérifie que l'en-tête "SCÉNARIO FICTIF" est
+ * présent dans le source du mock — toute suppression accidentelle de
+ * l'avertissement casse la suite (cf. learning P0 s28 mock-obsolete-detection).
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { extractPlanDataMock } from "@/lib/vs/plan-extractor-mock";
 
 const dummyBase64 = "AAAAAAAAAAAA"; // base64 arbitraire, ignoré par le mock
@@ -110,5 +116,20 @@ describe("extractPlanDataMock", () => {
       total += r.rooms.length;
     }
     expect(total).toBeGreaterThanOrEqual(23);
+  });
+
+  // Garde-fou s33 : impossible de retomber dans le piège s28 sans casser ce test.
+  // Si quelqu'un supprime l'en-tête WARNING du mock, ce test échoue → impossible
+  // de merger un mock sans avertissement clair sur sa nature fictive.
+  it("[garde-fou s33] le source du mock contient l'avertissement SCÉNARIO FICTIF", () => {
+    const mockSource = readFileSync(
+      join(process.cwd(), "src/lib/vs/plan-extractor-mock.ts"),
+      "utf-8",
+    );
+    // Mots-clés obligatoires (insensible à la casse pour robustesse) :
+    expect(mockSource).toMatch(/SCÉNARIO FICTIF/i);
+    expect(mockSource).toMatch(/ne reflète aucun pdf réel|aucun vrai pdf|ne représente aucun vrai pdf/i);
+    // Mention explicite Muguets dans le contexte historique (rappel du bug s28) :
+    expect(mockSource.toLowerCase()).toContain("muguets");
   });
 });
