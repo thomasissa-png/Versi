@@ -8,7 +8,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
-import type { VsRoom, ApiResponse } from "@/lib/vs/types";
+import {
+  normalizeArchitecturalDetails,
+  type VsRoom,
+  type ApiResponse,
+} from "@/lib/vs/types";
 import { ROOM_TYPE_LABELS, type RoomTypeKey } from "@/lib/vs/styles";
 
 const VALID_ROOM_TYPES = Object.keys(ROOM_TYPE_LABELS) as RoomTypeKey[];
@@ -58,7 +62,18 @@ export async function GET(
       [lotId]
     );
 
-    return NextResponse.json({ success: true, data: result.rows });
+    // s32 (HOTFIX P0) — normalize architectural_details au point d'entrée API.
+    // Les rows pre-migration 012 ont architectural_details = {} (default JSONB),
+    // ce qui crashait l'UI sur details.floor.source. Garantit la structure
+    // complète côté client → aucun composant n'a à gérer un sub-field undefined.
+    const normalizedRows = result.rows.map((row) => ({
+      ...row,
+      architectural_details: normalizeArchitecturalDetails(
+        (row as { architectural_details?: unknown }).architectural_details
+      ),
+    }));
+
+    return NextResponse.json({ success: true, data: normalizedRows });
   } catch (err) {
     console.error("[API] GET /api/vs/lots/[id]/rooms erreur :", err);
     return NextResponse.json(

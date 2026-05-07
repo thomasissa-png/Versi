@@ -257,6 +257,52 @@ export function emptyArchitecturalDetails(): ArchitecturalDetails {
   };
 }
 
+/** s32 (HOTFIX P0) — Normalise un `architectural_details` brut en structure
+ *  complète. Indispensable pour les rows DB pre-migration 012 où le default
+ *  JSONB était `{}` : les champs sub-objets (`floor`, `walls`, ...) sont alors
+ *  `undefined` et tout accès `details.floor.source` crash.
+ *
+ *  Règle : appliqué au point d'entrée API (rowToRoom) ET en defensive UI
+ *  (RoomArchitecturalDetails, VisualWizard). Garantit qu'aucun composant
+ *  n'a à se soucier d'un sous-champ undefined. */
+export function normalizeArchitecturalDetails(
+  raw: unknown
+): ArchitecturalDetails {
+  const empty = emptyArchitecturalDetails();
+  if (!raw || typeof raw !== "object") return empty;
+  const r = raw as Record<string, unknown>;
+
+  function asField(value: unknown): ArchitecturalFieldValue {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const v = value as Record<string, unknown>;
+      return {
+        value: typeof v.value === "string" ? v.value : null,
+        source:
+          v.source === "user" || v.source === "vision" ? v.source : null,
+        confidence:
+          typeof v.confidence === "number" ? v.confidence : undefined,
+        confirmed:
+          typeof v.confirmed === "boolean" ? v.confirmed : undefined,
+      };
+    }
+    return { value: null, source: null };
+  }
+
+  function asFieldArray(value: unknown): ArchitecturalFieldValue[] {
+    if (!Array.isArray(value)) return [];
+    return value.map((v) => asField(v));
+  }
+
+  return {
+    floor: asField(r.floor),
+    walls: asField(r.walls),
+    lighting: asField(r.lighting),
+    specifics: asFieldArray(r.specifics),
+    level: asField(r.level),
+    technical_constraints: asFieldArray(r.technical_constraints),
+  };
+}
+
 /** s32 — helper : crée un profil vide. */
 export function emptyArchitecturalProfile(): ArchitecturalProfile {
   return {

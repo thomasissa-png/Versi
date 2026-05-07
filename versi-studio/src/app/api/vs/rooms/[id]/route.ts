@@ -8,10 +8,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { query, ensureDbReady } from "@/lib/vs/db";
-import type {
-  VsRoom,
-  ApiResponse,
-  ArchitecturalDetails,
+import {
+  normalizeArchitecturalDetails,
+  type VsRoom,
+  type ApiResponse,
+  type ArchitecturalDetails,
 } from "@/lib/vs/types";
 import { ROOM_TYPE_LABELS, STYLES, type RoomTypeKey, type StyleId } from "@/lib/vs/styles";
 import { validateArchitecturalDetails } from "@/lib/vs/architectural-validation";
@@ -243,7 +244,18 @@ export async function PATCH(
       values
     );
 
-    return NextResponse.json({ success: true, data: result.rows[0] });
+    // s32 (HOTFIX P0) — normalize architectural_details du retour PATCH.
+    // Si on PATCH un autre champ (ex style_id) sur une row pre-migration 012,
+    // architectural_details revient brut ({} ou partiel) → crash UI au prochain render.
+    const row = result.rows[0];
+    const normalizedRow = {
+      ...row,
+      architectural_details: normalizeArchitecturalDetails(
+        (row as { architectural_details?: unknown }).architectural_details
+      ),
+    };
+
+    return NextResponse.json({ success: true, data: normalizedRow });
   } catch (err) {
     console.error("[API] PATCH /api/vs/rooms/[id] erreur :", err);
     return NextResponse.json(

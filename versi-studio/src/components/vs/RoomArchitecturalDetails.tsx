@@ -27,7 +27,7 @@ import {
   ARCHITECTURAL_DETAILS_OPTIONS,
   ARCHITECTURAL_LEVEL_LABELS,
   TECHNICAL_CONSTRAINTS_LABELS,
-  emptyArchitecturalDetails,
+  normalizeArchitecturalDetails,
   type ArchitecturalDetails,
   type ArchitecturalFieldValue,
   type VsRoom,
@@ -132,8 +132,11 @@ export default function RoomArchitecturalDetails({
   visionAnalyzing = false,
   hasPhotoSource = true,
 }: Props) {
+  // s32 (HOTFIX P0) — normalize garantit la structure complète même si
+  // architectural_details = {} (default JSONB pre-migration 012). Sans ça,
+  // details.floor.source crash quand floor est undefined.
   const details: ArchitecturalDetails = useMemo(
-    () => room.architectural_details ?? emptyArchitecturalDetails(),
+    () => normalizeArchitecturalDetails(room.architectural_details),
     [room.architectural_details]
   );
 

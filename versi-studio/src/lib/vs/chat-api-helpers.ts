@@ -15,6 +15,7 @@ import type {
   RoomChatTranscript,
   OperationChatContext,
 } from "@/lib/vs/types";
+import { normalizeArchitecturalDetails } from "@/lib/vs/types";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -106,8 +107,11 @@ function rowToRoom(row: RoomRow): VsRoom {
     is_furnished: row.is_furnished,
     polygon_offset_x: row.polygon_offset_x,
     polygon_offset_y: row.polygon_offset_y,
-    architectural_details:
-      (row.architectural_details as VsRoom["architectural_details"]) ?? undefined,
+    // s32 HOTFIX P0 : normalize toujours (rows pre-migration 012 ont `{}` →
+    // sub-fields undefined → crash UI). Garantit structure complète.
+    architectural_details: normalizeArchitecturalDetails(
+      row.architectural_details
+    ),
     status: row.status as VsRoom["status"],
     source: row.source as VsRoom["source"],
     created_at:

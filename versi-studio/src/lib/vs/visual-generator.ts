@@ -14,9 +14,10 @@
 import OpenAI, { toFile } from "openai";
 import { getStyle, getRoomLabel } from "@/lib/vs/styles";
 import { imagesEditLimiter } from "@/lib/vs/openai-rate-limiter";
-import type {
-  ArchitecturalDetails,
-  ArchitecturalProfile,
+import {
+  normalizeArchitecturalDetails,
+  type ArchitecturalDetails,
+  type ArchitecturalProfile,
 } from "@/lib/vs/types";
 import { VISION_HIGH_CONFIDENCE_THRESHOLD } from "@/lib/vs/architectural-vision";
 
@@ -367,9 +368,17 @@ export function angleDegreesToCardinal(deg: number): string {
  */
 export function buildArchitecturalBrief(
   profile: ArchitecturalProfile | null | undefined,
-  details: ArchitecturalDetails | null | undefined
+  detailsRaw: ArchitecturalDetails | null | undefined
 ): string {
   const lines: string[] = [];
+
+  // s32 (HOTFIX P0) — normalize defensive : si detailsRaw vient d'une row
+  // pre-migration 012 (= {}), ses sous-champs floor/walls/lighting sont
+  // undefined → tout accès .value crash. Le normalize garantit la structure.
+  // On préserve "null" comme signal "pas de détails" pour la branche if(details).
+  const details: ArchitecturalDetails | null = detailsRaw
+    ? normalizeArchitecturalDetails(detailsRaw)
+    : null;
 
   // ─── Profil lot (5 champs) ──────────────────────────────────
   if (profile) {

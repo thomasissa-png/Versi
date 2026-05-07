@@ -37,14 +37,15 @@ import VisualWizardRecap from "@/components/vs/VisualWizardRecap";
 import RoomPreviewView from "@/components/vs/RoomPreviewView";
 import RoomGenerationProgress from "@/components/vs/RoomGenerationProgress";
 import { useVisualsStream, type VisualGenerated } from "@/hooks/useVisualsStream";
-import type {
-  VsRoom,
-  VsLot,
-  VsPhoto,
-  VsVisual,
-  ZoneRect,
-  ApiResponse,
-  ArchitecturalDetails,
+import {
+  normalizeArchitecturalDetails,
+  type VsRoom,
+  type VsLot,
+  type VsPhoto,
+  type VsVisual,
+  type ZoneRect,
+  type ApiResponse,
+  type ArchitecturalDetails,
 } from "@/lib/vs/types";
 import type { NormalizedPoint } from "@/lib/vs/ui/photo-placement";
 import type { StyleId } from "@/lib/vs/styles";
@@ -554,12 +555,17 @@ export default function VisualWizard({
     const hasPhotos = photos.some((p) => p.room_id === currentRoom.id);
     if (!hasPhotos) return;
 
-    const existing = currentRoom.architectural_details;
+    // s32 (HOTFIX P0) — normalize avant lecture. Sans ça, sur une row
+    // pre-migration 012 où architectural_details = {}, existing.floor est
+    // undefined → existing.floor.source crash. Le normalize garantit
+    // une structure complète même si raw vaut {} ou null.
+    const existing = normalizeArchitecturalDetails(
+      currentRoom.architectural_details
+    );
     const hasUserInput =
-      existing != null &&
-      [existing.floor, existing.walls, existing.lighting]
-        .some((f) => f.source === "user") ||
-      (existing?.specifics ?? []).some((s) => s.source === "user");
+      [existing.floor, existing.walls, existing.lighting].some(
+        (f) => f.source === "user"
+      ) || existing.specifics.some((s) => s.source === "user");
     if (hasUserInput) {
       visionAnalyzedRoomIds.add(currentRoom.id);
       return;
@@ -582,7 +588,9 @@ export default function VisualWizard({
           console.warn("[wizard] Vision archi échouée", json.error);
           return;
         }
-        const visionData = json.data;
+        // s32 (HOTFIX P0) — normalize la réponse Vision aussi (back-compat
+        // si l'API renvoie un payload partiel ou {}).
+        const visionData = normalizeArchitecturalDetails(json.data);
         const CONFIDENCE_FLOOR = 0.7;
 
         // Merge : ne touche aux champs que si confidence ≥ 0.7. Sinon laisse vide
