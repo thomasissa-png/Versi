@@ -237,7 +237,7 @@ function VisualCard({ roomId, roomLabel, visual, isRegenerating, error, onRegene
           <div className="flex items-center gap-xs flex-wrap">
             {isAnchor ? (
               <span
-                className="inline-flex items-center gap-2xs text-xs px-xs py-2xs rounded-full bg-info/10 text-info"
+                className="inline-flex items-center gap-2xs text-xs px-xs py-2xs rounded-full bg-bg-canvas text-text-default border border-border-default"
                 title="Visuel principal — sa palette guide les autres"
               >
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">

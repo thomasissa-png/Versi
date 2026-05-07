@@ -58,12 +58,17 @@ export interface RoomSegmentsPanelProps {
   chatActive?: boolean;
 }
 
-// ─── Couleurs pastilles (synchro avec segment-render.ts) ──────────
+// ─── Couleurs pastilles (s33 Lot C C-2 — référence tokens design system) ──────────
+// Les couleurs sont définies dans `globals.css @theme` :
+//   --color-segment-wall    → bg-segment-wall
+//   --color-segment-bay     → bg-segment-bay
+//   --color-segment-opening → bg-segment-opening
+// On garde la map pour préserver le mapping v3Type → classe.
 
-const PASTILLE_COLORS: Record<"wall" | "bay_window" | "opening", string> = {
-  wall: "#0B0B0B",
-  bay_window: "#C9844C",
-  opening: "#5A8060",
+const PASTILLE_BG_CLASS: Record<"wall" | "bay_window" | "opening", string> = {
+  wall: "bg-segment-wall",
+  bay_window: "bg-segment-bay",
+  opening: "bg-segment-opening",
 };
 
 // ─── Component ────────────────────────────────────────────────────
@@ -190,7 +195,7 @@ export default function RoomSegmentsPanel({
               aria-pressed={chatActive}
               title="Architecte virtuel — préciser des détails par chat"
               className={[
-                "w-8 h-8 inline-flex items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary flex-shrink-0",
+                "min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary flex-shrink-0",
                 chatActive
                   ? "bg-interactive-primary text-bg-canvas hover:opacity-90"
                   : "text-text-muted hover:text-text-default hover:bg-bg-subtle",
@@ -252,8 +257,7 @@ export default function RoomSegmentsPanel({
                 {/* Pastille couleur */}
                 <span
                   aria-hidden="true"
-                  className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-black/10"
-                  style={{ backgroundColor: PASTILLE_COLORS[row.v3Type] }}
+                  className={`inline-block w-3 h-3 rounded-full flex-shrink-0 border border-black/10 ${PASTILLE_BG_CLASS[row.v3Type]}`}
                 />
                 {/* Numéro */}
                 <span
@@ -299,24 +303,21 @@ export default function RoomSegmentsPanel({
       >
         <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: PASTILLE_COLORS.wall }}
+            className="inline-block w-2.5 h-2.5 rounded-full bg-segment-wall"
             aria-hidden="true"
           />
           Mur
         </span>
         <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: PASTILLE_COLORS.bay_window }}
+            className="inline-block w-2.5 h-2.5 rounded-full bg-segment-bay"
             aria-hidden="true"
           />
           Baie
         </span>
         <span className="flex items-center gap-xs text-xs text-text-muted">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: PASTILLE_COLORS.opening }}
+            className="inline-block w-2.5 h-2.5 rounded-full bg-segment-opening"
             aria-hidden="true"
           />
           Ouverture

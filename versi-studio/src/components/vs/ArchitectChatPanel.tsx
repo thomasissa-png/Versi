@@ -330,7 +330,7 @@ export default function ArchitectChatPanel({
                 {renderAssistantContent(msg.content)}
                 {msg.suggestions && msg.suggestions.length > 0 && (
                   <>
-                    <p className="text-[11px] text-text-muted uppercase tracking-wide mt-sm mb-xs">
+                    <p className="text-xs text-text-muted uppercase tracking-wide mt-sm mb-xs">
                       Suggestions
                     </p>
                     <div className="flex flex-wrap gap-xs">
@@ -358,12 +358,34 @@ export default function ArchitectChatPanel({
         {loading && initialized && (
           <div
             className="self-start max-w-[60%] rounded-md px-sm py-sm bg-bg-default border border-border-default"
-            aria-label="L'architecte réfléchit"
+            aria-label="L'architecte rédige"
+            data-testid="chat-typing-indicator"
           >
-            <span className="inline-flex gap-1 items-center" aria-hidden="true">
-              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-bounce [animation-delay:300ms]" />
+            {/* s33 Lot C C-6 — spinner SVG unique (préf fondateur : pas de cascade SaaS-style). */}
+            <span className="inline-flex items-center gap-xs text-xs text-text-muted" aria-hidden="true">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="animate-spin"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeOpacity="0.25"
+                />
+                <path
+                  d="M22 12a10 10 0 0 0-10-10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+              L&apos;architecte rédige…
             </span>
           </div>
         )}
@@ -394,7 +416,7 @@ export default function ArchitectChatPanel({
         style={{ paddingBottom: "max(var(--space-sm), env(safe-area-inset-bottom))" }}
       >
         <label htmlFor="chat-input" className="sr-only">
-          Votre message à l'architecte
+          Votre message à l&apos;architecte
         </label>
         <textarea
           ref={textareaRef}

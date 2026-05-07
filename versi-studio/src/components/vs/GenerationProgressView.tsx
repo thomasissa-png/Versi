@@ -168,7 +168,7 @@ export default function GenerationProgressView({
           <button
             type="button"
             onClick={onCancel}
-            className="min-h-[44px] px-lg py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card"
+            className="min-h-[44px] px-lg py-sm rounded-md text-sm font-medium border border-border-default text-text-default hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary"
           >
             Revenir aux paramètres
           </button>

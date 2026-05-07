@@ -33,6 +33,11 @@
   --color-interactive-primary: #0B0B0B;
   --color-interactive-hover: #1A1A1A;
 
+  /* ─── Couleurs segments (pastilles RoomSegmentsPanel — s33 Lot C C-2) ─── */
+  --color-segment-wall: #0B0B0B;
+  --color-segment-bay: #C9844C;
+  --color-segment-opening: #5A8060;
+
   /* ─── Couleurs lots (overlays canvas) ─── */
   --color-lot-argile: #C4725A;
   --color-lot-sable: #D4B896;
