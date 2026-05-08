@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /**
  * s25 Round E — validation DB post-run
  * Lit les projets Round E déjà créés (4 projects, 4 plans, 7 lots, 29 rooms)

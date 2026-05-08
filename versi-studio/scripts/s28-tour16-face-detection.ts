@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * s28 TOUR 16 — Pivot architectural : wall-graph face detection
  *

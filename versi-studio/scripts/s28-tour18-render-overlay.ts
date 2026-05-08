@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * s28 tour 18 — Rendu overlay polygones sur PDF (backend, pas UI).
  *

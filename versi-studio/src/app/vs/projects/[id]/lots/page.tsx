@@ -444,7 +444,7 @@ export default function LotsPage({
       setError("La suppression a échoué. Le lot a été restauré automatiquement.");
       fetchData();
     }
-  }, [deleteTargetId, selectedLotId, fetchData, lots, projectId]);
+  }, [deleteTargetId, selectedLotId, fetchData, lots, projectId, pushLotsSnapshot]);
 
   // ─── Ajouter un lot manuellement ─────────────────────────────
 
@@ -803,8 +803,11 @@ export default function LotsPage({
   // ─── Cleanup timers ───────────────────────────────────────────
 
   useEffect(() => {
+    // Capture ref dans var locale pour respecter règle react-hooks/exhaustive-deps
+    // (la ref peut changer entre mount et cleanup).
+    const timers = saveTimersRef.current;
     return () => {
-      for (const timer of saveTimersRef.current.values()) {
+      for (const timer of timers.values()) {
         clearTimeout(timer);
       }
     };

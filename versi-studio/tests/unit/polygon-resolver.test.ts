@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): constantes/imports de test gardés pour debug local — à nettoyer si vraiment inutiles.
 /**
  * Tests unitaires — polygon-resolver (s23 Bug 1 : non-overlap pièces)
  *

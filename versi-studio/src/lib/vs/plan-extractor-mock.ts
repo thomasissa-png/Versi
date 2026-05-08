@@ -235,7 +235,6 @@ export async function extractPlanDataMock(
   _mimeType: string,
   _typeBien: TypeBien,
   _retryContext?: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _lots?: unknown,
 ): Promise<PlanExtractionResult> {
   // Déduire un floor 0-3 stable depuis le base64 (hash simple)

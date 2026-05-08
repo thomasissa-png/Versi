@@ -65,7 +65,7 @@ export async function iterateVisual(
   let enrichedPrompt: string;
   try {
     enrichedPrompt = await enrichPromptForIteration(instruction, styleId, roomType);
-  } catch (err) {
+  } catch {
     console.warn("[architect-agent] Enrichissement échoué, utilisation du prompt brut");
     enrichedPrompt = `Modify this ${roomLabel}: ${instruction}. Style: ${styleName} (${styleHint}). Keep structural elements. Photorealistic.`;
   }

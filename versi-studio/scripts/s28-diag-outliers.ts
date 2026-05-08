@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /**
  * s28 tour 12 — Diagnostic des vertices outliers.
  * Pour chaque vertex outlier (à >5px du mur PDF le plus proche), on cherche :

@@ -753,7 +753,7 @@ export default function RoomZoomCanvas({
     contourOffsetPreview,
     onVertexCommit,
     hoverVertexIdx,
-    vertexPreview,
+    // vertexPreview retiré : déjà couvert par effectivePolygon (cf. useMemo ligne 391)
   ]);
 
   useEffect(() => {

@@ -80,7 +80,7 @@ export type LabelCenter = { x: number; y: number };
 
 // ─── Helpers géométriques ──────────────────────────────────────────
 
-function bboxOf(room: RectangleRoom): Bbox {
+function _bboxOf(room: RectangleRoom): Bbox {
   return {
     xMin: room.bbox.xMin,
     yMin: room.bbox.yMin,

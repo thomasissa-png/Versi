@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /**
  * Diag bbox-rebuild SDE F3 : simule la recherche pour comprendre les murs trouvés.
  */

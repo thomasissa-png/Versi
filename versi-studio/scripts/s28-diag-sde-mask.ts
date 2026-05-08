@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * Diag : scan la masque "wall" PNG dans la zone SDE F3 pour voir ce qui bloque le BFS.
  */

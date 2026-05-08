@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 import { Pool } from "pg";
 import { readFile } from "fs/promises";
 import { extractTextItems, filterRoomLabels } from "../src/lib/vs/pdf-text-extractor";

@@ -135,9 +135,9 @@ export function rebuildBboxFromWalls(
     if (v.x > bx1) bx1 = v.x;
     if (v.y > by1) by1 = v.y;
   }
-  // Centre bbox
-  const cx = (bx0 + bx1) / 2;
-  const cy = (by0 + by1) / 2;
+  // Centre bbox (calculé pour debug, conservé pour usage futur)
+  const _cx = (bx0 + bx1) / 2;
+  const _cy = (by0 + by1) / 2;
 
   // Étape 3 : recherche murs orthogonaux
   // Bord N : mur HORIZONTAL le plus proche au-dessus ou autour du bord supérieur

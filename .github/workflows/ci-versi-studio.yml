@@ -65,16 +65,14 @@ jobs:
 
   # ─────────────────────────────────────────────────────────────────────────
   # Job 3 : ESLint (npm run lint)
-  # s33 Lot D : non bloquant temporairement (91 erreurs préexistantes dans
-  # tests/* à fixer en s34). `continue-on-error: true` rend ce job
-  # informatif. À retirer une fois la dette absorbée.
+  # s33 Phase 8a : dette absorbée → 0 errors. Job désormais BLOQUANT (gate G29).
+  # Warnings tolérés (no-unused-vars dans scripts/tests, react-hooks à raffiner).
   # ─────────────────────────────────────────────────────────────────────────
   lint:
-    name: ESLint (informatif — dette s33 à absorber)
+    name: ESLint (bloquant — gate G29)
     runs-on: ubuntu-latest
     needs: install
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,8 +112,8 @@ jobs:
   build:
     name: Next.js production build
     runs-on: ubuntu-latest
-    # lint volontairement absent de needs : non bloquant (dette s33).
-    needs: [typecheck, test]
+    # s33 Phase 8a : lint réintégré aux dépendances bloquantes (gate G29 PASS).
+    needs: [typecheck, lint, test]
     timeout-minutes: 20
     env:
       # Variables minimales pour que `next build` ne crash pas sur env.ts

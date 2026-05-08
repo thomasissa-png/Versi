@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * Autopilot s27 — itère paramètres extractLotsByColorMask sur Muguets RDC
  * jusqu'à IoU max entre polygone tracé et zone habitable détectée.

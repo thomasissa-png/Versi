@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): constantes/imports de test gardés pour debug local — à nettoyer si vraiment inutiles.
 /**
  * Tests visuels — Page Rooms (US-VS-04)
  *

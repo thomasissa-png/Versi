@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 import { extractLotVector, extractInternalWallSegments } from "../src/lib/vs/lot-vector-extractor";
 import { chainCollinearSegments } from "../src/lib/vs/orthogonal-regularizer";
 import { extractTextItems, filterRoomLabels } from "../src/lib/vs/pdf-text-extractor";

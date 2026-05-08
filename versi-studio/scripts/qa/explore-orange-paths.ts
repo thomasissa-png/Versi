@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /**
  * Explore les paths "orange" du PDF Muguets RDC via pdfjs-dist.
  * Identifie le pattern de coloration (setStrokeRGBColor / setFillRGBColor)

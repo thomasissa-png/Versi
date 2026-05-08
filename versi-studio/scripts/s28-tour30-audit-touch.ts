@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * Audit final tour 30 — pour chaque pièce en DB, vérifier que chaque bord
  * (N/S/E/W) touche soit un mur du lot soit une autre pièce (gap ≤ 5px).

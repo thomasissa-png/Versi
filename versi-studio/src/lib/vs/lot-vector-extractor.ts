@@ -123,7 +123,7 @@ function polygonArea(pts: Pt[]): number {
 }
 
 /** Bounding box d'un ensemble de polygones. */
-function bboxAll(polys: Pt[][]): { x0: number; y0: number; x1: number; y1: number } | null {
+function _bboxAll(polys: Pt[][]): { x0: number; y0: number; x1: number; y1: number } | null {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const poly of polys) {
     for (const p of poly) {
@@ -586,7 +586,7 @@ function morphDilateBin(mask: Uint8Array, W: number, H: number, r: number): Uint
  * Moore boundary trace pixel-level : retourne le contour fermé du plus grand
  * composant connecté.
  */
-function mooreTrace(mask: Uint8Array, W: number, H: number): Pt[] {
+function _mooreTrace(mask: Uint8Array, W: number, H: number): Pt[] {
   // 1. Composantes connectées.
   const labels = new Int32Array(W * H);
   const sizes: number[] = [0];

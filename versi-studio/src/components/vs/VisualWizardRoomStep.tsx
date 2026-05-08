@@ -213,7 +213,7 @@ export default function VisualWizardRoomStep({
 
   const styleId = (room.style_id as StyleId | null) ?? null;
 
-  const canGoNext = useMemo(() => {
+  const _canGoNext = useMemo(() => {
     if (!styleId) return false;
     if (placementsWithPhoto.length === 0) return false;
     return true;

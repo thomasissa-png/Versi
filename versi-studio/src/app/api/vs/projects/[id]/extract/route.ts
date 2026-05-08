@@ -25,10 +25,10 @@ import {
   filterRoomFaces as filterRoomFacesV2,
   pointInPolygon as pointInPolygonV2,
   computeSignedArea as computeSignedAreaV2,
-  type Face as FaceV2,
+  type Face as _FaceV2,
   WallGraphFacesError,
 } from "@/lib/vs/wall-graph-faces";
-import { voronoiCellsAll, type Pt2 } from "@/lib/vs/voronoi-cells";
+import { voronoiCellsAll, type Pt2 as _Pt2 } from "@/lib/vs/voronoi-cells";
 import { extractPlanDataMock } from "@/lib/vs/plan-extractor-mock";
 import { refineRoomPolygon } from "@/lib/vs/polygon-refiner";
 import {
@@ -37,13 +37,12 @@ import {
   type RoomWithPolygon,
   type Point as ResolverPoint,
 } from "@/lib/vs/polygon-resolver";
-import {
-  syncRoomSurfacesWithPolygons,
-} from "@/lib/vs/room-surface-sync";
+// Pipeline alternatif (feature flag VS_NEW_PIPELINE) — gardé pour usage conditionnel.
+import { syncRoomSurfacesWithPolygons as _syncRoomSurfacesWithPolygons } from "@/lib/vs/room-surface-sync";
 import {
   snapPolygonToWalls,
-  polygonPctToPx,
-  polygonPxToPct,
+  polygonPctToPx as _polygonPctToPx,
+  polygonPxToPct as _polygonPxToPct,
   type WallSegment,
 } from "@/lib/vs/wall-snap";
 import {
@@ -82,27 +81,29 @@ import {
 } from "@/lib/vs/room-tiling";
 import { track } from "@/lib/vs/analytics";
 // ─── s27 Refonte pipeline (M1→M5) — branchement derrière VS_NEW_PIPELINE ───
+// Imports gardés pour usage conditionnel (feature flag actif/inactif). Préfixés _
+// pour indiquer "kept for future / conditional path". Ne PAS supprimer.
 import {
-  detectPdfType,
+  detectPdfType as _detectPdfType,
   PdfTypeDetectorError,
 } from "@/lib/vs/pdf-type-detector";
 import {
-  extractWallSegments,
-  filterWallsByLineWidth,
+  extractWallSegments as _extractWallSegments,
+  filterWallsByLineWidth as _filterWallsByLineWidth,
   PdfVectorParserError,
 } from "@/lib/vs/pdf-vector-parser";
 import {
-  extractWallSegmentsFromBitmap,
+  extractWallSegmentsFromBitmap as _extractWallSegmentsFromBitmap,
   BitmapLineDetectorError,
 } from "@/lib/vs/bitmap-line-detector";
 import {
-  buildWallGraph,
-  detectRooms,
+  buildWallGraph as _buildWallGraph,
+  detectRooms as _detectRooms,
   WallGraphError,
-  type WallSegmentInput,
+  type WallSegmentInput as _WallSegmentInput,
 } from "@/lib/vs/wall-graph";
 import {
-  classifyRooms,
+  classifyRooms as _classifyRooms,
   LotClassifierError,
 } from "@/lib/vs/lot-classifier";
 import { extractLotVector, extractInternalWallSegments, LotVectorExtractorError } from "@/lib/vs/lot-vector-extractor";
@@ -1578,7 +1579,7 @@ export async function POST(
                   if (r.polygon.length < 3) continue;
                   const origAreaPx2 = polygonAreaPx2(r.polygon);
                   if (origAreaPx2 < 1) continue;
-                  const origAreaM2 = origAreaPx2 * scaleM2PerPx2;
+                  const _origAreaM2 = origAreaPx2 * scaleM2PerPx2;
                   const pdfM2 = r.surface_m2;
                   // Tolérance Inv A STRICTE : si pdfM2 connu, [0.88, 1.12]
                   // (marge de sécurité 0.02 vs limite audit [0.85, 1.15]).

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): script de diagnostic session — vars inutilisées tolérées (PoC/debug, hors build prod).
 /**
  * Render uniquement : applique les meilleurs params trouvés par autopilot
  * et produit l'overlay PNG.

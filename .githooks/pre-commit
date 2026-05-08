@@ -44,13 +44,13 @@ if ! npx tsc --noEmit; then
   exit 1
 fi
 
-echo "  [2/4] npm run lint (ESLint — non bloquant temporairement)"
-# s33 Lot D : 91 erreurs ESLint pré-existantes dans tests/* — à fixer en s34.
-# Lint exécuté en mode informatif uniquement (pas de exit 1) tant que la dette
-# n'est pas absorbée. CI GitHub Actions reste strict (cf. ci-versi-studio.yml).
+echo "  [2/4] npm run lint (ESLint — bloquant, gate G29 PASS s33 Phase 8a)"
+# s33 Phase 8a : dette ESLint absorbée (91 errors → 0). Lint désormais bloquant.
+# Warnings tolérés (no-unused-vars dans scripts/tests, react-hooks à raffiner).
 if ! npm run lint --silent; then
-  echo "⚠ ESLint a remonté des erreurs — non bloquant tant que dette s33 non absorbée"
-  echo "  TODO s34 : fixer les 91 erreurs ESLint puis rendre lint bloquant ici"
+  echo "❌ COMMIT BLOQUÉ — erreurs ESLint dans versi-studio/"
+  echo "   Lancez 'npm run lint' pour voir les erreurs, puis corriger avant commit."
+  exit 1
 fi
 
 echo "  [3/4] npm run test (Vitest)"

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// FIXME(s34): constantes/imports de test gardés pour debug local — à nettoyer si vraiment inutiles.
 /**
  * Tests E2E — Clustering IA unit_id + validation 1-clic (versi-s21)
  *

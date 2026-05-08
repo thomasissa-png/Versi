@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /**
  * Autopilote vrai — recherche grid params multi-fitness sur les 4 plans Muguets.
  *

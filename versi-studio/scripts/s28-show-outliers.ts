@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// FIXME(s34): script de diagnostic session — typages "any" tolérés (PoC/debug, hors build prod).
 /** s28 tour 12 — Lister les positions précises des outliers floor 1 + leur 5 plus proches voisins. */
 import { Pool } from "pg";
 import { readFile } from "fs/promises";

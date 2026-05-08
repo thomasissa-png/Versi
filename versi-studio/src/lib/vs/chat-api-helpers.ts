@@ -12,7 +12,6 @@ import type {
   VsRoom,
   VsRoomSegment,
   ChatMessage,
-  RoomChatTranscript,
   OperationChatContext,
 } from "@/lib/vs/types";
 import { normalizeArchitecturalDetails } from "@/lib/vs/types";

@@ -705,7 +705,7 @@ function snapToOrangePixel(
  * eps = distance max entre 2 points dans le même cluster.
  * minPts = nb min de voisins pour qu'un point soit "core".
  */
-function clusterPoints(points: Pt[], eps: number, minPts: number): Pt[][] {
+function _clusterPoints(points: Pt[], eps: number, minPts: number): Pt[][] {
   const N = points.length;
   const visited = new Uint8Array(N);
   const cluster = new Int32Array(N).fill(-1);
@@ -776,7 +776,7 @@ function clusterPoints(points: Pt[], eps: number, minPts: number): Pt[][] {
  * Pour des points denses uniformément samplés, alpha=0.05 (radius 20px) donne
  * un contour qui suit les murs sans déborder sur les ouvertures > 40px.
  */
-function alphaShape(points: Pt[], alpha: number): Pt[] {
+function _alphaShape(points: Pt[], alpha: number): Pt[] {
   if (points.length < 3) return points;
 
   // 1. Convex hull (Andrew's monotone chain)

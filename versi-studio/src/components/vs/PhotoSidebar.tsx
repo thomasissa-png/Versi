@@ -90,6 +90,7 @@ export default function PhotoSidebar({
                 }}
               >
                 <span className="vs-photo-sidebar__thumb" aria-hidden>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- thumb upload utilisateur, src dynamique non optimisable par next/image */}
                   <img
                     src={photo.file_path}
                     alt=""

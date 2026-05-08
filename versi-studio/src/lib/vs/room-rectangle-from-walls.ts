@@ -149,7 +149,7 @@ function wallYRange(w: Wall): [number, number] {
 }
 
 /** PIP test (ray casting). */
-function pointInPolygon(px: number, py: number, poly: Pt[]): boolean {
+function _pointInPolygon(px: number, py: number, poly: Pt[]): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const xi = poly[i].x;
@@ -1702,7 +1702,7 @@ function translateToTouchExteriorWalls(
  *     différentes (ambiguïté → on laisse).
  *   - On ne snap PAS si le snap rendrait le rectangle de surface négative.
  */
-function snapBordersToWalls(
+function _snapBordersToWalls(
   rooms: RectangleRoom[],
   walls: Wall[],
   angleTolDeg: number,

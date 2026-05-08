@@ -1,4 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
+
+type RoomDb = { name: string; position?: unknown; polygon?: unknown };
 
 test("Étape 3 P00 — voir ce que l'UI affiche vraiment", async ({ page }) => {
   const projectId = "f396578e-e401-4526-86ea-0d97202fe25a";
@@ -22,14 +24,14 @@ test("Étape 3 P00 — voir ce que l'UI affiche vraiment", async ({ page }) => {
   // 4. Récupérer les positions actuelles des rooms via API
   const roomsResp = await page.request.get(`http://localhost:5000/api/vs/lots/3f896d22-4811-4ee5-8eff-8b6dea4436ce/rooms`);
   const rooms = await roomsResp.json();
-  console.log("Rooms en DB:", rooms.data.map((r: any) => ({
+  console.log("Rooms en DB:", (rooms.data as RoomDb[]).map((r) => ({
     name: r.name,
     position: r.position,
     polygonPoints: Array.isArray(r.polygon) ? r.polygon.length : 0,
   })));
 
   // 5. Trouver Séjour/cuisine et tester drag vers la droite
-  const sejour = rooms.data.find((r: any) => r.name.toLowerCase().includes("séjour") || r.name.toLowerCase().includes("sejour"));
+  const sejour = (rooms.data as RoomDb[]).find((r) => r.name.toLowerCase().includes("séjour") || r.name.toLowerCase().includes("sejour"));
   if (sejour && box) {
     // Position Séjour en % lot-local → convertir en px canvas
     const canvasW = box.width;

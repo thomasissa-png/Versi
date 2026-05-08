@@ -176,7 +176,7 @@ function dilate(src: Uint8Array, W: number, H: number, radius: number): Uint8Arr
 /**
  * Test point dans polygone.
  */
-function pointInPoly(px: number, py: number, poly: Array<{ x: number; y: number }>): boolean {
+function _pointInPoly(px: number, py: number, poly: Array<{ x: number; y: number }>): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const xi = poly[i].x, yi = poly[i].y;

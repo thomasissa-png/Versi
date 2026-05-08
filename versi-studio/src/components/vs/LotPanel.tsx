@@ -315,9 +315,11 @@ export default function LotPanel({
   drawingPolygon = false,
   onCancelDrawingPolygon,
   onValidateSingleLot,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop API publique gardée pour évolution UI (validation batch IA)
   onValidateAllAiLots,
   hasAiExtracted = false,
   onUnvalidateSingleLot,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop API publique gardée pour panneau "rooms non assignées" futur
   unassignedRooms,
   m2PerPixel = null,
   planNaturalWidth = null,
@@ -325,7 +327,7 @@ export default function LotPanel({
 }: LotPanelProps) {
   const canValidate = lots.length > 0 && !hasOverlap && !validating;
   const aiSuggestedLots = lots.filter((l) => l.source === "ai" && l.status === "suggested");
-  const allLotsValidated = lots.length > 0 && lots.every((l) => l.status === "validated");
+  const _allLotsValidated = lots.length > 0 && lots.every((l) => l.status === "validated");
   const hasSuggestedLots = lots.some((l) => l.status === "suggested");
 
   return (

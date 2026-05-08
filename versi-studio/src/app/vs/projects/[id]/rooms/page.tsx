@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef, use } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, use } from "react";
 import { useHistory } from "@/hooks/useHistory";
 import { useRouter } from "next/navigation";
 import Stepper from "@/components/vs/Stepper";
@@ -174,8 +174,9 @@ export default function RoomsPage({
   // ─── Cleanup debounce timers ──────────────────────────────────
 
   useEffect(() => {
+    // Capture ref dans var locale (règle react-hooks/exhaustive-deps).
+    const timers = patchTimers.current;
     return () => {
-      const timers = patchTimers.current;
       for (const key of Object.keys(timers)) {
         clearTimeout(timers[key]);
       }
@@ -234,7 +235,11 @@ export default function RoomsPage({
   // ─── Helpers dérivés ──────────────────────────────────────────
 
   const currentLot = lots.find((l) => l.id === selectedLotId) ?? null;
-  const currentRooms = selectedLotId ? roomsByLot[selectedLotId] ?? [] : [];
+  // s33 Phase 8a — wrap dans useMemo pour stabiliser ref et permettre usage dans deps useCallback
+  const currentRooms = useMemo(
+    () => (selectedLotId ? roomsByLot[selectedLotId] ?? [] : []),
+    [selectedLotId, roomsByLot]
+  );
   const currentLotValidated = currentLot?.status === "validated";
 
   // s28 fix Bug 2 — N'afficher "tous lots validés" que si chaque lot a au moins
@@ -446,7 +451,7 @@ export default function RoomsPage({
         }
       }
     },
-    [selectedLotId, lots, patchRoom, patchRoomImmediate]
+    [selectedLotId, lots, patchRoom, patchRoomImmediate, pushRoomsSnapshot]
   );
 
   const handleMoveRoom = useCallback(

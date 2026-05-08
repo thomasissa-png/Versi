@@ -62,6 +62,7 @@ export default function PlanThumbnail({
       {/* Preview */}
       <div className="aspect-[4/3] bg-bg-default flex items-center justify-center overflow-hidden">
         {isImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element -- plan utilisateur servi via API route (pas asset statique) */
           <img
             src={`/api/vs/files?path=${encodeURIComponent(plan.file_path)}`}
             alt={plan.original_filename || "Plan"}

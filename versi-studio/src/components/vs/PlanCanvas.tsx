@@ -108,7 +108,7 @@ const DEFAULT_BORDER_WIDTH = 1.5;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 10;
 const ZOOM_FACTOR = 1.1;
-const ZOOM_RESET_THRESHOLD = 1.05; // bouton reset visible si scale > seuil
+const _ZOOM_RESET_THRESHOLD = 1.05; // bouton reset visible si scale > seuil (gardé pour usage futur)
 const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 };
 
 // Dessin polygone (versi-s20 it3)
@@ -960,7 +960,7 @@ export default function PlanCanvas({
     if (drawingPolygon && e.button === 0) {
       const canvasEl = canvasRef.current;
       if (!canvasEl) return;
-      const rect = canvasEl.getBoundingClientRect();
+      const _rect = canvasEl.getBoundingClientRect();
 
       // Snap fermeture : si >= 3 points + curseur proche du 1er sommet → fermer
       if (drawingPolygonPoints.length >= 3) {
@@ -1621,6 +1621,10 @@ export default function PlanCanvas({
     } else {
       setContextMenu(null);
     }
+    // getCanvasCoords/hitTestLot sont des function declarations (pas useCallback)
+    // — réinstanciées à chaque render. Les inclure ferait re-render le menu contextuel
+    // à chaque frame. React Compiler optimise déjà (cf. ligne 928).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSelectLot]);
 
   // ─── Rendu ────────────────────────────────────────────────────
