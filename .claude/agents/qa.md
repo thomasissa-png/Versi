@@ -276,6 +276,17 @@ Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT test
 
 **Tests verts ≠ feature livrée** (s31 HOTFIX-2 commit `735761b`). Avant clôture livrable v2 d'une feature, ajouter UN test E2E qui visite la **route active utilisateur** (pas seulement les routes des composants v2 isolés). Si la route active rend toujours v1, le test doit FAIL. Source s31 : Vitest 107/107 + Playwright 18/0/2 PASS sur `/visuals/placement` (UI v2 isolée) MAIS aucun test sur `/visuals` (route active rendant encore `VisualRoom` v1) → Thomas voyait l'ancienne UI + job bloqué 10 min en prod. Gate pre-claim : `grep -rn "<NewComponentV2>\|import .*NewComponentV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 ligne, sinon FAIL.
 
+### Règles s33 — Pre-commit Vitest enforced + testTimeout cold-start (propagées s34)
+
+**Pre-commit DOIT inclure `npm run test`, pas seulement `tsc + lint + build`.** Mea culpa s33 commit `1da2d78` poussé avec test FAIL silencieusement parce que Vitest pas dans le pre-commit Versi Studio (cmd n°6 CLAUDE.md = `tsc + lint + build`). Aggravé par cold-start sharp+pg+pdfjs+tesseract ~10s d'import > Vitest `testTimeout: 5000` default. Fix Lot D `b99d45d` :
+
+1. **Hook Husky / `.githooks/pre-commit`** : 4 commandes obligatoires séquentielles `tsc --noEmit && lint && test --run && build`. Si UNE échoue, le hook FAIL.
+2. **`vitest.config.ts` `testTimeout: 30000`** minimum pour les projets avec dépendances natives lourdes (sharp, pdfjs, tesseract, libheif). Le cold-start import peut prendre 10s+ avant la 1re assertion.
+3. **CI GitHub Actions workflow** : 4 jobs séparés (typecheck, lint, test, build) avec branch protection main qui exige ces 4 PASS avant merge.
+4. **Convention `core.hooksPath`** : si le projet utilise `.githooks/` (pas `.husky/`), documenter dans REPLIT_ACTIONS / README l'activation `git config core.hooksPath .githooks` (sinon hook inactif).
+
+**Anti-pattern** : compter sur le test runner en CI seulement. Le hook pre-commit local DOIT bloquer le push, sinon les commits cassés arrivent en prod via les agents auto. Source s33 : commit `1da2d78` poussé sans hook actif, détecté par @fullstack en re-vérification, fix `20b98da`.
+
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system

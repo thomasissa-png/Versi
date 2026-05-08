@@ -511,6 +511,88 @@
 
 ## Mémo de reprise — dernière session
 
+### Mémo de reprise versi-s33 → s34
+
+**Branche dernière clôturée** : `claude/versi-s33-propagation-context-u8L8y`
+**Date de clôture** : 2026-05-07
+**Numéro de session** : 33 (session 34 à venir)
+**Statut s33** : CLÔTURÉE (statique 10/10) — session MASSIVE : propagation gate s32 + audit volumineux + 6 issues prod fix Étape 4 + audit complet 5 agents + cascade autopilot 7 lots + itération Phase 6 + gate finale @moi 9.31/10. ~16 commits, ~3 500 L diff. Reality check Thomas live PENDING (smoke test ~30 min).
+
+**Résumé session s33** (synthèse) :
+
+1. **Gate bloquante propagation P0/P1 s32** (commit `faa5d14`) : 6 P0/P1 + 1 P2 propagés vers 6 agents (`infrastructure`, `fullstack`, `ia`, `orchestrator`, `_base-agent-protocol`, `reviewer`). Tous statuts `non-propagé` → `propagé s33`.
+
+2. **Audit volumineux project-context.md + dédoublonnage founder-prefs** (commit `4aec0b5`) : 6 mémos s22-s27 archivés (TTL > 5 sessions). 1305 → 940 L (-365). Founder-prefs 289 → 118 L (-171, sous cap soft 150).
+
+3. **Cleanup `plan-extractor-mock.ts`** (commits `1da2d78`+`20b98da`) : Option A — RECLARIFIER + RENFORCER (en-tête WARNING + test garde-fou). P0 héritage s28 fermé après 5 sessions.
+
+4. **Bug s33 mea culpa pre-commit Vitest** : commit `1da2d78` poussé avec test FAIL silencieux. @fullstack a corrigé `20b98da`. Root cause : Vitest pas dans pre-commit Versi Studio + cold-start sharp+pg+pdfjs+tesseract ~10s > timeout 5s default. Fix Lot D : `testTimeout: 30000` + Husky enforced.
+
+5. **6 issues prod Thomas Étape 4** (commits `eb21fc2` + `b6f3b58`) : Lot A prompt fixes (#1 portes, #2 saisie marchand prioritaire, #3 multi-angles cassés via `transformSideToCameraFrame`) + Lot B UI fixes (#4 zoom preview lightbox, #5 timeout 240s + cleanup setError) + 33 nouveaux tests Vitest.
+
+6. **Audit complet 5 agents Étape 3+4** (vague 1) : @ux 7 / @design 7.5 / @copy 7 / @qa 6 / @persona 7.5 = moyenne 7.0/10. 9 P0 + 12 P1 cumulés tous axes. Verdict @moi NO-GO 10/10.
+
+7. **Cascade autopilot 7 lots** (commits `10af1f8` `ca4c1e2` `8fcc212` `b99d45d` `bb0112e` `1707c94`) : Lot A copy 3 fixes, Lot B UX 4 P0 (Stepper Étape 4 + Undo/Redo visibles + empty state + hint Générer), Lot C design 6 fixes (token color-info → stone + segments tokens + text-xs + 44px + focus-visible + spinner), Lot D pre-commit Husky + CI GitHub Actions (G29/G30 PASS), Lot E 70 tests régression (37 useVisualsStream + 27 refine cleanup + 6 E2E lightbox), Lot F UX P1 ergonomie (bulk Tout confirmer + toast 8s + suppression undo + sélecteur footer).
+
+8. **Itération Phase 6 ciblée 4 P1 résiduels** (commit `96f4ccc`) : @ux toast UNDO_WINDOW_MS, @persona `uploadez` résiduel, @design 5 fichiers `bg-info`/`text-info` → variante stone, @design badge "Cohérence : réduite" 3.1:1 → stone.
+
+9. **Gate finale @moi GO PROD 10/10 STATIQUE** (commit `9dd1dbe`) : moyenne 9.31/10 (UX 9.5 / Design 9.5 / QA 8.5 / Persona 9.75). 21/21 P0+P1 livrés. 581/581 tests verts. Reality check live OBLIGATOIRE pour passer GO PROD VALIDÉ.
+
+10. **Phase 8 autopilot safe** (en cours) : lint cleanup 91 errors → 0 (G29 100% PASS strict) + extensions design hors périmètre (LotArchitecturalPanel + ChatAgent typing dots → spinner SVG).
+
+**Verdicts validation FINAUX Phase 7** :
+- @ux 9.5/10 — 8/8 fixes PASS, 1 P1 fixé Phase 6
+- @design 9.5/10 — 6/6 PASS, 2 P1 fixés Phase 6
+- @qa 8.5/10 — G29+G30 PASS, 5 dettes gouvernance s34
+- @persona 9.75/10 — GP1-GP10 GO PROD avec micro-fix Phase 6
+- @moi gate finale : GO PROD 10/10 STATIQUE — moyenne 9.31/10
+
+**Risques résiduels** :
+1. **Reality check Thomas live OBLIGATOIRE** (~30 min mobile + desktop + tablette sur Muguets R+1). Sans ça pas de GO PROD VALIDÉ. P0-9 (`useVisualsStream` runtime SSE) testable uniquement live.
+2. **5 dettes gouvernance s34** : runtime `useVisualsStream` SSE non testé (refactor structurel reporté), 91 lint errors (en cours fix Phase 8a), audit visuel pixel-diff sur premières générations IA, matrice traçabilité requirements↔tests, mutation testing Stryker.
+3. **Worker `iterateVisualAsync` fire-and-forget** (signalé Lot B s33) : pattern persistant `vs_visual_jobs` reportable s34. Polling parent SSE compense côté UX. Si Replit autoscale tue le worker sans update DB → visuel bloqué `processing`.
+4. **Pattern `pills-decoys-bug-silencieux-pipeline` répliqué** sur briefs existants (issues #1+#2). Règle wire-grep s32 ne couvrait que nouveaux pills. À renforcer (cf. promotion learnings s33).
+
+**Actions Thomas en attente (ordre)** :
+
+— **Activations infra** (post-merge) :
+1. Sur chaque clone : `git config core.hooksPath .githooks` (sinon hook Husky inactif)
+2. GitHub UI Settings → Branches → Branch protection main → Require status checks (`TypeScript typecheck`, `Vitest unit tests`, `Next.js production build`)
+
+— **Reality check live** (~30 min selon scénario @moi) :
+1. Mobile 375px Étape 3 : Muguets R+1, stepper visible, dessine 1 lot, présélection load
+2. Mobile 375px Étape 4 : empty state visible, FAB Undo/Redo tactile 44px, hint conditionnel, toast Undo 8s
+3. Mobile 375px Génération réelle : 1 pièce, 5 visuels, SSE 240s, lightbox + refine, vérifier zéro `uploadez`/`rattrape l'état`
+4. Desktop 1280px : densité Étape 4 chat + style + placements simultanés
+5. Desktop 1280px : concurrent modification 2 onglets refine simultané
+6. Mobile 768px : densité tablette intermédiaire
+
+— **Si reality check PASS** → s33 archivée GO PROD VALIDÉ + merge sur main + ouverture s34
+— **Si reality check FAIL** → Phase 8 ciblée sur bug runtime détecté
+
+**Prochaines actions recommandées s34** :
+
+- **P1** : reality check Thomas live (priorité absolue, gate validation prod)
+- **P1** : merge `claude/versi-s33-propagation-context-u8L8y` sur main (post reality check)
+- **P2** : 5 dettes gouvernance s34 (runtime `useVisualsStream` refactor structurel + lint résiduel + audit pixel-diff + matrice + mutation testing)
+- **P2** : refacto worker `iterateVisualAsync` fire-and-forget en pattern persistant `vs_visual_jobs`
+- **P2** : audit `bg-warning`/`text-warning` token autres composants (CostEstimator cas warning conservé Phase 6 — vérifier contraste WCAG global)
+- **P3** : feature #6 persistance avant/après Versimo (scope A/B/C en attente — Thomas doit trancher)
+
+**Question gate s33 → s34** :
+> **Le reality check Thomas live a-t-il PASS ?**
+> - **OUI** → priorité s34 = merge sur main + 5 dettes gouvernance + #6 Versimo
+> - **NON** → priorité s34 = Phase 8 ciblée sur bugs runtime détectés
+
+**Nom de branche recommandé s34** : `claude/versi-s34-prod-validation-[suffix]` (post reality check) OU `claude/versi-s34-dettes-gouvernance-[suffix]` (P2 priorisé).
+
+**Commande de reprise s34** :
+```
+@orchestrator Mode reprise de session. Lis project-context.md (mémo s33→s34) et applique le protocole standard. Question gate explicite sur reality check live — adapte les priorités selon ma réponse.
+```
+
+---
+
 ### Mémo de reprise versi-s32 → s33
 
 **Branche dernière clôturée** : `claude/versi-s32-placement-redesign-IpyM0`

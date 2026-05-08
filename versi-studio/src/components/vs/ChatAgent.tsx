@@ -185,11 +185,14 @@ export default function ChatAgent({
           <div className="flex justify-start">
             <div className="bg-bg-default border border-border-default rounded-lg p-sm">
               <div className="flex items-center gap-sm">
-                <div className="flex gap-xs">
-                  <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
+                <svg
+                  className="w-4 h-4 text-text-muted animate-spin shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="40 60" opacity="0.5" />
+                </svg>
                 <span className="text-xs text-text-muted">Modification en cours…</span>
               </div>
             </div>

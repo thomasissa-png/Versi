@@ -187,7 +187,7 @@ export default function PlanCalibration({
           id="calibration-title"
           className="text-xl font-semibold text-[var(--color-text-default)] mb-sm"
         >
-          Donner l'échelle du plan
+          Donner l&apos;échelle du plan
         </h2>
         <p className="text-sm text-[var(--color-text-muted)] mb-md">
           Cliquez sur deux extrémités d&apos;un mur dont vous connaissez la longueur, puis saisissez cette longueur en mètres.

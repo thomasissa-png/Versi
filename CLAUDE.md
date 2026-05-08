@@ -37,7 +37,7 @@ Exception : si project-context.md mentionne une équipe humaine, adapter la cali
 
 Avant tout commit de code dans `src/` :
 ```bash
-npx tsc --noEmit && npx next lint && npm run build
+npx tsc --noEmit && npx next lint && npm run build && npm run test --run
 ```
 Si échec : corriger d'abord, ne PAS commiter.
 

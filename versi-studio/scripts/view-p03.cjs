@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+// Script utilitaire .cjs (CommonJS) — require() obligatoire ici, pas d'ESM.
 const { pdf } = require('pdf-to-img');
 const fs = require('fs');
 (async () => {

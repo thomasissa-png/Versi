@@ -154,7 +154,7 @@ export default function LotArchitecturalPanel({ lot, onChange }: Props) {
               </div>
             );
           })}
-          <p className="text-[11px] text-[var(--color-text-muted)] italic">
+          <p className="text-xs text-[var(--color-text-muted)] italic">
             Ces informations seront intégrées au brief de génération IA pour produire des visuels cohérents avec votre lot.
           </p>
         </div>

@@ -4,6 +4,13 @@ Archive des sessions > 5 sessions ou > 90 jours (TTL commandement n°8 CLAUDE.md
 
 Rotation : à chaque clôture de session, les entrées dont le TTL expire sont déplacées ici. L'historique git garde tout.
 
+## Archive s33 (2026-05-07) — net-zero cmd n°8 : 2 patterns s27.2 stables 5+ sessions
+
+| Session | P | Pattern | Statut |
+|---|---|---|---|
+| s27.2 | P1 | autopilot-grid-time-limit | **Autopilot grid params = time-box strict 5 min sinon kill et réduire grille**. Tentative grid 108 configs s27.2 = 36+ min projeté (~30s/config × 4 plans), killed après 4 itérations. Réduit à 24 configs → 12 min, killed. Pattern : commencer par 12-18 configs ciblées (paramètres clés × 2-3 valeurs chacun), évaluer manuellement le best, refiner si gain marginal. Si > 5 min projeté → kill et réduire la grille avant relance. **Stable** : promu `.claude/agents/ia.md` + `.claude/agents/qa.md`, propagé s28, 5 sessions sans régression. |
+| s27.2 | P1 | preselect-on-load | **Présélection au chargement = visibilité par défaut**. Quand Thomas dit « le lot n'est pas assez visible de base », fix le plus efficace = sélectionner automatiquement le 1er élément au load (pas changer le styling de l'élément non-sélectionné). Pattern useEffect + ref pour ne pas réécraser une sélection user. **Stable** : promu `.claude/agents/ux.md` Règles s27.2 (pattern preselect-default-visibility), propagé s28, 5 sessions sans régression. |
+
 ## Archive s28 (2026-05-03) — net-zero cmd n°8 : 5 patterns s22-s23 promus stables
 
 | Session | P | Pattern | Statut | Action prochaine |

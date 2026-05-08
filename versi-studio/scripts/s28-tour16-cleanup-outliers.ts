@@ -248,7 +248,7 @@ async function main() {
       // Marge de sécurité Inv A : audit ratio [0.85, 1.15] = ±15%.
       // Le polygone IA original peut déjà être à ratio 1.10 → drift 3% supplémentaire
       // amène à 1.13, encore safe. Drift > 5% = risque ratio > 1.15 = FAIL.
-      let cleaned = pruneOutliers(polyPx, allWalls, 5, 0.03);
+      const cleaned = pruneOutliers(polyPx, allWalls, 5, 0.03);
 
       // Étape 2 : Snap progressif (5 / 10 / 15 / 20px) avec garde-fou aire 3%
       const wallsForSnap: WallSegment[] = allWalls;

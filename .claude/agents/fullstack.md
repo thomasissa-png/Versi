@@ -77,6 +77,16 @@ Quand un objet a plusieurs représentations (polygon + bbox, coords UI + coords 
   - [ ] Tags `(dealer-confirmed)` vs `(visually identified)` cohérents
   Commande pre-commit : `grep -rn "build.*Brief\|buildXxx" src/lib/` → vérifier que TOUS les builders consomment le nouveau champ.
 
+### Règles s33 — Wire-grep extension briefs existants + checklist STRICT RULES (propagées s34)
+
+- **La règle wire-grep s32 ne couvre PAS les bugs latents dans les briefs EXISTANTS.** Source s33 (issues #1 + #2 prod Thomas, commit `eb21fc2`) : annotations segments saisies en Étape 3 PATCHaient bien la DB mais N'ARRIVAIENT PAS dans le prompt image. Cause : tag `(dealer-confirmed)` présent mais bloc DEALER INPUT jamais référencé dans STRICT RULES + positionné après segmentBlock + `comment_text`/`user_answers` non taggés individuellement. Le LLM voyait des données « dealer-confirmed » sans directive de priorité → LLM tranchait en faveur de la photo source. **Pattern à appliquer (extension wire-grep s32)** :
+  1. Quand on **modifie l'architecture du prompt** (ajout STRICT RULES, nouveau bloc, nouvelle directive) → re-auditer TOUS les builders qui produisent ce prompt (`buildXxxBrief`, `buildVisualPrompt`, `buildSegmentDescriptionEn`, etc.)
+  2. Tag `(dealer-confirmed)` ne suffit PAS sans **STRICT RULE explicite priorité dealer > photo source** dans le prompt
+  3. **Position du bloc DEALER INPUT dans le prompt = TÊTE** (avant segmentBlock, structuralBlock, autres) — l'ordre influence l'attention LLM
+  4. Tag `(dealer-confirmed, AUTHORITATIVE: these locations override anything inferred from the source photo)` recommandé sur les blocs critiques (segments, contraintes structurelles)
+  5. Tests régression invariant : `anchorPrompt !== secondaryPrompt` sur la portion segments (sinon le LLM voit le même prompt → porte au même endroit visuel sur 2 angles différents)
+  6. Helper référentiel caméra obligatoire pour multi-angles : `transformSideToCameraFrame(planSide, cameraAngleDeg)` qui compose côté plan (vue dessus) → frame caméra (vue interne)
+
 ### Frontend Next.js
 
 - App Router complet : layouts, pages, loading, error, not-found

@@ -1712,7 +1712,7 @@ export async function POST(
                     wallMaskPng[i] = isWall ? 1 : 0;
                   }
                   let totalSnapped = 0;
-                  let totalRollback = 0;
+                  const totalRollback = 0;
                   for (let ri = 0; ri < cleanRooms.length; ri++) {
                     const r = cleanRooms[ri];
                     if (r.polygon.length < 3) continue;

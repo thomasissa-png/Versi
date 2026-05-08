@@ -226,7 +226,7 @@ export async function extractLotsByColorMask(
   //    Sert pour le snap-to-wall final + intégral image (ratio habitable).
   //  - habitableInputMask : close(orange, closeR) → comble les pointillés.
   //    Sert pour le test "est-ce que ce pixel est un mur" (skip dans l'analyse).
-  let structuralMask =
+  const structuralMask =
     morphOpenRadius > 0
       ? morphDilate(morphErode(orangeMask, W, H, morphOpenRadius), W, H, morphOpenRadius)
       : new Uint8Array(orangeMask);
