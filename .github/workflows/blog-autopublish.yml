@@ -1,14 +1,17 @@
 name: Blog auto-publish
 
-# Remplace les crons node-cron intra-process (cassés sur Replit Autoscale :
-# le conteneur dort quand il n'y a pas de trafic, le cron ne se déclenche jamais).
-# GitHub Actions tourne indépendamment du trafic web.
+# Déclenche la génération + publication d'articles côté serveur Replit via un
+# endpoint protégé par token (POST /api/cron/blog-generate). Le serveur a déjà
+# DATABASE_URL + ANTHROPIC_API_KEY ; GitHub n'a donc besoin QUE du token partagé.
+# La requête entrante réveille aussi le conteneur autoscale (qui dort sinon).
 #
 # IMPORTANT : les triggers `schedule` ne s'exécutent QUE depuis la branche par
 # défaut du repo. Ce fichier doit y être mergé pour que les crons s'activent.
 #
-# Horaires en UTC (GitHub ne gère pas l'heure d'été). 07:00 UTC = 9h Paris (CEST,
-# été) / 8h Paris (CET, hiver).
+# Horaires en UTC. 07:00 UTC = 9h Paris (été) / 8h Paris (hiver).
+#
+# Secret requis : CRON_TRIGGER_TOKEN (même valeur dans les Secrets Replit des 2 sites).
+# URLs surchargeables via repo variables INVEST_BASE_URL / IMMO_BASE_URL.
 
 on:
   schedule:
@@ -42,23 +45,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: versi-invest-site/package-lock.json
-      - name: Install dependencies
-        working-directory: versi-invest-site
-        run: npm ci --omit=dev --no-audit --no-fund
-      - name: Generate & publish article
-        working-directory: versi-invest-site
+      - name: Trigger generation
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL_INVEST }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        run: node scripts/generate-blog-article.js
+          TOKEN: ${{ secrets.CRON_TRIGGER_TOKEN }}
+          BASE_URL: ${{ vars.INVEST_BASE_URL || 'https://versi-invest.fr' }}
+        run: |
+          set -euo pipefail
+          echo "POST $BASE_URL/api/cron/blog-generate"
+          out=$(curl -sS --max-time 600 -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "$BASE_URL/api/cron/blog-generate")
+          echo "--- réponse serveur ---"
+          echo "$out"
+          echo "$out" | grep -q "RESULT exit=0"
 
   immobilier:
     name: Versi Immobilier
@@ -69,20 +68,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: versi-immobilier/package-lock.json
-      - name: Install dependencies
-        working-directory: versi-immobilier
-        run: npm ci --omit=dev --no-audit --no-fund
-      - name: Generate & publish article
-        working-directory: versi-immobilier
+      - name: Trigger generation
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL_IMMO }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-        run: node scripts/generate-blog-article.js
+          TOKEN: ${{ secrets.CRON_TRIGGER_TOKEN }}
+          BASE_URL: ${{ vars.IMMO_BASE_URL || 'https://versi-immobilier.fr' }}
+        run: |
+          set -euo pipefail
+          echo "POST $BASE_URL/api/cron/blog-generate"
+          out=$(curl -sS --max-time 600 -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "$BASE_URL/api/cron/blog-generate")
+          echo "--- réponse serveur ---"
+          echo "$out"
+          echo "$out" | grep -q "RESULT exit=0"

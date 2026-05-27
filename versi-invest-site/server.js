@@ -4,7 +4,8 @@ import pg from 'pg';
 import cron from 'node-cron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import { timingSafeEqual } from 'crypto';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -364,6 +365,56 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Trigger externe (GitHub Actions) — génération + publication d'un article.
+// Remplace le node-cron intra-process, inopérant sur Replit Autoscale
+// (scale-to-zero quand pas de trafic). La requête reste ouverte avec un
+// heartbeat pour garder l'instance éveillée le temps de la génération.
+// Protégé par CRON_TRIGGER_TOKEN (Authorization: Bearer ... ou x-cron-token).
+// ---------------------------------------------------------------------------
+let blogGenRunning = false;
+
+function safeTokenEqual(provided, expected) {
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+app.post('/api/cron/blog-generate', (req, res) => {
+  const expected = process.env.CRON_TRIGGER_TOKEN;
+  if (!expected) return res.status(503).json({ error: 'CRON_TRIGGER_TOKEN non configuré' });
+
+  const auth = req.get('authorization') || '';
+  const provided = auth.startsWith('Bearer ') ? auth.slice(7) : (req.get('x-cron-token') || '');
+  if (!safeTokenEqual(provided, expected)) return res.status(401).json({ error: 'Token invalide' });
+
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY absent' });
+  if (blogGenRunning) return res.status(409).json({ error: 'Génération déjà en cours' });
+
+  blogGenRunning = true;
+  res.set('Content-Type', 'text/plain; charset=utf-8');
+  res.write(`[CRON] ${new Date().toISOString()} — démarrage génération...\n`);
+
+  const child = spawn('node', ['scripts/generate-blog-article.js'], { cwd: __dirname, env: process.env });
+  child.stdout.on('data', (d) => res.write(d));
+  child.stderr.on('data', (d) => res.write(d));
+
+  const heartbeat = setInterval(() => res.write('.'), 15000);
+  const hardTimeout = setTimeout(() => { res.write('\n[CRON] Timeout 8 min — arrêt forcé.\n'); child.kill('SIGKILL'); }, 480000);
+
+  const finish = (code) => {
+    clearInterval(heartbeat);
+    clearTimeout(hardTimeout);
+    blogGenRunning = false;
+    res.write(`\n[CRON] RESULT exit=${code}\n`);
+    res.end();
+  };
+  child.on('close', (code) => finish(code));
+  child.on('error', (err) => { res.write(`\n[CRON] Erreur spawn : ${err.message}\n`); finish(1); });
+});
+
+// ---------------------------------------------------------------------------
 // SPA fallback — toutes les routes non-API renvoient index.html
 // ---------------------------------------------------------------------------
 app.get('/{*splat}', (req, res) => {
@@ -378,6 +429,10 @@ app.get('/{*splat}', (req, res) => {
 // Cron blog — node-cron (génération + renouvellement éditorial)
 // ---------------------------------------------------------------------------
 function scheduleBlogCron() {
+  if (process.env.CRON_TRIGGER_TOKEN) {
+    console.log('[CRON] CRON_TRIGGER_TOKEN présent — crons intra-process désactivés (pilotés par trigger externe).');
+    return;
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
     console.log('[CRON] ANTHROPIC_API_KEY absent — crons blog désactivés.');
     return;
