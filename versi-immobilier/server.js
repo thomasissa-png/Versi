@@ -1827,10 +1827,10 @@ async function seedBlogQueue(client) {
       if (!meta.title || !meta.slug) continue;
       const tags = meta.tags ? JSON.stringify(meta.tags.split(',').map((t) => t.trim())) : '[]';
       const res = await client.query(
-        `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())
+        `INSERT INTO blog_articles (id, title, slug, excerpt, content, author, tags, status, published_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', NOW())
          ON CONFLICT (slug) DO NOTHING`,
-        [meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Équipe Versi — Maxime, Thomas & Carl', tags],
+        [crypto.randomUUID(), meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Équipe Versi — Maxime, Thomas & Carl', tags],
       );
       if (res.rowCount > 0) count += 1;
     } catch (err) {

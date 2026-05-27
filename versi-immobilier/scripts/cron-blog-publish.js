@@ -23,6 +23,7 @@
 
 import pg from 'pg';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join, basename } from 'path';
 
@@ -73,12 +74,12 @@ async function publishFile(filePath) {
     : '[]';
 
   await pool.query(
-    `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())
+    `INSERT INTO blog_articles (id, title, slug, excerpt, content, author, tags, status, published_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', NOW())
      ON CONFLICT (slug) DO UPDATE
-       SET title = $1, excerpt = $3, content = $4, author = $5, tags = $6,
+       SET title = $2, excerpt = $4, content = $5, author = $6, tags = $7,
            status = 'published', updated_at = NOW()`,
-    [meta.title, meta.slug, meta.excerpt || '', content, meta.author || DEFAULT_AUTHOR, tags],
+    [randomUUID(), meta.title, meta.slug, meta.excerpt || '', content, meta.author || DEFAULT_AUTHOR, tags],
   );
   console.log(`[CRON] Article publié : "${meta.title}"`);
   return true;
