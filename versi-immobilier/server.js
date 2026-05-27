@@ -1807,6 +1807,39 @@ app.get('/{*splat}', (req, res) => {
 // ---------------------------------------------------------------------------
 const MUGUETS_IDS = MUGUETS_PROPERTIES.map(p => p.id);
 
+// Publie au boot les articles pré-rédigés déposés dans scripts/blog-queue/.
+// Idempotent : ON CONFLICT (slug) DO NOTHING — ne touche pas aux articles existants.
+// Non bloquant : toute erreur est loguée sans interrompre le boot.
+async function seedBlogQueue(client) {
+  const queueDir = join(__dirname, 'scripts', 'blog-queue');
+  if (!fs.existsSync(queueDir)) return;
+  let count = 0;
+  for (const file of fs.readdirSync(queueDir).filter((f) => f.endsWith('.md'))) {
+    try {
+      const raw = fs.readFileSync(join(queueDir, file), 'utf-8');
+      const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+      if (!m) continue;
+      const meta = {};
+      m[1].split('\n').forEach((line) => {
+        const i = line.indexOf(':');
+        if (i > -1) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+      });
+      if (!meta.title || !meta.slug) continue;
+      const tags = meta.tags ? JSON.stringify(meta.tags.split(',').map((t) => t.trim())) : '[]';
+      const res = await client.query(
+        `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())
+         ON CONFLICT (slug) DO NOTHING`,
+        [meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Équipe Versi — Maxime, Thomas & Carl', tags],
+      );
+      if (res.rowCount > 0) count += 1;
+    } catch (err) {
+      console.error(`[SEED-QUEUE] Erreur sur ${file} : ${err.message}`);
+    }
+  }
+  console.log(`[SEED-QUEUE] ${count} article(s) publié(s) depuis la file.`);
+}
+
 async function autoSeed() {
   const client = await pool.connect();
   try {
@@ -1847,6 +1880,9 @@ async function autoSeed() {
     if (authorFix.rowCount > 0) {
       console.log(`[autoSeed] ${authorFix.rowCount} article(s) : auteur corrigé → Équipe Versi`);
     }
+
+    // 4bis. Publier les articles pré-rédigés déposés dans scripts/blog-queue/
+    await seedBlogQueue(client);
 
     // 5. Upsert biens Muguets (même si table non vide — garantit données à jour)
     for (const prop of MUGUETS_PROPERTIES) {

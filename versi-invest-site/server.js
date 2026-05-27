@@ -497,6 +497,43 @@ function scheduleBlogCron() {
 // initDatabase() et scheduleBlogCron() s'exécutent en arrière-plan APRÈS
 // que listen() ait accepté des connexions — le proxy Replit reçoit donc
 // une réponse immédiate sur /api/live dès le boot.
+// Publie au boot les articles pré-rédigés déposés dans scripts/blog-queue/.
+// Idempotent : ON CONFLICT (slug) DO NOTHING — ne touche pas aux articles existants.
+// Non bloquant : toute erreur est loguée sans interrompre le boot.
+async function seedBlogQueue() {
+  try {
+    const queueDir = join(__dirname, 'scripts', 'blog-queue');
+    if (!fs.existsSync(queueDir)) return;
+    let count = 0;
+    for (const file of fs.readdirSync(queueDir).filter((f) => f.endsWith('.md'))) {
+      try {
+        const raw = fs.readFileSync(join(queueDir, file), 'utf-8');
+        const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+        if (!m) continue;
+        const meta = {};
+        m[1].split('\n').forEach((line) => {
+          const i = line.indexOf(':');
+          if (i > -1) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+        });
+        if (!meta.title || !meta.slug) continue;
+        const tags = meta.tags ? JSON.stringify(meta.tags.split(',').map((t) => t.trim())) : '[]';
+        const res = await pool.query(
+          `INSERT INTO blog_articles (title, slug, excerpt, content, author, tags, status, published_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW())
+           ON CONFLICT (slug) DO NOTHING`,
+          [meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Versi Invest', tags],
+        );
+        if (res.rowCount > 0) count += 1;
+      } catch (err) {
+        console.error(`[SEED-QUEUE] Erreur sur ${file} : ${err.message}`);
+      }
+    }
+    console.log(`[SEED-QUEUE] ${count} article(s) publié(s) depuis la file.`);
+  } catch (err) {
+    console.error(`[SEED-QUEUE] Erreur : ${err.message}`);
+  }
+}
+
 // (s26-it2 — fix DNS cache overflow : régression it1 corrigée. Avant,
 // initDatabase() était awaited AVANT listen() et bloquait le boot → 503.)
 app.listen(PORT, '0.0.0.0', () => {
@@ -506,6 +543,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // du proxy Replit aux healthchecks)
   initDatabase()
     .then(() => console.log('[BOOT] initDatabase OK'))
+    .then(() => seedBlogQueue())
     .catch((err) => console.error('[BOOT] initDatabase ERROR :', err.message));
 
   try {
