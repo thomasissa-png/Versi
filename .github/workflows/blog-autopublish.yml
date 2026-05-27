@@ -1,0 +1,88 @@
+name: Blog auto-publish
+
+# Remplace les crons node-cron intra-process (cassés sur Replit Autoscale :
+# le conteneur dort quand il n'y a pas de trafic, le cron ne se déclenche jamais).
+# GitHub Actions tourne indépendamment du trafic web.
+#
+# IMPORTANT : les triggers `schedule` ne s'exécutent QUE depuis la branche par
+# défaut du repo. Ce fichier doit y être mergé pour que les crons s'activent.
+#
+# Horaires en UTC (GitHub ne gère pas l'heure d'été). 07:00 UTC = 9h Paris (CEST,
+# été) / 8h Paris (CET, hiver).
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # Lundi  — Versi Invest
+    - cron: '0 7 * * 4'   # Jeudi  — Versi Immobilier
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site à publier (run manuel)'
+        type: choice
+        options:
+          - both
+          - invest
+          - immobilier
+        default: both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-autopublish
+  cancel-in-progress: false
+
+jobs:
+  invest:
+    name: Versi Invest
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '0 7 * * 1') ||
+      (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.site == 'invest' || github.event.inputs.site == 'both'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: versi-invest-site/package-lock.json
+      - name: Install dependencies
+        working-directory: versi-invest-site
+        run: npm ci --omit=dev --no-audit --no-fund
+      - name: Generate & publish article
+        working-directory: versi-invest-site
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_INVEST }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        run: node scripts/generate-blog-article.js
+
+  immobilier:
+    name: Versi Immobilier
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '0 7 * * 4') ||
+      (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.site == 'immobilier' || github.event.inputs.site == 'both'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: versi-immobilier/package-lock.json
+      - name: Install dependencies
+        working-directory: versi-immobilier
+        run: npm ci --omit=dev --no-audit --no-fund
+      - name: Generate & publish article
+        working-directory: versi-immobilier
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_IMMO }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        run: node scripts/generate-blog-article.js
