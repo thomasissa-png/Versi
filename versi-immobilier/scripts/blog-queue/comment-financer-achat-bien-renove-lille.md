@@ -83,4 +83,4 @@ Les honoraires d'un courtier varient entre 0 et 1 % du montant emprunté selon q
 
 ## Ce que vous pouvez faire maintenant
 
-Si vous cherchez un bien rénové à Lille, commencez par cadrer votre capacité de financement avant de visiter. Regardez ce que nous avons disponible du côté de nos [biens](/nos-biens) — et si vous avez un projet défini, le plus direct est de [nous contacter](/contact). Nous pouvons vous donner une lecture concrète du prix au vu du bien, ce qui facilite votre discussion avec votre banque.
+Si vous cherchez un bien rénové à Lille, commencez par cadrer votre capacité de financement avant de visiter. Regardez ce que nous avons disponible du côté de nos [biens](/nos-biens) — et si vous avez un projet défini, le plus direct est de [nous contacter](/contact). Nous pouvons vous donner une lecture concrète du prix au vu du bien, ce qui facilite votre discussion avec votre banque. Un financement achat immobilier Lille préparé en amont reste votre principal atout face à un marché qui bouge vite.

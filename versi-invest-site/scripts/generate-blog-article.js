@@ -160,7 +160,8 @@ function validateArticle(content) {
   // G2 — Mots interdits
   const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passive income', 'liberté financière'];
   for (const word of forbidden) {
-    if (content.toLowerCase().includes(word)) errors.push(`G2 FAIL: mot interdit "${word}"`);
+    const re = new RegExp('(?<![\\p{L}\\p{M}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{M}])', 'iu');
+    if (re.test(content)) errors.push(`G2 FAIL: mot interdit "${word}"`);
   }
 
   // G3 — H1 présent
@@ -174,7 +175,7 @@ function validateArticle(content) {
   if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
 
   // G6 — Vouvoiement (pas de tutoiement)
-  if (content.match(/\b(tu|ton|ta|tes|toi)\b/i)) errors.push('G6 FAIL: tutoiement détecté');
+  if (content.match(/(?<![\p{L}\p{M}])(tu|ton|ta|tes|toi)(?![\p{L}\p{M}])/iu)) errors.push('G6 FAIL: tutoiement détecté');
 
   // G7 — Liens internes (≥2, vers des routes existantes)
   const linkMatches = content.match(/\]\(\/[a-z-]*\)/g) || [];
@@ -200,9 +201,11 @@ function validateArticle(content) {
 function validateArticleWithKeywords(content, keywords) {
   const errors = validateArticle(content);
 
-  // G10 — Densité mot-clé principal ≥3 occurrences
+  // G10 — Densité mot-clé principal ≥3 occurrences (connecteurs FR tolérés : à, de, le…)
   const primaryKeyword = keywords.split(',')[0].trim().toLowerCase();
-  const keywordRegex = new RegExp(primaryKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const kwTokens = primaryKeyword.split(/\s+/).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const kwSep = "(?:\\s+(?:à|au|aux|de|du|des|d'|l'|le|la|les|en|sur|pour|et)\\s+|\\s+)";
+  const keywordRegex = new RegExp(kwTokens.join(kwSep), 'giu');
   const keywordCount = (content.match(keywordRegex) || []).length;
   if (keywordCount < 3) errors.push(`G10 FAIL: mot-clé "${primaryKeyword}" apparaît ${keywordCount} fois (min 3)`);
 

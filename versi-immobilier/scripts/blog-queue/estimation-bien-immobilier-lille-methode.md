@@ -96,4 +96,4 @@ Avant de faire estimer votre bien, rassemblez ces éléments — ils accélèren
 - Factures de travaux réalisés (avec date et montant)
 - Bail en cours si le bien est loué
 
-Si vous souhaitez un avis factuel sur la valeur de votre bien avant de prendre une décision, consultez d'abord nos [réalisations](/realisations) pour voir le type de biens que nous traitons — puis [contactez-nous](/contact) directement. Nous vous donnerons une lecture sans engagement, basée sur les transactions réelles du secteur.
+Une estimation bien immobilier Lille fiable repose toujours sur des transactions réelles, jamais sur un simple simulateur. Si vous souhaitez un avis factuel sur la valeur de votre bien avant de prendre une décision, consultez d'abord nos [réalisations](/realisations) pour voir le type de biens que nous traitons — puis [contactez-nous](/contact) directement. Nous vous donnerons une lecture sans engagement, basée sur les transactions réelles du secteur.

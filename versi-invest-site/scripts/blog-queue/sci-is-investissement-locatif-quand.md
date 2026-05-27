@@ -8,7 +8,7 @@ author: Versi Invest
 
 # SCI à l'IS pour l'investissement locatif : quand ça vaut le coup, quand non
 
-La SCI IS permet d'amortir le bien et de réduire significativement la fiscalité annuelle sur les loyers. Mais elle génère une double imposition à la revente qui peut effacer des années d'économies. Avant d'opter pour cette structure, voici les paramètres qui font vraiment la différence.
+La SCI IS permet d'amortir le bien et de réduire significativement la fiscalité annuelle sur les loyers. Mais elle génère une double imposition à la revente qui peut effacer des années d'économies. Avant d'opter pour cette structure, voici les paramètres qui font vraiment la différence. Bien calibrée, la SCI IS en investissement locatif réduit la pression fiscale annuelle ; mal utilisée, elle coûte cher à la revente.
 
 ---
 
@@ -51,7 +51,7 @@ La règle de base : si vous envisagez de revendre le bien, la SCI IS est raremen
 
 ## Dans quels cas la SCI IS vaut le coup
 
-Voici les situations où la SCI IS est réellement avantageuse :
+Voici les situations où la SCI IS en investissement locatif est réellement avantageuse :
 
 **Stratégie de réinvestissement perpétuel.** Vous utilisez les bénéfices de la société pour racheter d'autres biens, sans jamais sortir les liquidités. L'IS à 15 % sur les premiers bénéfices est moins élevé que votre tranche IR, et vous réinvestissez en net d'IS plutôt qu'en net d'IR+PS. Sur 15 à 20 ans, l'effet de levier est réel.
 
@@ -81,7 +81,7 @@ Avant de constituer une SCI IS, posez ces questions à votre expert-comptable ou
 4. Vais-je louer nu ou meublé ?
 5. Combien de biens je prévois de porter dans la structure ?
 
-Ces cinq questions structurent le choix. Il n'y a pas de réponse universelle — il y a une réponse adaptée à votre situation patrimoniale et à votre horizon.
+Ces cinq questions structurent le choix d'une SCI IS pour investissement locatif. Il n'y a pas de réponse universelle — il y a une réponse adaptée à votre situation patrimoniale et à votre horizon.
 
 Pour comprendre comment nous analysons la structure de financement et la fiscalité dans nos dossiers d'investissement, consultez notre page [comment ça marche](/comment-ca-marche). Vous pouvez aussi voir les profils d'opérations que nous avons déjà menées sur notre page [références](/references).
 

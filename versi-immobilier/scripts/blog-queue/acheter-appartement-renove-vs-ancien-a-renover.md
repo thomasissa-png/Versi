@@ -98,7 +98,7 @@ Ce calcul ne s'applique pas à toutes les situations. Si vous avez les compéten
 
 ## Comment choisir selon votre situation
 
-La réponse n'est pas universelle. Voici les critères qui font pencher la balance :
+Le choix appartement rénové vs à rénover n'a pas de réponse universelle. Voici les critères qui font pencher la balance :
 
 **Optez pour un appartement rénové si :**
 - Vous êtes primo-accédant avec un apport limité

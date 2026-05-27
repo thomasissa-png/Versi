@@ -22,7 +22,7 @@ Ce différentiel s'explique par la structure socio-économique de la ville : Rou
 
 ## Ce que le rendement brut ne dit pas
 
-C'est là que la réalité diverge du discours commercial. Un rendement brut de 10 % à Roubaix peut se transformer en cashflow négatif si vous n'avez pas anticipé les éléments suivants.
+C'est là que la réalité diverge du discours commercial. Le rendement locatif à Roubaix affiché en brut — 10 % ou plus — peut se transformer en cashflow négatif si vous n'avez pas anticipé les éléments suivants.
 
 **La vacance locative** est structurellement plus longue dans certains quartiers. Sur des secteurs difficiles, il n'est pas rare d'attendre 2 à 4 mois entre deux locataires. Si vous calculez sur la base de 12 mois de loyers perçus, vous surestimez vos revenus de 17 % à 33 %.
 
@@ -71,7 +71,7 @@ Ce n'est pas la ruine — mais ce n'est pas non plus le rendement à deux chiffr
 
 ## Ce que vaut Roubaix dans une stratégie globale
 
-Roubaix a du sens dans un portefeuille diversifié, pas comme unique pari. Si vous combinez un bien à Roubaix (rendement brut élevé, risque plus fort) avec un bien à Valenciennes ou dans le tissu de la métropole lilloise (rendement brut modéré, risque maîtrisé), vous équilibrez votre portefeuille sur deux logiques différentes.
+Le rendement locatif à Roubaix a du sens dans un portefeuille diversifié, pas comme unique pari. Si vous combinez un bien à Roubaix (rendement brut élevé, risque plus fort) avec un bien à Valenciennes ou dans le tissu de la métropole lilloise (rendement brut modéré, risque maîtrisé), vous équilibrez votre portefeuille sur deux logiques différentes.
 
 C'est ce qu'on observe chez les investisseurs qui opèrent dans la région depuis 5 à 10 ans : ils ne fuient pas Roubaix, ils la dosent.
 

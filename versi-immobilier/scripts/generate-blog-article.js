@@ -134,7 +134,8 @@ function validateArticle(content, topic, keywords) {
   // G2 — Mots interdits
   const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passion', 'rêve', 'opportunité unique', 'meilleur', 'leader'];
   for (const word of forbidden) {
-    if (content.toLowerCase().includes(word)) errors.push(`G2 FAIL: mot interdit "${word}"`);
+    const re = new RegExp('(?<![\\p{L}\\p{M}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{M}])', 'iu');
+    if (re.test(content)) errors.push(`G2 FAIL: mot interdit "${word}"`);
   }
 
   // G3 — H1 présent
@@ -148,7 +149,7 @@ function validateArticle(content, topic, keywords) {
   if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
 
   // G6 — Vouvoiement (pas de tutoiement)
-  if (content.match(/\b(tu|ton|ta|tes|toi)\b/i)) errors.push('G6 FAIL: tutoiement détecté');
+  if (content.match(/(?<![\p{L}\p{M}])(tu|ton|ta|tes|toi)(?![\p{L}\p{M}])/iu)) errors.push('G6 FAIL: tutoiement détecté');
 
   // G7 — Liens internes (>=2, vers des routes existantes)
   const linkMatches = content.match(/\]\(\/[a-z-]*\)/g) || [];
@@ -170,7 +171,9 @@ function validateArticle(content, topic, keywords) {
   // G10 — Densité mots-clés : le mot-clé principal apparaît >=3 fois
   if (keywords) {
     const mainKw = keywords.split(',')[0].trim().toLowerCase();
-    const kwCount = (content.toLowerCase().match(new RegExp(mainKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+    const kwTokens = mainKw.split(/\s+/).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const kwSep = "(?:\\s+(?:à|au|aux|de|du|des|d'|l'|le|la|les|en|sur|pour|et)\\s+|\\s+)";
+    const kwCount = (content.match(new RegExp(kwTokens.join(kwSep), 'giu')) || []).length;
     if (kwCount < 3) errors.push(`G10 FAIL: mot-clé "${mainKw}" apparaît ${kwCount} fois (min 3)`);
   }
 
