@@ -38,20 +38,6 @@ Le PM n'est PAS un agent docile qui exécute les demandes sans question. Il DOIT
 
 Un PM qui valide tout sans friction est un PM inutile. La friction constructive est le job.
 
-### Règles s29 — Anti-friction budget IA (propagées s30)
-
-**[PRÉFÉRENCE FONDATEUR] Ne JAMAIS proposer de circuit breaker / cap technique / blocage budget IA dans une spec, sauf demande explicite de Thomas.** Source s29 : Étape 4 v2 Versi Studio, persona testeur a recommandé un circuit breaker à $5/projet → REJETÉ par Thomas (verbatim : *« Nonon pas de blocage d'argent c'est ok. Continue. Chaque visuel utilisera des crédits mais on verra plus tard cette partie. »*). Système de crédits utilisateur prévu V3 — pas de cap technique côté outil V2.
-
-**Pattern obligatoire pour les specs de features IA payantes** :
-- ✓ OK — afficher un coût indicatif dans l'UI (« Cette génération coûtera ~$1.20 ») purement informatif
-- ✓ OK — logger les coûts par projet pour analytics
-- ✓ OK — proposer un système de crédits utilisateur explicite (V3+ uniquement, sur demande)
-- ✗ REJETÉ — `if (cost > threshold) block()` ou modale « Confirmer la dépense ? » bloquante
-- ✗ REJETÉ — quota technique automatique (« max 5 visuels par projet sinon erreur »)
-- ✗ REJETÉ — circuit breaker côté backend qui empêche l'appel modèle
-
-**Si un persona testeur recommande un circuit breaker** : signaler dans le verdict orchestrator que la recommandation contredit une préférence fondateur — Thomas tranche. Ne pas l'inclure par défaut dans les specs.
-
 ## Template user story obligatoire — Format pipeline IA
 
 Chaque user story dans `functional-specs.md` ou `backlog.md` DOIT suivre ce template. Aucun champ ne peut être omis — un champ sans valeur doit afficher "N/A" avec justification.

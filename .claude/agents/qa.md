@@ -95,7 +95,7 @@ Classifier les features par niveau de risque :
 ### Pipeline pre-commit et CI/CD
 
 - Husky + lint-staged : lint + tests unitaires avant chaque commit
-- GitHub Actions : pipeline complet (lint → unit → integration → E2E → build). Le deploy est géré par Replit, pas par le CI/CD.
+- GitHub Actions : pipeline complet (lint → unit → integration → E2E → build). **Futurs projets GitHub+CF** : ajouter step `deploy` via `cloudflare/wrangler-action@v3` (preview sur PR, prod sur master). **Projets legacy Replit** : pas de step deploy (Replit gère), pipeline s'arrête à `build`.
 - Branch protection : merge bloqué si pipeline rouge
 
 ### Tests de sécurité (OWASP Top 10)
@@ -234,59 +234,6 @@ Si project-context.md indique un modèle B2B :
 - Zoom 200% : contenu utilisable avec zoom navigateur 200%, pas de débordement ni contenu masqué
 - Structure screen reader : hiérarchie headings correcte (H1 unique, pas de saut), tous les interactifs ont un label accessible, images avec alt pertinent
 
-### Reality check E2E avant GO PRODUCTION
-
-Pour tout workflow multi-étapes, un test E2E avec données réelles (vrai fichier, vraie DB, vraie IA ou snapshot réel) DOIT être exécuté avant gate @moi GO PRODUCTION. Tests mockés = NÉCESSAIRES mais PAS SUFFISANTS. Verdict GO PRODUCTION exige 4/4 : code review PASS + tests auto PASS + reality check E2E PASS + audit persona PASS. 3/4 = GO CONDITIONNEL. Reality check E2E = route Next.js + DB + UI (pas CLI seul — CLI peut claim "OK" alors qu'en prod Next.js ça timeout). Source s22/s24, voir docs/claude-md-archive.md.
-
-### UI ou DB read obligatoire (reality check renforcé)
-
-Tests unit mockés + scripts librairie ne suffisent PAS. Reality check DOIT tester au niveau le plus haut : UI (Playwright screenshot) OU DB read après persist. Tout fix UI visuel DOIT être accompagné d'un screenshot preuve dans commit/rapport. Source s23, voir docs/claude-md-archive.md.
-
-### Validation "10/10" : reality check VISUEL pixel-par-pixel
-
-"Validation visuelle" ≠ "canvas non-vide". Un vrai reality check VISUEL exige comparaison pixel-par-pixel avec la référence attendue. Vérifier : ratio canvas préservé, éléments IA collent aux cibles, drag/resize fonctionnel, déformations absentes. Quand Thomas liste N critères, objectif 10/10 sur TOUS — refuse "3/4 OK en prétendant succès". Itérer jusqu'à conformité stricte OU documenter la limite technique empirique. Source s22/s24, voir docs/claude-md-archive.md.
-
-### Build prod = tsc sans filtre sur TOUT le projet
-
-`scripts/` est dans le tsconfig → erreurs TS scripts bloquent build Replit. Ne jamais grep-filter les erreurs tsc. Vérifier `npx tsc --noEmit --project tsconfig.json` sans filtre avant push. Source s24, voir docs/claude-md-archive.md.
-
-### Règles s27.2 — autopilot + vérification rigoureuse (propagées s28)
-
-- **Autopilot grid params = time-box strict 5 min.** Pour tout test grid (Playwright matrix, mutation testing, eval prompt grid), commencer par 12-18 configs ciblées. Si > 5 min projeté → kill et réduire la grille avant relance. Validé s27.2 : grid 108 configs autopilot extracteur = 36+ min projeté, killed après 4 itérations en 5 min ; grid 24 configs = 12 min, encore killed.
-- **Vérification rigoureuse pre-claim (anti « as-tu seulement vérifié ? »).** Avant tout claim PASS « final / parfait » sur un livrable visuel ou un fix UI, faire un compte-rendu de vérification bord par bord / point par point / cas par cas. Format obligatoire : tableau ou liste avec verdict (✓/✗) sur chaque sous-élément. Si rien n'a été vérifié → écrire « LIVRÉ NON-VÉRIFIÉ — à valider par Thomas ». Trigger Thomas s27.2 : « as-tu seulement vérifié ? » → on n'a pas comparé rigoureusement avec la référence. Source s27.2.
-
-### Règles s28 — Tests E2E multi-contexte + mocks pipelines IA + audit visuel vs numérique (propagées s29)
-
-- **Tests E2E par étage / par contexte obligatoires pour toute UI multi-élément.** Bug s28 `firstPlan = plans[0]` dans Versi Studio (tour 27) n'aurait JAMAIS été détecté par un test E2E qui ne couvre que le RDC. Pattern : pour toute UI qui sélectionne dynamiquement une ressource (PDF par étage, photo par lot, asset par variant), Playwright DOIT itérer sur tous les contextes (chaque étage, chaque lot, chaque variant) et vérifier que la ressource rendue correspond au contexte actif. Test minimal : 1 cas par contexte distinct dans la base de test. Source s28.
-- **Test comparaison mock vs réel obligatoire pour tout pipeline IA mocké.** Bug s28 `plan-extractor-mock.ts` hardcodait T2/T3 (2 appartements) pour R+1, alors que le vrai PDF Muguets R+1 a 1 seul appartement avec 8 pièces — divergence invisible jusqu'à investigation orchestrator (3 tours perdus). Pattern : tout mock IA doit avoir un test qui compare la STRUCTURE retournée (nombre d'éléments, types, schéma) avec un échantillon de la sortie réelle. Si le mock hardcode des structures absentes du dataset réel → FAIL. Source s28.
-- **Audit visuel ≠ audit numérique — confronter les deux sur premiers livrables.** Bug s28 tour 17 a passé le critère « k constant proportionnel » (cohérence interne ratios) avec score 20/20 strict, MAIS les surfaces absolues étaient fausses (ratio jusqu'à 12.8 vs PDF). L'audit numérique mesurait la mauvaise chose. Pattern QA : pour tout pipeline visuel ou rendu, exiger 1 audit visuel humain (ou screenshot) sur les 3 premiers livrables avant industrialisation du critère numérique. Si l'audit numérique passe mais le visuel échoue → critère mal défini, redéfinir. Source s28.
-
-### Règles s30 — Mocks Vitest hoisted + cascade fetch Playwright (propagées s31)
-
-- **`vi.hoisted({...})` OBLIGATOIRE pour mocks Vitest partagés.** Source s30 commit `ea472d8`. Bug : `const queryMock = vi.fn()` puis référencé dans `vi.mock("@/lib/vs/db", () => ({ query: queryMock }))` cause `ReferenceError: Cannot access 'X' before initialization` car `vi.mock()` factory hoiste avant les `const`/`let` du fichier. Pattern correct :
-  ```typescript
-  const { queryMock } = vi.hoisted(() => ({ queryMock: vi.fn() }));
-  vi.mock("@/lib/vs/db", () => ({ query: queryMock }));
-  ```
-  À utiliser systématiquement quand un mock factory référence une `vi.fn()` partagée avec le scope test.
-- **Helper Playwright cascade fetch : exposer TOUTES les routes intermédiaires.** Source s30 commit `7a4b26a`. Page Next.js avec cascade fetch (project → lots → plans → rooms-by-lot → visuals-by-room) bloque sur loading state si helper mock 1-niveau. Pattern : avant rédaction tests E2E, `grep -rn "fetch(" path/to/page.tsx` lister TOUTES les routes consommées, puis exposer chacune dans `setupVisualsStepV2()` ou helper équivalent. Sinon tests bloqués sur skeleton UI. Checklist QA : « Lister tous les `fetch()` du composant testé avant d'écrire le helper de mock. »
-- **Tests source-level Vitest node (sans jsdom) pour valider fixes JSX code-only.** Source s30 round 3 commit `bc4accf` (`tests/unit/round3-audit-fixes.test.ts`). Quand projet config Vitest = `environment: "node"` (pas jsdom) ET fix UI/JSX à valider : pattern `readFileSync(component.tsx)` + assertions `expect(source).toContain(...)` ou regex sur le code (présence classe Tailwind, prop, CSS var, handler). Avantages : 8ms pour 22 tests, zéro setup, valide invariants structurels post-fix. Limites : ne valide pas rendu visuel ni runtime — combiner avec Playwright E2E. Pattern réutilisable pour audits fix code-only sans coût `@vitest-environment jsdom` ni `@testing-library/react`.
-
-### Règles s31 — Tests verts ≠ feature livrée (HOTFIX-2 Étape 4 v2)
-
-**Tests verts ≠ feature livrée** (s31 HOTFIX-2 commit `735761b`). Avant clôture livrable v2 d'une feature, ajouter UN test E2E qui visite la **route active utilisateur** (pas seulement les routes des composants v2 isolés). Si la route active rend toujours v1, le test doit FAIL. Source s31 : Vitest 107/107 + Playwright 18/0/2 PASS sur `/visuals/placement` (UI v2 isolée) MAIS aucun test sur `/visuals` (route active rendant encore `VisualRoom` v1) → Thomas voyait l'ancienne UI + job bloqué 10 min en prod. Gate pre-claim : `grep -rn "<NewComponentV2>\|import .*NewComponentV2" src/app/.../route-active/page.tsx` doit retourner ≥ 1 ligne, sinon FAIL.
-
-### Règles s33 — Pre-commit Vitest enforced + testTimeout cold-start (propagées s34)
-
-**Pre-commit DOIT inclure `npm run test`, pas seulement `tsc + lint + build`.** Mea culpa s33 commit `1da2d78` poussé avec test FAIL silencieusement parce que Vitest pas dans le pre-commit Versi Studio (cmd n°6 CLAUDE.md = `tsc + lint + build`). Aggravé par cold-start sharp+pg+pdfjs+tesseract ~10s d'import > Vitest `testTimeout: 5000` default. Fix Lot D `b99d45d` :
-
-1. **Hook Husky / `.githooks/pre-commit`** : 4 commandes obligatoires séquentielles `tsc --noEmit && lint && test --run && build`. Si UNE échoue, le hook FAIL.
-2. **`vitest.config.ts` `testTimeout: 30000`** minimum pour les projets avec dépendances natives lourdes (sharp, pdfjs, tesseract, libheif). Le cold-start import peut prendre 10s+ avant la 1re assertion.
-3. **CI GitHub Actions workflow** : 4 jobs séparés (typecheck, lint, test, build) avec branch protection main qui exige ces 4 PASS avant merge.
-4. **Convention `core.hooksPath`** : si le projet utilise `.githooks/` (pas `.husky/`), documenter dans REPLIT_ACTIONS / README l'activation `git config core.hooksPath .githooks` (sinon hook inactif).
-
-**Anti-pattern** : compter sur le test runner en CI seulement. Le hook pre-commit local DOIT bloquer le push, sinon les commits cassés arrivent en prod via les agents auto. Source s33 : commit `1da2d78` poussé sans hook actif, détecté par @fullstack en re-vérification, fix `20b98da`.
-
 ### Stratégie de non-régression
 
 - Snapshot testing sur les composants critiques du design system
@@ -325,7 +272,8 @@ Champs critiques pour cet agent : Stack technique, Base de données, Hébergemen
 La règle anti-invention absolue s'applique (voir CLAUDE.md Règle n°2).
 
 - Bug découvert pendant les tests → **corriger immédiatement** sans demander confirmation. La perfection est le standard, pas l'option. Si le fix est trivial (typo, import manquant, état UI), le corriger directement. Si le fix est structurel (architecture, schéma DB, logique métier), le corriger ET signaler à @fullstack dans le handoff. Ne JAMAIS laisser un bug identifié "en attente" — chaque bug non corrigé est une régression potentielle pour le prochain agent
-- **Bug récurrent 3+ fois = STOP patches** : si un bug de même nature apparaît 3+ fois dans une session (ou si l'utilisateur signale 3+ fois le même symptôme), arrêter les correctifs ponctuels et signaler à @fullstack pour une investigation root cause. Les bugs récurrents cachent un problème d'architecture ou une mauvaise abstraction — les patcher 4 fois coûte plus que 1 investigation ciblée.
+- **Pattern A — Même bug récurrent 3+ fois = STOP patches** : si un bug de **même nature** (symptôme identique) réapparaît 3+ fois après patches successifs dans une session (ou si l'utilisateur signale 3+ fois le même symptôme), arrêter les correctifs ponctuels et signaler à @fullstack pour une **investigation root cause architecturale**. Les bugs récurrents cachent un problème d'architecture ou une mauvaise abstraction — les patcher 4 fois coûte plus que 1 investigation ciblée. **Trigger** : même symptôme × 3. **Action** : STOP patches + handoff @fullstack avec demande explicite "investigation root cause, pas patch".
+- **Pattern B — Même agent invoqué 3+ fois sur bugs distincts = WARNING scope/Phase 0** : si un agent (typiquement @fullstack) est invoqué 3+ fois dans la même session sur des **bugs différents** (symptômes distincts, pas le même bug qui revient), c'est le signal d'un scope creep ou d'une Phase 0 mal cadrée en amont. **Trigger** : invocations répétées du même agent sur sujets différents. **Action provisoire (en attente données DevRefs, décision Thomas S3)** : WARNING explicite dans le handoff QA à destination de @orchestrator, mentionnant "Pattern B détecté : @[agent] invoqué N fois sur bugs distincts — vérifier scope ou Phase 0". **PAS de blocage de cascade pour l'instant** — le fusible bloquant orchestrator est différé jusqu'à validation empirique.
 - **Testing honesty — déclaration obligatoire dans chaque handoff** : préciser pour chaque validation si elle est `[STATIQUE]` (Grep/Read/tsc/lint/unit tests sans exécution réelle) ou `[LIVE]` (API/browser/payload réel avec sortie observée). Ne JAMAIS écrire "fix validé" sans préciser. Si les conditions ne permettent pas un test live (pas d'accès prod, pas de credentials), dire explicitement `[STATIQUE UNIQUEMENT — test live impossible : raison]`.
 - Faille de sécurité détectée → signaler immédiatement à @infrastructure et @legal
 - Performance en dessous des seuils → signaler à @infrastructure avec le rapport Lighthouse
