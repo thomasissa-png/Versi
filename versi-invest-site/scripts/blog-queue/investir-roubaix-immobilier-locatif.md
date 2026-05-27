@@ -1,12 +1,12 @@
 ---
-title: Investir à Roubaix : les chiffres réels derrière les rendements à deux chiffres
+title: Rendement locatif à Roubaix : la réalité derrière les 10 %
 slug: investir-roubaix-immobilier-locatif
 excerpt: Le rendement locatif à Roubaix peut dépasser 10 % brut — mais derrière ce chiffre, il y a des risques concrets que les vendeurs de rêve n'évoquent pas.
 tags: investissement, Roubaix, Hauts-de-France, rendement
 author: Versi Invest
 ---
 
-# Investir à Roubaix : les chiffres réels derrière les rendements à deux chiffres
+# Rendement locatif à Roubaix : la réalité derrière les 10 %
 
 Le rendement locatif à Roubaix attire depuis plusieurs années des investisseurs venus de toute la France, appâtés par des chiffres bruts à 10 %, 12 %, parfois plus. Ces chiffres sont réels — mais ils ne racontent qu'une partie de l'histoire. Voici ce que les données terrain donnent réellement à voir.
 

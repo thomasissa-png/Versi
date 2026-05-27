@@ -1,12 +1,12 @@
 ---
-title: Estimation d'un bien immobilier à Lille : les méthodes qui marchent
+title: Estimation d'un bien immobilier à Lille : nos méthodes
 slug: estimation-bien-immobilier-lille-methode
 excerpt: Estimer un bien immobilier à Lille correctement requiert plus qu'une consultation d'un simulateur en ligne. Voici les méthodes utilisées par les professionnels.
 tags: vendeur, estimation, Lille
 author: Équipe Versi — Maxime, Thomas & Carl
 ---
 
-# Estimation d'un bien immobilier à Lille : les méthodes qui marchent vraiment
+# Estimation d'un bien immobilier à Lille : nos méthodes
 
 Estimer un bien immobilier à Lille correctement requiert plus qu'une consultation d'un simulateur en ligne. Le marché lillois est segmenté par quartier, par typologie et par état du bien — deux T3 dans le même arrondissement peuvent valoir 40 000 € de différence selon leur étage, leur luminosité et leur dernier ravalement. Voici les méthodes utilisées par les professionnels, et comment vous pouvez les appliquer.
 

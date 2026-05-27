@@ -1,12 +1,12 @@
 ---
-title: SCI à l'IS pour l'investissement locatif : quand ça vaut le coup, quand non
+title: SCI à l'IS et investissement locatif : quand ça vaut le coup
 slug: sci-is-investissement-locatif-quand
 excerpt: La SCI IS permet d'amortir le bien et de réduire l'impôt annuel — mais elle crée une double imposition à la sortie. Le bon choix dépend de votre horizon.
 tags: fiscalité, SCI, LMNP, investissement
 author: Versi Invest
 ---
 
-# SCI à l'IS pour l'investissement locatif : quand ça vaut le coup, quand non
+# SCI à l'IS et investissement locatif : quand ça vaut le coup
 
 La SCI IS permet d'amortir le bien et de réduire significativement la fiscalité annuelle sur les loyers. Mais elle génère une double imposition à la revente qui peut effacer des années d'économies. Avant d'opter pour cette structure, voici les paramètres qui font vraiment la différence. Bien calibrée, la SCI IS en investissement locatif réduit la pression fiscale annuelle ; mal utilisée, elle coûte cher à la revente.
 
