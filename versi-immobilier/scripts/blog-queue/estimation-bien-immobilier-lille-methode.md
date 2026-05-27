@@ -4,6 +4,7 @@ slug: estimation-bien-immobilier-lille-methode
 excerpt: Estimer un bien immobilier à Lille correctement requiert plus qu'une consultation d'un simulateur en ligne. Voici les méthodes utilisées par les professionnels.
 tags: vendeur, estimation, Lille
 author: Équipe Versi — Maxime, Thomas & Carl
+date: 2026-05-12T10:00:00Z
 ---
 
 # Estimation d'un bien immobilier à Lille : nos méthodes

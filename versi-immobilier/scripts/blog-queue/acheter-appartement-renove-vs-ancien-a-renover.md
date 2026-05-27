@@ -4,6 +4,7 @@ slug: acheter-appartement-renove-vs-ancien-a-renover
 excerpt: Acheter un appartement rénové ou un bien à rénover soi-même : le calcul financier réel est rarement celui qu'on croit. Voici comment le poser.
 tags: acquéreur, rénovation, guide
 author: Équipe Versi — Maxime, Thomas & Carl
+date: 2026-05-22T09:30:00Z
 ---
 
 # Appartement rénové vs à rénover : le vrai calcul avant achat

@@ -1828,9 +1828,12 @@ async function seedBlogQueue(client) {
       const tags = meta.tags ? JSON.stringify(meta.tags.split(',').map((t) => t.trim())) : '[]';
       const res = await client.query(
         `INSERT INTO blog_articles (id, title, slug, excerpt, content, author, tags, status, published_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', NOW())
-         ON CONFLICT (slug) DO NOTHING`,
-        [crypto.randomUUID(), meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Équipe Versi — Maxime, Thomas & Carl', tags],
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'published', COALESCE($8::timestamptz, NOW()))
+         ON CONFLICT (slug) DO UPDATE
+           SET published_at = $8::timestamptz, updated_at = NOW()
+         WHERE $8::timestamptz IS NOT NULL
+           AND blog_articles.published_at IS DISTINCT FROM $8::timestamptz`,
+        [crypto.randomUUID(), meta.title, meta.slug, meta.excerpt || '', m[2].trim(), meta.author || 'Équipe Versi — Maxime, Thomas & Carl', tags, meta.date || null],
       );
       if (res.rowCount > 0) count += 1;
     } catch (err) {

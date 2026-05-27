@@ -4,6 +4,7 @@ slug: rendement-locatif-valenciennes-2026
 excerpt: À Valenciennes, les rendements bruts oscillent entre 7 % et 11 % selon le quartier et le type de bien — voici les chiffres réels pour calculer votre cashflow.
 tags: investissement, Valenciennes, Hauts-de-France, rendement
 author: Versi Invest
+date: 2026-05-08T09:15:00Z
 ---
 
 # Rendement locatif à Valenciennes en 2026 : prix et cashflow

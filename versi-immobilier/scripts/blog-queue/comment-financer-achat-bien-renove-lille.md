@@ -4,6 +4,7 @@ slug: comment-financer-achat-bien-renove-lille
 excerpt: Financer un bien rénové à Lille en 2026 demande une stratégie précise : les banques n'analysent pas ces dossiers comme un achat dans le neuf.
 tags: financement, acquéreur, Lille
 author: Équipe Versi — Maxime, Thomas & Carl
+date: 2026-04-30T09:00:00Z
 ---
 
 # Financement d'un achat immobilier rénové à Lille (2026)

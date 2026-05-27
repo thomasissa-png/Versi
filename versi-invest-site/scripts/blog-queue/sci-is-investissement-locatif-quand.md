@@ -4,6 +4,7 @@ slug: sci-is-investissement-locatif-quand
 excerpt: La SCI IS permet d'amortir le bien et de réduire l'impôt annuel — mais elle crée une double imposition à la sortie. Le bon choix dépend de votre horizon.
 tags: fiscalité, SCI, LMNP, investissement
 author: Versi Invest
+date: 2026-05-20T11:00:00Z
 ---
 
 # SCI à l'IS et investissement locatif : quand ça vaut le coup
