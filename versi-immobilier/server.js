@@ -14,7 +14,7 @@ import {
   NANTERRE_PROJECT,
   BLOG_ARTICLES_A1_A6, BLOG_ARTICLES_A2_A8,
 } from './seed-data.js';
-import { LILLE_PROJECTS, upsertLilleProjects } from './scripts/lille-projects.js';
+import { LILLE_PROJECTS } from './scripts/lille-projects.js';
 import {
   upsertProjectPhotosDb,
   ensurePhotoSchema,
@@ -1946,6 +1946,37 @@ async function upsertNanterreProject(client) {
   const photos = manifestPhotosFor(p.id);
   await upsertProjectPhotosDb(client, p.id, photos);
   console.log(`[autoSeed] Projet "${p.id}" : ${photos.length} photos URL-only (manifest).`);
+}
+
+// Upsert des 8 projets Lille (Friedland + Prieuré) + photos depuis le manifest.
+// Même pattern que Nanterre, en boucle sur LILLE_PROJECTS.
+async function upsertLilleProjects(client) {
+  for (const p of LILLE_PROJECTS) {
+    await client.query(
+      `INSERT INTO projects (
+        id, title, city, type, surface, units, status,
+        buy_price, works_amount, sell_price, offer_delay, signature_delay,
+        duration, description, featured, sort_order
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title, city = EXCLUDED.city, type = EXCLUDED.type,
+        surface = EXCLUDED.surface, units = EXCLUDED.units, status = EXCLUDED.status,
+        buy_price = EXCLUDED.buy_price, works_amount = EXCLUDED.works_amount,
+        sell_price = EXCLUDED.sell_price, offer_delay = EXCLUDED.offer_delay,
+        signature_delay = EXCLUDED.signature_delay, duration = EXCLUDED.duration,
+        description = EXCLUDED.description, featured = EXCLUDED.featured,
+        sort_order = EXCLUDED.sort_order, updated_at = NOW()`,
+      [
+        p.id, p.title, p.city, p.type, p.surface, p.units, p.status,
+        p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay,
+        p.duration, p.description, p.featured, p.sort_order,
+      ],
+    );
+    const photos = manifestPhotosFor(p.id);
+    await upsertProjectPhotosDb(client, p.id, photos);
+    console.log(`[lille-projects] "${p.id}" : ${photos.length} photos URL-only (manifest).`);
+  }
+  console.log(`[lille-projects] ${LILLE_PROJECTS.length} projets Lille upsertés (Friedland + Prieuré).`);
 }
 
 async function upsertBlogArticle(client, article) {
