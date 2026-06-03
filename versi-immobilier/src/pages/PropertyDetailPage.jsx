@@ -399,13 +399,21 @@ export default function PropertyDetailPage() {
               {/* ── Colonne droite — Price card sticky ── */}
               <aside aria-label="Prix et contact">
                 <div className="property-price-card">
-                  <span className="property-price-card__label">Prix</span>
+                  {/* Prix vedette = prix d'appel (le plus bas = brut si dossier, sinon fallback).
+                      L'accroche commerciale mène toujours par le prix le plus accessible. */}
+                  <span className="property-price-card__label">
+                    {property.dossier?.formules?.brut ? 'À partir de' : 'Prix'}
+                  </span>
                   <span className="property-price-card__price">
-                    {property.dossier?.bandeauPrix?.prixVedette || property.price}
+                    {property.dossier?.formules?.brut?.price
+                      || property.dossier?.bandeauPrix?.prixVedette
+                      || property.price}
                   </span>
 
-                  {/* Sous-titre du dossier (ex : "Prêt à habiter · parking inclus") */}
-                  {property.dossier?.bandeauPrix?.sousTitre && (
+                  {/* Sous-titre : affiché uniquement si pas de bloc dual (évite la redondance) */}
+                  {property.dossier?.bandeauPrix?.sousTitre
+                    && !(property.dossier?.formules?.brut && property.dossier?.formules?.pretAHabiter)
+                    && (
                     <span className="property-price-card__note">
                       {property.dossier.bandeauPrix.sousTitre}
                     </span>

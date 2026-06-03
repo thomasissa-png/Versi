@@ -190,6 +190,9 @@ export default function PropertyDossier({ dossier }) {
                 <span className="property-dossier__projet-text">
                   Rendu 3D du logement fini
                 </span>
+                <span className="property-dossier__projet-subtext">
+                  Disponible à la fin du chantier
+                </span>
               </div>
               {etatActuel.projetCaption && (
                 <figcaption className="text-body-sm property-dossier__caption">
