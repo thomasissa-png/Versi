@@ -29,7 +29,7 @@ const PROPERTIES = [
     charges: '~ 60 €/mois (estimation indicative)',
     description: `C'est le seul appartement de l'immeuble avec un espace extérieur privatif : 10 m² de plain-pied avec le séjour, sans vis-à-vis. Rez-de-chaussée, accès direct.
 
-Le séjour-cuisine de 26 m² est lumineux et ouvre sur l'extérieur sans marche, sans seuil. L'été, on pose la table dehors et on mange à l'air libre. L'hiver, la lumière traverse le séjour toute la journée. La chambre de 10,2 m² donne côté cour, au calme. Chauffage collectif, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
+Le séjour-cuisine de 26 m² est lumineux et ouvre sur l'extérieur sans marche, sans seuil. L'été, on pose la table dehors et on mange à l'air libre. L'hiver, la lumière traverse le séjour toute la journée. La chambre de 10,2 m² donne côté cour, au calme. Chauffage individuel, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
 
 L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logements de qualité. Finitions soignées : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. Deux formules : à 118 000 € vous achetez avant travaux et vous choisissez vos finitions, à 145 000 € on vous livre prêt à habiter. Permis déposé, début des travaux septembre 2026, livraison décembre 2026. Dommages-ouvrage et garantie décennale incluses.
 
@@ -230,7 +230,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         'Parquet',
         'Grande baie vitrée aluminium double vitrage',
         'Cuisine pré-équipée',
-        'Salle d’eau carrelée grand format',
+        'Salle de bains carrelée grand format',
         'Chauffage individuel',
         'Stationnement sécurisé',
         'Exposition traversante double',
