@@ -195,6 +195,7 @@ async function initDB() {
   }
 
   let client;
+  let poolEnded = false;
   try {
     client = await pool.connect();
     await client.query(SQL);
@@ -207,6 +208,7 @@ async function initDB() {
       client.release();
       client = null;
       await pool.end();
+      poolEnded = true;
       // Exécuter les seeds via import dynamique
       const { execSync } = await import('child_process');
       execSync('node scripts/seed-blog-articles.js', { stdio: 'inherit' });
@@ -219,7 +221,10 @@ async function initDB() {
     process.exit(1);
   } finally {
     if (client) client.release();
-    await pool.end();
+    // Garde-fou : ne pas rappeler pool.end() s'il a déjà été fermé dans le bloc
+    // d'auto-seed (sinon « Called end on pool more than once » → exit 1 → le
+    // `&& node server.js` du npm start ne s'exécute jamais → serveur non démarré).
+    if (!poolEnded) await pool.end();
   }
 }
 
