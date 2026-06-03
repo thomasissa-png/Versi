@@ -8,6 +8,7 @@ import { useProperty } from '../hooks/useProperty.js';
 import { useProperties } from '../hooks/useProperties.js';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
+import PropertyDossier from '../components/PropertyDossier.jsx';
 
 const STATUS_LABELS = {
   'disponible': 'Disponible',
@@ -222,22 +223,39 @@ export default function PropertyDetailPage() {
               {/* Colonne gauche — détails */}
               <div>
                 <span className="text-label property-detail__meta">
-                  {property.location}
+                  {property.dossier?.tagline || property.location}
                 </span>
                 <h1 className="text-heading-lg property-detail__title">
                   {property.title}
                 </h1>
 
-                {/* Specs strip */}
+                {/* Hook éditorial du dossier (uniquement si dossier riche) */}
+                {property.dossier?.hook && (
+                  <p className="text-body-lg property-detail__hook">
+                    {property.dossier.hook}
+                  </p>
+                )}
+                {property.dossier?.intro && (
+                  <p className="text-body-md property-detail__intro">
+                    {property.dossier.intro}
+                  </p>
+                )}
+
+                {/* Specs strip — dossier.ficheTechnique en priorité (cale sur les
+                    cellules de la fiche HTML : Type, Surface, Pièces, Extérieur,
+                    Étage, Disponibilité) sinon fallback sur les champs standard */}
                 <div className="property-detail__specs">
-                  {[
-                    { label: 'Type', value: property.type },
-                    { label: 'Surface', value: property.surface },
-                    { label: 'Pièces', value: property.rooms },
-                    { label: 'DPE', value: property.dpe },
-                    { label: 'Étage', value: property.floor },
-                    { label: 'Disponibilité', value: property.tenancy },
-                  ].filter((item) => item.value).map((item) => (
+                  {(property.dossier?.ficheTechnique?.length
+                    ? property.dossier.ficheTechnique
+                    : [
+                        { label: 'Type', value: property.type },
+                        { label: 'Surface', value: property.surface },
+                        { label: 'Pièces', value: property.rooms },
+                        { label: 'DPE', value: property.dpe },
+                        { label: 'Étage', value: property.floor },
+                        { label: 'Disponibilité', value: property.tenancy },
+                      ]
+                  ).filter((item) => item.value).map((item) => (
                     <div key={item.label} className="property-detail__spec-item">
                       <span className="text-label property-detail__spec-label">{item.label}</span>
                       <span className="property-detail__spec-value">{item.value}</span>
@@ -245,31 +263,54 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
 
-                {/* Description */}
+                {/* Description — texte du dossier riche en priorité, sinon description standard */}
                 <h2 className="text-heading-md property-detail__section-title">
                   Le bien.
                 </h2>
                 <div className="text-body-md property-detail__description">
-                  {property.description.split('\n\n').map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
+                  {property.dossier?.leBien ? (
+                    <>
+                      <p>{property.dossier.leBien}</p>
+                      {property.dossier.pourQui && <p>{property.dossier.pourQui}</p>}
+                      {property.dossier.accroche && (
+                        <p className="property-detail__accroche">
+                          {property.dossier.accroche}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    property.description.split('\n\n').map((paragraph, i) => (
+                      <p key={i}>{paragraph}</p>
+                    ))
+                  )}
                 </div>
 
-                {/* Caractéristiques */}
-                {property.features && property.features.length > 0 && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Caractéristiques.
-                    </h2>
-                    <div className="property-detail__features">
-                      {property.features.map((feat) => (
-                        <span key={feat} className="property-detail__feature-tag">
-                          {feat}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
+                {/* Caractéristiques — utilise dossier.caracteristiques en priorité */}
+                {(() => {
+                  const carac = property.dossier?.caracteristiques?.length
+                    ? property.dossier.caracteristiques
+                    : property.features;
+                  if (!carac || carac.length === 0) return null;
+                  return (
+                    <>
+                      <h2 className="text-heading-md property-detail__section-title">
+                        Caractéristiques.
+                      </h2>
+                      <div className="property-detail__features">
+                        {carac.map((feat) => (
+                          <span key={feat} className="property-detail__feature-tag">
+                            {feat}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* ── Dossier de pré-commercialisation riche ── */}
+                {/* Affiché UNIQUEMENT si property.dossier est non-null. Sinon,
+                    rétrocompat totale (Lot 3 et autres biens hors dossier). */}
+                {property.dossier && <PropertyDossier dossier={property.dossier} />}
 
                 {/* Travaux réalisés */}
                 {property.works && property.works.length > 0 && (
@@ -359,10 +400,39 @@ export default function PropertyDetailPage() {
               <aside aria-label="Prix et contact">
                 <div className="property-price-card">
                   <span className="property-price-card__label">Prix</span>
-                  <span className="property-price-card__price">{property.price}</span>
+                  <span className="property-price-card__price">
+                    {property.dossier?.bandeauPrix?.prixVedette || property.price}
+                  </span>
 
-                  {/* Double pricing si priceNote contient "avant travaux / prêt à habiter" */}
-                  {dualPricing ? (
+                  {/* Sous-titre du dossier (ex : "Prêt à habiter · parking inclus") */}
+                  {property.dossier?.bandeauPrix?.sousTitre && (
+                    <span className="property-price-card__note">
+                      {property.dossier.bandeauPrix.sousTitre}
+                    </span>
+                  )}
+
+                  {/* Bandeau formules brut / prêt à habiter — issu du dossier
+                      en priorité (source de vérité). Fallback : parsing du priceNote. */}
+                  {property.dossier?.formules?.brut && property.dossier?.formules?.pretAHabiter ? (
+                    <div className="property-price-card__dual">
+                      <div className="property-price-card__dual-row">
+                        <span className="property-price-card__dual-label">
+                          {property.dossier.formules.brut.label || 'Brut'}
+                        </span>
+                        <span className="property-price-card__dual-value">
+                          {property.dossier.formules.brut.price}
+                        </span>
+                      </div>
+                      <div className="property-price-card__dual-row">
+                        <span className="property-price-card__dual-label">
+                          {property.dossier.formules.pretAHabiter.label || 'Prêt à habiter'}
+                        </span>
+                        <span className="property-price-card__dual-value">
+                          {property.dossier.formules.pretAHabiter.price}
+                        </span>
+                      </div>
+                    </div>
+                  ) : dualPricing ? (
                     <div className="property-price-card__dual">
                       <div className="property-price-card__dual-row">
                         <span className="property-price-card__dual-label">Avant travaux</span>
@@ -381,22 +451,31 @@ export default function PropertyDetailPage() {
                     {STATUS_LABELS[property.status] || property.status}
                   </span>
 
+                  {/* Modalité de vente + frais notaire — issus du dossier */}
+                  {(property.dossier?.bandeauPrix?.modalite || property.dossier?.bandeauPrix?.notaire) && (
+                    <p className="property-price-card__note property-price-card__modalite">
+                      {property.dossier.bandeauPrix.modalite}
+                      {property.dossier.bandeauPrix.modalite && property.dossier.bandeauPrix.notaire && ' · '}
+                      {property.dossier.bandeauPrix.notaire}
+                    </p>
+                  )}
+
                   <Link
-                    to={`/contact?bien=${encodeURIComponent(property.title)}`}
+                    to={`/contact?bien=${encodeURIComponent(property.title)}&bienId=${encodeURIComponent(property.id)}`}
                     className="property-price-card__cta-primary"
                   >
-                    Demander une présentation
+                    Demander une visite
                   </Link>
 
                   <hr className="property-price-card__separator" />
 
-                  <a
-                    href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Renseignements — ' + property.title)}`}
+                  <Link
+                    to={`/contact?bien=${encodeURIComponent(property.title)}&bienId=${encodeURIComponent(property.id)}`}
                     className="property-price-card__cta-secondary"
-                    aria-label={`Envoyer un email au sujet de ${property.title}`}
+                    aria-label={`Poser une question au sujet de ${property.title}`}
                   >
-                    Nous écrire
-                  </a>
+                    Poser vos questions
+                  </Link>
                 </div>
               </aside>
             </div>

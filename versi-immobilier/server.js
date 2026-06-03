@@ -454,11 +454,11 @@ app.get('/api/public/properties', async (req, res) => {
     let result;
     if (status === 'all') {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties ORDER BY sort_order ASC, created_at DESC'
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, dossier, sort_order, created_at, updated_at FROM properties ORDER BY sort_order ASC, created_at DESC'
       );
     } else {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, dossier, sort_order, created_at, updated_at FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
         [status]
       );
     }
@@ -1932,9 +1932,9 @@ async function upsertProperty(client, prop) {
       nearby_transport, nearby_amenities, type, surface, rooms,
       price, price_num, price_note, status, dpe, dpe_note,
       floor, tenancy, renovation_year, charges, description,
-      works, features, sort_order
+      works, features, dossier, sort_order
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
     )
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title, city = EXCLUDED.city, location = EXCLUDED.location,
@@ -1945,13 +1945,14 @@ async function upsertProperty(client, prop) {
       status = EXCLUDED.status, dpe = EXCLUDED.dpe, dpe_note = EXCLUDED.dpe_note,
       floor = EXCLUDED.floor, tenancy = EXCLUDED.tenancy, renovation_year = EXCLUDED.renovation_year,
       charges = EXCLUDED.charges, description = EXCLUDED.description,
-      works = EXCLUDED.works, features = EXCLUDED.features, sort_order = EXCLUDED.sort_order`,
+      works = EXCLUDED.works, features = EXCLUDED.features,
+      dossier = EXCLUDED.dossier, sort_order = EXCLUDED.sort_order`,
     [
       prop.id, prop.title, prop.city, prop.location, prop.neighborhood, prop.address,
       prop.nearby_transport, prop.nearby_amenities, prop.type, prop.surface, prop.rooms,
       prop.price, prop.price_num, prop.price_note, prop.status, prop.dpe, prop.dpe_note,
       prop.floor, prop.tenancy, prop.renovation_year, prop.charges, prop.description,
-      prop.works, prop.features, prop.sort_order,
+      prop.works, prop.features, prop.dossier ?? null, prop.sort_order,
     ]
   );
 }
