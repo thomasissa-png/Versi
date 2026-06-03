@@ -454,11 +454,11 @@ app.get('/api/public/properties', async (req, res) => {
     let result;
     if (status === 'all') {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, dossier, sort_order, created_at, updated_at FROM properties ORDER BY sort_order ASC, created_at DESC'
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties ORDER BY sort_order ASC, created_at DESC'
       );
     } else {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, dossier, sort_order, created_at, updated_at FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
         [status]
       );
     }
@@ -1849,6 +1849,11 @@ async function autoSeed() {
     // 0. Migration schéma photos : ajout colonne url, drop NOT NULL sur data.
     // Idempotent — safe à rejouer à chaque boot.
     await ensurePhotoSchema(client);
+
+    // 0bis. Garde-fou colonne dossier (dossiers de pré-commercialisation riches).
+    // Idempotent — garantit la colonne au runtime même si init-db.js n'a pas
+    // tourné au déploiement (sinon upsertProperty + SELECT détail cassent).
+    await client.query('ALTER TABLE properties ADD COLUMN IF NOT EXISTS dossier JSONB');
 
     // 1. Seed properties si la table est vide
     const { rows: propCount } = await client.query('SELECT COUNT(*) AS c FROM properties');
