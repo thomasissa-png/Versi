@@ -1598,3 +1598,520 @@ ul, ol {
 .blog-article-content strong {
   font-weight: 700;
 }
+
+/* ============================================
+   Property — dossier de pré-commercialisation
+   Rendu riche affiché si property.dossier ≠ null.
+   Hérite des tokens design-system Versi (couleurs, spacings, typo).
+   ============================================ */
+
+/* Hook éditorial + intro dans la colonne gauche */
+.property-detail__hook {
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-primary);
+  max-width: var(--text-max-width-md);
+}
+
+.property-detail__intro {
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-text-muted);
+  max-width: var(--text-max-width-md);
+}
+
+.property-detail__accroche {
+  border-left: 2px solid var(--color-accent);
+  padding-left: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  color: var(--color-text-primary);
+  font-style: italic;
+}
+
+/* Container du dossier */
+.property-dossier {
+  margin-top: var(--spacing-3xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+}
+
+.property-dossier__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.property-dossier__intro {
+  color: var(--color-text-muted);
+  max-width: var(--text-max-width-md);
+}
+
+/* 1. Plan + surfaces */
+.property-dossier__plan {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+
+@media (max-width: 767px) {
+  .property-dossier__plan {
+    grid-template-columns: 1fr;
+  }
+}
+
+.property-dossier__plan-figure {
+  margin: 0;
+}
+
+.property-dossier__plan-image {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  display: block;
+}
+
+.property-dossier__caption {
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-muted);
+}
+
+.property-dossier__surfaces {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.property-dossier__surface-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.property-dossier__surface-piece {
+  color: var(--color-text-primary);
+}
+
+.property-dossier__surface-aire {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2. Formules brut / prêt à habiter */
+.property-dossier__formules {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 767px) {
+  .property-dossier__formules {
+    grid-template-columns: 1fr;
+  }
+}
+
+.property-dossier__formule {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.property-dossier__formule--accent {
+  background: var(--color-bg-dark);
+  color: var(--color-text-inverse);
+  border-color: var(--color-bg-dark);
+}
+
+.property-dossier__formule--accent .property-dossier__formule-label,
+.property-dossier__formule--accent .property-dossier__formule-livraison,
+.property-dossier__formule--accent .property-dossier__formule-desc {
+  color: var(--color-text-inverse);
+}
+
+.property-dossier__formule--accent .property-dossier__formule-label,
+.property-dossier__formule--accent .property-dossier__formule-livraison {
+  opacity: 0.7;
+}
+
+.property-dossier__formule-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.property-dossier__formule-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+}
+
+.property-dossier__formule-price {
+  font-size: 2rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.property-dossier__formule-livraison {
+  color: var(--color-text-muted);
+}
+
+.property-dossier__formule-desc {
+  margin: 0;
+}
+
+.property-dossier__garanties {
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-md);
+}
+
+/* 3. Travaux — phases 01 / 02 / 03 */
+.property-dossier__phases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.property-dossier__phase {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--spacing-lg);
+  align-items: start;
+  padding: var(--spacing-lg) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.property-dossier__phase:last-child {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.property-dossier__phase-num {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-light);
+  color: var(--color-accent);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.property-dossier__phase-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.property-dossier__phase-title {
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.property-dossier__phase-text {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* 4. État actuel et projet */
+.property-dossier__avant-apres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 767px) {
+  .property-dossier__avant-apres {
+    grid-template-columns: 1fr;
+  }
+}
+
+.property-dossier__avant,
+.property-dossier__projet {
+  margin: 0;
+}
+
+.property-dossier__avant-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.property-dossier__projet-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  border: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.property-dossier__projet-badge {
+  font-size: var(--font-size-small);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-inverse);
+  background: var(--color-mineral-900);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
+}
+
+.property-dossier__projet-text {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+  max-width: 200px;
+}
+
+.property-dossier__apres-legende {
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: var(--spacing-sm);
+}
+
+/* 5. DPE projeté */
+.property-dossier__dpe {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-xl);
+  align-items: center;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-subtle);
+  border-radius: var(--card-radius);
+}
+
+@media (max-width: 480px) {
+  .property-dossier__dpe {
+    grid-template-columns: 1fr;
+  }
+}
+
+.property-dossier__dpe-classe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-dark-accent);
+  color: var(--color-text-inverse);
+  border-radius: var(--card-radius);
+  min-width: 96px;
+}
+
+.property-dossier__dpe-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  font-size: var(--font-size-small);
+}
+
+.property-dossier__dpe-letter {
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.property-dossier__dpe-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.property-dossier__dpe-unite {
+  color: var(--color-text-muted);
+}
+
+.property-dossier__dpe-note {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* 6. Repères marché — table */
+.property-dossier__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md);
+}
+
+.property-dossier__table thead th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.property-dossier__table td {
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.property-dossier__table-ref {
+  display: block;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.property-dossier__table-sub {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+  margin-top: 2px;
+}
+
+.property-dossier__table-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 7. À prévoir */
+.property-dossier__aprevoir {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 767px) {
+  .property-dossier__aprevoir {
+    grid-template-columns: 1fr;
+  }
+}
+
+.property-dossier__aprevoir-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.property-dossier__aprevoir-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+.property-dossier__aprevoir-value {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.property-dossier__sources {
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm);
+}
+
+/* 8. Calendrier */
+.property-dossier__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.property-dossier__timeline-step {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  align-items: start;
+  position: relative;
+}
+
+.property-dossier__timeline-step::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: -12px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.property-dossier__timeline-step:last-child::before {
+  display: none;
+}
+
+.property-dossier__timeline-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  margin-top: 6px;
+  margin-left: 6px;
+}
+
+.property-dossier__timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.property-dossier__timeline-label {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.property-dossier__timeline-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+}
+
+.property-dossier__timeline-statut {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-small);
+  color: var(--color-accent);
+}
+
+/* Mentions légales du dossier */
+.property-dossier__mentions {
+  color: var(--color-text-muted);
+  font-style: italic;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-lg);
+  max-width: var(--text-max-width-lg);
+}
+
+/* Price card — modalité + notaire */
+.property-price-card__modalite {
+  margin-top: calc(var(--spacing-md) * -1);
+  margin-bottom: var(--spacing-md);
+}

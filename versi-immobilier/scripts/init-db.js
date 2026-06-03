@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS properties (
   description      TEXT NOT NULL,
   works            JSONB DEFAULT '[]',
   features         JSONB DEFAULT '[]',
+  dossier          JSONB DEFAULT NULL,
   sort_order       INTEGER DEFAULT 0,
   created_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at       TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -132,6 +133,10 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+
+-- Migration 003 : properties.dossier (JSONB nullable) — dossier de pré-commercialisation riche
+-- Voir scripts/migrations/003_properties_dossier.sql. Idempotente, non destructive.
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS dossier JSONB DEFAULT NULL;
 
 -- Migration : ajout des colonnes gate system (idempotent)
 DO $$
