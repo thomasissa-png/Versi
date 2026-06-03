@@ -729,8 +729,10 @@ ul, ol {
 }
 
 .property-price-card__badge--disponible {
-  background: var(--badge-en-vente-bg);
-  color: var(--badge-en-vente-text);
+  /* Sur fond dark card, utilise un contraste inversé pour maintenir la lisibilité */
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-inverse);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .property-price-card__badge--sous-compromis {
@@ -1757,7 +1759,7 @@ ul, ol {
 }
 
 .property-dossier__formule-price {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: var(--font-weight-medium);
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -1800,7 +1802,7 @@ ul, ol {
 }
 
 .property-dossier__phase-num {
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: var(--font-weight-light);
   color: var(--color-accent);
   letter-spacing: -0.01em;
@@ -1814,7 +1816,7 @@ ul, ol {
 }
 
 .property-dossier__phase-title {
-  font-size: 1.125rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   margin: 0;
   color: var(--color-text-primary);
@@ -1926,7 +1928,7 @@ ul, ol {
 }
 
 .property-dossier__dpe-letter {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 3.5vw, 2.5rem);
   font-weight: var(--font-weight-medium);
   line-height: 1;
 }
@@ -2023,7 +2025,7 @@ ul, ol {
 }
 
 .property-dossier__aprevoir-value {
-  font-size: 1.25rem;
+  font-size: var(--font-size-body-lg);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
@@ -2101,6 +2103,15 @@ ul, ol {
   color: var(--color-accent);
 }
 
+/* Sous-texte complémentaire dans le placeholder projet */
+.property-dossier__projet-subtext {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  max-width: 200px;
+  text-align: center;
+  margin-top: calc(var(--spacing-xs) * -1);
+}
+
 /* Mentions légales du dossier */
 .property-dossier__mentions {
   color: var(--color-text-muted);
@@ -2108,6 +2119,13 @@ ul, ol {
   border-top: 1px solid var(--color-border);
   padding-top: var(--spacing-lg);
   max-width: var(--text-max-width-lg);
+}
+
+/* À prévoir — tablette : 2 colonnes avant de basculer en 1 */
+@media (max-width: 767px) and (min-width: 481px) {
+  .property-dossier__aprevoir {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* Price card — modalité + notaire */
