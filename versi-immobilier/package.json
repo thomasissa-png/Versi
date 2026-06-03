@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:prerender": "vite build && node scripts/prerender.js",
     "preview": "vite preview",
-    "start": "node scripts/init-db.js && node server.js"
+    "start": "node scripts/init-db.js && node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^5.2.1",
