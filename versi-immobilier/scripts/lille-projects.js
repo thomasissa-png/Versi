@@ -301,3 +301,36 @@ Prix de revente estimé à la découpe : 105 000 €. Loyer mensuel charges comp
     },
   },
 ];
+
+// ────────────────────────────────────────────────────────────────────────────
+// Upsert — projets Lille + photos (URL-only via manifest, miroir de Nanterre)
+// ────────────────────────────────────────────────────────────────────────────
+export async function upsertLilleProjects(client) {
+  const manifest = readManifest();
+  for (const p of LILLE_PROJECTS) {
+    await client.query(
+      `INSERT INTO projects (
+        id, title, city, type, surface, units, status,
+        buy_price, works_amount, sell_price, offer_delay, signature_delay,
+        duration, description, featured, sort_order
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title, city = EXCLUDED.city, type = EXCLUDED.type,
+        surface = EXCLUDED.surface, units = EXCLUDED.units, status = EXCLUDED.status,
+        buy_price = EXCLUDED.buy_price, works_amount = EXCLUDED.works_amount,
+        sell_price = EXCLUDED.sell_price, offer_delay = EXCLUDED.offer_delay,
+        signature_delay = EXCLUDED.signature_delay, duration = EXCLUDED.duration,
+        description = EXCLUDED.description, featured = EXCLUDED.featured,
+        sort_order = EXCLUDED.sort_order, updated_at = NOW()`,
+      [
+        p.id, p.title, p.city, p.type, p.surface, p.units, p.status,
+        p.buy_price, p.works_amount, p.sell_price, p.offer_delay, p.signature_delay,
+        p.duration, p.description, p.featured, p.sort_order,
+      ]
+    );
+
+    const photos = manifest?.projects?.[p.id]?.photos || [];
+    await upsertProjectPhotosDb(client, p.id, photos);
+    console.log(`[autoSeed] Projet Lille "${p.id}" : ${photos.length} photos URL-only (manifest).`);
+  }
+}
