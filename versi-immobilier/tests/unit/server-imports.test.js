@@ -46,10 +46,13 @@ const EXPECTED_IMPORTS = [
     ],
   },
   {
+    // server.js importe uniquement { LILLE_PROJECTS } ; upsertLilleProjects est
+    // défini localement dans server.js (sur le modèle de upsertNanterreProject),
+    // pas exporté par ce module. Le garde-fou vérifie donc l'import réellement
+    // résolu — c'est ce qui empêche le P0 de boot de revenir.
     spec: './scripts/lille-projects.js',
     exports: [
       { name: 'LILLE_PROJECTS', type: 'object' },
-      { name: 'upsertLilleProjects', type: 'function' },
     ],
   },
   {
