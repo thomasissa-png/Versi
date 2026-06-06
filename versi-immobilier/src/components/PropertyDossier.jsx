@@ -57,7 +57,7 @@ export default function PropertyDossier({ dossier }) {
                   src={planImage}
                   alt={planCaption || 'Plan d’architecte'}
                   className="property-dossier__plan-image"
-                  loading="lazy"
+                  loading="eager"
                 />
                 {planCaption && (
                   <figcaption className="text-body-sm property-dossier__caption">
@@ -171,7 +171,7 @@ export default function PropertyDossier({ dossier }) {
                   src={etatActuel.avantImage}
                   alt={etatActuel.avantCaption || 'État actuel — avant travaux'}
                   className="property-dossier__avant-image"
-                  loading="lazy"
+                  loading="eager"
                 />
                 {etatActuel.avantCaption && (
                   <figcaption className="text-body-sm property-dossier__caption">

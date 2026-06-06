@@ -1,6 +1,12 @@
 // Seed script — 3 properties at 10 rue des Muguets, Lille
 // Idempotent: uses ON CONFLICT DO UPDATE
 import pg from 'pg';
+import {
+  LOT1_PLAN,
+  LOT1_AVANT,
+  LOT2_PLAN,
+  LOT2_AVANT,
+} from './dossier-images.js';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -58,7 +64,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
       leBien: 'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi Immobilier l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos Architectes (Lille). Cet appartement occupe le rez-de-chaussée de l’immeuble. Le séjour-cuisine de 26 m² traverse la profondeur du bâti et ouvre de plain-pied sur l’extérieur privatif. La chambre de 10,2 m² est positionnée en cœur de plan, à l’abri du bruit. Salle d’eau de 5,9 m², entrée et couloir distribuant l’ensemble. L’accès se fait depuis le hall commun, par l’escalier de l’immeuble.',
       pourQui: 'Primo-accédant urbain ou investisseur attentif à l’extérieur et à l’accès direct : ce lot a été pensé pour vous. Une place de stationnement extérieure sécurisée est comprise dans le prix.',
       accroche: 'Un rez-de-chaussée traversant qui s’ouvre de plain-pied sur l’extérieur. Une rareté dans le secteur, à deux pas du métro.',
-      planImage: '/properties/muguets-lot-1-rdc/img-01.jpg',
+      planImage: LOT1_PLAN,
       planCaption: 'Plan d’architecte — RDC, échelle indicative 1/50. Cabinet Avantpropos Architectes.',
       surfaces: [
         { piece: 'Entrée', aire: '2,0 m²' },
@@ -99,7 +105,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
       },
       etatActuel: {
         intro: 'Si vous l’achetez en brut, le bâtiment vous est livré en l’état au moment de la signature. Voici l’état actuel des lieux et le rendu projeté du logement fini.',
-        avantImage: '/properties/muguets-lot-1-rdc/img-02.jpg',
+        avantImage: LOT1_AVANT,
         avantCaption: 'Avant — bureaux d’origine, structure existante conservée.',
         projetCaption: 'Projet livré — rendu 3D du logement fini, à venir.',
         apresLegende: 'Après — séjour traversant ouvert sur l’extérieur privatif, finitions Versi.',
@@ -215,7 +221,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
       leBien: 'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos. Cet appartement occupe le premier étage de l’immeuble. Le séjour-cuisine de 40,5 m² traverse toute la profondeur de l’étage : exposition sur la rue d’un côté, sur l’arrière de l’autre, lumière toute la journée. Les deux chambres, de 14,2 m² et 9 m², sont positionnées en cœur de plan, à l’abri du bruit. Salle de bains de 5,9 m², WC séparé, cellier, entrée de 7,3 m². L’étage est intégralement aménageable, sans aucun mur porteur central.',
       pourQui: 'Couple primo-accédant ou famille qui s’agrandit y trouveront un séjour-cuisine généreux et deux chambres distribuables en suite parentale, bureau ou chambre d’enfant selon le projet — aucun mur porteur central. Un acheteur attaché aux volumes y verra 86 m² polyvalents et l’exposition traversante propre au plateau. Une place de stationnement extérieure sécurisée est comprise dans le prix.',
       accroche: 'Un T3 traversant au premier étage, à deux pas du métro. Séjour-cuisine sur deux expositions, deux chambres en cœur de plan.',
-      planImage: '/properties/muguets-lot-2-t3/img-01.jpg',
+      planImage: LOT2_PLAN,
       planCaption: 'Plan d’architecte — R+1, échelle indicative 1/50. Cabinet Avantpropos Architectes.',
       surfaces: [
         { piece: 'Entrée', aire: '7,3 m²' },
@@ -257,7 +263,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
       },
       etatActuel: {
         intro: 'Si vous l’achetez en brut, le bâtiment vous est livré au stade structurel au moment de la signature. Voici l’état actuel du plateau au premier étage et la trajectoire de la réhabilitation.',
-        avantImage: '/properties/muguets-lot-2-t3/img-02.jpg',
+        avantImage: LOT2_AVANT,
         avantCaption: 'Avant — plateau de bureaux vidé, parquet stratifié et faux-plafond existants, cloisons à démolir.',
         projetCaption: 'Projet livré — rendu 3D du logement fini, à venir.',
         apresLegende: 'Après — séjour-cuisine traversant 40,5 m², deux chambres et finitions clé en main Versi.',

@@ -2133,3 +2133,335 @@ ul, ol {
   margin-top: calc(var(--spacing-md) * -1);
   margin-bottom: var(--spacing-md);
 }
+
+/* ────────────────────────────────────────────────────────────────────
+   CTA Dossier — bloc sur l'annonce qui pointe vers /dossier/:id
+   ──────────────────────────────────────────────────────────────────── */
+.property-detail__dossier-cta {
+  margin: var(--spacing-2xl) 0;
+  padding: var(--spacing-xl);
+  background: var(--color-bg-subtle);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 4px;
+}
+
+.property-detail__dossier-kicker {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: var(--font-size-small);
+  color: var(--color-accent);
+  margin-bottom: var(--spacing-sm, 12px);
+}
+
+.property-detail__dossier-title {
+  margin: 0 0 var(--spacing-md);
+}
+
+.property-detail__dossier-text {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-lg);
+  max-width: 60ch;
+}
+
+.property-detail__dossier-link {
+  display: inline-block;
+  padding: 12px 24px;
+  background: var(--color-bg-dark);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  border-radius: 999px;
+  font-size: var(--font-size-small);
+  letter-spacing: 0.04em;
+  transition: background 0.2s;
+}
+
+.property-detail__dossier-link:hover {
+  background: var(--color-bg-dark-alt);
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   DOSSIER PAGE — page autonome /dossier/:id
+   Document premium, partageable, imprimable en PDF.
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Barre d'actions flottante (retour + PDF) */
+.dossier-page__actions {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-2xl);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border, #E5E1DA);
+  gap: var(--spacing-md);
+}
+
+.dossier-page__back {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.dossier-page__back:hover {
+  color: var(--color-text-primary);
+}
+
+.dossier-page__print-btn {
+  padding: 12px 24px;
+  background: var(--color-bg-dark);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: var(--font-size-small);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.dossier-page__print-btn:hover {
+  background: var(--color-bg-dark-alt);
+}
+
+.dossier-page__print-btn:active {
+  transform: translateY(1px);
+}
+
+/* Conteneur document */
+.dossier-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+/* État (loading / not found) */
+.dossier-page--state {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  text-align: center;
+}
+
+/* En-tête document */
+.dossier-page__header {
+  padding-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
+  border-bottom: 1px solid var(--color-border, #E5E1DA);
+}
+
+.dossier-page__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--spacing-xl);
+}
+
+.dossier-page__logo {
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.dossier-page__kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: var(--font-size-small);
+  color: var(--color-accent);
+}
+
+.dossier-page__title {
+  margin: 0 0 var(--spacing-md);
+  line-height: 1.15;
+}
+
+.dossier-page__location {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--spacing-lg);
+}
+
+.dossier-page__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm, 12px);
+  margin: 0;
+}
+
+.dossier-page__price-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+.dossier-page__price-value {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Corps du dossier */
+.dossier-page__body {
+  margin-bottom: var(--spacing-2xl);
+}
+
+/* Pied du document */
+.dossier-page__footer {
+  padding-top: var(--spacing-2xl);
+  border-top: 1px solid var(--color-border, #E5E1DA);
+}
+
+.dossier-page__footer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+}
+
+.dossier-page__footer-grid a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-accent);
+}
+
+.dossier-page__mentions {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Responsive mobile */
+@media (max-width: 640px) {
+  .dossier-page {
+    padding: var(--spacing-lg);
+  }
+  .dossier-page__actions {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  .dossier-page__footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  .dossier-page__price-value {
+    font-size: 24px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   IMPRESSION / PDF
+   window.print() → @media print
+   Objectif : un document A4 propre, premium, prêt à archiver.
+   ──────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Format A4 + marges */
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  /* Reset fond + couleurs imprimables */
+  html, body {
+    background: #FFFFFF !important;
+    color: #0B0B0B !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Masquer l'UI non imprimable */
+  [data-print-hide="true"],
+  .dossier-page__actions,
+  .skip-nav,
+  nav,
+  footer.site-footer {
+    display: none !important;
+  }
+
+  /* Forcer l'affichage des éléments animés (useFadeIn) :
+     en print, opacity:0 = page blanche. */
+  .fade-hidden,
+  .fade-in,
+  [class*="fade-"] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Conteneur document : plein cadre, pas d'ombre, pas de max-width */
+  .dossier-page {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+    box-shadow: none !important;
+  }
+
+  /* En-tête sur la 1ère page */
+  .dossier-page__header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Sections : éviter de couper au milieu d'une carte */
+  .property-dossier__section {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+    margin-bottom: 18mm;
+  }
+
+  /* Cartes de formules — restent groupées */
+  .property-dossier__formule,
+  .property-dossier__phase,
+  .property-dossier__timeline-step,
+  .property-dossier__avant,
+  .property-dossier__projet {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Plan d'architecte : large, lisible, ne se coupe pas */
+  .property-dossier__plan-figure,
+  .property-dossier__plan-image,
+  .property-dossier__avant-image {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Titres : pas d'orphelin en bas de page */
+  h1, h2, h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Tableau repères marché : ne pas couper une ligne */
+  .property-dossier__table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Pied du document : reste avec son contenu */
+  .dossier-page__footer {
+    break-before: auto;
+    page-break-inside: avoid;
+  }
+
+  /* Liens : afficher l'URL ? Non, on garde sobre — pas de href en print */
+  a {
+    color: #0B0B0B !important;
+    text-decoration: none !important;
+  }
+
+  /* Marges latérales nettoyées pour les sections internes */
+  .container, .section-padding {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

@@ -3,6 +3,7 @@ import ScrollToTop from './components/ScrollToTop.jsx';
 import HomePage from './pages/HomePage.jsx';
 import PropertiesPage from './pages/PropertiesPage.jsx';
 import PropertyDetailPage from './pages/PropertyDetailPage.jsx';
+import DossierPage from './pages/DossierPage.jsx';
 import SellPage from './pages/SellPage.jsx';
 import RealisationsPage from './pages/RealisationsPage.jsx';
 import RealisationDetailPage from './pages/RealisationDetailPage.jsx';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/nos-biens" element={<PropertiesPage />} />
         <Route path="/nos-biens/:id" element={<PropertyDetailPage />} />
+        <Route path="/dossier/:id" element={<DossierPage />} />
         <Route path="/vendre" element={<SellPage />} />
         <Route path="/realisations" element={<RealisationsPage />} />
         <Route path="/realisations/:id" element={<RealisationDetailPage />} />
