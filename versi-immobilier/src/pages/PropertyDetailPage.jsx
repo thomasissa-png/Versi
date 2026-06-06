@@ -291,12 +291,17 @@ export default function PropertyDetailPage() {
                       des travaux, repères marché, performances énergétiques —
                       pour aller plus loin que l’annonce.
                     </p>
-                    <Link
-                      to={`/dossier/${encodeURIComponent(property.id)}`}
+                    {/* Lien natif (pas <Link> React) : /dossier/:id est servi
+                        par le serveur (HTML du dossier), pas par le routeur SPA.
+                        Nouvel onglet pour garder l'annonce ouverte. */}
+                    <a
+                      href={`/dossier/${encodeURIComponent(property.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="property-detail__dossier-link"
                     >
                       Consulter le dossier complet →
-                    </Link>
+                    </a>
                   </div>
                 )}
 

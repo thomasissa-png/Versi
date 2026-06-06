@@ -487,6 +487,44 @@ app.get('/api/public/properties/:id', async (req, res) => {
   }
 });
 
+// GET /dossier/:id — sert le dossier de pré-commercialisation HTML TEL QUEL
+// (document soigné par le fondateur, design/ordre/contenu identiques). On lit le
+// fichier source et on injecte uniquement un bouton « Télécharger en PDF » (masqué
+// à l'impression). Lecture fs directe = fiable, indépendant du static serving.
+const DOSSIERS_DIR = join(__dirname, 'docs', 'dossiers-sources');
+app.get('/dossier/:id', (req, res) => {
+  const id = String(req.params.id || '');
+  // Anti path-traversal : on n'autorise que [a-z0-9-]
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    return res.status(404).send('Dossier introuvable.');
+  }
+  const filePath = join(DOSSIERS_DIR, `${id}.html`);
+  if (!filePath.startsWith(DOSSIERS_DIR) || !fs.existsSync(filePath)) {
+    return res.status(404).send('Dossier de pré-commercialisation introuvable pour ce bien.');
+  }
+  let html = fs.readFileSync(filePath, 'utf-8');
+  // loading="lazy" empêche les images embarquées plus bas dans le document de se
+  // charger (rendu hors-viewport + impression PDF) → on force le chargement.
+  html = html.replace(/loading="lazy"/g, 'loading="eager"');
+  const inject = `
+<div id="versi-pdf-btn" style="position:fixed;top:18px;right:18px;z-index:99999;">
+  <button onclick="window.print()" style="font:600 13px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:11px 18px;border:0;border-radius:6px;background:#111;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);">Télécharger en PDF</button>
+</div>
+<style>@media print{#versi-pdf-btn{display:none!important}}</style>
+`;
+  html = html.includes('</body>') ? html.replace('</body>', `${inject}</body>`) : html + inject;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  // CSP permissive pour CE document (contenu de confiance du fondateur) : la CSP
+  // stricte globale bloque les images embarquées/cartes et les styles inline du
+  // dossier. On l'assouplit uniquement ici pour un rendu fidèle.
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline'; frame-src https:; connect-src 'self' https:;"
+  );
+  return res.send(html);
+});
+
 // GET /api/public/projects
 app.get('/api/public/projects', async (req, res) => {
   const VALID_PROJECT_STATUS = ['completed', 'in-progress', 'archive', 'all'];
