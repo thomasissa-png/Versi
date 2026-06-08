@@ -153,6 +153,82 @@ export default function PropertyDetailPage() {
 
   const dualPricing = parseDualPricing(property.priceNote, property.price);
 
+  /* ── Enrichissement depuis le dossier de pré-commercialisation ──
+     Le champ `property.dossier` (JSONB) est peuplé pour les biens en
+     pré-commercialisation (Lot 1 RDC, Lot 2 T3 — pas Lot 3 duplex). On y
+     puise un contenu plus riche pour l'annonce, SANS la transformer en
+     dossier complet. Les biens sans dossier conservent l'affichage standard. */
+  const dossier = property.dossier || null;
+
+  /* Specs strip — préfère la fiche technique du dossier si présente,
+     sinon fallback sur les champs standard de l'annonce. */
+  const specItems = dossier?.ficheTechnique && Array.isArray(dossier.ficheTechnique) && dossier.ficheTechnique.length > 0
+    ? dossier.ficheTechnique.map((row) => ({ label: row.label, value: row.value }))
+    : [
+        { label: 'Type', value: property.type },
+        { label: 'Surface', value: property.surface },
+        { label: 'Pièces', value: property.rooms },
+        { label: 'DPE', value: property.dpe },
+        { label: 'Étage', value: property.floor },
+        { label: 'Disponibilité', value: property.tenancy },
+      ];
+
+  /* Description — quand un dossier existe, on assemble un texte rédactionnel
+     plus riche : leBien (présentation du logement) + pourQui (à qui il s'adresse).
+     Sinon, on garde la description standard. */
+  const descriptionParagraphs = dossier
+    ? [dossier.leBien, dossier.pourQui].filter(Boolean)
+    : (property.description ? property.description.split('\n\n') : []);
+
+  /* Caractéristiques — préfère la liste du dossier (plus dense, mieux rédigée),
+     sinon fallback sur les features standard. */
+  const featuresList = dossier?.caracteristiques && Array.isArray(dossier.caracteristiques) && dossier.caracteristiques.length > 0
+    ? dossier.caracteristiques
+    : (property.features || []);
+
+  /* Travaux — résumé court depuis l'intro du dossier (pas les 3 phases
+     détaillées, qui restent sur la page /dossier/:id). */
+  const worksIntro = dossier?.travaux?.intro || null;
+
+  /* Formules de prix — si le dossier expose brut + prêt à habiter, on
+     prend ces valeurs (source de vérité), sinon on retombe sur le parsing
+     du price_note (dualPricing). */
+  const dossierFormules = dossier?.formules?.brut && dossier?.formules?.pretAHabiter
+    ? {
+        avantTravaux: dossier.formules.brut.price,
+        pretAHabiter: dossier.formules.pretAHabiter.price,
+        brutLivraison: dossier.formules.brut.livraison || null,
+        pretLivraison: dossier.formules.pretAHabiter.livraison || null,
+      }
+    : null;
+
+  /* Prix principal affiché : on met en avant le prêt-à-habiter du dossier
+     (prixVedette) si disponible — c'est ce que le visiteur paie clé en main. */
+  const headlinePrice = dossier?.bandeauPrix?.prixVedette || property.price;
+  const headlineSubtitle = dossier?.bandeauPrix?.sousTitre || null;
+  const headlineNotaire = dossier?.bandeauPrix?.notaire || null;
+
+  /* Hook éditorial + intro contextuelle du dossier — affichés juste sous le
+     titre pour donner du punch immédiat à l'annonce (sans dupliquer le
+     dossier profond qui reste sur /dossier/:id). */
+  const editorialHook = dossier?.hook || null;
+  const editorialIntro = dossier?.intro || null;
+
+  /* Intro des formules — courte ligne pédagogique au-dessus du bloc Travaux
+     qui explique la logique brut vs prêt-à-habiter (sans dérouler le détail
+     des descriptions de chaque formule, qui restent dans le dossier). */
+  const formulesIntro = dossier?.formules?.intro || null;
+
+  /* Argument de valeur marché — phrase d'accroche du bloc reperesMarche du
+     dossier (ex. « ~ 12 % sous la médiane »). Affichée en encadré accent dans
+     la colonne gauche, après les caractéristiques. Le tableau complet des
+     comparables reste sur /dossier/:id. */
+  const marketArgument = dossier?.reperesMarche?.intro || null;
+
+  /* DPE enrichi — plage exacte issue du dossier (ex. « 71 – 110 kWh/m²/an »),
+     plus précise que le seul dpe_note de l'annonce. */
+  const dpeProjete = dossier?.dpeProjete || null;
+
   return (
     <>
       <PageHead
@@ -232,16 +308,24 @@ export default function PropertyDetailPage() {
                   {property.title}
                 </h1>
 
-                {/* Specs strip — caractéristiques standard du bien */}
+                {/* Hook éditorial — phrase d'accroche du dossier, sous le titre.
+                    Donne du punch immédiat à l'annonce. */}
+                {editorialHook && (
+                  <p className="text-body-lg property-detail__hook">
+                    {editorialHook}
+                  </p>
+                )}
+
+                {/* Intro contextuelle — situe l'immeuble / le projet / la livraison. */}
+                {editorialIntro && (
+                  <p className="text-body-md property-detail__intro">
+                    {editorialIntro}
+                  </p>
+                )}
+
+                {/* Specs strip — fiche technique du dossier si dispo, sinon champs standard */}
                 <div className="property-detail__specs">
-                  {[
-                    { label: 'Type', value: property.type },
-                    { label: 'Surface', value: property.surface },
-                    { label: 'Pièces', value: property.rooms },
-                    { label: 'DPE', value: property.dpe },
-                    { label: 'Étage', value: property.floor },
-                    { label: 'Disponibilité', value: property.tenancy },
-                  ].filter((item) => item.value).map((item) => (
+                  {specItems.filter((item) => item.value).map((item) => (
                     <div key={item.label} className="property-detail__spec-item">
                       <span className="text-label property-detail__spec-label">{item.label}</span>
                       <span className="property-detail__spec-value">{item.value}</span>
@@ -249,29 +333,70 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
 
-                {/* Description — texte standard de l'annonce */}
-                <h2 className="text-heading-md property-detail__section-title">
-                  Le bien.
-                </h2>
-                <div className="text-body-md property-detail__description">
-                  {property.description.split('\n\n').map((paragraph, i) => (
-                    <p key={i}>{paragraph}</p>
-                  ))}
-                </div>
+                {/* Description — leBien + pourQui (depuis le dossier), sinon description standard */}
+                {descriptionParagraphs.length > 0 && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Le bien.
+                    </h2>
+                    <div className="text-body-md property-detail__description">
+                      {descriptionParagraphs.map((paragraph, i) => (
+                        <p key={i}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </>
+                )}
 
-                {/* Caractéristiques — features standard du bien */}
-                {property.features && property.features.length > 0 && (
+                {/* Caractéristiques — liste du dossier si dispo (plus dense), sinon features standard */}
+                {featuresList && featuresList.length > 0 && (
                   <>
                     <h2 className="text-heading-md property-detail__section-title">
                       Caractéristiques.
                     </h2>
                     <div className="property-detail__features">
-                      {property.features.map((feat) => (
+                      {featuresList.map((feat) => (
                         <span key={feat} className="property-detail__feature-tag">
                           {feat}
                         </span>
                       ))}
                     </div>
+                  </>
+                )}
+
+                {/* Argument de valeur marché — phrase d'accroche du dossier
+                    (ex. « ~ 12 % sous la médiane des T2 vendus à Lille-Sud »).
+                    Encadré accent court. Le tableau des comparables reste sur
+                    /dossier/:id. */}
+                {marketArgument && (
+                  <p className="text-body-md property-detail__accroche">
+                    {marketArgument}
+                  </p>
+                )}
+
+                {/* Formules d'achat — courte intro pédagogique. Le détail des
+                    deux formules (brut vs prêt à habiter) reste sur le
+                    dossier ; ici on explique simplement la logique. */}
+                {formulesIntro && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Deux formules d'achat.
+                    </h2>
+                    <p className="text-body-md property-detail__description">
+                      {formulesIntro}
+                    </p>
+                  </>
+                )}
+
+                {/* Travaux — résumé court depuis le dossier (les 3 phases
+                    détaillées restent sur /dossier/:id). */}
+                {worksIntro && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Travaux.
+                    </h2>
+                    <p className="text-body-md property-detail__description">
+                      {worksIntro}
+                    </p>
                   </>
                 )}
 
@@ -360,21 +485,33 @@ export default function PropertyDetailPage() {
                   })()}
                 </div>
 
-                {/* Diagnostics & charges — masqué si aucune donnée */}
-                {(property.dpe || property.dpeNote || property.charges) && (
+                {/* Diagnostics & charges — masqué si aucune donnée.
+                    Si le dossier expose un dpeProjete (classe + plage), on
+                    utilise ces valeurs (plus précises que dpe_note brut). */}
+                {(property.dpe || property.dpeNote || property.charges || dpeProjete) && (
                   <>
                     <h2 className="text-heading-md property-detail__section-title">
                       Diagnostics et charges.
                     </h2>
                     <div className="property-detail__diagnostics">
-                      {(property.dpe || property.dpeNote) && (
+                      {(property.dpe || property.dpeNote || dpeProjete) && (
                         <div className="property-detail__diag-item">
-                          <span className="text-label property-detail__diag-label">DPE</span>
-                          {property.dpe ? (
+                          <span className="text-label property-detail__diag-label">
+                            {dpeProjete ? 'DPE projeté' : 'DPE'}
+                          </span>
+                          {dpeProjete ? (
+                            <span className="text-body-md">
+                              Classe {dpeProjete.classe}
+                              {dpeProjete.plage && ` · ${dpeProjete.plage}`}
+                              {dpeProjete.unite && ` (${dpeProjete.unite})`}
+                            </span>
+                          ) : property.dpe ? (
                             <span className="text-body-md">{property.dpe}</span>
                           ) : null}
-                          {property.dpeNote && (
-                            <p className="text-body-sm property-detail__diag-note">{property.dpeNote}</p>
+                          {(dpeProjete?.note || property.dpeNote) && (
+                            <p className="text-body-sm property-detail__diag-note">
+                              {dpeProjete?.note || property.dpeNote}
+                            </p>
                           )}
                         </div>
                       )}
@@ -393,11 +530,25 @@ export default function PropertyDetailPage() {
               <aside aria-label="Prix et contact">
                 <div className="property-price-card">
                   <span className="property-price-card__label">Prix</span>
-                  <span className="property-price-card__price">{property.price}</span>
+                  <span className="property-price-card__price">{headlinePrice}</span>
+                  {headlineSubtitle && (
+                    <span className="property-price-card__note">{headlineSubtitle}</span>
+                  )}
 
-                  {/* Double prix avant travaux / prêt à habiter — parsé depuis
-                      priceNote si le bien est en pré-commercialisation. */}
-                  {dualPricing ? (
+                  {/* Double prix — priorité aux formules du dossier (source
+                      de vérité), sinon fallback sur parsing du price_note. */}
+                  {dossierFormules ? (
+                    <div className="property-price-card__dual">
+                      <div className="property-price-card__dual-row">
+                        <span className="property-price-card__dual-label">Brut (avant travaux)</span>
+                        <span className="property-price-card__dual-value">{dossierFormules.avantTravaux}</span>
+                      </div>
+                      <div className="property-price-card__dual-row">
+                        <span className="property-price-card__dual-label">Prêt à habiter</span>
+                        <span className="property-price-card__dual-value">{dossierFormules.pretAHabiter}</span>
+                      </div>
+                    </div>
+                  ) : dualPricing ? (
                     <div className="property-price-card__dual">
                       <div className="property-price-card__dual-row">
                         <span className="property-price-card__dual-label">Avant travaux</span>
@@ -411,6 +562,11 @@ export default function PropertyDetailPage() {
                   ) : property.priceNote ? (
                     <span className="property-price-card__note">{property.priceNote}</span>
                   ) : null}
+
+                  {/* Mention notaire — issue du dossier (bandeauPrix.notaire). */}
+                  {headlineNotaire && (
+                    <span className="property-price-card__note">{headlineNotaire}</span>
+                  )}
 
                   <span className={`property-price-card__badge ${badgeClass}`}>
                     {STATUS_LABELS[property.status] || property.status}
