@@ -1625,6 +1625,7 @@ ul, ol {
   border-left: 2px solid var(--color-accent);
   padding-left: var(--spacing-md);
   margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-2xl);
   color: var(--color-text-primary);
   font-style: italic;
 }

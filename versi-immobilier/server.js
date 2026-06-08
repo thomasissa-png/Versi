@@ -504,13 +504,13 @@ app.get('/dossier/:id', (req, res) => {
   }
   let html = fs.readFileSync(filePath, 'utf-8');
   // loading="lazy" empêche les images embarquées plus bas dans le document de se
-  // charger (rendu hors-viewport + impression PDF) → on force le chargement.
+  // charger → on force le chargement.
   html = html.replace(/loading="lazy"/g, 'loading="eager"');
+  // Bouton flottant en BAS à droite (ne chevauche pas l'en-tête du document) qui
+  // télécharge le PDF pré-généré (rendu propre, sans en-tête date/URL du navigateur).
   const inject = `
-<div id="versi-pdf-btn" style="position:fixed;top:18px;right:18px;z-index:99999;">
-  <button onclick="window.print()" style="font:600 13px/1 system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:11px 18px;border:0;border-radius:6px;background:#111;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);">Télécharger en PDF</button>
-</div>
-<style>@media print{#versi-pdf-btn{display:none!important}}</style>
+<a id="versi-pdf-btn" href="/dossier/${encodeURIComponent(id)}/pdf" download
+   style="position:fixed;bottom:24px;right:24px;z-index:99999;text-decoration:none;font:600 13px/1 system-ui,-apple-system,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:14px 22px;border-radius:8px;background:#111;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.22);">↓ Télécharger en PDF</a>
 `;
   html = html.includes('</body>') ? html.replace('</body>', `${inject}</body>`) : html + inject;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -523,6 +523,23 @@ app.get('/dossier/:id', (req, res) => {
     "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline'; frame-src https:; connect-src 'self' https:;"
   );
   return res.send(html);
+});
+
+// GET /dossier/:id/pdf — télécharge le PDF pré-généré (propre, sans en-tête
+// navigateur). Le fichier est généré par scripts/generate-dossier-pdf.mjs.
+app.get('/dossier/:id/pdf', (req, res) => {
+  const id = String(req.params.id || '');
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    return res.status(404).send('Dossier introuvable.');
+  }
+  const pdfPath = join(DOSSIERS_DIR, `${id}.pdf`);
+  if (!pdfPath.startsWith(DOSSIERS_DIR) || !fs.existsSync(pdfPath)) {
+    return res.status(404).send('PDF du dossier introuvable.');
+  }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="dossier-pre-commercialisation-${id}.pdf"`);
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  return res.send(fs.readFileSync(pdfPath));
 });
 
 // GET /api/public/projects
