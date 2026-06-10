@@ -8,10 +8,23 @@ import { useProperty } from '../hooks/useProperty.js';
 import { useProperties } from '../hooks/useProperties.js';
 import { CONTACT_EMAIL } from '../config/contact.js';
 import { useFadeIn } from '../hooks/useFadeIn.js';
-// NOTE : PropertyDossier n'est plus importé ici. Le dossier riche vit
-// désormais sur sa propre route /dossier/:id (DossierPage.jsx). L'annonce
-// publique reste une annonce standard ; quand un bien dispose d'un dossier,
-// un bloc CTA renvoie le visiteur vers la page dossier dédiée.
+// L'annonce publique compose les sections du dossier dans l'ordre exact
+// du document source HTML (Emplacement → Le bien → Plan → Caractéristiques
+// → Travaux → État actuel → Performances → Formules → Repères marché →
+// À prévoir → Calendrier). Les sections sont importées nommément depuis
+// PropertyDossier pour garder le design du site et un point de vérité
+// unique. Le bloc CTA renvoyant vers /dossier/:id (page autonome + PDF)
+// est conservé en fin d'annonce.
+import {
+  PlanSection,
+  TravauxSection,
+  EtatActuelSection,
+  DpeSection,
+  FormulesSection,
+  ReperesMarcheSection,
+  APrevoirSection,
+  CalendrierSection,
+} from '../components/PropertyDossier.jsx';
 
 const STATUS_LABELS = {
   'disponible': 'Disponible',
@@ -186,10 +199,6 @@ export default function PropertyDetailPage() {
     ? dossier.caracteristiques
     : (property.features || []);
 
-  /* Travaux — résumé court depuis l'intro du dossier (pas les 3 phases
-     détaillées, qui restent sur la page /dossier/:id). */
-  const worksIntro = dossier?.travaux?.intro || null;
-
   /* Formules de prix — si le dossier expose brut + prêt à habiter, on
      prend ces valeurs (source de vérité), sinon on retombe sur le parsing
      du price_note (dualPricing). */
@@ -214,19 +223,8 @@ export default function PropertyDetailPage() {
   const editorialHook = dossier?.hook || null;
   const editorialIntro = dossier?.intro || null;
 
-  /* Intro des formules — courte ligne pédagogique au-dessus du bloc Travaux
-     qui explique la logique brut vs prêt-à-habiter (sans dérouler le détail
-     des descriptions de chaque formule, qui restent dans le dossier). */
-  const formulesIntro = dossier?.formules?.intro || null;
-
-  /* Argument de valeur marché — phrase d'accroche du bloc reperesMarche du
-     dossier (ex. « ~ 12 % sous la médiane »). Affichée en encadré accent dans
-     la colonne gauche, après les caractéristiques. Le tableau complet des
-     comparables reste sur /dossier/:id. */
-  const marketArgument = dossier?.reperesMarche?.intro || null;
-
-  /* DPE enrichi — plage exacte issue du dossier (ex. « 71 – 110 kWh/m²/an »),
-     plus précise que le seul dpe_note de l'annonce. */
+  /* DPE projeté — utilisé par la section dédiée et par le fallback du
+     bloc « Diagnostics et charges » quand le dossier n'est pas présent. */
   const dpeProjete = dossier?.dpeProjete || null;
 
   return (
@@ -299,8 +297,29 @@ export default function PropertyDetailPage() {
             {/* ── Layout principal ── */}
             <div className="property-detail__layout">
 
-              {/* Colonne gauche — détails (annonce publique STANDARD) */}
+              {/* ── Colonne gauche — contenu de l'annonce ──
+                  Ordre du document source HTML :
+                  Hero (titre + hook + intro + fiche technique)
+                  1. Emplacement
+                  2. Le bien (leBien + pourQui)
+                  3. Plan (planImage + surfaces + planCaption)
+                  4. Caractéristiques
+                  5. Travaux (intro + 3 phases)
+                  6. État actuel et projet
+                  7. Performances énergétiques (dpeProjete)
+                  8. Les deux formules (brut / prêt-à-habiter / garanties)
+                  9. Repères marché
+                  10. À prévoir
+                  11. Calendrier
+                  + Diagnostics et charges (annonce standard)
+                  + CTA dossier complet / PDF (conservé)
+
+                  Fallback (Lot 3 duplex, sans dossier) :
+                  l'annonce standard rend description multi-paragraphes,
+                  features, travaux réalisés, emplacement, diagnostics.
+              */}
               <div>
+                {/* Hero — titre, accroche, fiche technique */}
                 <span className="text-label property-detail__meta">
                   {property.location}
                 </span>
@@ -308,22 +327,20 @@ export default function PropertyDetailPage() {
                   {property.title}
                 </h1>
 
-                {/* Hook éditorial — phrase d'accroche du dossier, sous le titre.
-                    Donne du punch immédiat à l'annonce. */}
                 {editorialHook && (
                   <p className="text-body-lg property-detail__hook">
                     {editorialHook}
                   </p>
                 )}
 
-                {/* Intro contextuelle — situe l'immeuble / le projet / la livraison. */}
                 {editorialIntro && (
                   <p className="text-body-md property-detail__intro">
                     {editorialIntro}
                   </p>
                 )}
 
-                {/* Specs strip — fiche technique du dossier si dispo, sinon champs standard */}
+                {/* Fiche technique — dossier.ficheTechnique si dispo, sinon
+                    champs standard du bien */}
                 <div className="property-detail__specs">
                   {specItems.filter((item) => item.value).map((item) => (
                     <div key={item.label} className="property-detail__spec-item">
@@ -333,121 +350,9 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
 
-                {/* Description — leBien + pourQui (depuis le dossier), sinon description standard */}
-                {descriptionParagraphs.length > 0 && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Le bien.
-                    </h2>
-                    <div className="text-body-md property-detail__description">
-                      {descriptionParagraphs.map((paragraph, i) => (
-                        <p key={i}>{paragraph}</p>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Caractéristiques — liste du dossier si dispo (plus dense), sinon features standard */}
-                {featuresList && featuresList.length > 0 && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Caractéristiques.
-                    </h2>
-                    <div className="property-detail__features">
-                      {featuresList.map((feat) => (
-                        <span key={feat} className="property-detail__feature-tag">
-                          {feat}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Argument de valeur marché — phrase d'accroche du dossier
-                    (ex. « ~ 12 % sous la médiane des T2 vendus à Lille-Sud »).
-                    Encadré accent court. Le tableau des comparables reste sur
-                    /dossier/:id. */}
-                {marketArgument && (
-                  <p className="text-body-md property-detail__accroche">
-                    {marketArgument}
-                  </p>
-                )}
-
-                {/* Formules d'achat — courte intro pédagogique. Le détail des
-                    deux formules (brut vs prêt à habiter) reste sur le
-                    dossier ; ici on explique simplement la logique. */}
-                {formulesIntro && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Deux formules d'achat.
-                    </h2>
-                    <p className="text-body-md property-detail__description">
-                      {formulesIntro}
-                    </p>
-                  </>
-                )}
-
-                {/* Travaux — résumé court depuis le dossier (les 3 phases
-                    détaillées restent sur /dossier/:id). */}
-                {worksIntro && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Travaux.
-                    </h2>
-                    <p className="text-body-md property-detail__description">
-                      {worksIntro}
-                    </p>
-                  </>
-                )}
-
-                {/* ── CTA dossier de pré-commercialisation ──
-                    Affiché UNIQUEMENT si le bien dispose d'un dossier riche.
-                    Renvoie vers /dossier/:id (page autonome + PDF). */}
-                {property.dossier && (
-                  <div className="property-detail__dossier-cta">
-                    <span className="text-label property-detail__dossier-kicker">
-                      Dossier de pré-commercialisation
-                    </span>
-                    <h2 className="text-heading-md property-detail__dossier-title">
-                      Tous les détails du projet, dans un dossier dédié.
-                    </h2>
-                    <p className="text-body-md property-detail__dossier-text">
-                      Plans d’architecte, surfaces, formules d’achat, calendrier
-                      des travaux, repères marché, performances énergétiques —
-                      pour aller plus loin que l’annonce.
-                    </p>
-                    {/* Lien natif (pas <Link> React) : /dossier/:id est servi
-                        par le serveur (HTML du dossier), pas par le routeur SPA.
-                        Nouvel onglet pour garder l'annonce ouverte. */}
-                    <a
-                      href={`/dossier/${encodeURIComponent(property.id)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="property-detail__dossier-link"
-                    >
-                      Consulter le dossier complet →
-                    </a>
-                  </div>
-                )}
-
-                {/* Travaux réalisés */}
-                {property.works && property.works.length > 0 && (
-                  <>
-                    <h2 className="text-heading-md property-detail__section-title">
-                      Travaux réalisés.{property.renovationYear && ` Rénovation ${property.renovationYear}.`}
-                    </h2>
-                    <ul className="property-detail__works">
-                      {property.works.map((work) => (
-                        <li key={work} className="property-detail__work-item">
-                          <span aria-hidden="true" className="property-detail__work-bullet">—</span>
-                          {work}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                {/* Emplacement */}
+                {/* ── 1. Emplacement (toujours en premier, depuis les
+                    champs standard du bien — dossier.emplacement n'existe
+                    pas dans la donnée) ── */}
                 <h2 className="text-heading-md property-detail__section-title">
                   Emplacement.
                 </h2>
@@ -468,7 +373,7 @@ export default function PropertyDetailPage() {
                       <strong>À proximité :</strong> {property.nearbyAmenities}
                     </p>
                   )}
-                  {/* Carte OpenStreetMap — coordonnées 10 rue des Muguets, Lille */}
+                  {/* Carte OpenStreetMap — coordonnées 10 rue des Muguets */}
                   {property.address && /muguets/i.test(property.address) && (() => {
                     const lat = 50.6150;
                     const lng = 3.0580;
@@ -485,32 +390,118 @@ export default function PropertyDetailPage() {
                   })()}
                 </div>
 
-                {/* Diagnostics & charges — masqué si aucune donnée.
-                    Si le dossier expose un dpeProjete (classe + plage), on
-                    utilise ces valeurs (plus précises que dpe_note brut). */}
-                {(property.dpe || property.dpeNote || property.charges || dpeProjete) && (
+                {/* ── 2. Le bien ── */}
+                {/* Avec dossier : leBien (présentation du logement) +
+                    pourQui (à qui il s'adresse). Sans dossier (Lot 3) :
+                    description multi-paragraphes du bien. */}
+                {descriptionParagraphs.length > 0 && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Le bien.
+                    </h2>
+                    <div className="text-body-md property-detail__description">
+                      {descriptionParagraphs.map((paragraph, i) => (
+                        <p key={i}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* ── 3. Plan (dossier uniquement) ──
+                    Image du plan + tableau des surfaces + légende */}
+                {dossier && (
+                  <PlanSection
+                    planImage={dossier.planImage}
+                    planCaption={dossier.planCaption}
+                    surfaces={dossier.surfaces}
+                  />
+                )}
+
+                {/* ── 4. Caractéristiques ──
+                    Liste du dossier si dispo (plus dense, mieux rédigée),
+                    sinon features standard du bien (Lot 3). */}
+                {featuresList && featuresList.length > 0 && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Caractéristiques.
+                    </h2>
+                    <div className="property-detail__features">
+                      {featuresList.map((feat) => (
+                        <span key={feat} className="property-detail__feature-tag">
+                          {feat}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* ── 5. Travaux (dossier uniquement) ──
+                    Intro + 3 phases (Le plan / L'enveloppe / Les finitions) */}
+                {dossier && <TravauxSection travaux={dossier.travaux} />}
+
+                {/* ── 6. État actuel et projet (dossier uniquement) ──
+                    Avant (image + caption) + Projet (placeholder 3D) */}
+                {dossier && <EtatActuelSection etatActuel={dossier.etatActuel} />}
+
+                {/* ── 7. Performances énergétiques (dossier uniquement) ──
+                    Classe DPE projetée + plage + unité + note */}
+                {dossier && <DpeSection dpeProjete={dpeProjete} />}
+
+                {/* ── 8. Les deux formules (dossier uniquement) ──
+                    Intro + brut + prêt-à-habiter + garanties */}
+                {dossier && <FormulesSection formules={dossier.formules} />}
+
+                {/* ── 9. Repères marché (dossier uniquement) ──
+                    Intro + tableau de comparables + conclusion */}
+                {dossier && (
+                  <ReperesMarcheSection reperesMarche={dossier.reperesMarche} />
+                )}
+
+                {/* ── 10. À prévoir (dossier uniquement) ──
+                    Intro + items (charges, taxe foncière, frais notaire) */}
+                {dossier && <APrevoirSection aPrevoir={dossier.aPrevoir} />}
+
+                {/* ── 11. Calendrier (dossier uniquement) ──
+                    Timeline : plans / livraison brut / livraison prêt-à-habiter */}
+                {dossier && <CalendrierSection calendrier={dossier.calendrier} />}
+
+                {/* ── Travaux réalisés — fallback annonce standard
+                    (bien existant déjà rénové). Inutile pour les lots
+                    Muguets en pré-commercialisation. */}
+                {property.works && property.works.length > 0 && (
+                  <>
+                    <h2 className="text-heading-md property-detail__section-title">
+                      Travaux réalisés.{property.renovationYear && ` Rénovation ${property.renovationYear}.`}
+                    </h2>
+                    <ul className="property-detail__works">
+                      {property.works.map((work) => (
+                        <li key={work} className="property-detail__work-item">
+                          <span aria-hidden="true" className="property-detail__work-bullet">—</span>
+                          {work}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {/* ── Diagnostics et charges (toujours, si donnée) ──
+                    Masqué si dpeProjete déjà rendu plus haut + pas de
+                    données complémentaires (charges, dpe_note hors dossier). */}
+                {(property.dpe || (property.dpeNote && !dpeProjete) || property.charges) && (
                   <>
                     <h2 className="text-heading-md property-detail__section-title">
                       Diagnostics et charges.
                     </h2>
                     <div className="property-detail__diagnostics">
-                      {(property.dpe || property.dpeNote || dpeProjete) && (
+                      {(property.dpe || (property.dpeNote && !dpeProjete)) && (
                         <div className="property-detail__diag-item">
-                          <span className="text-label property-detail__diag-label">
-                            {dpeProjete ? 'DPE projeté' : 'DPE'}
-                          </span>
-                          {dpeProjete ? (
-                            <span className="text-body-md">
-                              Classe {dpeProjete.classe}
-                              {dpeProjete.plage && ` · ${dpeProjete.plage}`}
-                              {dpeProjete.unite && ` (${dpeProjete.unite})`}
-                            </span>
-                          ) : property.dpe ? (
+                          <span className="text-label property-detail__diag-label">DPE</span>
+                          {property.dpe && (
                             <span className="text-body-md">{property.dpe}</span>
-                          ) : null}
-                          {(dpeProjete?.note || property.dpeNote) && (
+                          )}
+                          {property.dpeNote && (
                             <p className="text-body-sm property-detail__diag-note">
-                              {dpeProjete?.note || property.dpeNote}
+                              {property.dpeNote}
                             </p>
                           )}
                         </div>
@@ -523,6 +514,46 @@ export default function PropertyDetailPage() {
                       )}
                     </div>
                   </>
+                )}
+
+                {/* ── CTA dossier de pré-commercialisation ──
+                    Conservé tel quel : renvoie vers /dossier/:id (page
+                    autonome HTML + lien PDF). Affiché uniquement si le
+                    bien dispose d'un dossier riche. */}
+                {property.dossier && (
+                  <div className="property-detail__dossier-cta">
+                    <span className="text-label property-detail__dossier-kicker">
+                      Dossier de pré-commercialisation
+                    </span>
+                    <h2 className="text-heading-md property-detail__dossier-title">
+                      Recevoir le dossier complet.
+                    </h2>
+                    <p className="text-body-md property-detail__dossier-text">
+                      Plans d’architecte haute résolution, formules d’achat,
+                      calendrier des travaux, repères marché, performances
+                      énergétiques — la version imprimable du dossier.
+                    </p>
+                    {/* Liens natifs (pas <Link> React) : /dossier/:id et
+                        /dossier/:id/pdf sont servis par le serveur Express,
+                        pas par le routeur SPA. Nouvel onglet pour garder
+                        l'annonce ouverte. */}
+                    <a
+                      href={`/dossier/${encodeURIComponent(property.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="property-detail__dossier-link"
+                    >
+                      Consulter le dossier complet →
+                    </a>
+                    <a
+                      href={`/dossier/${encodeURIComponent(property.id)}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="property-detail__dossier-link property-detail__dossier-link--secondary"
+                    >
+                      Télécharger en PDF
+                    </a>
+                  </div>
                 )}
               </div>
 
