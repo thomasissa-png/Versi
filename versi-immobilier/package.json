@@ -23,8 +23,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
-    "playwright": "^1.59.1",
     "sharp": "^0.34.5",
     "vite": "^8.0.4"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.59.1"
   }
 }
