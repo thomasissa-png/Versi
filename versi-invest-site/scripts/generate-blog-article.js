@@ -25,6 +25,52 @@ import { writeFileSync, readFileSync, existsSync, unlinkSync, mkdirSync } from '
 const { Pool } = pg;
 
 // ---------------------------------------------------------------------------
+// Constantes des gates — SOURCE DE VÉRITÉ unique partagée entre :
+//   - validateArticle() qui vérifie l'article généré
+//   - buildConstraintsBlock() qui injecte ces contraintes dans le prompt initial
+// Voir versi-immobilier/scripts/generate-blog-article.js — duplication
+// intentionnelle (package partagé hors scope).
+// ---------------------------------------------------------------------------
+export const GATE_CONFIG = Object.freeze({
+  MIN_WORD_COUNT: 800,
+  // Liste propre à Versi Invest (différente de Versi Immobilier)
+  FORBIDDEN_WORDS: Object.freeze([
+    'garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise',
+    'sur-mesure', 'passive income', 'liberté financière', 'opportunité unique',
+    'meilleur', 'leader',
+  ]),
+  MIN_H2_COUNT: 3,
+  REQUIRED_CTA_PATH: '/contact',
+  MIN_INTERNAL_LINKS: 2,
+  PARAGRAPH_MIN_CHARS: 50,
+  MAX_SHORT_PARAGRAPHS: 2,
+  MIN_NUMBERS: 3,
+  MIN_KEYWORD_OCCURRENCES: 3,
+});
+
+export const PROMPT_VERSION = 'vinv-blog-v2.1';
+
+export function buildConstraintsBlock(keywords) {
+  const mainKw = (keywords || '').split(',')[0].trim();
+  const forbiddenList = GATE_CONFIG.FORBIDDEN_WORDS.join(', ');
+  return [
+    'CONTRAINTES DE PUBLICATION (vérifiées automatiquement — toute violation = article rejeté) :',
+    `- Longueur minimale : ${GATE_CONFIG.MIN_WORD_COUNT} mots.`,
+    `- MOTS INTERDITS (aucune occurrence, même au pluriel ou en conjugaison) : ${forbiddenList}.`,
+    `- Structure : au moins ${GATE_CONFIG.MIN_H2_COUNT} sections H2.`,
+    `- CTA : inclure une mention vers ${GATE_CONFIG.REQUIRED_CTA_PATH} en fin d'article.`,
+    `- Liens internes : au moins ${GATE_CONFIG.MIN_INTERNAL_LINKS} liens markdown vers des routes internes du site.`,
+    `- Chaque paragraphe doit faire au moins ${GATE_CONFIG.PARAGRAPH_MIN_CHARS} caractères (pas de paragraphes creux d'une ligne).`,
+    `- Données chiffrées : intégrer au moins ${GATE_CONFIG.MIN_NUMBERS} chiffres concrets (€, %, m², mois, ans).`,
+    mainKw
+      ? `- DENSITÉ MOT-CLÉ : le mot-clé principal "${mainKw}" DOIT apparaître au moins ${GATE_CONFIG.MIN_KEYWORD_OCCURRENCES} fois dans le corps de l'article, de manière naturelle.`
+      : null,
+    '- Vouvoiement systématique (jamais tu/ton/ta/tes/toi).',
+    '- Zéro placeholder ([TODO], [A REMPLIR], etc.).',
+  ].filter(Boolean).join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // Lock file — empêche les exécutions concurrentes
 // ---------------------------------------------------------------------------
 const LOCK_FILE = '/tmp/versi-blog-gen.lock';
@@ -150,78 +196,91 @@ L'article doit faire entre 1 000 et 1 500 mots. Structure en 4-6 H2.`;
 // ---------------------------------------------------------------------------
 // Gates de qualité — vérification avant publication
 // ---------------------------------------------------------------------------
-function validateArticle(content) {
+export function validateArticle(content) {
   const errors = [];
 
-  // G1 — Longueur minimale
   const wordCount = content.split(/\s+/).length;
-  if (wordCount < 800) errors.push(`G1 FAIL: ${wordCount} mots (minimum 800)`);
+  if (wordCount < GATE_CONFIG.MIN_WORD_COUNT) errors.push(`G1 FAIL: ${wordCount} mots (minimum ${GATE_CONFIG.MIN_WORD_COUNT})`);
 
-  // G2 — Mots interdits
-  const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passive income', 'liberté financière'];
-  for (const word of forbidden) {
+  for (const word of GATE_CONFIG.FORBIDDEN_WORDS) {
     const re = new RegExp('(?<![\\p{L}\\p{M}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{M}])', 'iu');
     if (re.test(content)) errors.push(`G2 FAIL: mot interdit "${word}"`);
   }
 
-  // G3 — H1 présent
   if (!content.match(/^# .+/m)) errors.push('G3 FAIL: pas de titre H1');
 
-  // G4 — Au moins 3 H2
   const h2Count = (content.match(/^## /gm) || []).length;
-  if (h2Count < 3) errors.push(`G4 FAIL: ${h2Count} H2 (minimum 3)`);
+  if (h2Count < GATE_CONFIG.MIN_H2_COUNT) errors.push(`G4 FAIL: ${h2Count} H2 (minimum ${GATE_CONFIG.MIN_H2_COUNT})`);
 
-  // G5 — CTA /contact présent
-  if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
+  if (!content.includes(GATE_CONFIG.REQUIRED_CTA_PATH)) errors.push(`G5 FAIL: pas de CTA vers ${GATE_CONFIG.REQUIRED_CTA_PATH}`);
 
-  // G6 — Vouvoiement (pas de tutoiement)
   if (content.match(/(?<![\p{L}\p{M}])(tu|ton|ta|tes|toi)(?![\p{L}\p{M}])/iu)) errors.push('G6 FAIL: tutoiement détecté');
 
-  // G7 — Liens internes (≥2, vers des routes existantes)
   const linkMatches = content.match(/\]\(\/[a-z-]*\)/g) || [];
   const validLinks = linkMatches.filter((l) => {
     const path = l.match(/\]\((\/[a-z-]*)\)/)?.[1];
     return INTERNAL_ROUTES.includes(path);
   });
-  if (validLinks.length < 2) errors.push(`G7 FAIL: ${validLinks.length} lien(s) interne(s) valide(s) (min 2). Routes valides : ${INTERNAL_ROUTES.join(', ')}`);
+  if (validLinks.length < GATE_CONFIG.MIN_INTERNAL_LINKS) errors.push(`G7 FAIL: ${validLinks.length} lien(s) interne(s) valide(s) (min ${GATE_CONFIG.MIN_INTERNAL_LINKS}). Routes valides : ${INTERNAL_ROUTES.join(', ')}`);
 
-  // G8 — Densité minimale : pas de paragraphes creux
   const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
-  const shortP = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
-  if (shortP.length > 2) errors.push(`G8 FAIL: ${shortP.length} paragraphes creux (<50 chars)`);
+  const shortP = paragraphs.filter((p) => p.trim().length < GATE_CONFIG.PARAGRAPH_MIN_CHARS && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
+  if (shortP.length > GATE_CONFIG.MAX_SHORT_PARAGRAPHS) errors.push(`G8 FAIL: ${shortP.length} paragraphes creux (<${GATE_CONFIG.PARAGRAPH_MIN_CHARS} chars)`);
 
-  // G9 — Valeur terrain : ≥3 données chiffrées
   const hasNumbers = content.match(/\d[\d\s.,]*\s?(%|€|euros?|mois|ans?|m²)/gi);
-  if (!hasNumbers || hasNumbers.length < 3) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (min 3)`);
+  if (!hasNumbers || hasNumbers.length < GATE_CONFIG.MIN_NUMBERS) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (min ${GATE_CONFIG.MIN_NUMBERS})`);
 
   return errors;
 }
 
-// Version enrichie avec vérification mot-clé (appelée quand keywords disponible)
-function validateArticleWithKeywords(content, keywords) {
+export function validateArticleWithKeywords(content, keywords) {
   const errors = validateArticle(content);
 
-  // G10 — Densité mot-clé principal ≥3 occurrences (connecteurs FR tolérés : à, de, le…)
   const primaryKeyword = keywords.split(',')[0].trim().toLowerCase();
   const kwTokens = primaryKeyword.split(/\s+/).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const kwSep = "(?:\\s+(?:à|au|aux|de|du|des|d'|l'|le|la|les|en|sur|pour|et)\\s+|\\s+)";
   const keywordRegex = new RegExp(kwTokens.join(kwSep), 'giu');
   const keywordCount = (content.match(keywordRegex) || []).length;
-  if (keywordCount < 3) errors.push(`G10 FAIL: mot-clé "${primaryKeyword}" apparaît ${keywordCount} fois (min 3)`);
+  if (keywordCount < GATE_CONFIG.MIN_KEYWORD_OCCURRENCES) {
+    errors.push(`G10 FAIL: mot-clé "${primaryKeyword}" apparaît ${keywordCount} fois (min ${GATE_CONFIG.MIN_KEYWORD_OCCURRENCES})`);
+  }
 
   return errors;
 }
 
 // ---------------------------------------------------------------------------
-// Génération via API Claude
+// Client Anthropic injectable (mock-friendly pour tests)
 // ---------------------------------------------------------------------------
-async function generateArticle(topic, keywords) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY non configuré');
-  }
+export function defaultAnthropicClient() {
+  return async ({ system, messages, max_tokens = 4096, model = 'claude-sonnet-4-6', timeoutMs = 120000 }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY non configuré');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+      body: JSON.stringify({
+        model, max_tokens,
+        system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+        messages,
+      }),
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API Claude erreur ${response.status}: ${err}`);
+    }
+    const data = await response.json();
+    return data.content[0].text;
+  };
+}
 
-  const userPrompt = `Rédige un article de blog sur le sujet suivant :
+export function buildUserPrompt(topic, keywords) {
+  return `Rédige un article de blog sur le sujet suivant :
 
 Sujet : ${topic}
 Mots-clés SEO à intégrer naturellement : ${keywords}
@@ -230,32 +289,73 @@ L'article doit :
 - Apporter de la valeur terrain (chiffres locaux, fourchettes de prix, rendements)
 - Être structuré en 4-6 sections H2
 - Faire 1 000 à 1 500 mots
-- Se terminer par un CTA naturel vers /contact`;
+- Se terminer par un CTA naturel vers /contact
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-31',
-    },
-    signal: AbortSignal.timeout(120000),
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
+${buildConstraintsBlock(keywords)}`;
+}
+
+export async function generateArticle(topic, keywords, opts = {}) {
+  const client = opts.client || defaultAnthropicClient();
+  return client({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: buildUserPrompt(topic, keywords) }],
   });
+}
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`API Claude erreur ${response.status}: ${err}`);
+export function buildCorrectionPrompt(article, errors, topic, keywords) {
+  const mainKw = (keywords || '').split(',')[0].trim();
+  return `Voici un article de blog qui a échoué à certaines vérifications automatiques. Ta tâche : CORRIGER CHIRURGICALEMENT ces points UNIQUEMENT, sans réécrire le reste de l'article.
+
+RÈGLES DE CORRECTION :
+- Préserve la longueur totale (entre 1 000 et 1 500 mots).
+- Préserve la structure H1 / H2 existante (mêmes titres si possible).
+- Ne touche qu'aux éléments défaillants listés ci-dessous.
+- Ne supprime PAS de paragraphes valides.
+- Renvoie l'article COMPLET corrigé, en markdown, sans commentaire ni préambule.
+
+SUJET : ${topic}
+MOT-CLÉ PRINCIPAL : ${mainKw}
+
+ÉCHECS À CORRIGER (chacun mécaniquement re-vérifié après ta correction) :
+${errors.map((e) => `- ${e}`).join('\n')}
+
+${buildConstraintsBlock(keywords)}
+
+ARTICLE À CORRIGER :
+${article}`;
+}
+
+export async function correctArticle(article, errors, topic, keywords, opts = {}) {
+  const client = opts.client || defaultAnthropicClient();
+  return client({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: buildCorrectionPrompt(article, errors, topic, keywords) }],
+  });
+}
+
+export async function runGenerationPipeline(topic, keywords, opts = {}) {
+  const maxCorrectionIterations = opts.maxCorrectionIterations ?? 3;
+  const client = opts.client || defaultAnthropicClient();
+  const log = opts.log || ((msg) => console.log(msg));
+
+  let content = await generateArticle(topic, keywords, { client });
+  let errors = validateArticleWithKeywords(content, keywords);
+  let attempts = 1;
+
+  if (errors.length === 0) return { content, errors, attempts };
+
+  for (let i = 1; i <= maxCorrectionIterations; i++) {
+    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) — ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
+    content = await correctArticle(content, errors, topic, keywords, { client });
+    errors = validateArticleWithKeywords(content, keywords);
+    attempts += 1;
+    if (errors.length === 0) {
+      log(`[BLOG-GEN] Gates PASS après itération ${i}.`);
+      return { content, errors, attempts };
+    }
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  return { content, errors, attempts };
 }
 
 // ---------------------------------------------------------------------------
@@ -408,30 +508,22 @@ async function main() {
     console.log(`[BLOG-GEN] Génération : "${entry.topic}"`);
     console.log(`[BLOG-GEN] Slug : ${entry.slug}`);
     console.log(`[BLOG-GEN] Keywords : ${entry.keywords}`);
+    console.log(`[BLOG-GEN] Prompt version : ${PROMPT_VERSION}`);
 
-    let content = await generateArticle(entry.topic, entry.keywords);
-    console.log(`[BLOG-GEN] Généré (${content.split(/\s+/).length} mots)`);
+    const { content: pipelineContent, errors: pipelineErrors, attempts } = await runGenerationPipeline(
+      entry.topic,
+      entry.keywords,
+      { maxCorrectionIterations: 3 },
+    );
+    let content = pipelineContent;
+    console.log(`[BLOG-GEN] Pipeline terminé : ${attempts} tentative(s), ${content.split(/\s+/).length} mots`);
 
-    // Gates de qualité (avec G10 densité mot-clé)
-    const errors = validateArticleWithKeywords(content, entry.keywords);
-    if (errors.length > 0) {
-      console.error('[BLOG-GEN] GATES ÉCHOUÉES :');
-      errors.forEach((e) => console.error(`  ${e}`));
-
+    if (pipelineErrors.length > 0) {
+      console.error(`[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES après ${attempts - 1} correction(s) — article NON publié`);
+      pipelineErrors.forEach((e) => console.error(`  ${e}`));
       if (!dryRun) {
-        console.log('[BLOG-GEN] Régénération avec corrections...');
-        content = await generateArticle(
-          entry.topic + '. IMPORTANT : ' + errors.join('. '),
-          entry.keywords,
-        );
-        const retryErrors = validateArticleWithKeywords(content, entry.keywords);
-        if (retryErrors.length > 0) {
-          console.error('[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES — article NON publié');
-          retryErrors.forEach((e) => console.error(`  ${e}`));
-          await notifyFailure(entry.topic, entry.slug, 'Gates fail x2 : ' + retryErrors.join(', '));
-          process.exit(1);
-        }
-        console.log('[BLOG-GEN] Gates OK après retry.');
+        await notifyFailure(entry.topic, entry.slug, `Gates fail après ${attempts - 1} corrections : ` + pipelineErrors.join(', '));
+        process.exit(1);
       }
     } else {
       console.log('[BLOG-GEN] Gates OK.');
@@ -456,20 +548,17 @@ async function main() {
           process.exit(1);
         }
 
-        console.log('[BLOG-GEN] Audit FAIL — régénération avec corrections...');
+        console.log('[BLOG-GEN] Audit FAIL — correction chirurgicale (qualité éditoriale)...');
         const corrections = [
           ...(audit.copy?.corrections || []),
           ...(audit.seo?.corrections || []),
           ...(audit.strategy?.corrections || []),
           ...(audit.mdb?.corrections || []),
-        ].join('. ');
-        content = await generateArticle(
-          entry.topic + '. CORRECTIONS : ' + corrections,
-          entry.keywords,
-        );
+        ].filter(Boolean);
+        content = await correctArticle(content, corrections.map((c) => `AUDIT: ${c}`), entry.topic, entry.keywords);
         const retryGates = validateArticleWithKeywords(content, entry.keywords);
         if (retryGates.length > 0) {
-          console.error('[BLOG-GEN] Gates échouées après régénération');
+          console.error('[BLOG-GEN] Gates échouées après correction d\'audit');
           retryGates.forEach((e) => console.error(`  ${e}`));
           process.exit(1);
         }
@@ -498,4 +587,7 @@ async function main() {
   }
 }
 
-main();
+// Lance main() uniquement si le script est exécuté directement (pas via import).
+// Cela permet aux tests d'importer les exports sans déclencher main().
+const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+if (isDirectRun) main();

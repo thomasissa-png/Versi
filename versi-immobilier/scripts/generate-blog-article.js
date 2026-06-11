@@ -13,6 +13,68 @@ import pool from '../db.js';
 import { writeFileSync, readFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
 
 // ---------------------------------------------------------------------------
+// Constantes des gates — SOURCE DE VÉRITÉ unique partagée entre :
+//   - validateArticle() qui vérifie l'article généré
+//   - buildConstraintsBlock() qui injecte ces contraintes dans le prompt initial
+// Toute évolution d'une gate doit modifier ces constantes : la propagation
+// vers le prompt est automatique. (Voir aussi versi-invest-site/scripts/
+// generate-blog-article.js — duplication intentionnelle, package partagé hors
+// scope.)
+// ---------------------------------------------------------------------------
+export const GATE_CONFIG = Object.freeze({
+  // G1 — Longueur minimale (mots)
+  MIN_WORD_COUNT: 800,
+  // G2 — Mots interdits (insensible à la casse, frontières mot)
+  FORBIDDEN_WORDS: Object.freeze([
+    'garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise',
+    'sur-mesure', 'passion', 'rêve', 'opportunité unique', 'meilleur', 'leader',
+  ]),
+  // G4 — Nombre minimum de H2
+  MIN_H2_COUNT: 3,
+  // G5 — Slug du CTA obligatoire
+  REQUIRED_CTA_PATH: '/contact',
+  // G7 — Liens internes valides (min)
+  MIN_INTERNAL_LINKS: 2,
+  // G8 — Tolérance paragraphes creux (en dessous de N caractères)
+  PARAGRAPH_MIN_CHARS: 50,
+  MAX_SHORT_PARAGRAPHS: 2,
+  // G9 — Données chiffrées (min)
+  MIN_NUMBERS: 3,
+  // G10 — Densité mot-clé principal (occurrences min)
+  MIN_KEYWORD_OCCURRENCES: 3,
+});
+
+// Version du prompt — incrémenter à chaque changement structurel des contraintes
+export const PROMPT_VERSION = 'vi-blog-v2.1';
+
+// ---------------------------------------------------------------------------
+// buildConstraintsBlock — injecte les contraintes mécaniquement vérifiées par
+// validateArticle() DANS le prompt initial, pour que le modèle connaisse les
+// règles AVANT génération (et pas seulement après échec). Source unique :
+// GATE_CONFIG. Si une gate évolue (mot interdit ajouté, seuil modifié), la
+// propagation au prompt est automatique.
+// ---------------------------------------------------------------------------
+export function buildConstraintsBlock(keywords) {
+  const mainKw = (keywords || '').split(',')[0].trim();
+  const forbiddenList = GATE_CONFIG.FORBIDDEN_WORDS.join(', ');
+  return [
+    'CONTRAINTES DE PUBLICATION (vérifiées automatiquement — toute violation = article rejeté) :',
+    `- Longueur minimale : ${GATE_CONFIG.MIN_WORD_COUNT} mots.`,
+    `- MOTS INTERDITS (aucune occurrence, même au pluriel ou en conjugaison) : ${forbiddenList}.`,
+    `- Structure : au moins ${GATE_CONFIG.MIN_H2_COUNT} sections H2.`,
+    `- CTA : inclure une mention vers ${GATE_CONFIG.REQUIRED_CTA_PATH} en fin d'article.`,
+    `- Liens internes : au moins ${GATE_CONFIG.MIN_INTERNAL_LINKS} liens markdown vers des routes internes du site.`,
+    `- Chaque paragraphe doit faire au moins ${GATE_CONFIG.PARAGRAPH_MIN_CHARS} caractères (pas de paragraphes creux d'une ligne).`,
+    `- Données chiffrées : intégrer au moins ${GATE_CONFIG.MIN_NUMBERS} chiffres concrets (€, %, m², mois, ans).`,
+    mainKw
+      ? `- DENSITÉ MOT-CLÉ : le mot-clé principal "${mainKw}" DOIT apparaître au moins ${GATE_CONFIG.MIN_KEYWORD_OCCURRENCES} fois dans le corps de l'article, de manière naturelle (variantes avec connecteurs FR tolérées).`
+      : null,
+    '- Vouvoiement systématique (jamais tu/ton/ta/tes/toi).',
+    '- Zéro placeholder ([TODO], [A REMPLIR], etc.).',
+  ].filter(Boolean).join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // Lock file — empêche les exécutions concurrentes
 // ---------------------------------------------------------------------------
 const LOCK_FILE = '/tmp/versi-immo-blog-gen.lock';
@@ -122,18 +184,19 @@ FORMAT DE SORTIE (markdown) :
 L'article doit faire entre 1 000 et 1 500 mots. Structure en 4-6 H2.`;
 
 // ---------------------------------------------------------------------------
-// Gates de qualité
+// Gates de qualité — utilise GATE_CONFIG comme source de vérité
 // ---------------------------------------------------------------------------
-function validateArticle(content, topic, keywords) {
+export function validateArticle(content, topic, keywords) {
   const errors = [];
 
   // G1 — Longueur minimale
   const wordCount = content.split(/\s+/).length;
-  if (wordCount < 800) errors.push(`G1 FAIL: ${wordCount} mots (minimum 800)`);
+  if (wordCount < GATE_CONFIG.MIN_WORD_COUNT) {
+    errors.push(`G1 FAIL: ${wordCount} mots (minimum ${GATE_CONFIG.MIN_WORD_COUNT})`);
+  }
 
-  // G2 — Mots interdits
-  const forbidden = ['garanti', 'sans risque', 'clé en main', 'accompagnement', 'expertise', 'sur-mesure', 'passion', 'rêve', 'opportunité unique', 'meilleur', 'leader'];
-  for (const word of forbidden) {
+  // G2 — Mots interdits (frontières mot, insensible à la casse)
+  for (const word of GATE_CONFIG.FORBIDDEN_WORDS) {
     const re = new RegExp('(?<![\\p{L}\\p{M}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{M}])', 'iu');
     if (re.test(content)) errors.push(`G2 FAIL: mot interdit "${word}"`);
   }
@@ -141,40 +204,54 @@ function validateArticle(content, topic, keywords) {
   // G3 — H1 présent
   if (!content.match(/^# .+/m)) errors.push('G3 FAIL: pas de titre H1');
 
-  // G4 — Au moins 3 H2
+  // G4 — Au moins N H2
   const h2Count = (content.match(/^## /gm) || []).length;
-  if (h2Count < 3) errors.push(`G4 FAIL: ${h2Count} H2 (minimum 3)`);
+  if (h2Count < GATE_CONFIG.MIN_H2_COUNT) {
+    errors.push(`G4 FAIL: ${h2Count} H2 (minimum ${GATE_CONFIG.MIN_H2_COUNT})`);
+  }
 
-  // G5 — CTA /contact présent
-  if (!content.includes('/contact')) errors.push('G5 FAIL: pas de CTA vers /contact');
+  // G5 — CTA présent
+  if (!content.includes(GATE_CONFIG.REQUIRED_CTA_PATH)) {
+    errors.push(`G5 FAIL: pas de CTA vers ${GATE_CONFIG.REQUIRED_CTA_PATH}`);
+  }
 
   // G6 — Vouvoiement (pas de tutoiement)
-  if (content.match(/(?<![\p{L}\p{M}])(tu|ton|ta|tes|toi)(?![\p{L}\p{M}])/iu)) errors.push('G6 FAIL: tutoiement détecté');
+  if (content.match(/(?<![\p{L}\p{M}])(tu|ton|ta|tes|toi)(?![\p{L}\p{M}])/iu)) {
+    errors.push('G6 FAIL: tutoiement détecté');
+  }
 
-  // G7 — Liens internes (>=2, vers des routes existantes)
+  // G7 — Liens internes (vers des routes existantes)
   const linkMatches = content.match(/\]\(\/[a-z-]*\)/g) || [];
   const validLinks = linkMatches.filter((l) => {
     const path = l.match(/\]\((\/[a-z-]*)\)/)?.[1];
     return INTERNAL_ROUTES.includes(path);
   });
-  if (validLinks.length < 2) errors.push(`G7 FAIL: ${validLinks.length} lien(s) interne(s) valide(s) (min 2). Routes valides : ${INTERNAL_ROUTES.join(', ')}`);
+  if (validLinks.length < GATE_CONFIG.MIN_INTERNAL_LINKS) {
+    errors.push(`G7 FAIL: ${validLinks.length} lien(s) interne(s) valide(s) (min ${GATE_CONFIG.MIN_INTERNAL_LINKS}). Routes valides : ${INTERNAL_ROUTES.join(', ')}`);
+  }
 
   // G8 — Densité minimale : pas de paragraphes creux
   const paragraphs = content.split(/\n\n+/).filter((p) => p.trim().length > 0);
-  const shortP = paragraphs.filter((p) => p.trim().length < 50 && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
-  if (shortP.length > 2) errors.push(`G8 FAIL: ${shortP.length} paragraphes creux (<50 chars)`);
+  const shortP = paragraphs.filter((p) => p.trim().length < GATE_CONFIG.PARAGRAPH_MIN_CHARS && !p.startsWith('#') && !p.startsWith('---') && !p.startsWith('['));
+  if (shortP.length > GATE_CONFIG.MAX_SHORT_PARAGRAPHS) {
+    errors.push(`G8 FAIL: ${shortP.length} paragraphes creux (<${GATE_CONFIG.PARAGRAPH_MIN_CHARS} chars)`);
+  }
 
-  // G9 — Valeur terrain : >=3 données chiffrées
+  // G9 — Valeur terrain : données chiffrées
   const hasNumbers = content.match(/\d[\d\s.,]*\s?(%|€|euros?|mois|ans?|m²)/gi);
-  if (!hasNumbers || hasNumbers.length < 3) errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (min 3)`);
+  if (!hasNumbers || hasNumbers.length < GATE_CONFIG.MIN_NUMBERS) {
+    errors.push(`G9 FAIL: ${hasNumbers?.length || 0} données chiffrées (min ${GATE_CONFIG.MIN_NUMBERS})`);
+  }
 
-  // G10 — Densité mots-clés : le mot-clé principal apparaît >=3 fois
+  // G10 — Densité mot-clé principal
   if (keywords) {
     const mainKw = keywords.split(',')[0].trim().toLowerCase();
     const kwTokens = mainKw.split(/\s+/).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const kwSep = "(?:\\s+(?:à|au|aux|de|du|des|d'|l'|le|la|les|en|sur|pour|et)\\s+|\\s+)";
     const kwCount = (content.match(new RegExp(kwTokens.join(kwSep), 'giu')) || []).length;
-    if (kwCount < 3) errors.push(`G10 FAIL: mot-clé "${mainKw}" apparaît ${kwCount} fois (min 3)`);
+    if (kwCount < GATE_CONFIG.MIN_KEYWORD_OCCURRENCES) {
+      errors.push(`G10 FAIL: mot-clé "${mainKw}" apparaît ${kwCount} fois (min ${GATE_CONFIG.MIN_KEYWORD_OCCURRENCES})`);
+    }
   }
 
   return errors;
@@ -242,13 +319,38 @@ async function notifyFailure(topic, slug, reason) {
 }
 
 // ---------------------------------------------------------------------------
-// Génération via API Claude
+// Client Anthropic injectable — par défaut, appel HTTP réel. Les tests peuvent
+// injecter un mock via createGenerator({ client }) pour éviter les appels API.
 // ---------------------------------------------------------------------------
-async function generateArticle(topic, keywords) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY non configuré');
+export function defaultAnthropicClient() {
+  return async ({ system, messages, max_tokens = 4096, model = 'claude-sonnet-4-6', timeoutMs = 120000 }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY non configuré');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+      body: JSON.stringify({ model, max_tokens, system, messages }),
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API Claude ${response.status}: ${err}`);
+    }
+    const data = await response.json();
+    return data.content[0].text;
+  };
+}
 
-  const userPrompt = `Rédige un article de blog sur le sujet suivant :
+// ---------------------------------------------------------------------------
+// buildUserPrompt — prompt initial enrichi avec les contraintes des gates
+// dérivées de GATE_CONFIG (voir buildConstraintsBlock).
+// ---------------------------------------------------------------------------
+export function buildUserPrompt(topic, keywords) {
+  return `Rédige un article de blog sur le sujet suivant :
 
 Sujet : ${topic}
 Mots-clés SEO à intégrer naturellement : ${keywords}
@@ -257,31 +359,90 @@ L'article doit :
 - Apporter de la valeur terrain (chiffres locaux, fourchettes de prix)
 - Être structuré en 4-6 sections H2
 - Faire 1 000 à 1 500 mots
-- Se terminer par un CTA naturel vers /contact`;
+- Se terminer par un CTA naturel vers /contact
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    signal: AbortSignal.timeout(120000),
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
+${buildConstraintsBlock(keywords)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Génération via API Claude
+// ---------------------------------------------------------------------------
+export async function generateArticle(topic, keywords, opts = {}) {
+  const client = opts.client || defaultAnthropicClient();
+  const userPrompt = buildUserPrompt(topic, keywords);
+  return client({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userPrompt }],
   });
+}
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`API Claude ${response.status}: ${err}`);
+// ---------------------------------------------------------------------------
+// buildCorrectionPrompt — correction CHIRURGICALE : on renvoie l'article
+// complet + la liste exacte des gates en échec, en demandant au modèle de
+// corriger UNIQUEMENT ces points sans réécrire le reste. Préserve longueur et
+// structure (évite le pattern régression "fix une gate → casse une autre").
+// ---------------------------------------------------------------------------
+export function buildCorrectionPrompt(article, errors, topic, keywords) {
+  const mainKw = (keywords || '').split(',')[0].trim();
+  return `Voici un article de blog qui a échoué à certaines vérifications automatiques. Ta tâche : CORRIGER CHIRURGICALEMENT ces points UNIQUEMENT, sans réécrire le reste de l'article.
+
+RÈGLES DE CORRECTION :
+- Préserve la longueur totale (entre 1 000 et 1 500 mots).
+- Préserve la structure H1 / H2 existante (mêmes titres si possible).
+- Ne touche qu'aux éléments défaillants listés ci-dessous.
+- Ne supprime PAS de paragraphes valides.
+- Renvoie l'article COMPLET corrigé, en markdown, sans commentaire ni préambule.
+
+SUJET : ${topic}
+MOT-CLÉ PRINCIPAL : ${mainKw}
+
+ÉCHECS À CORRIGER (chacun mécaniquement re-vérifié après ta correction) :
+${errors.map((e) => `- ${e}`).join('\n')}
+
+${buildConstraintsBlock(keywords)}
+
+ARTICLE À CORRIGER :
+${article}`;
+}
+
+export async function correctArticle(article, errors, topic, keywords, opts = {}) {
+  const client = opts.client || defaultAnthropicClient();
+  return client({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: buildCorrectionPrompt(article, errors, topic, keywords) }],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// runGenerationPipeline — orchestre la génération initiale + jusqu'à 3
+// itérations de correction chirurgicale. Retourne { content, errors, attempts }.
+// Stop dès que errors.length === 0. Si toujours en échec après 3 itérations,
+// retourne le dernier état (content + errors) — le caller décide quoi faire
+// (publier, notifier, exit 1).
+// ---------------------------------------------------------------------------
+export async function runGenerationPipeline(topic, keywords, opts = {}) {
+  const maxCorrectionIterations = opts.maxCorrectionIterations ?? 3;
+  const client = opts.client || defaultAnthropicClient();
+  const log = opts.log || ((msg) => console.log(msg));
+
+  let content = await generateArticle(topic, keywords, { client });
+  let errors = validateArticle(content, topic, keywords);
+  let attempts = 1;
+
+  if (errors.length === 0) return { content, errors, attempts };
+
+  for (let i = 1; i <= maxCorrectionIterations; i++) {
+    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) — ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
+    content = await correctArticle(content, errors, topic, keywords, { client });
+    errors = validateArticle(content, topic, keywords);
+    attempts += 1;
+    if (errors.length === 0) {
+      log(`[BLOG-GEN] Gates PASS après itération ${i}.`);
+      return { content, errors, attempts };
+    }
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  return { content, errors, attempts };
 }
 
 // ---------------------------------------------------------------------------
@@ -328,9 +489,16 @@ async function main() {
     console.log(`[BLOG-GEN] Génération : "${entry.topic}"`);
     console.log(`[BLOG-GEN] Slug : ${entry.slug}`);
     console.log(`[BLOG-GEN] Keywords : ${entry.keywords}`);
+    console.log(`[BLOG-GEN] Prompt version : ${PROMPT_VERSION}`);
 
-    let content = await generateArticle(entry.topic, entry.keywords);
-    console.log(`[BLOG-GEN] Généré (${content.split(/\s+/).length} mots)`);
+    // Pipeline : génération initiale + jusqu'à 3 corrections chirurgicales
+    const { content: pipelineContent, errors: pipelineErrors, attempts } = await runGenerationPipeline(
+      entry.topic,
+      entry.keywords,
+      { maxCorrectionIterations: 3 },
+    );
+    let content = pipelineContent;
+    console.log(`[BLOG-GEN] Pipeline terminé : ${attempts} tentative(s), ${content.split(/\s+/).length} mots`);
 
     // Backup local avant toute publication
     const backupDir = new URL('../backups/blog', import.meta.url).pathname;
@@ -339,26 +507,12 @@ async function main() {
     writeFileSync(backupPath, content, 'utf-8');
     console.log(`[BLOG-GEN] Backup : ${backupPath}`);
 
-    // Gates de qualité
-    const errors = validateArticle(content, entry.topic, entry.keywords);
-    if (errors.length > 0) {
-      console.error('[BLOG-GEN] GATES ÉCHOUÉES :');
-      errors.forEach((e) => console.error(`  ${e}`));
-
+    if (pipelineErrors.length > 0) {
+      console.error(`[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES après ${attempts - 1} correction(s) — article NON publié`);
+      pipelineErrors.forEach((e) => console.error(`  ${e}`));
       if (!dryRun) {
-        console.log('[BLOG-GEN] Régénération avec corrections...');
-        content = await generateArticle(
-          entry.topic + '. IMPORTANT : ' + errors.join('. '),
-          entry.keywords,
-        );
-        const retryErrors = validateArticle(content, entry.topic, entry.keywords);
-        if (retryErrors.length > 0) {
-          console.error('[BLOG-GEN] GATES TOUJOURS ÉCHOUÉES — article NON publié');
-          retryErrors.forEach((e) => console.error(`  ${e}`));
-          await notifyFailure(entry.topic, entry.slug, 'Gates fail x2 : ' + retryErrors.join(', '));
-          process.exit(1);
-        }
-        console.log('[BLOG-GEN] Gates OK après retry.');
+        await notifyFailure(entry.topic, entry.slug, `Gates fail après ${attempts - 1} corrections : ` + pipelineErrors.join(', '));
+        process.exit(1);
       }
     } else {
       console.log('[BLOG-GEN] Gates OK.');
@@ -378,20 +532,17 @@ async function main() {
           await notifyFailure(entry.topic, entry.slug, reason);
           process.exit(1);
         }
-        console.log('[BLOG-GEN] Audit FAIL — régénération avec corrections...');
+        console.log('[BLOG-GEN] Audit FAIL — correction chirurgicale (qualité éditoriale)...');
         const corrections = [
           ...(audit.copy?.corrections || []),
           ...(audit.seo?.corrections || []),
           ...(audit.strategy?.corrections || []),
           ...(audit.mdb?.corrections || []),
-        ].filter(Boolean).join('. ');
-        content = await generateArticle(
-          entry.topic + (corrections ? '. CORRECTIONS : ' + corrections : ''),
-          entry.keywords,
-        );
+        ].filter(Boolean);
+        content = await correctArticle(content, corrections.map((c) => `AUDIT: ${c}`), entry.topic, entry.keywords);
         const retryGates = validateArticle(content, entry.topic, entry.keywords);
         if (retryGates.length > 0) {
-          console.error('[BLOG-GEN] Gates échouées après régénération');
+          console.error('[BLOG-GEN] Gates échouées après correction d\'audit');
           retryGates.forEach((e) => console.error(`  ${e}`));
           await notifyFailure(entry.topic, entry.slug, 'Gates fail post-audit : ' + retryGates.join(', '));
           process.exit(1);
@@ -414,4 +565,7 @@ async function main() {
   }
 }
 
-main();
+// Lance main() uniquement si le script est exécuté directement (pas via import).
+// Cela permet aux tests d'importer les exports sans déclencher la connexion DB.
+const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+if (isDirectRun) main();
