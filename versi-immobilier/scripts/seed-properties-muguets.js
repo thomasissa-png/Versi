@@ -6,6 +6,8 @@ import {
   LOT1_AVANT,
   LOT2_PLAN,
   LOT2_AVANT,
+  LOT3_PLAN,
+  LOT3_AVANT,
 } from './dossier-images.js';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -391,29 +393,174 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     price_num: 274000,
     price_note: 'Prix avant travaux, hors frais de notaire. Option prêt à habiter : 342 500 €.',
     status: 'disponible',
-    dpe: null,
-    dpe_note: 'DPE en cours',
-    floor: '2e et 3e étages',
+    dpe: 'B',
+    dpe_note: 'Classe visée au DPE projeté : B (71–110 kWh/m²/an, énergie primaire). DPE définitif établi à la livraison.',
+    floor: '2e – 3e',
     tenancy: 'Libre',
     renovation_year: null,
-    charges: null,
-    description: `Terrasse de 12 m² donnant sur l'église du quartier. Vue sur pierre, pas sur fenêtres d'immeuble. En haut, un plafond cathédrale qui donne au séjour une hauteur qu'on ne retrouve nulle part ailleurs dans l'immeuble. Les deux derniers étages, pour un seul appartement : 137 m² sur deux niveaux.
+    charges: '~ 170 €/mois (estimation indicative)',
+    description: `Cinq pièces sur deux niveaux. Un séjour-cuisine de 42 m² qui s'élève sous un plafond cathédrale, trois chambres dont deux à l'étage, et une terrasse privative ouverte sur les toits et le clocher du quartier. Une place de parking sécurisée. Aux deux derniers étages d'un ancien immeuble de bureaux que Versi réhabilite entièrement.
 
-En bas : trois chambres de 15 m² chacune, chaque chambre indépendante, chacun son espace, et une salle d'eau. En haut : un séjour-cuisine de 47 m² sous les toits, lumineux, avec accès direct à la terrasse. On prend le café dehors le matin avec vue sur le clocher, on reçoit des amis le soir dans un séjour où personne n'est à l'étroit. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
+Au 2e, l'entrée ouvre sur un séjour-cuisine de 42 m² qui prend toute sa hauteur sous un plafond cathédrale ; une première chambre de 17 m², une salle de bains et un cellier complètent le niveau. Un escalier mène au 3e : deux chambres de 15 m², une salle d'eau et, surtout, une terrasse privative. Plein ciel, ouverte sur les toits de Lille-Sud et le clocher voisin. Chauffage individuel. Place de parking extérieur sécurisé comprise.
 
-L'immeuble, ancien bâtiment de bureaux, est intégralement transformé par Versi en 3 logements de qualité. Chaque finition est choisie pour durer : parquet contrecollé chêne, menuiseries double vitrage, salle d'eau carrelée grand format, cuisine pré-équipée. À 274 000 € avant travaux ou 342 500 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
+L'immeuble, ancien bâtiment de bureaux, est intégralement transformé par Versi en 3 logements de qualité — dessinés par le cabinet Avantpropos. Finitions choisies pour durer : parquet, menuiseries double vitrage, salle de bains et salle d'eau carrelées grand format, cuisine pré-équipée. À 274 000 € avant travaux ou 342 500 € livré prêt à habiter. Livraison brut octobre 2026, prêt à habiter décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
 
-Pour visiter le duplex ou recevoir la plaquette détaillée, contactez-nous.`,
+Pour visiter le duplex ou recevoir le dossier complet, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
       'Duplex 137 m² sur deux niveaux',
-      'Terrasse 12 m² donnant sur l\'église',
-      'Plafond cathédrale au dernier étage',
-      'Séjour-cuisine 47 m² sous les toits',
-      '3 chambres de 15 m² chacune',
-      'Parquet chêne, menuiseries double vitrage',
-      'Parking extérieur sécurisé (double porte)',
+      'Séjour-cuisine 42 m² sous plafond cathédrale',
+      'Terrasse privative 12 m² plein ciel sur les toits',
+      'Trois chambres (17 m² au 2e, 15 m² × 2 au 3e)',
+      'Parquet, baie vitrée aluminium double vitrage',
+      'Chauffage individuel, ventilation maîtrisée',
+      'Stationnement extérieur sécurisé inclus',
     ]),
+    dossier: JSON.stringify({
+      tagline: 'Lille-Sud · Lille (59)',
+      hook: 'Cinq pièces sur deux niveaux. Un séjour-cuisine de 42 m² qui s\'élève sous un plafond cathédrale, trois chambres dont deux à l\'étage, et une terrasse privative ouverte sur les toits et le clocher du quartier. Une place de parking sécurisée.',
+      intro: 'Aux deux derniers étages d\'un ancien immeuble de bureaux que Versi réhabilite entièrement.',
+      ficheTechnique: [
+        { label: 'Type', value: 'Duplex' },
+        { label: 'Surface', value: '137 m²' },
+        { label: 'Pièces', value: '5' },
+        { label: 'Extérieur', value: 'Terrasse 12 m²' },
+        { label: 'Étage', value: '2e – 3e' },
+        { label: 'Disponibilité', value: 'Déc. 2026' },
+      ],
+      emplacement: {
+        prose: [
+          'Le 10 rue des Muguets est au cœur de Lille-Sud, entre le quartier des fleurs — résidentiel et paisible — et le CHU de Lille, dans un secteur en mutation depuis l\'ouverture de Lillenium en 2020.',
+          'Zone résidentielle calme. Métro direct vers le cœur de Lille grâce à la station Oscar Lambret, à 10 minutes à pied, 3 minutes en vélo.',
+        ],
+        adresse: {
+          label: 'Adresse',
+          value: '10 rue des Muguets, 59000 Lille',
+          note: 'Quartier des fleurs · Lille-Sud',
+        },
+        transports: {
+          label: 'Transports',
+          value: 'Métro Oscar Lambret · 10 min à pied',
+          note: 'Lille-Flandres ~10 min · M1',
+        },
+        proximite: {
+          label: 'À proximité',
+          value: 'Lillenium · écoles · CHU',
+          note: 'Parc du Grand Sud',
+        },
+      },
+      leBien: [
+        'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi l\'a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos.',
+        'Ce duplex occupe les deux derniers étages. Au 2e, l\'entrée ouvre sur un séjour-cuisine de 42 m² qui prend toute sa hauteur sous un plafond cathédrale ; une première chambre de 17 m², une salle de bains et un cellier complètent le niveau. Un escalier mène au 3e : deux chambres de 15 m², une salle d\'eau et, surtout, une terrasse privative. Plein ciel, ouverte sur les toits de Lille-Sud et le clocher voisin, c\'est l\'endroit où l\'on déjeune au soleil et où l\'on reçoit l\'été. Famille qui cherche du volume, de la lumière et un vrai extérieur : ce duplex a été pensé pour vous. Une place de stationnement sécurisée est comprise dans le prix.',
+      ],
+      pourQui: 'Famille qui cherche du volume, de la lumière et un vrai extérieur : ce duplex a été pensé pour vous. Une place de stationnement sécurisée est comprise dans le prix.',
+      accroche: 'Un séjour sous plafond cathédrale, une terrasse plein ciel sur les toits de Lille. Cinq pièces sur deux niveaux, à deux pas du métro.',
+      planImage: LOT3_PLAN,
+      planCaption: '137 m² sur deux niveaux — plan d\'architecte, cabinet Avantpropos.',
+      surfaces: [
+        { piece: 'Entrée', aire: '10,4 m²' },
+        { piece: 'Cellier', aire: '2,0 m²' },
+        { piece: 'WC', aire: '1,3 m²' },
+        { piece: 'Salle de bains', aire: '4,1 m²' },
+        { piece: 'Chambre', aire: '17,0 m²' },
+        { piece: 'Séjour-cuisine', aire: '42,2 m²' },
+        { piece: 'Palier', aire: '12,4 m²' },
+        { piece: 'Chambre', aire: '15,1 m²' },
+        { piece: 'Chambre', aire: '15,4 m²' },
+        { piece: 'Salle d\'eau', aire: '4,4 m²' },
+      ],
+      caracteristiques: [
+        'Parquet',
+        'Baie vitrée aluminium double vitrage',
+        'Cuisine pré-équipée',
+        'Séjour sous plafond cathédrale',
+        'Salle de bains & salle d\'eau carrelées grand format',
+        'Chauffage individuel',
+        'Terrasse privative plein ciel',
+        'Stationnement extérieur sécurisé',
+      ],
+      travaux: {
+        phases: [
+          {
+            num: '01',
+            titre: 'Le plan',
+            texte: 'Démolition des cloisons et redessin complet des deux niveaux. Séjour-cuisine ouvert sous plafond cathédrale au 2e, trois chambres réparties sur les deux niveaux, salle de bains et salle d\'eau, création de l\'accès à la terrasse au 3e.',
+          },
+          {
+            num: '02',
+            titre: 'L\'enveloppe',
+            texte: 'Isolation thermique et acoustique renforcées. Menuiseries double vitrage neuves. Chauffage individuel neuf, ventilation maîtrisée.',
+          },
+          {
+            num: '03',
+            titre: 'Les finitions',
+            texte: 'Livraison clé en main sur base des visuels 3D réalisés. Rénovation supervisée par une architecte, finitions soignées. Artisans sélectionnés.',
+          },
+        ],
+      },
+      etatActuel: {
+        avantImage: LOT3_AVANT,
+        avantCaption: 'Séjour-cuisine',
+        projetCaption: 'Projet livré',
+      },
+      dpeProjete: {
+        classe: 'B',
+        plage: '71 à 110 kWh/m²/an',
+        unite: 'énergie primaire',
+        intro: 'Classe visée au DPE projeté — 71 à 110 kWh/m²/an (énergie primaire).',
+        note: 'DPE définitif établi à la livraison par un diagnostiqueur certifié.',
+      },
+      formules: {
+        intro: 'Vous achetez ce duplex selon deux logiques. Brut, vous entrez pendant le chantier et choisissez vous-même sols, murs, cuisine, salle de bains et salle d\'eau : moins cher, plus impliqué. Prêt à habiter, vous emménagez dans un logement fini par Versi : plus tranquille, plus cher. Le bâti, les surfaces, les garanties — tout le reste est identique.',
+        brut: {
+          label: 'Brut',
+          price: '274 000 €',
+          livraison: 'Livraison octobre 2026',
+          description: 'Versi vous livre l\'appartement transformé : démolition des cloisons sur les deux niveaux, redistribution, ouverture des baies, création de l\'accès à la terrasse, isolation thermique et acoustique, menuiseries double vitrage, chauffage et ventilation. Vous prenez la main sur sols, murs, cuisine, salle de bains et salle d\'eau.',
+        },
+        pretAHabiter: {
+          label: 'Prêt à habiter',
+          price: '342 500 €',
+          livraison: 'Livraison décembre 2026',
+          description: 'Cahier des charges arrêté avec une architecte, validation des matériaux à chaque étape, suivi du chantier jusqu\'à la remise des clés. Artisans sélectionnés et coordonnés par Versi.',
+        },
+        garanties: 'Livraison brut en octobre 2026, prêt à habiter en décembre 2026. Garanties dommages-ouvrage et décennale identiques dans les deux cas.',
+      },
+      reperesMarche: {
+        intro: 'Livré clé en main à 342 500 €, ce duplex ressort à 2 500 €/m² hors parking — sous la médiane des grandes surfaces vendues à Lille-Sud en 2024-2025.',
+        rows: [
+          { ref: 'Grand appartement existant — Lille-Sud', sousTitre: 'Médiane DVF · 2024-2025', prixM2: '~ 3 200 €' },
+          { ref: 'Appartement existant — Vauban-Esquermes', sousTitre: 'Quartier limitrophe · efficity 2026', prixM2: '~ 3 650 €' },
+          { ref: 'Ce duplex — prêt à habiter', sousTitre: 'Versi · 2026', prixM2: '~ 2 500 €' },
+        ],
+      },
+      aPrevoir: {
+        intro: 'Estimations indicatives, à valider sur les budgets définitifs.',
+        sources: '* Indicatif, prêt à habiter sur 25 ans — hypothèse apport 10 %, taux 3,5 %. Hors assurance.',
+        items: [
+          { label: 'Mensualité* · /mois', valeur: '~ 1 545 €' },
+          { label: 'Charges copro · mois', valeur: '~ 170 €' },
+          { label: 'Taxe foncière · an', valeur: '~ 1 750 €' },
+          { label: 'Frais de notaire', valeur: '~ 25 000 €' },
+        ],
+      },
+      calendrier: [
+        { label: 'Préparation des travaux', date: 'Été 2026', statut: 'En cours' },
+        { label: 'Livraison brut', date: 'Octobre 2026', statut: 'Programmé' },
+        { label: 'Vous prenez possession', date: 'Décembre 2026', statut: 'Prêt à habiter' },
+      ],
+      bandeauPrix: {
+        prixVedette: '342 500 €',
+        sousTitre: 'Prêt à habiter · place de parking incluse · livraison décembre 2026',
+        formules: 'Deux formules au choix',
+        brutLigne: 'Brut 274 000 € — Livraison octobre 2026',
+        pretAHabiterLigne: 'Prêt à habiter 342 500 € — Livraison décembre 2026',
+        statut: 'Disponible',
+        modalite: 'Vente classique · Garanties Versi à la livraison',
+        notaire: 'Frais de notaire ~ 7,5 %',
+      },
+      mentions: 'Document à valeur indicative. Les surfaces, plans et finitions sont susceptibles d\'évoluer dans le respect des permis délivrés. Le DPE définitif sera établi à la livraison. Prix exprimés hors frais de notaire. Garanties dommages-ouvrage et décennale fournies à la livraison.',
+    }),
     sort_order: 2,
   },
 ];

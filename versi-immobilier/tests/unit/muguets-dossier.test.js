@@ -95,19 +95,23 @@ describe('Muguets — Lot2 dossier riche', () => {
   });
 });
 
-describe('Muguets — Lot3 sans dossier riche', () => {
-  test('Lot3 (duplex) a un dossier null ou absent (gabarit simple)', () => {
-    const hasDossier = lot3.dossier !== null && lot3.dossier !== undefined;
-    if (hasDossier) {
-      // Si présent, on tolère uniquement une string vide ou un JSON vide
+describe('Muguets — Lot3 dossier riche', () => {
+  test('Lot3 a un dossier JSON parsable avec toutes les clés attendues', () => {
+    const d = parseDossier(lot3);
+    const expectedKeys = [
+      'formules', 'surfaces', 'travaux', 'dpeProjete',
+      'reperesMarche', 'calendrier',
+    ];
+    for (const key of expectedKeys) {
       assert.ok(
-        lot3.dossier === '' || lot3.dossier === 'null',
-        `Lot3.dossier devrait être null/absent (gabarit simple sans dossier riche). ` +
-        `Reçu : ${typeof lot3.dossier} (${String(lot3.dossier).slice(0, 50)}...).`
+        key in d,
+        `Lot3.dossier doit contenir la clé \`${key}\` (clé absente).`
       );
-    } else {
-      assert.ok(true, 'Lot3 sans dossier — conforme au gabarit simple.');
     }
+    assert.ok(d.formules.brut, 'Lot3.dossier.formules.brut requis');
+    assert.ok(d.formules.pretAHabiter, 'Lot3.dossier.formules.pretAHabiter requis');
+    assert.ok(Array.isArray(d.surfaces) && d.surfaces.length > 0, 'Lot3.surfaces non vide');
+    assert.ok(Array.isArray(d.calendrier), 'Lot3.calendrier array');
   });
 });
 
@@ -162,6 +166,24 @@ describe('Muguets — cohérence prix ↔ dossier', () => {
   test('Lot2 : libellés prix sont des chaînes non vides', () => {
     const d = parseDossier(lot2);
     assert.ok(typeof lot2.price === 'string' && lot2.price.trim().length > 0);
+    assert.ok(typeof d.formules.brut.price === 'string' && d.formules.brut.price.trim().length > 0);
+    assert.ok(typeof d.formules.pretAHabiter.price === 'string' && d.formules.pretAHabiter.price.trim().length > 0);
+  });
+
+  test('Lot3 : price_num correspond au prix brut du dossier', () => {
+    const d = parseDossier(lot3);
+    assert.strictEqual(typeof lot3.price_num, 'number');
+    const brutNum = Number(d.formules.brut.price.replace(/[^\d]/g, ''));
+    assert.strictEqual(
+      lot3.price_num,
+      brutNum,
+      `Lot3.price_num (${lot3.price_num}) ≠ prix brut dossier (${brutNum}).`
+    );
+  });
+
+  test('Lot3 : libellés prix sont des chaînes non vides', () => {
+    const d = parseDossier(lot3);
+    assert.ok(typeof lot3.price === 'string' && lot3.price.trim().length > 0);
     assert.ok(typeof d.formules.brut.price === 'string' && d.formules.brut.price.trim().length > 0);
     assert.ok(typeof d.formules.pretAHabiter.price === 'string' && d.formules.pretAHabiter.price.trim().length > 0);
   });

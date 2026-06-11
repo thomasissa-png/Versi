@@ -71,21 +71,24 @@ function readHtml(id) {
 // Setup : on charge HTML + dossier JSON pour chaque lot.
 // -----------------------------------------------------------------------------
 let MUGUETS_PROPERTIES;
-let lot1, lot2;
-let html1Norm, html2Norm;
-let dossier1, dossier2;
+let lot1, lot2, lot3;
+let html1Norm, html2Norm, html3Norm;
+let dossier1, dossier2, dossier3;
 
 before(async () => {
   const mod = await import('../../scripts/seed-properties-muguets.js');
   MUGUETS_PROPERTIES = mod.MUGUETS_PROPERTIES;
   lot1 = MUGUETS_PROPERTIES.find((p) => p.id === 'muguets-lot-1-rdc');
   lot2 = MUGUETS_PROPERTIES.find((p) => p.id === 'muguets-lot-2-t3');
+  lot3 = MUGUETS_PROPERTIES.find((p) => p.id === 'muguets-lot-3-duplex');
 
   html1Norm = normalize(readHtml('muguets-lot-1-rdc'));
   html2Norm = normalize(readHtml('muguets-lot-2-t3'));
+  html3Norm = normalize(readHtml('muguets-lot-3-duplex'));
 
   dossier1 = JSON.parse(lot1.dossier);
   dossier2 = JSON.parse(lot2.dossier);
+  dossier3 = JSON.parse(lot3.dossier);
 });
 
 // -----------------------------------------------------------------------------
@@ -147,17 +150,32 @@ function assertDossierFidele(htmlNorm, d, lotLabel) {
     assertContains(htmlNorm, c, `${lotLabel} · caracteristiques[${i}]`);
   });
 
-  // 5. Travaux (intro + phases)
-  assertContains(htmlNorm, d.travaux.intro, `${lotLabel} · travaux.intro`);
+  // 5. Travaux (intro optionnelle + phases)
+  if (d.travaux.intro) {
+    assertContains(htmlNorm, d.travaux.intro, `${lotLabel} · travaux.intro`);
+  }
   d.travaux.phases.forEach((ph, i) => {
     assertContains(htmlNorm, ph.titre, `${lotLabel} · travaux.phases[${i}].titre`);
     assertContains(htmlNorm, ph.texte, `${lotLabel} · travaux.phases[${i}].texte`);
   });
 
-  // 6. État actuel (intro + apresLegende)
-  assertContains(htmlNorm, d.etatActuel.intro, `${lotLabel} · etatActuel.intro`);
-  assertContains(htmlNorm, d.etatActuel.avantCaption, `${lotLabel} · etatActuel.avantCaption`);
-  assertContains(htmlNorm, d.etatActuel.apresLegende, `${lotLabel} · etatActuel.apresLegende`);
+  // 6. État actuel — tous les champs textuels sont conditionnels (le composant
+  //    React les rend conditionnellement aussi). On vérifie ceux qui sont
+  //    présents dans le JSON.
+  if (d.etatActuel.intro) {
+    assertContains(htmlNorm, d.etatActuel.intro, `${lotLabel} · etatActuel.intro`);
+  }
+  if (d.etatActuel.avantCaption) {
+    assertContains(htmlNorm, d.etatActuel.avantCaption, `${lotLabel} · etatActuel.avantCaption`);
+  }
+  if (d.etatActuel.apresLegende) {
+    assertContains(htmlNorm, d.etatActuel.apresLegende, `${lotLabel} · etatActuel.apresLegende`);
+  }
+  // Note : on n'asserte PAS d.etatActuel.projetCaption — historiquement les
+  // lots 1/2 contiennent "Projet livré — rendu 3D du logement fini, à venir."
+  // qui ne figure pas dans le HTML (caption forgée côté composant). Lot 3
+  // utilise "Projet livré" qui figure dans le HTML mais on garde le test
+  // homogène entre lots.
 
   // 7. DPE projeté
   assertContains(htmlNorm, d.dpeProjete.intro, `${lotLabel} · dpeProjete.intro`);
@@ -261,14 +279,67 @@ describe('Muguets — fidélité HTML ↔ JSON (Lot 2 T3)', () => {
   });
 });
 
+// -----------------------------------------------------------------------------
+// Lot 3 — duplex. Le HTML fondateur d'une génération plus récente : sections
+// numérotées "01 — Emplacement", "02 — Le bien", ..., titres sans point final,
+// "Performance énergétique" au singulier (vs pluriel sur lots 1/2).
+// -----------------------------------------------------------------------------
+function assertOrdreSectionsLot3(htmlNorm, lotLabel) {
+  // Sur Lot 3, le bloc "Performance énergétique" est intercalé entre
+  // Caractéristiques (04) et Travaux (05) — différent des lots 1/2 où il
+  // venait après État actuel. Et "Cadre de la vente" (11) clôt le document.
+  const ordre = [
+    '01 — Emplacement',
+    '02 — Le bien',
+    '03 — Plan',
+    '04 — Caractéristiques',
+    'Performance énergétique',
+    '05 — Travaux',
+    '06 — État actuel',
+    '07 — Les deux formules',
+    '08 — Repères marché',
+    '09 — À prévoir',
+    '10 — Calendrier',
+    '11 — Cadre de la vente',
+  ];
+  let prev = -1;
+  let prevTitle = '<début>';
+  for (const titre of ordre) {
+    const idx = htmlNorm.indexOf(titre);
+    assert.ok(
+      idx >= 0,
+      `${lotLabel} : titre de section "${titre}" introuvable dans le HTML.`
+    );
+    assert.ok(
+      idx > prev,
+      `${lotLabel} : ordre des sections cassé — "${titre}" (idx ${idx}) ` +
+        `apparaît avant "${prevTitle}" (idx ${prev}). Ordre attendu : ${ordre.join(' < ')}.`
+    );
+    prev = idx;
+    prevTitle = titre;
+  }
+}
+
+describe('Muguets — fidélité HTML ↔ JSON (Lot 3 duplex)', () => {
+  test('chaque chaîne canonique du dossier Lot 3 est présente dans le HTML source', () => {
+    assertDossierFidele(html3Norm, dossier3, 'Lot 3');
+  });
+
+  test('ordre canonique des sections du HTML Lot 3', () => {
+    assertOrdreSectionsLot3(html3Norm, 'Lot 3');
+  });
+});
+
 describe('Muguets — sanité de la normalisation HTML', () => {
   test('le HTML normalisé est non vide et raisonnable (> 5000 caractères de texte)', () => {
     assert.ok(html1Norm.length > 5000, `Lot 1 HTML normalisé trop court : ${html1Norm.length}`);
     assert.ok(html2Norm.length > 5000, `Lot 2 HTML normalisé trop court : ${html2Norm.length}`);
+    assert.ok(html3Norm.length > 5000, `Lot 3 HTML normalisé trop court : ${html3Norm.length}`);
   });
 
   test('la normalisation des apostrophes est cohérente (aucune apostrophe typographique résiduelle)', () => {
     assert.ok(!html1Norm.includes('’'), 'Lot 1 : apostrophes typographiques non normalisées.');
     assert.ok(!html2Norm.includes('’'), 'Lot 2 : apostrophes typographiques non normalisées.');
+    assert.ok(!html3Norm.includes('’'), 'Lot 3 : apostrophes typographiques non normalisées.');
   });
 });
