@@ -13,7 +13,7 @@ export default function Hero() {
     <section className="hero">
       <div className={`hero__content ${loaded ? 'hero__content--visible' : 'hero__content--hidden'}`}>
         <span className="hero__surtitre text-label">
-          VERSI IMMOBILIER — MARCHAND DE BIENS
+          MARCHAND DE BIENS
         </span>
         <h1 className="hero__title text-display">
           Peu de biens.
