@@ -1,4 +1,11 @@
 // Pré-génère un PDF PROPRE de chaque dossier de pré-commercialisation.
+//
+// ⚠️ NE PAS EXÉCUTER SANS INSTRUCTION DU FONDATEUR (s35) : les PDF de
+// docs/dossiers-sources/ sont désormais les V7 FOURNIS PAR THOMAS, pas des
+// fichiers générés. Relancer ce script les ÉCRASERAIT par une version
+// régénérée depuis le HTML. Il ne sert que si Thomas demande explicitement
+// de regénérer un PDF depuis le HTML.
+//
 // Pourquoi pré-générer (et pas window.print) : window.print ouvre la boîte du
 // navigateur qui ajoute date/URL en en-tête et coupe mal. page.pdf() de Chromium
 // produit un PDF net, sans ces en-têtes. On embarque la carte Google Maps en

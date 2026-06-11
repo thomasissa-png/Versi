@@ -93,3 +93,10 @@ Run local : `npm run test` (depuis `versi-immobilier/`).
 Sans garde-fou, le JSON dérive du HTML au fil des éditions (deux
 sources de texte qui divergent silencieusement). Le test transforme le
 HTML en **contrat exécutable** : c'est lui qui pilote l'annonce.
+
+## PDF servis au téléchargement
+
+Depuis s35, `muguets-lot-1-rdc.pdf` et `muguets-lot-2-t3.pdf` sont les
+**V7 fournies par le fondateur** (et non plus des PDF régénérés depuis le
+HTML). Ne pas relancer `scripts/generate-dossier-pdf.mjs` sans son accord :
+cela écraserait ses fichiers.
