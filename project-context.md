@@ -234,6 +234,7 @@
 
 | Agent | Date | Livrable produit | Décisions clés | Pourquoi / Alternatives écartées |
 |-------|------|-----------------|----------------|----------------------------------|
+| @orchestrator (s34 — reconstruction post-coupure) | 2026-06-10 | **Reconstruction depuis git log** — 7 commits Versi Immobilier dossiers Muguets non journalisés (6-10 juin) consolidés en une ligne : `dea822a` fix CRITIQUE pages "blanches" opacity:0, `1ac5568` images dossiers en base64, `2a74ad4` dossier de pré-commercialisation indépendant (page + PDF) + annonce nettoyée, `59557fb` dossier = HTML du fondateur servi tel quel, `d5fbdbc` annonce complétée à partir du dossier (`PropertyDetailPage.jsx`), `5046e1c` PDF dossier propre + espacement annonce (`docs/dossiers-sources/*.pdf`, `scripts/generate-dossier-pdf.mjs`, `server.js`, `src/index.css`), `4c59078` annonce = contenu complet dossier dans ordre HTML (`PropertyDossier.jsx`, `src/index.css`, `PropertyDetailPage.jsx`). HEAD final s34 = `4c59078`. | Aucune nouvelle décision agent — reconstruction strictement depuis git log (zéro invention). Session s34 coupée brutalement sans protocole de clôture, sans gate finale @moi, sans audit qualité par-commit. Mémo de reprise s34→s35 écrit dans `project-context.md` à partir des mêmes sources. | Reconstruction post-coupure : les détails par-commit (qualité copy, design, persona, tests) sont **inconnus — coupure brute**. Audit qualité reporté en s35 (option A de la question gate). Branche `claude/versi-s34-blog-dossiers-9sGU0` non mergée sur main (statut à vérifier par Thomas). |
 | @copywriter (s34 — Audit fidélité + conformité copy dossiers Muguets vague 2) | 2026-06-03 | Audit et corrections `versi-immobilier/scripts/seed-properties-muguets.js` (Lot 1 + Lot 2). Règle #9 efficity : déjà corrigée dans le JS (`annonces comparables 2026`) — écart entre le JS et les captures d'écran dû à un seed non encore rejoué en base (signalé à @orchestrateur). 2 corrections factuelles : (1) Lot 1 `description` : « Chauffage collectif » → « Chauffage individuel » (source .txt autorité) ; (2) Lot 2 `caracteristiques` : « Salle d'eau carrelée grand format » → « Salle de bains carrelée grand format » (alignement vocabulaire .txt). Tous les chiffres vérifiés (prix, surfaces, m², DPE B 71–110, charges, taxe foncière, frais notaire, calendrier) — conformes aux .txt. Ton de marque conforme. Typo FR globalement respectée dans les template literals. Reco hors-scope price card signalée ci-dessous. | Aucune invention : corrections strictement issues des .txt sources. Efficity déjà absent du JS — pas de double-correction. Périmètre respecté : zéro modification .jsx/.css. | Reco hors-scope @orchestrateur + @fullstack : price card (`PropertyDetailPage.jsx`) affiche 145 000 € en titre principal (prêt à habiter). Recommandation copy : mener avec « À partir de 118 000 € » (prix brut, point d'entrée bas) et présenter 145 000 € comme variante prêt à habiter — conformément au principe de prix d'appel. La décision finale appartient aux fondateurs (positionnement commercial). |
 | @testeur-persona-thomas-marchand (s33 — Audit persona Étape 3 Pièces + Étape 4 Visuels, grille GP1-GP10) | 2026-05-07 | `docs/qa/s33-audit-persona-marchand-etape3-4.md` (8 sections, ~200L) : audit terrain scénario PDF Muguets bout en bout. Verdict global GO CONDITIONNEL 7.5/10. Étape 3 : BLOQUANT 4/6 PASS (GP3+GP7 PARTIAL — confirmation pièce IA individuelle obligatoire = 8 clics de trop). Étape 4 : BLOQUANT 4/6 PASS (GP8 FAIL — stepper absent = cassure visuelle immédiate entre Étape 3 et Étape 4). Issues géométriques s28 (#1 plan mauvais étage, #2 polygones décalés, #3 désync bbox) confirmées corrigées. Architecte conversationnel known-fields (s32) validé : saisie marchand arrive dans le prompt image. Top 5 frustrations : (1) confirmation IA individuelle x8 sans "Tout confirmer", (2) stepper absent Étape 4, (3) lien placement→upload faible sur mobile, (4) navigation non-linéaire entre pièces absente wizard, (5) plan null silencieux multi-étage. | Analyse statique code sources (pas de smoke test live). Visuels réels non évalués (limite statique — confiance structurelle brief complet confirmée, confiance visuelle terrain nécessite génération live). Pas de comparaison avec outils tiers (périmètre outil interne). | Corrections prioritaires @fullstack : (1) stepper Étape 4 `visuals/placement/page.tsx` (5 lignes), (2) bouton "Tout confirmer" `rooms/page.tsx` handler bulk PATCH `touched=true`. Re-évaluation ciblée gates GP8 + GP3/GP7 après corrections. |
 | @copywriter (s33 — Audit copy READ-ONLY Étape 3 Pièces + Étape 4 Visuels) | 2026-05-07 | `docs/copy/s33-audit-copy-etape3-4.md` (8 sections, ~200L) : grille G33 complète (anglicismes, mot pivot métier, registre, clarté persona, ton, boutons unifiés, accessibilité). Score 7/10. 1 P0 bloquant G33 (`uploadez` dans `visuals/placement/page.tsx:293`), 1 P0 jargon dev visible en prod ("rattrape l'état" dans `VisualWizard.tsx:1216`), 3 P1/P2 actionnables en s34. Zéro terme banni (polygone/zone/calque) en surface utilisateur. Registre "vous + impératif neutre" globalement respecté. Estimation effort fix top 5 : **25 min / 5 Edits indépendants**. | Audit read-only : aucune modification de code. Périmètre respecté (REFINE_COPY commit b6f3b58 non ré-audité). Termes bannis greppés exhaustivement — zéro faux positif sur noms de fonctions internes. | Audit production-only : pas de refonte copy en bloc. Recommandations ponctuelles uniquement, effort minimal s34. |
@@ -511,6 +512,58 @@
 - Profil de rigueur : V1-Production (toutes les gates G1-G34 + GP + GC si applicable)
 
 ## Mémo de reprise — dernière session
+
+### Mémo de reprise versi-s34 → s35 [RECONSTRUIT POST-COUPURE]
+
+**Branche dernière clôturée** : `claude/versi-s34-blog-dossiers-9sGU0` (branche de travail s34)
+**Branche courante au moment de la reconstruction** : `claude/pensive-lamport-33njc9` (même HEAD que la branche s34, working tree propre, tout poussé)
+**Période s34** : 2026-05-27 → 2026-06-10
+**Date de reconstruction du mémo** : 2026-06-11 (session s34 s'est coupée brutalement sans protocole de clôture — mémo reconstruit depuis git log + journal)
+**Numéro de session** : 34 (session 35 à venir)
+**Statut s34** : CLÔTURÉE EN COUPURE BRUTALE — pivot complet du plan s33→s34 (qui prévoyait reality check Versi Studio + 5 dettes gouvernance) vers Versi IMMOBILIER (blog SEO + dossiers de pré-commercialisation Muguets Lot 1/Lot 2). Aucun travail Versi Studio livré en s34.
+
+**Résumé session s34** (reconstruction depuis git log + entrées historique 27 mai → 3 juin) :
+
+1. **Lot blog Versi Immobilier** (commits du 27 mai, déjà journalisés) : publieur queue de publication + 6 articles SEO produits.
+2. **Lot dossiers de pré-commercialisation Muguets Lot 1 + Lot 2** (commits 6 → 10 juin, NON journalisés — voir section commits ci-dessous) : audit fidélité copy (@copywriter 3 juin), puis 7 commits implémentation/fixes.
+
+**Commits s34 NON journalisés (6 → 10 juin, du plus ancien au plus récent)** :
+1. `dea822a` 2026-06-06 — fix CRITIQUE pages "blanches" (contenu à opacity:0 jamais révélé)
+2. `1ac5568` 2026-06-06 — assets images dossiers Muguets embarquées en base64
+3. `2a74ad4` 2026-06-06 — dossier de pré-commercialisation indépendant (page + PDF) + annonce nettoyée
+4. `59557fb` 2026-06-06 — dossier de pré-commercialisation = HTML du fondateur servi tel quel
+5. `d5fbdbc` 2026-06-08 — annonce complétée à partir du dossier (`versi-immobilier/src/pages/PropertyDetailPage.jsx`)
+6. `5046e1c` 2026-06-08 — PDF dossier propre (téléchargement direct) + espacement annonce (`docs/dossiers-sources/*.pdf`, `scripts/generate-dossier-pdf.mjs`, `server.js`, `src/index.css`)
+7. `4c59078` 2026-06-10 — annonce = contenu complet du dossier dans l'ordre du HTML (`src/components/PropertyDossier.jsx`, `src/index.css`, `src/pages/PropertyDetailPage.jsx`)
+
+**État final s34** : HEAD `4c59078` — annonce Versi Immobilier reconstituée à partir du HTML du dossier de pré-commercialisation, PDF téléchargeable, images base64 embarquées, plus de pages blanches.
+
+**Risques résiduels CONNUS (zéro invention)** :
+1. **Pas de protocole de clôture s34** — aucune gate finale @moi, aucun audit de fin de session sur les 7 commits 6-10 juin. Qualité réelle des livrables inconnu — coupure brute.
+2. **Reco hors-scope @copywriter du 3 juin non traitée** : price card `PropertyDetailPage.jsx` affiche 145 000 € en titre principal (prêt à habiter) — reco copy = mener avec « À partir de 118 000 € » (prix brut, point d'entrée bas). Décision fondateurs en attente.
+3. **Branche `claude/versi-s34-blog-dossiers-9sGU0` non mergée sur main** — inconnu — coupure brute (statut merge à vérifier par Thomas).
+
+**Backlog s33 NON traité en s34 (à reprendre s35 si Thomas valide)** :
+- Reality check live Versi Studio Muguets R+1 (~30 min) — P1 héritage s33 (gate GO PROD VALIDÉ non franchie)
+- 5 dettes gouvernance s34 : runtime `useVisualsStream` SSE non testé, 91 lint errors, audit pixel-diff générations IA, matrice traçabilité requirements↔tests, mutation testing Stryker
+- Worker `iterateVisualAsync` fire-and-forget — refacto pattern persistant `vs_visual_jobs` (signalé Lot B s33)
+- Feature #6 persistance avant/après Versimo — scope A/B/C en attente arbitrage Thomas
+
+**Question gate s35 pour Thomas** :
+> **Quelle priorité s35 ?**
+> - **A** — Clôture propre s34 Versi Immobilier : audit qualité des 7 commits 6-10 juin (gates @qa/@design/@persona sur dossiers Muguets) + arbitrage reco price card 118k/145k + merge sur main
+> - **B** — Reprise backlog s33 Versi Studio : reality check live + 5 dettes gouvernance + worker fire-and-forget
+> - **C** — Nouvelle priorité Versi Immobilier (à préciser)
+> - **D** — Nouvelle priorité Versimo / autre produit
+
+**Nom de branche recommandé s35** : `claude/versi-s35-immobilier-cloture-<suffix>` (si A) OU `claude/versi-s35-vs-dettes-<suffix>` (si B).
+
+**Commande de reprise s35** :
+```
+@orchestrator Mode reprise de session. Lis project-context.md (mémo s34→s35 RECONSTRUIT) et applique le protocole standard. Question gate explicite A/B/C/D — adapte les priorités selon ma réponse.
+```
+
+---
 
 ### Mémo de reprise versi-s33 → s34
 
@@ -923,96 +976,9 @@ les learnings s29 sont marqués propagés à la clôture).
 
 ---
 
-### Mémo de reprise versi-s28 → s29
+### Mémo de reprise versi-s28 → s29 (archivé)
 
-**Branche dernière clôturée** : `claude/versi-s28-sanity-check-NqK4S` (HEAD `b4b5969`)
-**Date de clôture** : 2026-05-03
-**Numéro de session** : 28 (session 29 à venir)
-**Statut s28** : CLÔTURÉE — session marathon **33 tours** sur les bugs Étape 3 Versi Studio (extraction pièces + bouton régénération + placement architectural). Verdict final Thomas : *« ça paraît beaucoup mieux ouo »* — résultat 8/10 stable validé sur 4 plans (RDC/R+1/R+2/R+3).
-
-**Résumé session s28** :
-1. **Sanity check + propagation 9 learnings P0/P1 s27.2** (commit `c69eb76`) — propagés dans 7 agents + lessons-learned.
-2. **Bugs Étape 3 fixés (commit `261d182`)** : extraction pièces IA (wire route prod oubliait `extractPlanData`) + bouton régénération (`allLotsValidated` + filtre overlap). DB : 29 vs_rooms insérées sur 4 plans Muguets.
-3. **33 tours d'itération sur le placement architectural des pièces** :
-   - Tour 5 pivot full vectoriel (faces graphe planaire) — plateau 14/20 (cycles graphe non fermés)
-   - Tour 6-7 multi-couleur + flood-fill + smart-line-snap — 16/20
-   - Tour 8-12 polish post-traitement — plateau 17/20 (trade-off Inv A↔C irréductible)
-   - Tour 13 raster-walls-vectorize + snap-to-PNG — 17/20 stable
-   - **Tour 18 PIVOT ARCHITECTURAL : abandon flood-fill → bbox-from-walls** (rectangles propres au lieu de blobs)
-   - Tour 19-22 fixes incrémentaux (snap, position, extension murs lot)
-   - **Tour 27 BUG CRITIQUE FIXÉ** : `rooms/page.tsx ligne 227 firstPlan = plans[0]` → l'UI affichait toujours le PDF du RDC quel que soit l'étage sélectionné. Invalide les 26 tours d'audit visuel précédents.
-   - Tour 28 révèle MOCK obsolète (`plan-extractor-mock.ts` hardcodé T2/T3 inexistants vs vrai PDF Muguets).
-   - Tour 29 invariant « chaque bord touche mur lot ou autre pièce »
-   - Tour 30-32 force pièces principales toucher murs lot (override cap PDF)
-   - **Tour 33 final** : audit rigoureux + fix défauts résiduels — 4/4 plans count exact (5/8/6/5), Salon R+1 descend jusqu'au bas, ECS récupérée, WC ratios fixés (4.81→1.22).
-
-**Commits clés s28** : `c69eb76` (propagation P0/P1), `261d182` (bugs Étape 3), `2549cbe` (fix PDF par étage tour 27), `4f40c00` (synthèse murs inter-pièces), `25260d3` (smart-line-snap), `4ccbe01` (override cap pièces principales), `b4b5969` (final tour 33 validé).
-
-**Décisions clés s28** :
-- **Bug PDF par étage critique** : `firstPlan = plans[0]` partout est piège multi-étage. Fix dans `rooms/page.tsx` matching `floor_number`.
-- **Mock obsolète détecté** : `plan-extractor-mock.ts` ne reflète pas le vrai PDF Muguets — à supprimer ou resynchroniser pour éviter régressions.
-- **Pivot architectural BFS quota → bbox-from-walls** = saut qualitatif majeur (formes rectangulaires propres au lieu de blobs biscornus).
-- **Invariant « chaque bord touche »** = critère architectural supérieur à « surface ratio PDF » seul. Pour pièces principales (≥ 15 m²), bypass total cap PDF si nécessaire pour atteindre les murs du lot.
-- **Audit visuel orchestrator** = pattern « as-tu seulement vérifié ? » s'applique aussi à l'orchestrator. 21+ tours d'audit faux faute de comparaison rigoureuse PDF original vs polygones rendus. Pattern à propager.
-
-**Travaux en cours (côté agents)** : AUCUN — tous les livrables s28 commitent et passent pre-push hook.
-
-**Actions Thomas en attente (post-clôture s28)** :
-
-— **PROD Versi Studio (CRITIQUE pour valider la session)** —
-- ⏳ **Pull HEAD `b4b5969`** sur Replit + redéploiement (Next.js prod)
-- ⏳ **Vérifier Replit Secrets** : `VS_NEW_PIPELINE=true` + `VS_USE_RECTANGLE_ROOMS=true` + `VS_USE_MOCK_EXTRACTOR=false` + `OPENAI_API_KEY` présente
-- ⏳ **Re-déclencher l'extraction** sur un projet Muguets en prod → valider que les 4 plans produisent les pièces propres (5/8/6/5)
-- ⏳ **Vérifier UI** : sélecteur étage affiche le bon PDF en background pour chaque lot
-
-— **Héritage Versi Studio s27 toujours en attente** —
-- ⏳ Pull `05d0998` validation prod pivot vectoriel (déjà inclus dans `b4b5969`)
-- ⏳ 8 hypothèses property_photos R2 migration (héritage s26→s27)
-- 🔍 versi-studio.fr DNS (héritage s26)
-
-**Prochaines actions recommandées s29** :
-1. **[P0] Validation prod Versi Studio** par Thomas (pull `b4b5969` + checklist 4 points)
-2. **[P1] Suppression / resync `plan-extractor-mock.ts`** — actuellement contient données T2/T3 inexistantes dans vrai PDF Muguets
-3. **[P1] Polish ratios résiduels Étape 3** : 6 pièces avec ratio dans [0.82-0.84] ou [1.20-1.24] hors strict — pour atteindre 9-10/10 strict
-4. **[P1] Migration R2 property_photos** (héritage s27)
-5. **[P2] Fallback bitmap pipeline NEW M1→M5** pour PDF scannés (héritage s27)
-
-**Blockers éventuels** :
-- **PROD non-validée** : si Thomas constate des défauts en prod après redeploy → root cause possible : env vars Replit manquantes (`VS_USE_RECTANGLE_ROOMS=true` notamment)
-- **Mock obsolète** : si quelqu'un réactive `VS_USE_MOCK_EXTRACTOR=true` → régression (mock T2/T3 hardcodé)
-- versi-studio.fr DNS toujours irrésolu (héritage s26)
-
-**Caps framework respectés** :
-- CLAUDE.md 116/125 ✓
-- lessons-learned.md à recap après ajouts s28 (cap 80)
-- project-context.md : audit volumineux nécessaire (873+ L pré-mémo s28)
-- founder-preferences.md 265 L (alerte > 180, dédoublonnage à programmer s29)
-
-**Nom de branche recommandé pour s29** : `claude/versi-s29-vs-prod-validation-<suffix>` (si P0 validation prod prioritaire) OU `claude/versi-s29-mock-cleanup-<suffix>` (si P1 mock cleanup retenu)
-
-**Commande de reprise suggérée pour s29** :
-
-```
-@orchestrator session versi-s29. Lire project-context.md mémo reprise s28→s29.
-
-Gate de reprise obligatoire :
-1. Demander à Thomas si la validation prod Versi Studio Étape 3 est faite (4 points
-   checklist mémo s28→s29 section "Actions Thomas en attente PROD"). Si NON →
-   priorité absolue = débugger ce qui empêche la validation.
-2. Vérifier que le mock obsolète plan-extractor-mock.ts n'a pas été réactivé.
-
-Quelle priorité s29 parmi :
-- P0 Validation prod Versi Studio Étape 3 (si pas faite) — investigation @fullstack
-- P1 Suppression / resync mock plan-extractor-mock.ts (T2/T3 hardcodé inexistant)
-- P1 Polish ratios résiduels Étape 3 (9-10/10 strict)
-- P1 Migration property_photos vers Cloudflare R2 (héritage s27)
-- P2 Fallback bitmap pipeline pour PDF scannés (héritage s27)
-- versi-studio.fr DNS (héritage s26)
-- Autre priorité Thomas
-
-Compteur Task initial : 0/15. Contraintes : anti-timeout cmd n°3, cap
-CLAUDE.md 125 L, propagation P0/P1 close (rien à propager).
-```
+Migré vers [`project-context-archive.md`](./project-context-archive.md) lors de la reconstruction post-coupure s34 (commandement n°8 : rotation pour faire de la place au mémo s34→s35).
 
 ---
 
