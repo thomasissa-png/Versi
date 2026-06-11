@@ -61,7 +61,31 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         { label: 'Étage', value: 'Rez-de-chaussée' },
         { label: 'Disponibilité', value: 'Déc. 2026' },
       ],
-      leBien: 'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi Immobilier l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos Architectes (Lille). Cet appartement occupe le rez-de-chaussée de l’immeuble. Le séjour-cuisine de 26 m² traverse la profondeur du bâti et ouvre de plain-pied sur l’extérieur privatif. La chambre de 10,2 m² est positionnée en cœur de plan, à l’abri du bruit. Salle d’eau de 5,9 m², entrée et couloir distribuant l’ensemble. L’accès se fait depuis le hall commun, par l’escalier de l’immeuble.',
+      emplacement: {
+        prose: [
+          'Le 10 rue des Muguets se trouve à la charnière entre le CHU de Lille, le quartier des fleurs, quartier résidentiel paisible et Lille-Sud, en mutation depuis l’ouverture de Lillenium en 2020.',
+          'Zone résidentielle calme. Métro direct vers le cœur de Lille grâce à la station Oscar Lambret situé à 10 minutes à pied, 3 minutes en vélo.',
+        ],
+        adresse: {
+          label: 'Adresse',
+          value: '10 rue des Muguets, 59000 Lille',
+          note: 'Quartier des fleurs / CHU',
+        },
+        transports: {
+          label: 'Transports',
+          value: 'Métro Oscar Lambret · 10 min à pied',
+          note: 'Lille Flandres ~10 min en métro M1 directe',
+        },
+        proximite: {
+          label: 'À proximité',
+          value: 'Lillenium',
+          note: 'Écoles · CHU',
+        },
+      },
+      leBien: [
+        'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi Immobilier l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos Architectes (Lille).',
+        'Cet appartement occupe le rez-de-chaussée de l’immeuble. Le séjour-cuisine de 26 m² traverse la profondeur du bâti et ouvre de plain-pied sur l’extérieur privatif. La chambre de 10,2 m² est positionnée en cœur de plan, à l’abri du bruit. Salle d’eau de 5,9 m², entrée et couloir distribuant l’ensemble. L’accès se fait depuis le hall commun, par l’escalier de l’immeuble.',
+      ],
       pourQui: 'Primo-accédant urbain ou investisseur attentif à l’extérieur et à l’accès direct : ce lot a été pensé pour vous. Une place de stationnement extérieure sécurisée est comprise dans le prix.',
       accroche: 'Un rez-de-chaussée traversant qui s’ouvre de plain-pied sur l’extérieur. Une rareté dans le secteur, à deux pas du métro.',
       planImage: LOT1_PLAN,
@@ -134,10 +158,10 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         garanties: 'Livraison brut en octobre 2026, prêt à habiter en décembre 2026. Garanties dommages-ouvrage et décennale identiques dans les deux cas.',
       },
       reperesMarche: {
-        intro: 'Livré clé en main à 145 000 €, l’appartement ressort à 3 085 €/m² hors parking — environ 12 % sous la médiane des T2 vendus à Lille-Sud en 2024-2025.',
+        intro: 'Livré clé en main à 145 000 €, l’appartement ressort à 3 085 €/m² hors parking — environ 12% sous la médiane des T2 vendus à Lille-Sud en 2024-2025.',
         rows: [
           { ref: 'T2 existant — Lille-Sud', sousTitre: 'Médiane DVF · 2024-2025', prixM2: '~ 3 530 €' },
-          { ref: 'Appartement existant — Vauban-Esquermes', sousTitre: 'Quartier limitrophe · annonces comparables 2026', prixM2: '~ 3 650 €' },
+          { ref: 'Appartement existant — Vauban-Esquermes', sousTitre: 'Quartier limitrophe · efficity 2026', prixM2: '~ 3 650 €' },
           { ref: 'Cet appartement — prêt à habiter', sousTitre: 'Versi · 2026', prixM2: '~ 3 085 €' },
         ],
       },
@@ -147,7 +171,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         items: [
           { label: 'Charges copro · mois', valeur: '~ 60 €' },
           { label: 'Taxe foncière · an', valeur: '~ 550 €' },
-          { label: 'Frais de notaire (~ 7,5 %)', valeur: '~ 10 500 €' },
+          { label: 'Frais de notaire', valeur: '~ 10 500 €' },
         ],
       },
       calendrier: [
@@ -193,7 +217,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     charges: '~ 107 €/mois (estimation indicative)',
     description: `86 m² d'un seul tenant, sans couloir qui mange la surface, sans mur porteur au milieu. C'est ce que donne un ancien plateau de bureaux quand on le transforme bien. Un séjour-cuisine de 40,5 m² sans cloisonnement, deux chambres (14 m² et 9 m²), une salle d'eau. Tout l'espace est utile.
 
-Le séjour donne une vraie liberté d'aménagement. Table de 8, canapé d'angle, coin bureau, tout rentre sans compromis. Les deux chambres sont séparées du séjour. Chauffage collectif. Place de parking extérieur sécurisé (accès par double porte) comprise.
+Le séjour donne une vraie liberté d'aménagement. Table de 8, canapé d'angle, coin bureau, tout rentre sans compromis. Les deux chambres sont séparées du séjour. Chauffage individuel. Place de parking extérieur sécurisé (accès par double porte) comprise.
 
 Ancien bâtiment de bureaux transformé en 3 logements de qualité par Versi. Sols en parquet contrecollé chêne, double vitrage sur toutes les menuiseries, salle d'eau grand format, cuisine pré-équipée. À 176 300 € avant travaux ou 232 200 € livré prêt à habiter. Début des travaux septembre 2026, livraison décembre 2026. Couvert par l'assurance dommages-ouvrage et la garantie décennale.
 
@@ -218,7 +242,31 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         { label: 'Étage', value: '1er' },
         { label: 'Livraison', value: 'Déc. 2026' },
       ],
-      leBien: 'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos. Cet appartement occupe le premier étage de l’immeuble. Le séjour-cuisine de 40,5 m² traverse toute la profondeur de l’étage : exposition sur la rue d’un côté, sur l’arrière de l’autre, lumière toute la journée. Les deux chambres, de 14,2 m² et 9 m², sont positionnées en cœur de plan, à l’abri du bruit. Salle de bains de 5,9 m², WC séparé, cellier, entrée de 7,3 m². L’étage est intégralement aménageable, sans aucun mur porteur central.',
+      emplacement: {
+        prose: [
+          'Le 10 rue des Muguets se trouve à la charnière entre le CHU de Lille, le quartier des fleurs, quartier résidentiel paisible et Lille-Sud, en mutation depuis l’ouverture de Lillenium en 2020.',
+          'Zone résidentielle calme. Métro direct vers le cœur de Lille grâce à la station Oscar Lambret situé à 10 minutes à pied, 3 minutes en vélo.',
+        ],
+        adresse: {
+          label: 'Adresse',
+          value: '10 rue des Muguets, 59000 Lille',
+          note: 'Quartier des fleurs / CHU',
+        },
+        transports: {
+          label: 'Transports',
+          value: 'Métro Oscar Lambret · 10 min à pied',
+          note: 'Lille Flandres ~10 min en métro M1 directe',
+        },
+        proximite: {
+          label: 'À proximité',
+          value: 'Lillenium',
+          note: 'Écoles · CHU',
+        },
+      },
+      leBien: [
+        'Le bâtiment du 10 rue des Muguets a longtemps servi de bureaux. Son écriture contemporaine et sa parcelle traversante appelaient une seconde vie résidentielle. Versi l’a acquis pour en faire trois logements, dessinés par le cabinet Avantpropos.',
+        'Cet appartement occupe le premier étage de l’immeuble. Le séjour-cuisine de 40,5 m² traverse toute la profondeur de l’étage : exposition sur la rue d’un côté, sur l’arrière de l’autre, lumière toute la journée. Les deux chambres, de 14,2 m² et 9 m², sont positionnées en cœur de plan, à l’abri du bruit. Salle de bains de 5,9 m², WC séparé, cellier, entrée de 7,3 m². L’étage est intégralement aménageable, sans aucun mur porteur central.',
+      ],
       pourQui: 'Couple primo-accédant ou famille qui s’agrandit y trouveront un séjour-cuisine généreux et deux chambres distribuables en suite parentale, bureau ou chambre d’enfant selon le projet — aucun mur porteur central. Un acheteur attaché aux volumes y verra 86 m² polyvalents et l’exposition traversante propre au plateau. Une place de stationnement extérieure sécurisée est comprise dans le prix.',
       accroche: 'Un T3 traversant au premier étage, à deux pas du métro. Séjour-cuisine sur deux expositions, deux chambres en cœur de plan.',
       planImage: LOT2_PLAN,
@@ -236,7 +284,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         'Parquet',
         'Grande baie vitrée aluminium double vitrage',
         'Cuisine pré-équipée',
-        'Salle de bains carrelée grand format',
+        'Salle d’eau carrelée grand format',
         'Chauffage individuel',
         'Stationnement sécurisé',
         'Exposition traversante double',
@@ -292,10 +340,10 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         garanties: 'Livraison brut en octobre 2026, prêt à habiter en décembre 2026. Garanties dommages-ouvrage et décennale identiques dans les deux cas.',
       },
       reperesMarche: {
-        intro: 'Livré clé en main à 232 200 €, l’appartement ressort à 2 700 €/m² hors parking — environ 31 % sous la médiane des T3 vendus à Lille-Sud en 2025.',
+        intro: 'Livré clé en main à 232 200 €, l’appartement ressort à 2 700 €/m² hors parking — environ 31% sous la médiane des T3 vendus à Lille-Sud en 2025.',
         rows: [
           { ref: 'T3 existant — Lille-Sud', sousTitre: 'Médiane DVF · 2025', prixM2: '~ 3 910 €' },
-          { ref: 'Appartement existant — Vauban-Esquermes', sousTitre: 'Quartier limitrophe · annonces comparables 2026', prixM2: '~ 3 650 €' },
+          { ref: 'Appartement existant — Vauban-Esquermes', sousTitre: 'Quartier limitrophe · efficity 2026', prixM2: '~ 3 650 €' },
           { ref: 'Cet appartement — prêt à habiter', sousTitre: 'Versi · 2026', prixM2: '~ 2 700 €' },
         ],
       },
@@ -305,7 +353,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         items: [
           { label: 'Charges copro · mois', valeur: '~ 107 €' },
           { label: 'Taxe foncière · an', valeur: '~ 1 100 €' },
-          { label: 'Frais de notaire (~ 7,5 %)', valeur: '~ 16 700 €' },
+          { label: 'Frais de notaire', valeur: '~ 16 700 €' },
         ],
       },
       calendrier: [

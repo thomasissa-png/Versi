@@ -186,11 +186,18 @@ export default function PropertyDetailPage() {
         { label: 'Disponibilité', value: property.tenancy },
       ];
 
-  /* Description — quand un dossier existe, on assemble un texte rédactionnel
-     plus riche : leBien (présentation du logement) + pourQui (à qui il s'adresse).
-     Sinon, on garde la description standard. */
+  /* Description — quand un dossier existe, on assemble la section « Le bien »
+     dans l'ordre exact du HTML source : leBien (1 ou 2 paragraphes) +
+     pourQui + accroche. `leBien` accepte un tableau (HTML découpé en
+     plusieurs <p>) ou une string (rétrocompat). Sans dossier (Lot 3) :
+     split de la description standard. */
+  const leBienParagraphs = dossier
+    ? (Array.isArray(dossier.leBien)
+        ? dossier.leBien.filter(Boolean)
+        : (dossier.leBien ? [dossier.leBien] : []))
+    : [];
   const descriptionParagraphs = dossier
-    ? [dossier.leBien, dossier.pourQui].filter(Boolean)
+    ? [...leBienParagraphs, dossier.pourQui, dossier.accroche].filter(Boolean)
     : (property.description ? property.description.split('\n\n') : []);
 
   /* Caractéristiques — préfère la liste du dossier (plus dense, mieux rédigée),
@@ -319,9 +326,11 @@ export default function PropertyDetailPage() {
                   features, travaux réalisés, emplacement, diagnostics.
               */}
               <div>
-                {/* Hero — titre, accroche, fiche technique */}
+                {/* Hero — titre, accroche, fiche technique.
+                    Tagline = dossier.tagline si présent (ex. « Lille · Lille-Sud
+                    (quartier des fleurs) »), sinon fallback property.location. */}
                 <span className="text-label property-detail__meta">
-                  {property.location}
+                  {dossier?.tagline || property.location}
                 </span>
                 <h1 className="text-heading-lg property-detail__title">
                   {property.title}
@@ -350,28 +359,64 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
 
-                {/* ── 1. Emplacement (toujours en premier, depuis les
-                    champs standard du bien — dossier.emplacement n'existe
-                    pas dans la donnée) ── */}
+                {/* ── 1. Emplacement ──
+                    Avec dossier.emplacement : rendu fidèle au HTML source
+                    (2 paragraphes de prose + 3 blocs structurés Adresse /
+                    Transports / À proximité). Sans dossier.emplacement
+                    (Lot 3) : fallback champs standard nearby_transport /
+                    nearby_amenities (longue liste d'équipements). */}
                 <h2 className="text-heading-md property-detail__section-title">
                   Emplacement.
                 </h2>
                 <div className="property-detail__location-block">
-                  {property.address && (
-                    <p className="text-body-md property-detail__address">
-                      {property.address}
-                      {property.neighborhood && ` — quartier ${property.neighborhood}`}
-                    </p>
-                  )}
-                  {property.nearbyTransport && (
-                    <p className="text-body-sm property-detail__transport">
-                      <strong>Transports :</strong> {property.nearbyTransport}
-                    </p>
-                  )}
-                  {property.nearbyAmenities && (
-                    <p className="text-body-sm property-detail__amenities">
-                      <strong>À proximité :</strong> {property.nearbyAmenities}
-                    </p>
+                  {dossier?.emplacement ? (
+                    <>
+                      {Array.isArray(dossier.emplacement.prose) && dossier.emplacement.prose.map((p, i) => (
+                        <p key={i} className="text-body-md property-detail__location-prose">
+                          {p}
+                        </p>
+                      ))}
+                      <div className="property-detail__location-grid">
+                        {['adresse', 'transports', 'proximite'].map((slot) => {
+                          const item = dossier.emplacement[slot];
+                          if (!item || !item.value) return null;
+                          return (
+                            <div key={slot} className="property-detail__location-item">
+                              <span className="text-label property-detail__location-item-label">
+                                {item.label}
+                              </span>
+                              <span className="property-detail__location-item-value">
+                                {item.value}
+                              </span>
+                              {item.note && (
+                                <span className="property-detail__location-item-note">
+                                  {item.note}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {property.address && (
+                        <p className="text-body-md property-detail__address">
+                          {property.address}
+                          {property.neighborhood && ` — quartier ${property.neighborhood}`}
+                        </p>
+                      )}
+                      {property.nearbyTransport && (
+                        <p className="text-body-sm property-detail__transport">
+                          <strong>Transports :</strong> {property.nearbyTransport}
+                        </p>
+                      )}
+                      {property.nearbyAmenities && (
+                        <p className="text-body-sm property-detail__amenities">
+                          <strong>À proximité :</strong> {property.nearbyAmenities}
+                        </p>
+                      )}
+                    </>
                   )}
                   {/* Carte OpenStreetMap — coordonnées 10 rue des Muguets */}
                   {property.address && /muguets/i.test(property.address) && (() => {
