@@ -359,6 +359,36 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
 
+                {/* ── Bloc prix mobile ── visible uniquement ≤ 768px.
+                    Positionné après la fiche technique (specs strip), il
+                    donne l'info n°1 (prix) sans attendre la colonne sticky.
+                    Ne duplique pas le CTA lourd — juste un lien ancre sobre
+                    vers #price-card. Fallback : property.price si pas de
+                    dossier. */}
+                <div className="property-detail__price-mobile" aria-label="Prix">
+                  <div className="property-detail__price-mobile-main">
+                    <span className="property-detail__price-mobile-amount">
+                      {headlinePrice}
+                    </span>
+                    {headlineSubtitle && (
+                      <span className="property-detail__price-mobile-sub">
+                        {headlineSubtitle}
+                      </span>
+                    )}
+                  </div>
+                  {dossierFormules && (
+                    <span className="property-detail__price-mobile-formules">
+                      Brut {dossierFormules.avantTravaux}
+                    </span>
+                  )}
+                  <a
+                    href="#price-card"
+                    className="property-detail__price-mobile-anchor"
+                  >
+                    Voir prix et visite →
+                  </a>
+                </div>
+
                 {/* ── 1. Emplacement ──
                     Avec dossier.emplacement : rendu fidèle au HTML source
                     (2 paragraphes de prose + 3 blocs structurés Adresse /
@@ -604,7 +634,7 @@ export default function PropertyDetailPage() {
 
               {/* ── Colonne droite — Price card sticky (annonce standard) ── */}
               <aside aria-label="Prix et contact">
-                <div className="property-price-card">
+                <div className="property-price-card" id="price-card">
                   <span className="property-price-card__label">Prix</span>
                   <span className="property-price-card__price">{headlinePrice}</span>
                   {headlineSubtitle && (

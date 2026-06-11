@@ -354,7 +354,8 @@ ul, ol {
   }
 
   .text-heading-lg {
-    font-size: 1.625rem;
+    font-size: 1.375rem;
+    line-height: 1.2;
   }
 
   .text-heading-md {
@@ -526,9 +527,86 @@ ul, ol {
   color: var(--color-text-primary);
 }
 
+/* Bloc prix mobile — visible uniquement ≤ 768px.
+   Sobre, linéaire, donne le prix vedette immédiatement après les specs.
+   Masqué sur desktop (la price card sticky remplit ce rôle). */
+.property-detail__price-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .property-detail__price-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-lg) 0;
+    margin-bottom: 0;
+    /* border-top absente : la border-bottom de .property-detail__specs
+       joue le rôle de séparateur supérieur. */
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .property-detail__price-mobile-main {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .property-detail__price-mobile-amount {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  .property-detail__price-mobile-sub {
+    font-size: var(--font-size-body-sm);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+  }
+
+  .property-detail__price-mobile-formules {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .property-detail__price-mobile-anchor {
+    display: inline-flex;
+    align-items: center;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-label);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--duration-fast) ease;
+    min-height: 44px;
+    padding: var(--spacing-xs) 0;
+  }
+
+  .property-detail__price-mobile-anchor:hover {
+    color: var(--color-text-primary);
+  }
+}
+
 /* Section headings */
 .property-detail__section-title {
   margin-bottom: var(--spacing-md);
+}
+
+/* Respiration au-dessus de chaque titre de section sur mobile.
+   Sur desktop le gap du layout colonne gauche gère déjà le rythme.
+   On cible aussi les sections dossier qui utilisent la même classe.
+   margin-bottom augmenté à 20px (vs 16px desktop) pour respiration
+   titre→contenu sur mobile. */
+@media (max-width: 767px) {
+  .property-detail__section-title {
+    margin-top: 64px;
+    margin-bottom: 20px;
+  }
 }
 
 /* Description */
@@ -557,6 +635,18 @@ ul, ol {
   color: var(--color-text-muted);
   font-size: var(--font-size-body-sm);
   transition: border-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+
+@media (max-width: 767px) {
+  .property-detail__features {
+    gap: 10px;
+  }
+
+  .property-detail__feature-tag {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
 }
 
 .property-detail__feature-tag:hover {
@@ -1089,6 +1179,9 @@ ul, ol {
 @media (max-width: 767px) {
   .property-detail__specs {
     gap: var(--spacing-md);
+    /* Le bloc prix mobile qui suit apporte sa propre bordure supérieure.
+       On réduit le margin-bottom pour éviter un double écart visuel. */
+    margin-bottom: 0;
   }
 
   .property-detail__works {
@@ -1689,6 +1782,12 @@ ul, ol {
   gap: var(--spacing-md);
 }
 
+@media (max-width: 767px) {
+  .property-dossier__section {
+    gap: 20px;
+  }
+}
+
 .property-dossier__intro {
   color: var(--color-text-muted);
   max-width: var(--text-max-width-md);
@@ -1731,6 +1830,12 @@ ul, ol {
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 767px) {
+  .property-dossier__surfaces {
+    margin-bottom: var(--spacing-md);
+  }
 }
 
 .property-dossier__surface-row {
@@ -1845,6 +1950,33 @@ ul, ol {
 
 .property-dossier__phase:last-child {
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Mobile Travaux : stack vertical — numéro discret inline devant le titre,
+   texte pleine largeur en dessous. La colonne fantôme 64px disparaît. */
+@media (max-width: 767px) {
+  .property-dossier__phase {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: var(--spacing-md) 0;
+  }
+
+  .property-dossier__phase-num {
+    /* Numéro discret au-dessus du titre, petit et en muted */
+    display: block;
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-regular);
+    color: var(--color-text-muted);
+    letter-spacing: 0.06em;
+    margin-bottom: var(--spacing-xs);
+    opacity: 0.6;
+  }
+
+  .property-dossier__phase-body {
+    gap: var(--spacing-sm);
+    width: 100%;
+  }
 }
 
 .property-dossier__phase-num {
