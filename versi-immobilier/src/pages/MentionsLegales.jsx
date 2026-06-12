@@ -7,7 +7,7 @@ export default function MentionsLegales() {
   return (
     <>
       <PageHead
-        title="Mentions légales — Versi Immobilier"
+        title="Mentions légales - Versi Immobilier"
         description="Mentions légales de Versi Immobilier, marchand de biens."
         noindex
       />
@@ -37,7 +37,7 @@ export default function MentionsLegales() {
               <div>
                 <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>Responsable de la publication</h2>
                 <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  Thomas Issa — Co-fondateur<br />
+                  Thomas Issa - Co-fondateur<br />
                   {CONTACT_EMAIL}
                 </p>
               </div>
@@ -82,7 +82,7 @@ export default function MentionsLegales() {
                 <div>
                   <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>Responsable de traitement</h2>
                   <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    Versi Immobilier — SIREN 912 862 612<br />
+                    Versi Immobilier - SIREN 912 862 612<br />
                     {CONTACT_EMAIL}
                   </p>
                 </div>
@@ -100,7 +100,7 @@ export default function MentionsLegales() {
                 <div>
                   <h2 className="text-heading-md" style={{ marginBottom: 'var(--spacing-md)' }}>Base légale du traitement</h2>
                   <p className="text-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    Intérêt légitime de Versi Immobilier (art. 6.1.f du Règlement (UE) 2016/679 — RGPD).
+                    Intérêt légitime de Versi Immobilier (art. 6.1.f du Règlement (UE) 2016/679 - RGPD).
                     Le traitement est nécessaire à la réponse aux demandes des visiteurs et à l'instruction
                     des dossiers de vente.
                   </p>

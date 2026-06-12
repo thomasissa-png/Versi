@@ -49,7 +49,7 @@ export default function Team() {
           Quarante ans de terrain.
         </h2>
         <p className="text-body-lg team__subtitle">
-          Trois parcours de fond. Pas de théorie — des opérations closes, des portfolios constitués, des structures dirigées.
+          Trois parcours de fond. Pas de théorie - des opérations closes, des portfolios constitués, des structures dirigées.
         </p>
 
         <div className={`team__grid ${isVisible ? 'fade-in' : 'fade-hidden'}`}>

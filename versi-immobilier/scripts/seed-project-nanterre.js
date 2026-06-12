@@ -1,11 +1,11 @@
-// Seed script — Nanterre Barbusse reference project
+// Seed script - Nanterre Barbusse reference project
 // Idempotent: uses ON CONFLICT DO UPDATE
 //
 // Photos : précompilées en local par scripts/generate-photos.js qui resize
 // les sources Photos/references/nanterre-barbusse/ vers
 // versi-immobilier/public/projects/nanterre-barbusse/ + manifest.json.
 // Le repo contient les JPEG, prod ne fait QUE lire le manifest et INSERT
-// les URLs en DB (pas de sharp ni d'I/O lourd au boot — fix Neon timeout).
+// les URLs en DB (pas de sharp ni d'I/O lourd au boot - fix Neon timeout).
 
 import pg from 'pg';
 import fs from 'fs';
@@ -16,7 +16,7 @@ import { upsertProjectPhotosDb, ensurePhotoSchema } from './photo-sync.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Sélection figée des "après" Nanterre (hand-picked par le fondateur).
-// Utilisée uniquement par generate-photos.js (local) — la prod lit le manifest.
+// Utilisée uniquement par generate-photos.js (local) - la prod lit le manifest.
 // Le dossier source contient ~26 fichiers WhatsApp, on garde uniquement
 // ceux-ci dans cet ordre précis (sort = position dans la galerie publique).
 // Le premier (sort: 0) sert de hero / cover_url pour la liste des projets.
@@ -31,7 +31,7 @@ export const NANTERRE_APRES_FILES = [
 
 const PROJECT = {
   id: 'nanterre-barbusse',
-  title: 'Nanterre Barbusse — Loft 7 pièces, 136 m²',
+  title: 'Nanterre Barbusse - Loft 7 pièces, 136 m²',
   city: 'Nanterre',
   type: 'Réhabilitation complète en loft 7 pièces avec patio privatif',
   surface: '136 m²',
@@ -64,7 +64,7 @@ export { PROJECT as NANTERRE_PROJECT };
 function readManifestPhotosFor(projectId) {
   const manifestPath = path.resolve(__dirname, '..', 'public', 'projects', 'manifest.json');
   if (!fs.existsSync(manifestPath)) {
-    console.warn(`[seed-nanterre] Manifest absent : ${manifestPath} — lance scripts/generate-photos.js en local.`);
+    console.warn(`[seed-nanterre] Manifest absent : ${manifestPath} - lance scripts/generate-photos.js en local.`);
     return [];
   }
   try {
@@ -110,7 +110,7 @@ async function seed() {
     );
     const photos = readManifestPhotosFor(PROJECT.id);
     await upsertProjectPhotosDb(client, PROJECT.id, photos);
-    console.log(`[seed-nanterre] OK — ${photos.length} photos URL-only (manifest).`);
+    console.log(`[seed-nanterre] OK - ${photos.length} photos URL-only (manifest).`);
   } finally {
     client.release();
     await pool.end();

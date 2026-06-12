@@ -12,7 +12,7 @@ export default function ContactPage() {
   const bien = searchParams.get('bien') || '';
   const { ref, isVisible } = useFadeIn();
 
-  /* JSON-LD LocalBusiness — SEO local Lille */
+  /* JSON-LD LocalBusiness - SEO local Lille */
   useEffect(() => {
     const jsonLd = {
       '@context': 'https://schema.org',
@@ -52,7 +52,7 @@ export default function ContactPage() {
   return (
     <>
       <PageHead
-        title="Contact — Versi Immobilier"
+        title="Contact - Versi Immobilier"
         description="Contactez Versi Immobilier pour visiter un bien, soumettre un dossier ou demander une présentation."
       />
       <a href="#main-content" className="skip-nav">
@@ -81,7 +81,7 @@ export default function ContactPage() {
               {bien ? 'Demander une présentation.' : 'Écrivez-nous.'}
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-md)' }}>
-              Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h — sans standard, sans assistant.
+              Vous achetez, vous cédez ou vous nous soumettez un dossier. Réponse sous 24h - sans standard, sans assistant.
             </p>
           </div>
         </section>
@@ -137,11 +137,11 @@ export default function ContactPage() {
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-inverse)', opacity: 'var(--opacity-readable)', marginBottom: 'var(--spacing-2xl)' }}>
                 Lille et métropole lilloise<br />
-                Paris — Île-de-France
+                Paris - Île-de-France
               </p>
 
               <p className="text-body-sm" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xl)' }}>
-                Versi Immobilier est l'entité marchand de biens du Groupe Versi, holding immobilière intégrée —{' '}
+                Versi Immobilier est l'entité marchand de biens du Groupe Versi, holding immobilière intégrée -{' '}
                 <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>
                   versi.fr
                 </a>

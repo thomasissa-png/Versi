@@ -8,7 +8,7 @@ const STEPS = [
   {
     num: '01',
     title: 'Détection d’opportunité',
-    description: 'Les biens analysés proviennent de notre réseau terrain — alimenté par l’activité de marchand de biens du Groupe Versi — ou d’une veille active sur le marché. Chaque bien passe 15+ critères avant d’être présélectionné. Si les chiffres ne tiennent pas, le dossier est écarté avant de vous parvenir.',
+    description: 'Les biens analysés proviennent de notre réseau terrain - alimenté par l’activité de marchand de biens du Groupe Versi - ou d’une veille active sur le marché. Chaque bien passe 15+ critères avant d’être présélectionné. Si les chiffres ne tiennent pas, le dossier est écarté avant de vous parvenir.',
     included: 'Recherche active. Analyse préliminaire multi-critères. Dossier de présélection chiffré.',
     notIncluded: 'Sourcing sur portails publics. Prospection hors réseau sur demande spécifique.',
     duration: '2 à 4 semaines selon la disponibilité des opportunités.',
@@ -24,7 +24,7 @@ const STEPS = [
   {
     num: '03',
     title: 'Simulation financière',
-    description: 'Si le bien passe la visite fondateur, une simulation complète est produite : rendement brut, net, net-net, cashflow mensuel, TRI, Cash-on-Cash. Chaque charge est listée — taxe foncière, copropriété, assurance PNO, vacance provisionnée. Deux scénarios systématiques : nominal et prudent (+15 % de charges). Si le cashflow ne tient pas en scénario prudent, on ne présente pas le bien.',
+    description: 'Si le bien passe la visite fondateur, une simulation complète est produite : rendement brut, net, net-net, cashflow mensuel, TRI, Cash-on-Cash. Chaque charge est listée - taxe foncière, copropriété, assurance PNO, vacance provisionnée. Deux scénarios systématiques : nominal et prudent (+15 % de charges). Si le cashflow ne tient pas en scénario prudent, on ne présente pas le bien.',
     included: 'Simulation financière complète en PDF. Scénario nominal et scénario prudent. Détail de chaque charge.',
     notIncluded: 'Conseil fiscal personnalisé (consulter un expert-comptable pour l’optimisation propre à votre situation).',
     duration: '2 à 3 jours après la visite fondateur.',
@@ -32,14 +32,14 @@ const STEPS = [
   {
     num: '04',
     title: 'Présentation du dossier',
-    description: 'Le bien a passé les trois filtres : analyse, visite, simulation. Vous recevez le dossier complet — photos, simulation chiffrée, hypothèses de travaux, scénario central et dégradé. Vous avez tous les éléments pour décider si vous voulez aller plus loin.',
+    description: 'Le bien a passé les trois filtres : analyse, visite, simulation. Vous recevez le dossier complet - photos, simulation chiffrée, hypothèses de travaux, scénario central et dégradé. Vous avez tous les éléments pour décider si vous voulez aller plus loin.',
     included: 'Dossier complet avec synthèse chiffrée. Présentation orale par un fondateur. Réponse à toutes vos questions.',
     duration: 'Sous 48h après validation interne.',
   },
   {
     num: '05',
     title: 'Visite avec vous',
-    description: 'Vous visitez le bien avec un fondateur — Maxime, Thomas ou Carl. Pas un assistant, pas un commercial. Sur site, on confronte les hypothèses du dossier à la réalité. Vous posez les questions, on répond avec les chiffres.',
+    description: 'Vous visitez le bien avec un fondateur - Maxime, Thomas ou Carl. Pas un assistant, pas un commercial. Sur site, on confronte les hypothèses du dossier à la réalité. Vous posez les questions, on répond avec les chiffres.',
     included: 'Déplacement d’un fondateur avec vous. Validation terrain des hypothèses. Compte-rendu de visite.',
     duration: '1 journée.',
   },
@@ -48,7 +48,7 @@ const STEPS = [
     title: 'Structuration et financement',
     description: 'On identifie le montage adapté à votre situation : nom propre, SCI à l’IS, LMNP. On vous met en relation avec des courtiers partenaires. La simulation produite à l’étape 03 peut être présentée directement à votre conseiller bancaire.',
     included: 'Recommandation de structure juridique. Mise en relation courtier(s). Suivi jusqu’à l’offre de prêt.',
-    notIncluded: 'Conseil patrimonial global (Versi Invest n’est pas un CGP). Création de SCI (à déléguer à un notaire — Versi Invest recommande des partenaires).',
+    notIncluded: 'Conseil patrimonial global (Versi Invest n’est pas un CGP). Création de SCI (à déléguer à un notaire - Versi Invest recommande des partenaires).',
     duration: '3 à 6 semaines selon le profil bancaire.',
   },
   {
@@ -61,7 +61,7 @@ const STEPS = [
   {
     num: '08',
     title: 'Travaux et mise en location',
-    description: 'Si le bien nécessite des travaux ou une mise en location, on prend le relais : sélection des artisans, suivi de chantier, publication d’annonce, sélection du locataire, rédaction du bail. Cette étape est facultative — notre périmètre s’arrête à l’acquisition.',
+    description: 'Si le bien nécessite des travaux ou une mise en location, on prend le relais : sélection des artisans, suivi de chantier, publication d’annonce, sélection du locataire, rédaction du bail. Cette étape est facultative - notre périmètre s’arrête à l’acquisition.',
     included: 'Sélection artisans. Suivi chantier. Publication annonce. Sélection locataire. Bail et état des lieux.',
     notIncluded: 'Gestion locative courante (loyers, relances, sinistres). Versi Invest peut recommander un gestionnaire partenaire.',
     duration: '2 à 4 mois selon l’ampleur.',
@@ -73,7 +73,7 @@ export default function ProcessPage() {
   return (
     <>
       <PageHead
-        title="Investissement locatif : 8 étapes — Versi Invest"
+        title="Investissement locatif : 8 étapes - Versi Invest"
         description="Détection, visite fondateur, simulation, présentation, visite avec vous, financement, acquisition. Travaux et location en option. 5% côté investisseur."
       />
       <a href="#main-content" className="skip-nav">
@@ -102,7 +102,7 @@ export default function ProcessPage() {
               5% du prix d’acquisition. Facturés à l’investisseur. Zéro côté vendeur.
             </p>
             <p className="honoraires__text">
-              Ce n’est pas une clause de style : c’est inscrit dans le mandat signé avant toute présentation de bien. Nos intérêts sont alignés avec les vôtres — si le bien n’est pas à la hauteur, on ne le présente pas.
+              Ce n’est pas une clause de style : c’est inscrit dans le mandat signé avant toute présentation de bien. Nos intérêts sont alignés avec les vôtres - si le bien n’est pas à la hauteur, on ne le présente pas.
             </p>
           </div>
         </section>

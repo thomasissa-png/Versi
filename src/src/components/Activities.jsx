@@ -37,7 +37,7 @@ export default function Activities() {
                   <span
                     className="text-cta activities__card-cta activities__card-cta--disabled"
                     aria-disabled="true"
-                    aria-label={`${entity.name} — site bientôt disponible`}
+                    aria-label={`${entity.name} - site bientôt disponible`}
                   >
                     {entity.ctaTextDisabled}
                   </span>

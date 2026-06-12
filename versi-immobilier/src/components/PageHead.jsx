@@ -4,10 +4,10 @@ import { useLocation } from 'react-router-dom';
 const SITE_URL = 'https://versi-immobilier.fr';
 
 /**
- * Composant SEO centralisé — injecte title, description et canonical via react-helmet-async.
- * @param {string} title — balise <title>
- * @param {string} description — meta description
- * @param {boolean} [noindex] — ajoute robots noindex,follow si true
+ * Composant SEO centralisé - injecte title, description et canonical via react-helmet-async.
+ * @param {string} title - balise <title>
+ * @param {string} description - meta description
+ * @param {boolean} [noindex] - ajoute robots noindex,follow si true
  */
 export default function PageHead({ title, description, noindex = false }) {
   const { pathname } = useLocation();

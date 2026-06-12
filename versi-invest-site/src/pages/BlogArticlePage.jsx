@@ -137,7 +137,7 @@ export default function BlogArticlePage() {
   return (
     <>
       <PageHead
-        title={article ? `${article.title} — Versi Invest` : 'Article — Versi Invest'}
+        title={article ? `${article.title} - Versi Invest` : 'Article - Versi Invest'}
         description={article?.excerpt || 'Article Versi Invest'}
       />
 

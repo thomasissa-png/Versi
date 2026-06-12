@@ -7,7 +7,7 @@ export default function MentionsLegales() {
   return (
     <>
       <PageHead
-        title="Mentions légales — Versi Invest"
+        title="Mentions légales - Versi Invest"
         description="Informations légales du site versi-invest.fr. Éditeur, hébergeur, droits."
       />
       <a href="#main-content" className="skip-nav">
@@ -72,7 +72,7 @@ export default function MentionsLegales() {
                 Les honoraires sont fixés à <strong>5% du prix d'acquisition TTC</strong> et sont précisés dans le mandat signé préalablement à toute mission. Toute rémunération est conditionnée à la signature d'un acte authentique de vente, conformément à la Loi Hoguet.
               </p>
 
-              <h2>Avertissement — Simulation financière</h2>
+              <h2>Avertissement - Simulation financière</h2>
               <p>
                 Les simulations financières produites par Versi Invest sont fournies <strong>à titre indicatif uniquement</strong>, sur la base de données saisies et d'hypothèses de marché non garanties. Elles ne constituent pas un conseil en investissement, une promesse de rendement ou une garantie de résultat. Versi Invest n'est pas conseiller en investissements financiers (CIF) et n'est pas soumis à la réglementation AMF. L'investissement immobilier locatif comporte des risques, dont la vacance locative et la fluctuation des prix de marché.
               </p>

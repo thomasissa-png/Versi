@@ -40,7 +40,7 @@ export default function AvailableProperties() {
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-sm)' }}>
               Nos dernières réalisations : Moulins, Fives, Tourcoing, Bois-Blancs. Prix de vente entre 95 000 € et 350 000 €.
             </p>
-            <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>Laissez votre contact — nous vous prévenons avant la mise en ligne.</p>
+            <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>Laissez votre contact - nous vous prévenons avant la mise en ligne.</p>
             <Link to="/contact" className="text-cta featured__cta">
               Être notifié
             </Link>

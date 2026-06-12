@@ -152,7 +152,7 @@ export default function AdminRealisations() {
                     {STATUT_LABELS[project.status] || project.status}
                   </span>
                 </td>
-                <td>{project.featured ? 'Oui' : '—'}</td>
+                <td>{project.featured ? 'Oui' : '-'}</td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                     <Link to={`/admin/realisations/${project.id}/editer`} className="btn btn-sm">

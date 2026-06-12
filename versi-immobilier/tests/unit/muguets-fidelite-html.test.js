@@ -47,8 +47,8 @@ function normalize(s) {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
-    .replace(/&ndash;/g, '–')
-    .replace(/&mdash;/g, '—')
+    .replace(/&ndash;/g, '-')
+    .replace(/&mdash;/g, '-')
     .replace(/&hellip;/g, '…')
     .replace(/&laquo;/g, '«')
     .replace(/&raquo;/g, '»')
@@ -289,18 +289,18 @@ function assertOrdreSectionsLot3(htmlNorm, lotLabel) {
   // Caractéristiques (04) et Travaux (05) — différent des lots 1/2 où il
   // venait après État actuel. Et "Cadre de la vente" (11) clôt le document.
   const ordre = [
-    '01 — Emplacement',
-    '02 — Le bien',
-    '03 — Plan',
-    '04 — Caractéristiques',
+    '01 - Emplacement',
+    '02 - Le bien',
+    '03 - Plan',
+    '04 - Caractéristiques',
     'Performance énergétique',
-    '05 — Travaux',
-    '06 — État actuel',
-    '07 — Les deux formules',
-    '08 — Repères marché',
-    '09 — À prévoir',
-    '10 — Calendrier',
-    '11 — Cadre de la vente',
+    '05 - Travaux',
+    '06 - État actuel',
+    '07 - Les deux formules',
+    '08 - Repères marché',
+    '09 - À prévoir',
+    '10 - Calendrier',
+    '11 - Cadre de la vente',
   ];
   let prev = -1;
   let prevTitle = '<début>';

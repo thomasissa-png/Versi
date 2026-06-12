@@ -38,7 +38,7 @@ const STATUS_BADGE_CLASS = {
   'vendu': 'property-price-card__badge--vendu',
 };
 
-/* Icône placeholder SVG inline — aucune dépendance externe */
+/* Icône placeholder SVG inline - aucune dépendance externe */
 function CameraIcon() {
   return (
     <svg
@@ -61,7 +61,7 @@ export default function PropertyDetailPage() {
   const { properties: allProperties } = useProperties('disponible');
   const { ref, isVisible } = useFadeIn();
 
-  /* JSON-LD RealEstateListing — GEO R6 */
+  /* JSON-LD RealEstateListing - GEO R6 */
   useEffect(() => {
     if (!property) return;
 
@@ -168,12 +168,12 @@ export default function PropertyDetailPage() {
 
   /* ── Enrichissement depuis le dossier de pré-commercialisation ──
      Le champ `property.dossier` (JSONB) est peuplé pour les biens en
-     pré-commercialisation (Lot 1 RDC, Lot 2 T3 — pas Lot 3 duplex). On y
+     pré-commercialisation (Lot 1 RDC, Lot 2 T3 - pas Lot 3 duplex). On y
      puise un contenu plus riche pour l'annonce, SANS la transformer en
      dossier complet. Les biens sans dossier conservent l'affichage standard. */
   const dossier = property.dossier || null;
 
-  /* Specs strip — préfère la fiche technique du dossier si présente,
+  /* Specs strip - préfère la fiche technique du dossier si présente,
      sinon fallback sur les champs standard de l'annonce. */
   const specItems = dossier?.ficheTechnique && Array.isArray(dossier.ficheTechnique) && dossier.ficheTechnique.length > 0
     ? dossier.ficheTechnique.map((row) => ({ label: row.label, value: row.value }))
@@ -186,7 +186,7 @@ export default function PropertyDetailPage() {
         { label: 'Disponibilité', value: property.tenancy },
       ];
 
-  /* Description — quand un dossier existe, on assemble la section « Le bien »
+  /* Description - quand un dossier existe, on assemble la section « Le bien »
      dans l'ordre exact du HTML source : leBien (1 ou 2 paragraphes) +
      pourQui + accroche. `leBien` accepte un tableau (HTML découpé en
      plusieurs <p>) ou une string (rétrocompat). Sans dossier (Lot 3) :
@@ -200,13 +200,13 @@ export default function PropertyDetailPage() {
     ? [...leBienParagraphs, dossier.pourQui, dossier.accroche].filter(Boolean)
     : (property.description ? property.description.split('\n\n') : []);
 
-  /* Caractéristiques — préfère la liste du dossier (plus dense, mieux rédigée),
+  /* Caractéristiques - préfère la liste du dossier (plus dense, mieux rédigée),
      sinon fallback sur les features standard. */
   const featuresList = dossier?.caracteristiques && Array.isArray(dossier.caracteristiques) && dossier.caracteristiques.length > 0
     ? dossier.caracteristiques
     : (property.features || []);
 
-  /* Formules de prix — si le dossier expose brut + prêt à habiter, on
+  /* Formules de prix - si le dossier expose brut + prêt à habiter, on
      prend ces valeurs (source de vérité), sinon on retombe sur le parsing
      du price_note (dualPricing). */
   const dossierFormules = dossier?.formules?.brut && dossier?.formules?.pretAHabiter
@@ -219,25 +219,25 @@ export default function PropertyDetailPage() {
     : null;
 
   /* Prix principal affiché : on met en avant le prêt-à-habiter du dossier
-     (prixVedette) si disponible — c'est ce que le visiteur paie clé en main. */
+     (prixVedette) si disponible - c'est ce que le visiteur paie clé en main. */
   const headlinePrice = dossier?.bandeauPrix?.prixVedette || property.price;
   const headlineSubtitle = dossier?.bandeauPrix?.sousTitre || null;
   const headlineNotaire = dossier?.bandeauPrix?.notaire || null;
 
-  /* Hook éditorial + intro contextuelle du dossier — affichés juste sous le
+  /* Hook éditorial + intro contextuelle du dossier - affichés juste sous le
      titre pour donner du punch immédiat à l'annonce (sans dupliquer le
      dossier profond qui reste sur /dossier/:id). */
   const editorialHook = dossier?.hook || null;
   const editorialIntro = dossier?.intro || null;
 
-  /* DPE projeté — utilisé par la section dédiée et par le fallback du
+  /* DPE projeté - utilisé par la section dédiée et par le fallback du
      bloc « Diagnostics et charges » quand le dossier n'est pas présent. */
   const dpeProjete = dossier?.dpeProjete || null;
 
   return (
     <>
       <PageHead
-        title={`${property.title.slice(0, 30)} — ${property.city || 'Lille'} | Versi Immo`}
+        title={`${property.title.slice(0, 30)} - ${property.city || 'Lille'} | Versi Immo`}
         description={`${property.type || 'Bien immobilier'}, ${property.surface || ''}, ${property.price || ''}. Visite sur demande.`}
       />
       <a href="#main-content" className="skip-nav">
@@ -266,7 +266,7 @@ export default function PropertyDetailPage() {
                     {photos[1] ? (
                       <img
                         src={photos[1].url}
-                        alt={photos[1].alt || `${property.title} — photo 2`}
+                        alt={photos[1].alt || `${property.title} - photo 2`}
                         className="property-detail__gallery-thumb"
                       />
                     ) : (
@@ -275,7 +275,7 @@ export default function PropertyDetailPage() {
                     {photos[2] ? (
                       <img
                         src={photos[2].url}
-                        alt={photos[2].alt || `${property.title} — photo 3`}
+                        alt={photos[2].alt || `${property.title} - photo 3`}
                         className="property-detail__gallery-thumb"
                       />
                     ) : (
@@ -284,7 +284,7 @@ export default function PropertyDetailPage() {
                   </div>
                 </>
               ) : (
-                /* Placeholder pré-commercialisation — élégant, pas vide */
+                /* Placeholder pré-commercialisation - élégant, pas vide */
                 <div
                   className="property-detail__placeholder"
                   role="img"
@@ -304,7 +304,7 @@ export default function PropertyDetailPage() {
             {/* ── Layout principal ── */}
             <div className="property-detail__layout">
 
-              {/* ── Colonne gauche — contenu de l'annonce ──
+              {/* ── Colonne gauche - contenu de l'annonce ──
                   Ordre du document source HTML :
                   Hero (titre + hook + intro + fiche technique)
                   1. Emplacement
@@ -326,7 +326,7 @@ export default function PropertyDetailPage() {
                   features, travaux réalisés, emplacement, diagnostics.
               */}
               <div>
-                {/* Hero — titre, accroche, fiche technique.
+                {/* Hero - titre, accroche, fiche technique.
                     Tagline = dossier.tagline si présent (ex. « Lille · Lille-Sud
                     (quartier des fleurs) »), sinon fallback property.location. */}
                 <span className="text-label property-detail__meta">
@@ -348,7 +348,7 @@ export default function PropertyDetailPage() {
                   </p>
                 )}
 
-                {/* Fiche technique — dossier.ficheTechnique si dispo, sinon
+                {/* Fiche technique - dossier.ficheTechnique si dispo, sinon
                     champs standard du bien */}
                 <div className="property-detail__specs">
                   {specItems.filter((item) => item.value).map((item) => (
@@ -362,7 +362,7 @@ export default function PropertyDetailPage() {
                 {/* ── Bloc prix mobile ── visible uniquement ≤ 768px.
                     Positionné après la fiche technique (specs strip), il
                     donne l'info n°1 (prix) sans attendre la colonne sticky.
-                    Ne duplique pas le CTA lourd — juste un lien ancre sobre
+                    Ne duplique pas le CTA lourd - juste un lien ancre sobre
                     vers #price-card. Fallback : property.price si pas de
                     dossier. */}
                 <div className="property-detail__price-mobile" aria-label="Prix">
@@ -433,7 +433,7 @@ export default function PropertyDetailPage() {
                       {property.address && (
                         <p className="text-body-md property-detail__address">
                           {property.address}
-                          {property.neighborhood && ` — quartier ${property.neighborhood}`}
+                          {property.neighborhood && ` - quartier ${property.neighborhood}`}
                         </p>
                       )}
                       {property.nearbyTransport && (
@@ -448,7 +448,7 @@ export default function PropertyDetailPage() {
                       )}
                     </>
                   )}
-                  {/* Carte OpenStreetMap — coordonnées 10 rue des Muguets */}
+                  {/* Carte OpenStreetMap - coordonnées 10 rue des Muguets */}
                   {property.address && /muguets/i.test(property.address) && (() => {
                     const lat = 50.6150;
                     const lng = 3.0580;
@@ -540,7 +540,7 @@ export default function PropertyDetailPage() {
                     Timeline : plans / livraison brut / livraison prêt-à-habiter */}
                 {dossier && <CalendrierSection calendrier={dossier.calendrier} />}
 
-                {/* ── Travaux réalisés — fallback annonce standard
+                {/* ── Travaux réalisés - fallback annonce standard
                     (bien existant déjà rénové). Inutile pour les lots
                     Muguets en pré-commercialisation. */}
                 {property.works && property.works.length > 0 && (
@@ -551,7 +551,7 @@ export default function PropertyDetailPage() {
                     <ul className="property-detail__works">
                       {property.works.map((work) => (
                         <li key={work} className="property-detail__work-item">
-                          <span aria-hidden="true" className="property-detail__work-bullet">—</span>
+                          <span aria-hidden="true" className="property-detail__work-bullet">-</span>
                           {work}
                         </li>
                       ))}
@@ -606,7 +606,7 @@ export default function PropertyDetailPage() {
                     <p className="text-body-md property-detail__dossier-text">
                       Plans d’architecte haute résolution, formules d’achat,
                       calendrier des travaux, repères marché, performances
-                      énergétiques — la version imprimable du dossier.
+                      énergétiques - la version imprimable du dossier.
                     </p>
                     {/* Liens natifs (pas <Link> React) : /dossier/:id et
                         /dossier/:id/pdf sont servis par le serveur Express,
@@ -632,7 +632,7 @@ export default function PropertyDetailPage() {
                 )}
               </div>
 
-              {/* ── Colonne droite — Price card sticky (annonce standard) ── */}
+              {/* ── Colonne droite - Price card sticky (annonce standard) ── */}
               <aside aria-label="Prix et contact">
                 <div className="property-price-card" id="price-card">
                   <span className="property-price-card__label">Prix</span>
@@ -641,7 +641,7 @@ export default function PropertyDetailPage() {
                     <span className="property-price-card__note">{headlineSubtitle}</span>
                   )}
 
-                  {/* Double prix — priorité aux formules du dossier (source
+                  {/* Double prix - priorité aux formules du dossier (source
                       de vérité), sinon fallback sur parsing du price_note. */}
                   {dossierFormules ? (
                     <div className="property-price-card__dual">
@@ -669,7 +669,7 @@ export default function PropertyDetailPage() {
                     <span className="property-price-card__note">{property.priceNote}</span>
                   ) : null}
 
-                  {/* Mention notaire — issue du dossier (bandeauPrix.notaire). */}
+                  {/* Mention notaire - issue du dossier (bandeauPrix.notaire). */}
                   {headlineNotaire && (
                     <span className="property-price-card__note">{headlineNotaire}</span>
                   )}

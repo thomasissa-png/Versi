@@ -56,7 +56,7 @@ export default function AdminInscrits() {
   }
 
   function formatDate(dateStr) {
-    if (!dateStr) return '—';
+    if (!dateStr) return '-';
     try {
       return new Date(dateStr).toLocaleDateString('fr-FR', {
         day: '2-digit',

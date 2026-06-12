@@ -333,20 +333,34 @@ export async function correctArticle(article, errors, topic, keywords, opts = {}
   });
 }
 
+// normalizeTypography — purge déterministe cadratin/demi-cadratin → tiret
+// clavier après chaque génération/correction (miroir de versi-immobilier/
+// scripts/generate-blog-article.js). Garantit zéro cadratin dans les articles
+// publiés, indépendamment du modèle.
+export function normalizeTypography(text) {
+  if (!text) return text;
+  return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, '$1-$2')
+    .replace(/ [—–] /g, ' - ')
+    .replace(/[—–] /g, '- ')
+    .replace(/ [—–]/g, ' -')
+    .replace(/[—–]/g, '-');
+}
+
 export async function runGenerationPipeline(topic, keywords, opts = {}) {
   const maxCorrectionIterations = opts.maxCorrectionIterations ?? 3;
   const client = opts.client || defaultAnthropicClient();
   const log = opts.log || ((msg) => console.log(msg));
 
-  let content = await generateArticle(topic, keywords, { client });
+  let content = normalizeTypography(await generateArticle(topic, keywords, { client }));
   let errors = validateArticleWithKeywords(content, keywords);
   let attempts = 1;
 
   if (errors.length === 0) return { content, errors, attempts };
 
   for (let i = 1; i <= maxCorrectionIterations; i++) {
-    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) — ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
-    content = await correctArticle(content, errors, topic, keywords, { client });
+    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) - ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
+    content = normalizeTypography(await correctArticle(content, errors, topic, keywords, { client }));
     errors = validateArticleWithKeywords(content, keywords);
     attempts += 1;
     if (errors.length === 0) {

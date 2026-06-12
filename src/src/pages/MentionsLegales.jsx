@@ -21,7 +21,7 @@ export default function MentionsLegales() {
   return (
     <>
       <PageHead
-        title="Mentions légales — Versi"
+        title="Mentions légales - Versi"
         description="Mentions légales du site versi.fr, holding immobilière."
         noindex
       />
@@ -58,7 +58,7 @@ export default function MentionsLegales() {
           <section className="legal-page__section">
             <h2>Propriété intellectuelle</h2>
             <p>
-              L'ensemble des contenus présents sur le site versi.fr — textes, graphismes, logo, structure, iconographie — est la propriété exclusive de Versi ou fait l'objet d'autorisations d'utilisation accordées à Versi.
+              L'ensemble des contenus présents sur le site versi.fr - textes, graphismes, logo, structure, iconographie - est la propriété exclusive de Versi ou fait l'objet d'autorisations d'utilisation accordées à Versi.
             </p>
             <p>
               Toute reproduction, représentation, modification, publication, adaptation ou exploitation de tout ou partie des contenus du site, quel que soit le moyen ou le procédé utilisé, est interdite sauf autorisation écrite préalable de Versi.
@@ -67,7 +67,7 @@ export default function MentionsLegales() {
 
           <section className="legal-page__section">
             <h2>Crédits photographiques</h2>
-            <p>Portraits des fondateurs : © Gradient One — tous droits réservés.</p>
+            <p>Portraits des fondateurs : © Gradient One - tous droits réservés.</p>
             <p>Carte de France (section Implantation) : illustration vectorielle originale © Gradient One.</p>
           </section>
 
@@ -89,7 +89,7 @@ export default function MentionsLegales() {
             </p>
             <p>Pour toute question relative à vos données personnelles, contactez-nous à : contact@versi.fr</p>
             <p>
-              Vous disposez du droit de déposer une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) — 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 — www.cnil.fr
+              Vous disposez du droit de déposer une réclamation auprès de la Commission Nationale de l'Informatique et des Libertés (CNIL) - 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 - www.cnil.fr
             </p>
           </section>
 

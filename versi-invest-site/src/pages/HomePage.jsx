@@ -12,7 +12,7 @@ const PROCESS_STEPS = [
   {
     num: '01',
     title: 'Détection d’opportunité',
-    desc: 'On identifie les biens à fort potentiel via notre réseau terrain — avant ou en dehors des portails publics.',
+    desc: 'On identifie les biens à fort potentiel via notre réseau terrain - avant ou en dehors des portails publics.',
   },
   {
     num: '02',
@@ -32,7 +32,7 @@ const PROCESS_STEPS = [
   {
     num: '05',
     title: 'Visite avec vous',
-    desc: 'Vous visitez le bien avec un fondateur. Questions, chiffres, terrain — en direct.',
+    desc: 'Vous visitez le bien avec un fondateur. Questions, chiffres, terrain - en direct.',
   },
   {
     num: '06',
@@ -47,7 +47,7 @@ const PROCESS_STEPS = [
   {
     num: '08',
     title: 'Travaux et mise en location',
-    desc: 'En option : pilotage chantier, sélection locataire, bail. On peut aller jusqu’au bout — ou s’arrêter à l’acquisition.',
+    desc: 'En option : pilotage chantier, sélection locataire, bail. On peut aller jusqu’au bout - ou s’arrêter à l’acquisition.',
     optional: true,
   },
 ];
@@ -85,11 +85,11 @@ const FOUNDERS = [
 const FAQ_ITEMS = [
   {
     q: 'Combien coûte Versi Invest ?',
-    a: 'Nos honoraires sont de 5% du prix d’acquisition, facturés uniquement à l’investisseur. Zéro rémunération côté vendeur — c’est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
+    a: 'Nos honoraires sont de 5% du prix d’acquisition, facturés uniquement à l’investisseur. Zéro rémunération côté vendeur - c’est inscrit dans le mandat. Ces 5% couvrent le cycle complet : détection, visite, simulation financière, structuration et acquisition.',
   },
   {
     q: 'Pourquoi y a-t-il une liste d’attente ?',
-    a: 'Parce que les bons biens sont rares — et on ne présente que ceux-là. Chaque dossier est analysé et visité par un fondateur en personne. La majorité des biens ne passent pas nos filtres : rendement insuffisant, cashflow fragile, montage trop risqué. On accueille peu d’investisseurs pour rester en capacité de vraiment servir chacun. Quand un bien correspond à votre profil, on vous contacte.',
+    a: 'Parce que les bons biens sont rares - et on ne présente que ceux-là. Chaque dossier est analysé et visité par un fondateur en personne. La majorité des biens ne passent pas nos filtres : rendement insuffisant, cashflow fragile, montage trop risqué. On accueille peu d’investisseurs pour rester en capacité de vraiment servir chacun. Quand un bien correspond à votre profil, on vous contacte.',
   },
   {
     q: 'Quel rendement attendre d’un investissement locatif avec Versi Invest ?',
@@ -97,19 +97,19 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Quels sont les risques d’un investissement locatif ?',
-    a: 'Vacance locative, travaux imprévus, baisse des loyers — les risques existent. C’est pour ça qu’on provisionne la vacance locative dans chaque simulation et qu’on calcule un scénario dégradé à +15% de charges. On ne vous présente que les dossiers qui restent rentables même dans le pire cas raisonnable.',
+    a: 'Vacance locative, travaux imprévus, baisse des loyers - les risques existent. C’est pour ça qu’on provisionne la vacance locative dans chaque simulation et qu’on calcule un scénario dégradé à +15% de charges. On ne vous présente que les dossiers qui restent rentables même dans le pire cas raisonnable.',
   },
   {
     q: 'Faut-il un apport minimum pour investir ?',
-    a: 'En général, les banques demandent 10 à 20% du prix du bien. Le montant exact dépend de votre profil emprunteur. On réalise une simulation financière complète avec différents niveaux d’apport dès le premier échange — vous savez exactement où vous en êtes avant de vous engager.',
+    a: 'En général, les banques demandent 10 à 20% du prix du bien. Le montant exact dépend de votre profil emprunteur. On réalise une simulation financière complète avec différents niveaux d’apport dès le premier échange - vous savez exactement où vous en êtes avant de vous engager.',
   },
   {
     q: 'Où sont situés les biens proposés ?',
-    a: 'Principalement en Hauts-de-France — Lille, métropole lilloise, villes moyennes à fort rendement. Également en Île-de-France. Notre réseau terrain, alimenté par l’activité de marchand de biens de Versi Immobilier, nous donne accès à des biens avant ou en dehors des portails publics.',
+    a: 'Principalement en Hauts-de-France - Lille, métropole lilloise, villes moyennes à fort rendement. Également en Île-de-France. Notre réseau terrain, alimenté par l’activité de marchand de biens de Versi Immobilier, nous donne accès à des biens avant ou en dehors des portails publics.',
   },
   {
     q: 'Comment ça se passe après l’inscription sur la liste d’attente ?',
-    a: 'Un fondateur vous recontacte sous 48h pour un premier échange. On parle de votre situation, vos objectifs, votre capacité d’investissement. Si un bien correspond à vos critères, on vous envoie le dossier complet avec simulation financière. Vous décidez — pas de pression, pas de relance.',
+    a: 'Un fondateur vous recontacte sous 48h pour un premier échange. On parle de votre situation, vos objectifs, votre capacité d’investissement. Si un bien correspond à vos critères, on vous envoie le dossier complet avec simulation financière. Vous décidez - pas de pression, pas de relance.',
   },
 ];
 
@@ -152,7 +152,7 @@ export default function HomePage() {
   return (
     <>
       <PageHead
-        title="Versi Invest — Investissement locatif rentable"
+        title="Versi Invest - Investissement locatif rentable"
         description="Des biens qui s’autofinancent. Cashflow positif. Une seule commission : 5%. Fondateurs en direct."
       />
       <a href="#main-content" className="skip-nav">
@@ -164,7 +164,7 @@ export default function HomePage() {
         <section ref={heroRef} className="hero" aria-label="Présentation Versi Invest">
           <div className="hero__inner container">
             <span className="hero__surtitre text-label">
-              Investissement locatif — France
+              Investissement locatif - France
             </span>
             <h1 className="hero__title">
               Biens rares.
@@ -238,7 +238,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Fondateurs — exact pattern versi-immobilier TeamTeaser */}
+        {/* Fondateurs - exact pattern versi-immobilier TeamTeaser */}
         <section className="team-teaser section-padding" aria-label="Les fondateurs">
           <div className="container">
             <h2 className="text-heading-lg team-teaser__heading">

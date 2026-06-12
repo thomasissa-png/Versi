@@ -14,7 +14,7 @@ export default function HomePage() {
   return (
     <>
       <PageHead
-        title="Versi — Holding immobilière | Paris et Lille"
+        title="Versi - Holding immobilière | Paris et Lille"
         description="Versi regroupe 4 entités couvrant le cycle complet d'une opération immobilière : acquisition, transformation, détention, structuration."
       />
       <a href="#main-content" className="skip-nav">

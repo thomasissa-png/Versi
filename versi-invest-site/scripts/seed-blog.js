@@ -74,7 +74,7 @@ async function seed() {
     // Lire le fichier blog strategy
     const mdPath = join(__dirname, '..', '..', 'docs', 'seo', 'vi2-blog-strategy.md');
     if (!fs.existsSync(mdPath)) {
-      console.warn(`[SEED] Fichier introuvable : ${mdPath} — skip seed.`);
+      console.warn(`[SEED] Fichier introuvable : ${mdPath} - skip seed.`);
       await pool.end();
       return;
     }

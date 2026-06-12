@@ -420,20 +420,36 @@ export async function correctArticle(article, errors, topic, keywords, opts = {}
 // retourne le dernier état (content + errors) — le caller décide quoi faire
 // (publier, notifier, exit 1).
 // ---------------------------------------------------------------------------
+// normalizeTypography — purge déterministe des caractères non-clavier qui
+// "font IA" (cadratin —, demi-cadratin –) vers le tiret clavier. Appliquée
+// après CHAQUE génération/correction : garantit qu'aucun article publié ne
+// réintroduit de cadratin, quel que soit le comportement du modèle. Préserve
+// les tirets existants (mots composés, dates) et resserre les plages de
+// chiffres (« 71 – 110 » → « 71-110 »).
+export function normalizeTypography(text) {
+  if (!text) return text;
+  return text
+    .replace(/(\d)\s*[–—]\s*(\d)/g, '$1-$2')
+    .replace(/ [—–] /g, ' - ')
+    .replace(/[—–] /g, '- ')
+    .replace(/ [—–]/g, ' -')
+    .replace(/[—–]/g, '-');
+}
+
 export async function runGenerationPipeline(topic, keywords, opts = {}) {
   const maxCorrectionIterations = opts.maxCorrectionIterations ?? 3;
   const client = opts.client || defaultAnthropicClient();
   const log = opts.log || ((msg) => console.log(msg));
 
-  let content = await generateArticle(topic, keywords, { client });
+  let content = normalizeTypography(await generateArticle(topic, keywords, { client }));
   let errors = validateArticle(content, topic, keywords);
   let attempts = 1;
 
   if (errors.length === 0) return { content, errors, attempts };
 
   for (let i = 1; i <= maxCorrectionIterations; i++) {
-    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) — ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
-    content = await correctArticle(content, errors, topic, keywords, { client });
+    log(`[BLOG-GEN] Correction chirurgicale (itération ${i}/${maxCorrectionIterations}) - ${errors.length} échec(s) : ${errors.map((e) => e.split(':')[0]).join(', ')}`);
+    content = normalizeTypography(await correctArticle(content, errors, topic, keywords, { client }));
     errors = validateArticle(content, topic, keywords);
     attempts += 1;
     if (errors.length === 0) {

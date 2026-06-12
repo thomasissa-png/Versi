@@ -31,7 +31,7 @@ function parseMarkdown(md) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Blank line — skip
+    // Blank line - skip
     if (line.trim() === '') {
       i++;
       continue;
@@ -94,7 +94,7 @@ function parseMarkdown(md) {
       continue;
     }
 
-    // Paragraph — collect consecutive non-empty, non-special lines
+    // Paragraph - collect consecutive non-empty, non-special lines
     const paraLines = [];
     while (
       i < lines.length &&
@@ -194,7 +194,7 @@ export default function BlogArticlePage() {
   }, [article]);
 
   const tags = article && Array.isArray(article.tags) ? article.tags : [];
-  // Strip leading h1 from content — title is already displayed by the component
+  // Strip leading h1 from content - title is already displayed by the component
   const contentWithoutH1 = article
     ? article.content.replace(/^#\s+.+\n*/, '')
     : '';
@@ -268,7 +268,7 @@ export default function BlogArticlePage() {
                     </div>
                   )}
                   <span className="text-label" style={{ color: 'var(--color-text-muted)' }}>
-                    {formatDate(article.published_at)} — {article.author}
+                    {formatDate(article.published_at)} - {article.author}
                   </span>
                 </div>
 
@@ -308,7 +308,7 @@ export default function BlogArticlePage() {
                   }}
                 />
 
-                {/* CTA acquéreur — GEO R2 */}
+                {/* CTA acquéreur - GEO R2 */}
                 <div
                   className="blog-article__cta-box"
                   style={{

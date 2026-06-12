@@ -61,7 +61,7 @@ export default function ReferencesPage() {
   return (
     <>
       <PageHead
-        title="Références investissement — Versi Invest"
+        title="Références investissement - Versi Invest"
         description="Immeubles de rapport, maisons divisées : rendement, cashflow, montage. Cas réels anonymisés."
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
@@ -74,7 +74,7 @@ export default function ReferencesPage() {
               Des opérations réelles. Des chiffres vérifiables.
             </h1>
             <p className="page-header__intro">
-              Pas de témoignages anonymes. Pas de rendements projetés. Des cas documentés —
+              Pas de témoignages anonymes. Pas de rendements projetés. Des cas documentés -
               chiffres bruts, type de bien, structure de financement. Ces références sont
               disponibles en détail sur demande.
             </p>
@@ -108,8 +108,8 @@ export default function ReferencesPage() {
               <div className="references__empty">
                 <p className="references__empty-text">
                   Nos premières références investisseurs arrivent bientôt. En attendant, le track
-                  record du Groupe Versi — 7 immeubles, 3,2M€ de volume opéré via
-                  Versi Immobilier — est disponible sur demande. Inscrivez-vous sur la liste
+                  record du Groupe Versi - 7 immeubles, 3,2M€ de volume opéré via
+                  Versi Immobilier - est disponible sur demande. Inscrivez-vous sur la liste
                   d'attente pour y accéder lors de notre premier appel.
                 </p>
                 <Link to="/contact" className="page-cta__btn page-cta__btn--blue">
@@ -132,7 +132,7 @@ export default function ReferencesPage() {
                   Voir les 8 étapes
                 </Link>
                 <Link to="/contact" className="page-cta__btn">
-                  S'inscrire — réponse sous 48h
+                  S'inscrire - réponse sous 48h
                 </Link>
               </div>
             </div>

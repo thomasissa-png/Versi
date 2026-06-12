@@ -7,7 +7,7 @@ export default function PolitiqueConfidentialite() {
   return (
     <>
       <PageHead
-        title="Politique de confidentialité — Versi Invest"
+        title="Politique de confidentialité - Versi Invest"
         description="Traitement des données personnelles, droits RGPD, cookies, analytics Umami."
       />
       <a href="#main-content" className="skip-nav">
@@ -40,7 +40,7 @@ export default function PolitiqueConfidentialite() {
                 <strong>Email de contact :</strong> contact@versi.fr
               </p>
               <p>
-                Versi Invest ne dispose pas de Délégué à la Protection des Données (DPO) obligatoire au sens de l'article 37 du RGPD, la nature des traitements ne relevant pas des catégories visées à l'art. 37.1. Pour toute question relative à vos données personnelles : contact@versi.fr — ce contact fait office de point de contact RGPD.
+                Versi Invest ne dispose pas de Délégué à la Protection des Données (DPO) obligatoire au sens de l'article 37 du RGPD, la nature des traitements ne relevant pas des catégories visées à l'art. 37.1. Pour toute question relative à vos données personnelles : contact@versi.fr - ce contact fait office de point de contact RGPD.
               </p>
 
               <h2>2. Données collectées et finalités</h2>
@@ -94,7 +94,7 @@ export default function PolitiqueConfidentialite() {
               </p>
 
               <h3 style={{ fontSize: '1rem', marginTop: 'var(--spacing-lg)', marginBottom: 'var(--spacing-sm)' }}>
-                2.2 Analytics — Umami
+                2.2 Analytics - Umami
               </h3>
               <p>
                 Versi Invest utilise <strong>Umami Analytics</strong> pour mesurer l'audience du site. Umami est une solution d'analyse d'audience respectueuse de la vie privée :
@@ -196,10 +196,10 @@ export default function PolitiqueConfidentialite() {
                 <li><strong>Droit de retrait du consentement</strong> : retirer votre consentement à tout moment sans remettre en cause les traitements antérieurs</li>
               </ul>
               <p>
-                <strong>Pour exercer vos droits :</strong> contact@versi.fr — délai de réponse : 1 mois (prorogeable à 3 mois en cas de demande complexe).
+                <strong>Pour exercer vos droits :</strong> contact@versi.fr - délai de réponse : 1 mois (prorogeable à 3 mois en cas de demande complexe).
               </p>
               <p>
-                <strong>Réclamation :</strong> vous pouvez introduire une réclamation auprès de la <strong>CNIL</strong> — <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a> — 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.
+                <strong>Réclamation :</strong> vous pouvez introduire une réclamation auprès de la <strong>CNIL</strong> - <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a> - 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.
               </p>
 
               <h2>6. Sécurité des données</h2>

@@ -1,5 +1,5 @@
 /**
- * PropertyDossier — sections du dossier de pré-commercialisation.
+ * PropertyDossier - sections du dossier de pré-commercialisation.
  *
  * Chaque section est exportée individuellement pour permettre à
  * PropertyDetailPage de les composer dans l'ordre exact du document
@@ -94,7 +94,7 @@ export function EtatActuelSection({ etatActuel }) {
           <figure className="property-dossier__avant">
             <img
               src={etatActuel.avantImage}
-              alt={etatActuel.avantCaption || 'État actuel — avant travaux'}
+              alt={etatActuel.avantCaption || 'État actuel - avant travaux'}
               className="property-dossier__avant-image"
               loading="eager"
             />
@@ -109,7 +109,7 @@ export function EtatActuelSection({ etatActuel }) {
           <div
             className="property-dossier__projet-placeholder"
             role="img"
-            aria-label="Rendu 3D du projet livré — à venir"
+            aria-label="Rendu 3D du projet livré - à venir"
           >
             <span className="property-dossier__projet-badge">À venir</span>
             <span className="property-dossier__projet-text">
@@ -173,7 +173,7 @@ export function DpeSection({ dpeProjete }) {
 export function FormulesSection({ formules }) {
   if (!formules || (!formules.brut && !formules.pretAHabiter)) return null;
   return (
-    <Section title="Acheter — les deux formules.">
+    <Section title="Acheter - les deux formules.">
       {formules.intro && (
         <p className="text-body-md property-dossier__intro">{formules.intro}</p>
       )}

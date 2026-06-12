@@ -5,7 +5,7 @@ const ARGUMENTS = [
   {
     title: 'Vous achetez à la source.',
     description:
-      'Pas d’intermédiaire entre vous et le bien. Les trois fondateurs ont acheté et piloté chaque appartement — ils en connaissent l’historique complet. Vous posez une question — vous obtenez une réponse directe.',
+      'Pas d’intermédiaire entre vous et le bien. Les trois fondateurs ont acheté et piloté chaque appartement - ils en connaissent l’historique complet. Vous posez une question - vous obtenez une réponse directe.',
   },
   {
     title: 'Rien n’est caché.',

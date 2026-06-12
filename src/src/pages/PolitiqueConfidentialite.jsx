@@ -21,7 +21,7 @@ export default function PolitiqueConfidentialite() {
   return (
     <>
       <PageHead
-        title="Politique de confidentialité — Versi"
+        title="Politique de confidentialité - Versi"
         description="Politique de confidentialité et RGPD du site versi.fr."
         noindex
       />
@@ -52,13 +52,13 @@ export default function PolitiqueConfidentialite() {
             <h3>2.1 Formulaire de contact</h3>
             <p>Lorsque vous remplissez le formulaire de contact, Versi collecte :</p>
             <ul>
-              <li><strong>Nom et prénom</strong> — identifier votre demande et personnaliser la réponse</li>
-              <li><strong>Adresse email</strong> — vous répondre par email</li>
-              <li><strong>Numéro de téléphone</strong> (optionnel) — vous recontacter si vous l'avez indiqué</li>
-              <li><strong>Message</strong> — comprendre et traiter votre demande</li>
+              <li><strong>Nom et prénom</strong> - identifier votre demande et personnaliser la réponse</li>
+              <li><strong>Adresse email</strong> - vous répondre par email</li>
+              <li><strong>Numéro de téléphone</strong> (optionnel) - vous recontacter si vous l'avez indiqué</li>
+              <li><strong>Message</strong> - comprendre et traiter votre demande</li>
             </ul>
             <p>
-              <strong>Base légale :</strong> intérêt légitime (art. 6.1.f RGPD) — répondre aux demandes de contact émises volontairement par les utilisateurs.
+              <strong>Base légale :</strong> intérêt légitime (art. 6.1.f RGPD) - répondre aux demandes de contact émises volontairement par les utilisateurs.
             </p>
             <p>Ces données ne sont pas utilisées à des fins de prospection commerciale non sollicitée, ni cédées à des tiers.</p>
 
@@ -74,7 +74,7 @@ export default function PolitiqueConfidentialite() {
               <strong>Données du formulaire de contact :</strong> 3 ans à compter du dernier contact avec Versi.
             </p>
             <p>
-              <strong>Données analytics Umami :</strong> données agrégées anonymes — conservation indéfinie (non personnelles).
+              <strong>Données analytics Umami :</strong> données agrégées anonymes - conservation indéfinie (non personnelles).
             </p>
           </section>
 
@@ -97,12 +97,12 @@ export default function PolitiqueConfidentialite() {
             <h2>6. Vos droits</h2>
             <p>Conformément au RGPD et à la loi Informatique et Libertés, vous disposez des droits suivants :</p>
             <ul>
-              <li><strong>Droit d'accès</strong> (art. 15 RGPD) — obtenir une copie des données vous concernant</li>
-              <li><strong>Droit de rectification</strong> (art. 16 RGPD) — corriger des données inexactes</li>
-              <li><strong>Droit à l'effacement</strong> (art. 17 RGPD) — demander la suppression de vos données</li>
-              <li><strong>Droit à la portabilité</strong> (art. 20 RGPD) — recevoir vos données dans un format structuré</li>
-              <li><strong>Droit d'opposition</strong> (art. 21 RGPD) — vous opposer au traitement basé sur l'intérêt légitime</li>
-              <li><strong>Droit à la limitation</strong> (art. 18 RGPD) — demander la suspension du traitement</li>
+              <li><strong>Droit d'accès</strong> (art. 15 RGPD) - obtenir une copie des données vous concernant</li>
+              <li><strong>Droit de rectification</strong> (art. 16 RGPD) - corriger des données inexactes</li>
+              <li><strong>Droit à l'effacement</strong> (art. 17 RGPD) - demander la suppression de vos données</li>
+              <li><strong>Droit à la portabilité</strong> (art. 20 RGPD) - recevoir vos données dans un format structuré</li>
+              <li><strong>Droit d'opposition</strong> (art. 21 RGPD) - vous opposer au traitement basé sur l'intérêt légitime</li>
+              <li><strong>Droit à la limitation</strong> (art. 18 RGPD) - demander la suspension du traitement</li>
             </ul>
             <p>
               Pour exercer vos droits, contactez-nous à <strong>contact@versi.fr</strong>. Délai de réponse : un mois (prolongeable de deux mois en cas de complexité).
@@ -125,7 +125,7 @@ export default function PolitiqueConfidentialite() {
           <section className="legal-page__section">
             <h2>9. Réclamation auprès de la CNIL</h2>
             <p>
-              Si vous estimez que le traitement de vos données ne respecte pas la réglementation, vous pouvez introduire une réclamation auprès de la CNIL : 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 — www.cnil.fr
+              Si vous estimez que le traitement de vos données ne respecte pas la réglementation, vous pouvez introduire une réclamation auprès de la CNIL : 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07 - www.cnil.fr
             </p>
           </section>
 

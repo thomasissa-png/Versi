@@ -13,7 +13,7 @@ export default function PropertyCard({ property }) {
 
   return (
     <article className="property-card">
-      {/* Zone image — aria-hidden, la navigation clavier passe par le titre */}
+      {/* Zone image - aria-hidden, la navigation clavier passe par le titre */}
       <div className="property-card__image-wrap">
         <Link
           to={`/nos-biens/${property.id}`}

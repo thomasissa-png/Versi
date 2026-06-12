@@ -5,7 +5,7 @@ const STEPS = [
   {
     num: '01',
     title: 'SOURCER',
-    body: 'Accès direct aux opportunités — réseau terrain, signaux off-market, sourcing en amont des portails publics.',
+    body: 'Accès direct aux opportunités - réseau terrain, signaux off-market, sourcing en amont des portails publics.',
   },
   {
     num: '02',
@@ -15,7 +15,7 @@ const STEPS = [
   {
     num: '03',
     title: 'TRANSFORMER',
-    body: 'Maîtrise d’ouvrage en direct. Versi pilote les travaux sans intermédiaire — chaque arbitrage technique reste en interne.',
+    body: 'Maîtrise d’ouvrage en direct. Versi pilote les travaux sans intermédiaire - chaque arbitrage technique reste en interne.',
   },
   {
     num: '04',

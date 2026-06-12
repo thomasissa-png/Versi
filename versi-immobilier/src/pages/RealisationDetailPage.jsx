@@ -109,7 +109,7 @@ export default function RealisationDetailPage() {
   return (
     <>
       <PageHead
-        title={`${project.title.slice(0, 30)} — ${project.location || 'Lille'} | Versi Immo`}
+        title={`${project.title.slice(0, 30)} - ${project.location || 'Lille'} | Versi Immo`}
         description={`Rénovation ${project.type || 'immobilière'} à ${project.location || 'Hauts-de-France'}. ${project.surface || ''}. Vendu ${project.sellPrice || ''}. Marchand de biens Lille.`}
       />
       <a href="#main-content" className="skip-nav">
@@ -197,7 +197,7 @@ export default function RealisationDetailPage() {
                     <img
                       key={fadeKey}
                       src={currentPhoto.url}
-                      alt={currentPhoto.alt || `${project.title} — ${galleryView === 'avant' ? 'avant' : 'après'} rénovation (${safeIndex + 1}/${currentPhotos.length})`}
+                      alt={currentPhoto.alt || `${project.title} - ${galleryView === 'avant' ? 'avant' : 'après'} rénovation (${safeIndex + 1}/${currentPhotos.length})`}
                       className="realisation-detail__gallery-image realisation-detail__gallery-image--fade-in"
                     />
                     {currentPhotos.length > 1 && (

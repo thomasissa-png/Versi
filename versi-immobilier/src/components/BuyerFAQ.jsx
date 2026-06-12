@@ -31,7 +31,7 @@ const FAQ_ITEMS = [
     id: 'faq-pourquoi',
     question: 'Pourquoi choisir Versi Immobilier plutôt qu’une agence ?',
     answer:
-      'Trois différences concrètes : pas de frais d’agence à votre charge, un dossier technique complet fourni avant la visite (diagnostics, historique travaux, garantie décennale), et un interlocuteur unique — le fondateur qui a piloté la rénovation.',
+      'Trois différences concrètes : pas de frais d’agence à votre charge, un dossier technique complet fourni avant la visite (diagnostics, historique travaux, garantie décennale), et un interlocuteur unique - le fondateur qui a piloté la rénovation.',
   },
 ];
 
@@ -73,7 +73,7 @@ function FaqItem({ item }) {
 export default function BuyerFAQ() {
   const { ref, isVisible } = useFadeIn();
 
-  /* JSON-LD FAQPage — extractible par LLMs et Google */
+  /* JSON-LD FAQPage - extractible par LLMs et Google */
   useEffect(() => {
     const jsonLd = {
       '@context': 'https://schema.org',
@@ -105,7 +105,7 @@ export default function BuyerFAQ() {
       <div className={`container ${isVisible ? 'fade-in' : 'fade-hidden'}`}>
         <div className="buyer-faq__inner">
           <h2 className="text-heading-lg buyer-faq__title">
-            Questions fréquentes — Acquéreurs
+            Questions fréquentes - Acquéreurs
           </h2>
           {FAQ_ITEMS.map((item) => (
             <FaqItem key={item.id} item={item} />

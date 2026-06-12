@@ -96,7 +96,7 @@ export default function Contact() {
             Nous répondons.
           </h2>
           <p className="contact__subtitle">
-            Vous avez un actif à céder, un projet de co-investissement ou une opportunité à qualifier. Décrivez-le — nous revenons sous 72h.
+            Vous avez un actif à céder, un projet de co-investissement ou une opportunité à qualifier. Décrivez-le - nous revenons sous 72h.
           </p>
           <a href={`mailto:${CONTACT_EMAIL}`} className="contact__email">
             {CONTACT_EMAIL}

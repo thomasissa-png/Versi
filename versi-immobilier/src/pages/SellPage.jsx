@@ -19,11 +19,11 @@ const ENGAGEMENTS = [
   },
   {
     title: 'Sans condition suspensive de financement.',
-    description: 'Versi Immobilier achète en fonds propres ou avec un financement déjà structuré en interne — Groupe Versi. Vous n’attendez pas l’accord d’un banquier que vous ne connaissez pas. Quand nous signons, nous achetons.',
+    description: 'Versi Immobilier achète en fonds propres ou avec un financement déjà structuré en interne - Groupe Versi. Vous n’attendez pas l’accord d’un banquier que vous ne connaissez pas. Quand nous signons, nous achetons.',
   },
   {
     title: '7 jours, pas 7 semaines.',
-    description: 'De la réception de votre dossier à notre offre : 7 jours calendaires. Visite, analyse de marché, modélisation financière — tout est géré en interne. Aucune délégation externe.',
+    description: 'De la réception de votre dossier à notre offre : 7 jours calendaires. Visite, analyse de marché, modélisation financière - tout est géré en interne. Aucune délégation externe.',
   },
 ];
 
@@ -37,8 +37,8 @@ const PROCESS_STEPS = [
   {
     number: '02',
     title: 'Nous instruisons le dossier.',
-    description: 'Visite physique planifiée sous 48 à 72h. Analyse comparative de marché. Modélisation financière. La décision est prise par l’équipe Versi Immobilier — pas par un consultant externe.',
-    delay: 'Visite planifiée sous 48–72h.',
+    description: 'Visite physique planifiée sous 48 à 72h. Analyse comparative de marché. Modélisation financière. La décision est prise par l’équipe Versi Immobilier - pas par un consultant externe.',
+    delay: 'Visite planifiée sous 48-72h.',
   },
   {
     number: '03',
@@ -51,23 +51,23 @@ const PROCESS_STEPS = [
 const FAQ_ITEMS = [
   {
     question: 'Est-ce que Versi Immobilier va m’acheter en dessous du prix du marché ?',
-    answer: 'Notre offre est calculée sur la valeur de transformation du bien — pas sur votre méconnaissance du marché. Nous vous expliquons la logique de notre prix. Si nos chiffres ne vous conviennent pas, vous êtes libre de refuser. Aucune obligation.',
+    answer: 'Notre offre est calculée sur la valeur de transformation du bien - pas sur votre méconnaissance du marché. Nous vous expliquons la logique de notre prix. Si nos chiffres ne vous conviennent pas, vous êtes libre de refuser. Aucune obligation.',
   },
   {
     question: 'Comment êtes-vous certains de ne pas vous rétracter après la signature du compromis ?',
-    answer: 'Notre due diligence — visite, analyse, modélisation — se fait avant la signature. Quand nous signons un compromis, nous achetons. Notre offre est ferme parce que nous avons fait le travail en amont.',
+    answer: 'Notre due diligence - visite, analyse, modélisation - se fait avant la signature. Quand nous signons un compromis, nous achetons. Notre offre est ferme parce que nous avons fait le travail en amont.',
   },
   {
     question: 'J’ai des locataires en place. Est-ce un problème ?',
-    answer: 'Pas du tout. Nous rachetons des actifs avec locataires en place — c’est notre métier. Vous n’avez aucune démarche à effectuer vis-à-vis de vos locataires avant la signature.',
+    answer: 'Pas du tout. Nous rachetons des actifs avec locataires en place - c’est notre métier. Vous n’avez aucune démarche à effectuer vis-à-vis de vos locataires avant la signature.',
   },
   {
     question: 'Pourquoi ne pas passer par une agence ? Je pourrais peut-être obtenir un meilleur prix.',
-    answer: 'Une agence peut vous promettre un prix plus élevé. Mais dans 12 mois, avec 5% de frais d’agence, et sans certitude que l’acheteur finalise. Versi Immobilier achète en direct, en 7 jours, sans frais à votre charge. La question n’est pas le prix affiché — c’est le prix réellement encaissé, au bout du compte.',
+    answer: 'Une agence peut vous promettre un prix plus élevé. Mais dans 12 mois, avec 5% de frais d’agence, et sans certitude que l’acheteur finalise. Versi Immobilier achète en direct, en 7 jours, sans frais à votre charge. La question n’est pas le prix affiché - c’est le prix réellement encaissé, au bout du compte.',
   },
   {
     question: 'Qui êtes-vous ? Comment savoir si Versi Immobilier est sérieux ?',
-    answer: 'Versi Immobilier est l’entité marchand de biens du Groupe Versi — 3,2M€ de volume traité. Nos trois fondateurs sont identifiés avec leurs parcours complets, vérifiables sur LinkedIn. Les réalisations documentées sur ce site sont la preuve de ce que nous avons fait. Vérifiez.',
+    answer: 'Versi Immobilier est l’entité marchand de biens du Groupe Versi - 3,2M€ de volume traité. Nos trois fondateurs sont identifiés avec leurs parcours complets, vérifiables sur LinkedIn. Les réalisations documentées sur ce site sont la preuve de ce que nous avons fait. Vérifiez.',
   },
 ];
 
@@ -119,7 +119,7 @@ export default function SellPage() {
     }
   }, [location.hash]);
 
-  /* JSON-LD FAQPage vendeur — SEO rich snippets */
+  /* JSON-LD FAQPage vendeur - SEO rich snippets */
   useEffect(() => {
     const jsonLd = {
       '@context': 'https://schema.org',
@@ -144,7 +144,7 @@ export default function SellPage() {
   return (
     <>
       <PageHead
-        title="Céder un bien à Lille — Offre ferme 7j | Versi Immo"
+        title="Céder un bien à Lille - Offre ferme 7j | Versi Immo"
         description="Versi Immobilier achète en direct à Lille, sans condition suspensive. Offre ferme sous 7 jours ou refus motivé."
       />
       <a href="#main-content" className="skip-nav">
@@ -152,7 +152,7 @@ export default function SellPage() {
       </a>
       <Nav />
       <main id="main-content" style={{ paddingTop: 'var(--nav-height)' }}>
-        {/* Hero vendeur — chapô pivot acquéreur */}
+        {/* Hero vendeur - chapô pivot acquéreur */}
         <section className="sell-hero section-padding">
           <div className="container" style={{ textAlign: 'center' }}>
             <span className="text-label sell-hero__surtitre">
@@ -165,7 +165,7 @@ export default function SellPage() {
             </h1>
             <p className="text-body-lg sell-hero__chapo">
               Cette page s’adresse aux propriétaires souhaitant céder un
-              bien immobilier. Versi Immobilier achète en nom propre — pas
+              bien immobilier. Versi Immobilier achète en nom propre - pas
               de mise en vente, pas de mandat d’agence, pas d’intermédiaire.
               Vous recevez une offre d’achat ferme sous 7 jours calendaires,
               ou un refus motivé par écrit.
@@ -244,10 +244,10 @@ export default function SellPage() {
             <div className="sell-criteria">
               <div className="sell-criteria__list">
                 <ul>
-                  <li>Immeubles de rapport — 3 à 15 logements</li>
+                  <li>Immeubles de rapport - 3 à 15 logements</li>
                   <li>Maisons avec terrain ou dépendances</li>
-                  <li>Actifs mixtes — rez-de-chaussée commercial et logements au-dessus</li>
-                  <li>Biens avec locataires en place — pas un obstacle à l’acquisition</li>
+                  <li>Actifs mixtes - rez-de-chaussée commercial et logements au-dessus</li>
+                  <li>Biens avec locataires en place - pas un obstacle à l’acquisition</li>
                   <li>Biens à rénover ou à céder en l’état</li>
                 </ul>
               </div>

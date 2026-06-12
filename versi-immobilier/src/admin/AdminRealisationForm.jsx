@@ -311,7 +311,7 @@ export default function AdminRealisationForm() {
 
         {/* Ajout de nouvelles photos */}
         <div className="form-group">
-          <label>Ajouter des photos (max 5 Mo/photo — JPEG, PNG, WebP)</label>
+          <label>Ajouter des photos (max 5 Mo/photo - JPEG, PNG, WebP)</label>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

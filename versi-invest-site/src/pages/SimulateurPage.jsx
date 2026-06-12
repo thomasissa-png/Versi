@@ -180,7 +180,7 @@ export default function SimulateurPage() {
   return (
     <>
       <PageHead
-        title="Simulateur rendement locatif — Versi Invest"
+        title="Simulateur rendement locatif - Versi Invest"
         description="Calculez cashflow net, rendement brut et net, effort d'épargne. Scénario nominal et prudent. Gratuit."
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
@@ -196,7 +196,7 @@ export default function SimulateurPage() {
             </h1>
             <p className="page-header__intro">
               Renseignez les informations ci-dessous. La simulation intègre chaque charge et
-              présente systématiquement un scénario prudent — pas uniquement le meilleur cas.
+              présente systématiquement un scénario prudent - pas uniquement le meilleur cas.
             </p>
           </div>
         </header>
@@ -514,7 +514,7 @@ export default function SimulateurPage() {
         <section className="simulateur-cta page-cta section-padding" aria-label="Inscription">
           <div className="container page-cta__inner">
             <p className="page-cta__text">
-              Les biens sourcés par Versi Invest passent ce simulateur en scénario prudent — ou ne sont pas présentés. Si vous voulez accéder aux prochaines opportunités, la liste d'attente est ouverte.
+              Les biens sourcés par Versi Invest passent ce simulateur en scénario prudent - ou ne sont pas présentés. Si vous voulez accéder aux prochaines opportunités, la liste d'attente est ouverte.
             </p>
             <Link to="/contact" className="page-cta__btn">
               Demander à rejoindre la liste →

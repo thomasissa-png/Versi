@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <>
       <PageHead
-        title="Page introuvable — Versi Immobilier"
+        title="Page introuvable - Versi Immobilier"
         description="La page demandée n'existe pas ou a été déplacée."
         noindex
       />

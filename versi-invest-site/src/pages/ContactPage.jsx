@@ -8,8 +8,8 @@ import './ContactPage.css';
 const BUDGET_OPTIONS = [
   { value: '', label: 'Sélectionnez votre budget' },
   { value: '< 100k€', label: 'Moins de 100 000 €' },
-  { value: '100-200k€', label: '100 000 € — 200 000 €' },
-  { value: '200-500k€', label: '200 000 € — 500 000 €' },
+  { value: '100-200k€', label: '100 000 € - 200 000 €' },
+  { value: '200-500k€', label: '200 000 € - 500 000 €' },
   { value: '500k€+', label: 'Plus de 500 000 €' },
 ];
 
@@ -130,7 +130,7 @@ export default function ContactPage() {
   return (
     <>
       <PageHead
-        title="Liste d'attente investissement locatif — Versi Invest"
+        title="Liste d'attente investissement locatif - Versi Invest"
         description="Inscrivez-vous. Un fondateur Versi Invest vous recontacte sous 48h. Biens sélectionnés, simulation financière, suivi personnalisé."
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
@@ -158,7 +158,7 @@ export default function ContactPage() {
               <div className="contact__info">
                 <h2 className="contact__info-title">Ce qui se passe après</h2>
                 <p className="contact__info-text">
-                  Un fondateur — Maxime, Thomas ou Carl — prend connaissance de votre dossier et
+                  Un fondateur - Maxime, Thomas ou Carl - prend connaissance de votre dossier et
                   vous contacte sous 48h (jours ouvrés) pour un premier échange de 30 minutes.
                 </p>
                 <p className="contact__info-text">
@@ -190,7 +190,7 @@ export default function ContactPage() {
                     Votre inscription est enregistrée.
                   </h2>
                   <p className="contact__success-text">
-                    Un fondateur — Maxime, Thomas ou Carl — prend connaissance de votre dossier et
+                    Un fondateur - Maxime, Thomas ou Carl - prend connaissance de votre dossier et
                     vous contacte sous 48h (jours ouvrés) pour un premier échange de 30 minutes.
                     Cet appel n'est pas un entretien de vente. C'est une qualification patrimoniale :
                     on évalue ensemble si votre projet correspond aux opportunités que Versi Invest
@@ -198,7 +198,7 @@ export default function ContactPage() {
                   </p>
                   <p className="contact__success-text">
                     Si votre profil ne correspond pas à nos critères actuels, on vous le dit
-                    directement — avec les raisons.
+                    directement - avec les raisons.
                   </p>
                   <p className="contact__success-email">
                     Une question en attendant ? Écrivez à{' '}

@@ -322,7 +322,7 @@ export default function AdminBienForm() {
           <div className="form-group">
             <label>Situation locative</label>
             <select name="tenancy" value={form.tenancy} onChange={handleChange}>
-              {TENANCY_VALUES.map((t) => <option key={t} value={t}>{t || '—'}</option>)}
+              {TENANCY_VALUES.map((t) => <option key={t} value={t}>{t || '-'}</option>)}
             </select>
           </div>
         </div>
@@ -351,14 +351,14 @@ export default function AdminBienForm() {
 
         <div className="form-group">
           <label>Note de prix</label>
-          <input type="text" name="price_note" value={form.price_note} onChange={handleChange} placeholder="Prix net vendeur — frais de notaire en sus" />
+          <input type="text" name="price_note" value={form.price_note} onChange={handleChange} placeholder="Prix net vendeur - frais de notaire en sus" />
         </div>
 
         <div className="form-row">
           <div className="form-group">
             <label>DPE</label>
             <select name="dpe" value={form.dpe} onChange={handleChange}>
-              {DPE_VALUES.map((d) => <option key={d} value={d}>{d || '—'}</option>)}
+              {DPE_VALUES.map((d) => <option key={d} value={d}>{d || '-'}</option>)}
             </select>
           </div>
           <div className="form-group">
@@ -388,7 +388,7 @@ export default function AdminBienForm() {
                 <input
                   type="text"
                   id={`works-${i}`}
-                  aria-label={`Travaux réalisés — item ${i + 1}`}
+                  aria-label={`Travaux réalisés - item ${i + 1}`}
                   value={item}
                   onChange={(e) => handleListChange('works', i, e.target.value)}
                   placeholder="Ex : Réfection électricité"
@@ -413,7 +413,7 @@ export default function AdminBienForm() {
                 <input
                   type="text"
                   id={`features-${i}`}
-                  aria-label={`Équipements — item ${i + 1}`}
+                  aria-label={`Équipements - item ${i + 1}`}
                   value={item}
                   onChange={(e) => handleListChange('features', i, e.target.value)}
                   placeholder="Ex : Parquet massif"
@@ -454,7 +454,7 @@ export default function AdminBienForm() {
 
         {/* Ajout de nouvelles photos */}
         <div className="form-group">
-          <label>Ajouter des photos (max 5 Mo/photo — JPEG, PNG, WebP)</label>
+          <label>Ajouter des photos (max 5 Mo/photo - JPEG, PNG, WebP)</label>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"

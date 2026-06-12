@@ -13,7 +13,7 @@ export default function AdminLayout() {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch {
-      // Silently continue — the server clears the cookie regardless
+      // Silently continue - the server clears the cookie regardless
     }
 
     localStorage.removeItem('vi_admin_expires');

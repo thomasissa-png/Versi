@@ -1,5 +1,5 @@
 /**
- * seed-data.js — Centralise les exports de données pour autoSeed().
+ * seed-data.js - Centralise les exports de données pour autoSeed().
  * Réexporte les constantes depuis les scripts de seed individuels.
  */
 

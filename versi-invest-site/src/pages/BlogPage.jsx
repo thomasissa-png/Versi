@@ -83,7 +83,7 @@ export default function BlogPage() {
   return (
     <>
       <PageHead
-        title="Le regard Versi — Investissement locatif"
+        title="Le regard Versi - Investissement locatif"
         description="Rendement, cashflow, zones Hauts-de-France et IDF. Analyses terrain par les fondateurs."
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
@@ -93,7 +93,7 @@ export default function BlogPage() {
           <div className="container">
             <h1 className="page-header__title">Le regard Versi.</h1>
             <p className="page-header__intro">
-              Analyses de marché, cas concrets, points de méthode — rédigés par les fondateurs Versi Invest. Pour les investisseurs qui veulent comprendre comment un dossier se construit.
+              Analyses de marché, cas concrets, points de méthode - rédigés par les fondateurs Versi Invest. Pour les investisseurs qui veulent comprendre comment un dossier se construit.
             </p>
           </div>
         </header>

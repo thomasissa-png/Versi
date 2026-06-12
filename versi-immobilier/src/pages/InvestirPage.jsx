@@ -8,7 +8,7 @@ export default function InvestirPage() {
     <>
       <PageHead
         title="Investir avec Versi | Versi Immobilier"
-        description="Acquisition, transformation, structuration — une équipe qui maîtrise l'ensemble du cycle. Investissez aux côtés d'un opérateur intégré."
+        description="Acquisition, transformation, structuration - une équipe qui maîtrise l'ensemble du cycle. Investissez aux côtés d'un opérateur intégré."
         noindex
       />
       <a href="#main-content" className="skip-nav">
@@ -22,7 +22,7 @@ export default function InvestirPage() {
               Investir avec un opérateur intégré.
             </h1>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)' }}>
-              Acquisition, transformation, structuration — une équipe qui maîtrise l'ensemble du cycle.
+              Acquisition, transformation, structuration - une équipe qui maîtrise l'ensemble du cycle.
               Pas un intermédiaire : un co-opérateur.
             </p>
             <p className="text-body-lg" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-2xl)' }}>

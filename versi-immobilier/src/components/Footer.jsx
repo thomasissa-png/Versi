@@ -123,27 +123,27 @@ export default function Footer() {
       </div>
       <div className="footer__separator" />
       <div className="footer__inner container">
-        {/* Colonne 1 — Logo + baseline */}
+        {/* Colonne 1 - Logo + baseline */}
         <div className="footer__brand">
           <Link to="/" className="footer__logo-link">
             <span className="footer__logo">VERSI</span>
             <span className="footer__logo-label">IMMOBILIER</span>
           </Link>
           <span className="footer__tagline">
-            Marchand de biens — Hauts-de-France &amp; Île-de-France
+            Marchand de biens - Hauts-de-France &amp; Île-de-France
           </span>
           <a href={`mailto:${CONTACT_EMAIL}`} className="footer__email">
             {CONTACT_EMAIL}
           </a>
           <span className="footer__holding">
-            Versi Immobilier est une entité du Groupe Versi —{' '}
+            Versi Immobilier est une entité du Groupe Versi -{' '}
             <a href="https://versi.fr" target="_blank" rel="noopener noreferrer" className="footer__holding-link">
               versi.fr
             </a>
           </span>
         </div>
 
-        {/* Colonne 2 — Acquéreurs */}
+        {/* Colonne 2 - Acquéreurs */}
         <div className="footer__col">
           <span className="footer__col-title">Acquéreurs</span>
           <nav className="footer__nav" aria-label="Liens acquéreurs">
@@ -165,7 +165,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        {/* Colonne 3 — Vendeurs */}
+        {/* Colonne 3 - Vendeurs */}
         <div className="footer__col">
           <span className="footer__col-title">Vendeurs</span>
           <nav className="footer__nav" aria-label="Liens vendeurs">
@@ -175,7 +175,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        {/* Colonne 4 — Légal */}
+        {/* Colonne 4 - Légal */}
         <div className="footer__legal-col">
           <div className="footer__legal">
             <FooterLink to="/mentions-legales" className="footer__legal-link">

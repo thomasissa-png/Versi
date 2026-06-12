@@ -183,8 +183,8 @@ export default function ContactForm({ subject = '' }) {
         >
           <option value="">Optionnel</option>
           <option value="Moins de 150 000 €">Moins de 150 000 €</option>
-          <option value="150 000 – 250 000 €">150 000 – 250 000 €</option>
-          <option value="250 000 – 400 000 €">250 000 – 400 000 €</option>
+          <option value="150 000-250 000 €">150 000-250 000 €</option>
+          <option value="250 000-400 000 €">250 000-400 000 €</option>
           <option value="Plus de 400 000 €">Plus de 400 000 €</option>
         </select>
       </div>

@@ -55,7 +55,7 @@ export default function AdminArticleForm() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  // Tags — dynamic list
+  // Tags - dynamic list
   function handleTagAdd() {
     setForm((prev) => ({ ...prev, tags: [...prev.tags, ''] }));
   }

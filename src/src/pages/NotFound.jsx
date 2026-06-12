@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <>
       <PageHead
-        title="Page introuvable — Versi"
+        title="Page introuvable - Versi"
         description="La page demandée n'existe pas."
         noindex
       />

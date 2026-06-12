@@ -12,8 +12,8 @@ const LOCATION_OPTIONS = ['Toutes', 'Hauts-de-France', 'Île-de-France'];
 const BUDGET_OPTIONS = [
   { label: 'Tous', min: 0, max: Infinity },
   { label: 'Moins de 150 000 €', min: 0, max: 150000 },
-  { label: '150 000 – 300 000 €', min: 150000, max: 300000 },
-  { label: '300 000 – 500 000 €', min: 300000, max: 500000 },
+  { label: '150 000-300 000 €', min: 150000, max: 300000 },
+  { label: '300 000-500 000 €', min: 300000, max: 500000 },
   { label: 'Plus de 500 000 €', min: 500000, max: Infinity },
 ];
 
@@ -27,7 +27,7 @@ export default function PropertiesPage() {
   const available = useMemo(() => allProperties.filter((p) => p.status !== 'vendu'), [allProperties]);
   const sold = useMemo(() => allProperties.filter((p) => p.status === 'vendu'), [allProperties]);
 
-  // Dynamic price range from available properties (fallback: 95k–350k)
+  // Dynamic price range from available properties (fallback: 95k-350k)
   const priceRange = useMemo(() => {
     const prices = available.filter((p) => p.priceNum > 0).map((p) => p.priceNum);
     if (prices.length === 0) return { min: '95 000', max: '350 000' };
@@ -70,7 +70,7 @@ export default function PropertiesPage() {
   return (
     <>
       <PageHead
-        title="Biens rénovés à vendre — Lille | Versi Immobilier"
+        title="Biens rénovés à vendre - Lille | Versi Immobilier"
         description="Biens disponibles et en précommercialisation. Diagnostics inclus, visite sur demande. Vente directe sans frais d'agence."
       />
       <a href="#main-content" className="skip-nav">
@@ -168,7 +168,7 @@ export default function PropertiesPage() {
                   Nos biens partent vite.
                 </p>
                 <p className="text-body-lg" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                  Laissez-nous votre contact — nous vous prévenons avant la mise en ligne.
+                  Laissez-nous votre contact - nous vous prévenons avant la mise en ligne.
                 </p>
                 <Link to="/contact" className="properties-page__state-cta">
                   Être notifié en avant-première

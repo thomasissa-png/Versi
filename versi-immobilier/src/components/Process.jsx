@@ -5,17 +5,17 @@ const STEPS = [
   {
     number: '01',
     title: 'Vous parcourez le portefeuille.',
-    description: 'Biens disponibles à la vente et en précommercialisation en Hauts-de-France et Île-de-France. Chaque fiche détaille le bien — adresse, travaux réalisés, prix, disponibilité.',
+    description: 'Biens disponibles à la vente et en précommercialisation en Hauts-de-France et Île-de-France. Chaque fiche détaille le bien - adresse, travaux réalisés, prix, disponibilité.',
   },
   {
     number: '02',
     title: 'Vous prenez contact directement.',
-    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire — celui qui a rénové le bien et qui connaît chaque détail des travaux. Nous vous rappelons sous 48h pour organiser la visite.',
+    description: 'Un échange avec l\'équipe Versi Immobilier. Pas un agent intermédiaire - celui qui a rénové le bien et qui connaît chaque détail des travaux. Nous vous rappelons sous 48h pour organiser la visite.',
   },
   {
     number: '03',
     title: 'Vous signez en sachant ce que vous achetez.',
-    description: 'Chaque bien est documenté — historique des travaux, diagnostics complets, garanties décennales. Vous êtes couverts 10 ans sur les travaux structurels. Pas de surprise après la signature.',
+    description: 'Chaque bien est documenté - historique des travaux, diagnostics complets, garanties décennales. Vous êtes couverts 10 ans sur les travaux structurels. Pas de surprise après la signature.',
   },
 ];
 

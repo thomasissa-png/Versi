@@ -21,7 +21,7 @@ export default function Hero() {
     <section id="hero" className="hero">
       <div className={`hero__content ${loaded ? 'hero__content--visible' : 'hero__content--hidden'}`}>
         <span className="hero__surtitre text-label">
-          OPÉRATEUR IMMOBILIER INTÉGRÉ — FRANCE
+          OPÉRATEUR IMMOBILIER INTÉGRÉ - FRANCE
         </span>
         <h1 className="hero__title text-display">
           Quatre métiers.<br />
@@ -30,7 +30,7 @@ export default function Hero() {
         <div className="hero__accent" aria-hidden="true" />
         <p className="hero__subtitle">
           Versi acquiert, transforme et structure des actifs immobiliers en France.
-          Un seul opérateur du sourcing à la sortie — pas de délégation, pas de perte de contrôle.
+          Un seul opérateur du sourcing à la sortie - pas de délégation, pas de perte de contrôle.
         </p>
         <div className="hero__ctas">
           <a

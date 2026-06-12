@@ -1,7 +1,7 @@
 ---
 title: Rendement locatif à Valenciennes en 2026 : prix et cashflow
 slug: rendement-locatif-valenciennes-2026
-excerpt: À Valenciennes, les rendements bruts oscillent entre 7 % et 11 % selon le quartier et le type de bien — voici les chiffres réels pour calculer votre cashflow.
+excerpt: À Valenciennes, les rendements bruts oscillent entre 7 % et 11 % selon le quartier et le type de bien - voici les chiffres réels pour calculer votre cashflow.
 tags: investissement, Valenciennes, Hauts-de-France, rendement
 author: Versi Invest
 date: 2026-05-08T09:15:00Z
@@ -9,7 +9,7 @@ date: 2026-05-08T09:15:00Z
 
 # Rendement locatif à Valenciennes en 2026 : prix et cashflow
 
-À Valenciennes, les rendements bruts oscillent entre 7 % et 11 % selon le quartier et le type de bien. Ces chiffres sont atteignables — mais seulement si vous achetez au bon prix et si vous anticipez les charges réelles. Cet article pose les bases du rendement locatif à Valenciennes pour que vous puissiez calculer vous-même, secteur par secteur.
+À Valenciennes, les rendements bruts oscillent entre 7 % et 11 % selon le quartier et le type de bien. Ces chiffres sont atteignables - mais seulement si vous achetez au bon prix et si vous anticipez les charges réelles. Cet article pose les bases du rendement locatif à Valenciennes pour que vous puissiez calculer vous-même, secteur par secteur.
 
 ---
 
@@ -43,7 +43,7 @@ Les charges à intégrer dans votre calcul :
 - **Vacance locative** : même dans un marché correct, prévoyez 1 mois vide par an dans votre simulation (8 % de perte sur les loyers annuels).
 - **Provision pour travaux** : sur un bien ancien, 5 € à 10 € par m² par an est une hypothèse prudente.
 
-Un T2 acheté 80 000 €, loué 570 €/mois, peut afficher un rendement brut de 8,6 %. Après charges réelles, le rendement net tombe à 5,5 % à 6,5 % selon la fiscalité choisie. C'est toujours solide — à condition d'avoir ces chiffres en tête avant l'achat, pas après.
+Un T2 acheté 80 000 €, loué 570 €/mois, peut afficher un rendement brut de 8,6 %. Après charges réelles, le rendement net tombe à 5,5 % à 6,5 % selon la fiscalité choisie. C'est toujours solide - à condition d'avoir ces chiffres en tête avant l'achat, pas après.
 
 ## LMNP ou nu : quel régime pour Valenciennes ?
 
@@ -64,13 +64,13 @@ Oui, mais pas automatiquement. Le cashflow (loyer encaissé moins toutes les cha
 - Pas de gestion déléguée, ou délégation partielle
 - Fiscalité optimisée (LMNP réel ou régime réel foncier)
 
-Sur un immeuble de trois lots acheté 180 000 € avec 40 000 € d'apport, financé sur 20 ans, les loyers globaux de 1 500 € à 1 700 €/mois peuvent couvrir la mensualité de crédit et les charges courantes, en laissant un excédent modeste. Ce n'est pas de la magie — c'est de la mécanique financière qui demande un calcul rigoureux en amont.
+Sur un immeuble de trois lots acheté 180 000 € avec 40 000 € d'apport, financé sur 20 ans, les loyers globaux de 1 500 € à 1 700 €/mois peuvent couvrir la mensualité de crédit et les charges courantes, en laissant un excédent modeste. Ce n'est pas de la magie - c'est de la mécanique financière qui demande un calcul rigoureux en amont.
 
 Consultez notre page [comment ça marche](/comment-ca-marche) pour comprendre comment nous sélectionnons et analysons les biens avant de les présenter.
 
 ## Ce qu'on voit sur le terrain en 2026
 
-Le rendement locatif à Valenciennes reste soutenu par un marché à la liquidité correcte : les biens bien placés et bien présentés partent en 4 à 8 semaines. Les maisons de ville avec plusieurs lots sont plus rares à la vente — les vendeurs savent que leur produit est recherché.
+Le rendement locatif à Valenciennes reste soutenu par un marché à la liquidité correcte : les biens bien placés et bien présentés partent en 4 à 8 semaines. Les maisons de ville avec plusieurs lots sont plus rares à la vente - les vendeurs savent que leur produit est recherché.
 
 Les quartiers à surveiller : les abords de la gare bénéficient du trafic TGV Paris-Valenciennes (1h15 environ). L'université polytechnique Hauts-de-France (UPHF) génère une demande locative étudiante structurelle. Le tissu économique local, appuyé sur l'industrie automobile et la logistique, maintient une demande de la part des jeunes actifs.
 
@@ -78,4 +78,4 @@ Ce qu'il faut éviter : acheter sans avoir visité physiquement, se fier uniquem
 
 ---
 
-Si vous souhaitez qu'on analyse un bien précis à Valenciennes — prix, loyer estimé, cashflow prévisionnel — vous pouvez nous contacter directement via [notre page contact](/contact). Pas d'engagement, juste des chiffres.
+Si vous souhaitez qu'on analyse un bien précis à Valenciennes - prix, loyer estimé, cashflow prévisionnel - vous pouvez nous contacter directement via [notre page contact](/contact). Pas d'engagement, juste des chiffres.

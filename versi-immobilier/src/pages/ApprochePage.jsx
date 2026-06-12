@@ -17,23 +17,23 @@ const PROCESS_STEPS = [
   {
     number: '02',
     title: 'Analyser',
-    description: 'Visite physique par un fondateur. Analyse de marché. Modélisation financière. La décision est prise par l’équipe — pas déléguée.',
+    description: 'Visite physique par un fondateur. Analyse de marché. Modélisation financière. La décision est prise par l’équipe - pas déléguée.',
   },
   {
     number: '03',
     title: 'Acquérir',
-    description: 'Offre ferme et définitive. Sans condition suspensive de financement — nous n’achetons pas à crédit. L’opération ne dépend d’aucun accord bancaire tiers.',
+    description: 'Offre ferme et définitive. Sans condition suspensive de financement - nous n’achetons pas à crédit. L’opération ne dépend d’aucun accord bancaire tiers.',
   },
   {
     number: '04',
     title: 'Transformer et livrer',
-    description: 'Réhabilitation, revente ou mise en location — chaque projet est suivi jusqu’à la livraison. Les réalisations sur ce site en attestent.',
+    description: 'Réhabilitation, revente ou mise en location - chaque projet est suivi jusqu’à la livraison. Les réalisations sur ce site en attestent.',
   },
 ];
 
 const DIFFERENTIATORS = [
   {
-    title: 'Offre ferme ou refus — jamais d’ambiguïté.',
+    title: 'Offre ferme ou refus - jamais d’ambiguïté.',
     description: 'Notre réponse est binaire : offre ferme par écrit, ou refus motivé par écrit. Vous savez où vous en êtes sous 7 jours.',
   },
   {
@@ -42,7 +42,7 @@ const DIFFERENTIATORS = [
   },
   {
     title: 'Joignables en direct.',
-    description: 'Les trois fondateurs achètent, rénovent, font visiter et négocient eux-mêmes. Pas de standard, pas d’assistant — vous parlez à celui qui a pris les décisions.',
+    description: 'Les trois fondateurs achètent, rénovent, font visiter et négocient eux-mêmes. Pas de standard, pas d’assistant - vous parlez à celui qui a pris les décisions.',
   },
 ];
 
@@ -122,7 +122,7 @@ export default function ApprochePage() {
   const { ref: diffRef, isVisible: diffVisible } = useFadeIn();
   const { ref: teamRef, isVisible: teamVisible } = useFadeIn();
 
-  /* JSON-LD Person — fondateurs pour E-E-A-T */
+  /* JSON-LD Person - fondateurs pour E-E-A-T */
   useEffect(() => {
     const jsonLd = [
       {
@@ -164,7 +164,7 @@ export default function ApprochePage() {
   return (
     <>
       <PageHead
-        title="Marchand de biens Lille — Méthode | Versi Immobilier"
+        title="Marchand de biens Lille - Méthode | Versi Immobilier"
         description="Sourcer, analyser, acquérir, transformer. Quatre étapes, zéro délégation. Les trois fondateurs gèrent chaque opération en direct."
       />
       <a href="#main-content" className="skip-nav">
@@ -309,7 +309,7 @@ export default function ApprochePage() {
             </h2>
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', maxWidth: 'var(--text-max-width-lg)' }}>
               Versi Immobilier acquiert des biens résidentiels et mixtes entre 250 000 € et 1 000 000 €,
-              en France — Paris, Île-de-France, Lille, Lyon, Bordeaux et villes moyennes.
+              en France - Paris, Île-de-France, Lille, Lyon, Bordeaux et villes moyennes.
               Immeubles de rapport, maisons, biens mixtes. Biens occupés ou en l’état acceptés.
             </p>
           </div>
@@ -319,7 +319,7 @@ export default function ApprochePage() {
         <section className="section-padding" style={{ background: 'var(--color-bg-primary)', textAlign: 'center' }}>
           <div className="container">
             <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-lg)', maxWidth: 'var(--text-max-width-md)', margin: '0 auto var(--spacing-lg)' }}>
-              Versi Immobilier est l’entité marchand de biens du Groupe Versi — holding immobilière intégrée, active en Hauts-de-France et Île-de-France.
+              Versi Immobilier est l’entité marchand de biens du Groupe Versi - holding immobilière intégrée, active en Hauts-de-France et Île-de-France.
             </p>
             <a
               href="https://versi.fr"

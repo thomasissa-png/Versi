@@ -22,7 +22,7 @@ export default function Location() {
             Et les métropoles françaises.
           </h2>
           <p className="text-body-lg location__subtitle">
-            Paris et Lille en opérations actives. Lyon, Bordeaux, Marseille en veille — chaque extension est une décision, pas une ambition affichée.
+            Paris et Lille en opérations actives. Lyon, Bordeaux, Marseille en veille - chaque extension est une décision, pas une ambition affichée.
           </p>
           <div className="location__legend">
             <span className="location__legend-item">

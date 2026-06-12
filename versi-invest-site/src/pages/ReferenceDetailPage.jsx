@@ -31,7 +31,7 @@ export default function ReferenceDetailPage() {
   return (
     <>
       <PageHead
-        title={`${ref.type} — ${ref.ville} (${ref.departement}) | Versi Invest`}
+        title={`${ref.type} - ${ref.ville} (${ref.departement}) | Versi Invest`}
         description={ref.description}
       />
       <a href="#main-content" className="skip-nav">Aller au contenu principal</a>
@@ -42,7 +42,7 @@ export default function ReferenceDetailPage() {
           <div className="container">
             <Link to="/references" className="ref-detail__back-top">← Toutes les références</Link>
             <h1 className="page-header__title">
-              {ref.type} — {ref.ville} ({ref.departement})
+              {ref.type} - {ref.ville} ({ref.departement})
             </h1>
             <p className="page-header__intro">{d.intro || ref.description}</p>
           </div>
@@ -67,7 +67,7 @@ export default function ReferenceDetailPage() {
                 <span className="ref-detail__metric-label">Lots</span>
               </div>
               <div className="ref-detail__metric">
-                <span className="ref-detail__metric-value">{ref.prix || '—'}</span>
+                <span className="ref-detail__metric-value">{ref.prix || '-'}</span>
                 <span className="ref-detail__metric-label">Prix d'acquisition</span>
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function ReferenceDetailPage() {
         <section className="ref-detail__body section-padding" aria-label="Détail de l'opération">
           <div className="container">
             <div className="ref-detail__grid">
-              {/* Colonne gauche — infos */}
+              {/* Colonne gauche - infos */}
               <div className="ref-detail__info">
                 {/* Tableau chiffres détaillés */}
                 {d.chiffres && d.chiffres.length > 0 && (
@@ -123,7 +123,7 @@ export default function ReferenceDetailPage() {
                 )}
               </div>
 
-              {/* Colonne droite — photos */}
+              {/* Colonne droite - photos */}
               <div className="ref-detail__photos">
                 {d.photos && d.photos.length > 0 ? (
                   <div className="ref-detail__gallery">
@@ -131,7 +131,7 @@ export default function ReferenceDetailPage() {
                       <img
                         key={i}
                         src={photo}
-                        alt={`${ref.type} ${ref.ville} — photo ${i + 1}`}
+                        alt={`${ref.type} ${ref.ville} - photo ${i + 1}`}
                         className="ref-detail__photo"
                         loading="lazy"
                       />
