@@ -1,0 +1,179 @@
+{
+  "generated_at": "2026-06-21",
+  "properties": {
+    "muguets-lot-1-rdc": {
+      "photos": [
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-01.jpeg",
+          "filename": "photo-01.jpeg",
+          "alt": "Séjour-cuisine ouvert sur l’extérieur",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 0,
+          "size_bytes": 201200
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-02.jpeg",
+          "filename": "photo-02.jpeg",
+          "alt": "Extérieur privatif de plain-pied",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 1,
+          "size_bytes": 293583
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-03.jpeg",
+          "filename": "photo-03.jpeg",
+          "alt": "Coin repas du séjour-cuisine",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 2,
+          "size_bytes": 201200
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-04.jpeg",
+          "filename": "photo-04.jpeg",
+          "alt": "Chambre côté cour",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 3,
+          "size_bytes": 141200
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-05.jpeg",
+          "filename": "photo-05.jpeg",
+          "alt": "Salle d’eau carrelée",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 4,
+          "size_bytes": 147810
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/avant-01.jpeg",
+          "filename": "avant-01.jpeg",
+          "alt": "Avant — bureaux d’origine",
+          "mime_type": "image/jpeg",
+          "category": "avant",
+          "sort_order": 5,
+          "size_bytes": 10909
+        }
+      ]
+    },
+    "muguets-lot-2-t3": {
+      "photos": [
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-01.jpeg",
+          "filename": "photo-01.jpeg",
+          "alt": "Séjour-cuisine traversant 40,5 m²",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 0,
+          "size_bytes": 213429
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-02.jpeg",
+          "filename": "photo-02.jpeg",
+          "alt": "Coin repas et cuisine",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 1,
+          "size_bytes": 213429
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-03.jpeg",
+          "filename": "photo-03.jpeg",
+          "alt": "Chambre principale",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 2,
+          "size_bytes": 140631
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-04.jpeg",
+          "filename": "photo-04.jpeg",
+          "alt": "Seconde chambre",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 3,
+          "size_bytes": 84676
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-05.jpeg",
+          "filename": "photo-05.jpeg",
+          "alt": "Salle de bains",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 4,
+          "size_bytes": 88839
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/avant-01.jpeg",
+          "filename": "avant-01.jpeg",
+          "alt": "Avant — plateau de bureaux",
+          "mime_type": "image/jpeg",
+          "category": "avant",
+          "sort_order": 5,
+          "size_bytes": 25289
+        }
+      ]
+    },
+    "muguets-lot-3-duplex": {
+      "photos": [
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-01.jpeg",
+          "filename": "photo-01.jpeg",
+          "alt": "Séjour sous plafond cathédrale",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 0,
+          "size_bytes": 232324
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-02.jpeg",
+          "filename": "photo-02.jpeg",
+          "alt": "Terrasse privative plein ciel",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 1,
+          "size_bytes": 314251
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-03.jpeg",
+          "filename": "photo-03.jpeg",
+          "alt": "Chambre avec vue",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 2,
+          "size_bytes": 75321
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-04.jpeg",
+          "filename": "photo-04.jpeg",
+          "alt": "Cuisine et coin repas",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 3,
+          "size_bytes": 232324
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-05.jpeg",
+          "filename": "photo-05.jpeg",
+          "alt": "Salle de bains",
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 4,
+          "size_bytes": 165762
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/avant-01.jpeg",
+          "filename": "avant-01.jpeg",
+          "alt": "Avant — plateau brut",
+          "mime_type": "image/jpeg",
+          "category": "avant",
+          "sort_order": 5,
+          "size_bytes": 383940
+        }
+      ]
+    }
+  }
+}
