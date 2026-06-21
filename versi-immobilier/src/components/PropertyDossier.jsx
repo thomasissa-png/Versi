@@ -106,19 +106,28 @@ export function EtatActuelSection({ etatActuel }) {
           </figure>
         )}
         <figure className="property-dossier__projet">
-          <div
-            className="property-dossier__projet-placeholder"
-            role="img"
-            aria-label="Rendu 3D du projet livré - à venir"
-          >
-            <span className="property-dossier__projet-badge">À venir</span>
-            <span className="property-dossier__projet-text">
-              Rendu 3D du logement fini
-            </span>
-            <span className="property-dossier__projet-subtext">
-              Disponible à la fin du chantier
-            </span>
-          </div>
+          {etatActuel.projetImage ? (
+            <img
+              src={etatActuel.projetImage}
+              alt={etatActuel.projetCaption || 'Rendu 3D du logement fini'}
+              className="property-dossier__projet-image"
+              loading="eager"
+            />
+          ) : (
+            <div
+              className="property-dossier__projet-placeholder"
+              role="img"
+              aria-label="Rendu 3D du projet livré - à venir"
+            >
+              <span className="property-dossier__projet-badge">À venir</span>
+              <span className="property-dossier__projet-text">
+                Rendu 3D du logement fini
+              </span>
+              <span className="property-dossier__projet-subtext">
+                Disponible à la fin du chantier
+              </span>
+            </div>
+          )}
           {etatActuel.projetCaption && (
             <figcaption className="text-body-sm property-dossier__caption">
               {etatActuel.projetCaption}

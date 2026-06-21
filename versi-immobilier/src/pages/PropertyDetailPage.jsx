@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Nav from '../components/Nav.jsx';
 import Footer from '../components/Footer.jsx';
@@ -60,6 +60,13 @@ export default function PropertyDetailPage() {
   const { property, photos, loading, error } = useProperty(id);
   const { properties: allProperties } = useProperties('disponible');
   const { ref, isVisible } = useFadeIn();
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  // Reset l'image active quand on change de bien (sécurité si activeIdx
+  // pointait sur une photo qui n'existe plus dans le nouveau bien).
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [id]);
 
   /* JSON-LD RealEstateListing - GEO R6 */
   useEffect(() => {
@@ -253,37 +260,58 @@ export default function PropertyDetailPage() {
               ← Nos biens
             </Link>
 
-            {/* ── Galerie ── */}
+            {/* ── Galerie ──
+                Photo active en grand + jusqu'à 4 vignettes cliquables qui
+                swappent l'image principale (lightbox léger, zéro dépendance).
+                Si une seule photo : pas de vignettes. Fallback placeholder
+                si le bien n'a pas encore de photos. activeIdx est borné par
+                photos.length au render pour éviter tout out-of-range.
+            */}
             <div className="property-detail__gallery">
-              {photos.length > 0 ? (
-                <>
-                  <img
-                    src={photos[0].url}
-                    alt={photos[0].alt || property.title}
-                    className="property-detail__gallery-main"
-                  />
-                  <div className="property-detail__gallery-col">
-                    {photos[1] ? (
-                      <img
-                        src={photos[1].url}
-                        alt={photos[1].alt || `${property.title} - photo 2`}
-                        className="property-detail__gallery-thumb"
-                      />
-                    ) : (
-                      <div className="image-placeholder property-detail__gallery-thumb" />
+              {photos.length > 0 ? (() => {
+                const safeIdx = Math.min(activeIdx, photos.length - 1);
+                const main = photos[safeIdx];
+                const thumbs = photos.slice(0, 5);
+                return (
+                  <>
+                    <img
+                      src={main.url}
+                      alt={main.alt || property.title}
+                      className="property-detail__gallery-main"
+                    />
+                    {photos.length > 1 && (
+                      <div
+                        className="property-detail__gallery-thumbs"
+                        role="tablist"
+                        aria-label="Galerie photo"
+                      >
+                        {thumbs.map((photo, idx) => {
+                          const isActive = idx === safeIdx;
+                          return (
+                            <button
+                              key={photo.id || photo.url || idx}
+                              type="button"
+                              role="tab"
+                              aria-selected={isActive}
+                              aria-label={photo.alt || `${property.title} - photo ${idx + 1}`}
+                              onClick={() => setActiveIdx(idx)}
+                              className={`property-detail__gallery-thumb-btn${isActive ? ' property-detail__gallery-thumb-btn--active' : ''}`}
+                            >
+                              <img
+                                src={photo.url}
+                                alt=""
+                                aria-hidden="true"
+                                className="property-detail__gallery-thumb-img"
+                                loading="lazy"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                    {photos[2] ? (
-                      <img
-                        src={photos[2].url}
-                        alt={photos[2].alt || `${property.title} - photo 3`}
-                        className="property-detail__gallery-thumb"
-                      />
-                    ) : (
-                      <div className="image-placeholder property-detail__gallery-thumb" />
-                    )}
-                  </div>
-                </>
-              ) : (
+                  </>
+                );
+              })() : (
                 /* Placeholder pré-commercialisation - élégant, pas vide */
                 <div
                   className="property-detail__placeholder"

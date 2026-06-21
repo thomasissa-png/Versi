@@ -63,3 +63,53 @@ export async function ensurePhotoSchema(client) {
   `);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_project_photos_project_url ON project_photos(project_id, sort_order)`);
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// upsertPropertyPhotosDb(client, propertyId, photos)
+// → DELETE + INSERT dans property_photos avec colonne url (pas de base64)
+// photos = [{ url, alt, filename, mime_type, size_bytes, category, sort_order }, ...]
+// Idempotent — DELETE + INSERT à chaque boot. Le champ `data` reste NULL
+// (sert encore aux uploads admin base64 historiques).
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function upsertPropertyPhotosDb(client, propertyId, photos) {
+  const safeId = sanitizeProjectId(propertyId); // même règle [a-z0-9-]+
+  await client.query('DELETE FROM property_photos WHERE property_id = $1', [safeId]);
+  if (!Array.isArray(photos) || photos.length === 0) return;
+  for (const photo of photos) {
+    await client.query(
+      `INSERT INTO property_photos
+         (property_id, url, alt, filename, mime_type, size_bytes, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        safeId,
+        photo.url,
+        photo.alt ?? null,
+        photo.filename,
+        photo.mime_type,
+        photo.size_bytes,
+        photo.sort_order,
+      ],
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Migration DB property_photos : ajout colonnes url + alt, drop NOT NULL sur data.
+// Idempotent — appelée au boot (autoSeed).
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function ensurePropertyPhotoSchema(client) {
+  await client.query(`ALTER TABLE property_photos ADD COLUMN IF NOT EXISTS url TEXT`);
+  await client.query(`ALTER TABLE property_photos ADD COLUMN IF NOT EXISTS alt TEXT`);
+  await client.query(`
+    DO $$ BEGIN
+      ALTER TABLE property_photos ALTER COLUMN data DROP NOT NULL;
+    EXCEPTION WHEN undefined_column THEN NULL;
+    WHEN others THEN NULL;
+    END $$;
+  `);
+  await client.query(
+    `CREATE INDEX IF NOT EXISTS idx_property_photos_property_sort ON property_photos(property_id, sort_order)`,
+  );
+}

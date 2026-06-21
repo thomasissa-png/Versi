@@ -386,8 +386,8 @@ ul, ol {
 /* === Property Detail responsive grids === */
 
 .property-detail__gallery {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-2xl);
 }
@@ -400,10 +400,6 @@ ul, ol {
 }
 
 @media (max-width: 1023px) {
-  .property-detail__gallery {
-    grid-template-columns: 1fr;
-  }
-
   .property-detail__layout {
     grid-template-columns: 1fr;
   }
@@ -438,19 +434,60 @@ ul, ol {
   display: block;
 }
 
-.property-detail__gallery-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+/* Vignettes cliquables — strip horizontal sous l'image principale.
+   Mobile : scroll horizontal naturel (overflow-x: auto) plutôt que wrap. */
+.property-detail__gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
 }
 
-.property-detail__gallery-thumb {
-  flex: 1;
+.property-detail__gallery-thumb-btn {
+  appearance: none;
+  background: none;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
   border-radius: var(--card-radius);
-  object-fit: cover;
+  overflow: hidden;
+  transition: border-color var(--duration-fast) ease, transform var(--duration-fast) ease;
+  aspect-ratio: 4 / 3;
+  min-height: 44px;
+}
+
+.property-detail__gallery-thumb-btn:hover {
+  border-color: var(--color-text-muted);
+}
+
+.property-detail__gallery-thumb-btn:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.property-detail__gallery-thumb-btn--active {
+  border-color: var(--color-text-primary);
+}
+
+.property-detail__gallery-thumb-img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  min-height: 0;
+}
+
+@media (max-width: 600px) {
+  .property-detail__gallery-thumbs {
+    grid-auto-flow: column;
+    grid-auto-columns: 110px;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  .property-detail__gallery-thumb-btn {
+    scroll-snap-align: start;
+  }
 }
 
 /* Placeholder galerie — état pré-commercialisation */
@@ -2024,6 +2061,15 @@ ul, ol {
 }
 
 .property-dossier__avant-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.property-dossier__projet-image {
   width: 100%;
   height: auto;
   aspect-ratio: 4 / 3;

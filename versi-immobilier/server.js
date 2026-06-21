@@ -18,6 +18,8 @@ import { LILLE_PROJECTS } from './scripts/lille-projects.js';
 import {
   upsertProjectPhotosDb,
   ensurePhotoSchema,
+  upsertPropertyPhotosDb,
+  ensurePropertyPhotoSchema,
 } from './scripts/photo-sync.js';
 
 // Lecture du manifest pré-compilé (généré en local par scripts/generate-photos.js,
@@ -39,6 +41,27 @@ function readPhotosManifest() {
 function manifestPhotosFor(projectId) {
   const manifest = readPhotosManifest();
   return manifest?.projects?.[projectId]?.photos || [];
+}
+
+// Manifest des photos de propriétés (rendus 3D + photos avant) — même
+// pattern URL-only que les projets : on lit le JSON commité dans le repo
+// et on INSERT les URLs (pas de base64). Zéro sharp/resize au boot.
+function readPropertyPhotosManifest() {
+  const manifestPath = join(__dirname, 'public', 'properties', 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    console.warn(`[autoSeed] Manifest property photos absent : ${manifestPath}`);
+    return { properties: {} };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  } catch (err) {
+    console.warn(`[autoSeed] Manifest property photos illisible : ${err.message}`);
+    return { properties: {} };
+  }
+}
+function manifestPropertyPhotosFor(propertyId) {
+  const manifest = readPropertyPhotosManifest();
+  return manifest?.properties?.[propertyId]?.photos || [];
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -477,7 +500,7 @@ app.get('/api/public/properties/:id', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Bien non trouvé' });
     }
     const photosResult = await pool.query(
-      'SELECT id, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
+      'SELECT id, url, alt, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
       [req.params.id]
     );
     return res.json({ property: propResult.rows[0], photos: photosResult.rows });
@@ -863,7 +886,7 @@ app.delete('/api/admin/properties/:id', checkAdminAuth, async (req, res) => {
 app.get('/api/admin/properties/:id/photos', checkAdminAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
+      'SELECT id, url, alt, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
       [req.params.id]
     );
     return res.json({ photos: result.rows });
@@ -1904,6 +1927,7 @@ async function autoSeed() {
     // 0. Migration schéma photos : ajout colonne url, drop NOT NULL sur data.
     // Idempotent — safe à rejouer à chaque boot.
     await ensurePhotoSchema(client);
+    await ensurePropertyPhotoSchema(client);
 
     // 0bis. Garde-fou colonne dossier (dossiers de pré-commercialisation riches).
     // Idempotent — garantit la colonne au runtime même si init-db.js n'a pas
@@ -1950,6 +1974,12 @@ async function autoSeed() {
     // 5. Upsert biens Muguets (même si table non vide — garantit données à jour)
     for (const prop of MUGUETS_PROPERTIES) {
       await upsertProperty(client, prop);
+      // Photos URL-only depuis public/properties/manifest.json (rendus 3D +
+      // photos avant). Même pattern que les projets : DELETE + INSERT URLs,
+      // zéro base64, zéro sharp, zéro I/O lourd. Idempotent.
+      const photos = manifestPropertyPhotosFor(prop.id);
+      await upsertPropertyPhotosDb(client, prop.id, photos);
+      console.log(`[autoSeed] Bien "${prop.id}" : ${photos.length} photos URL-only (manifest).`);
     }
 
     // 6. Supprimer les biens non-Muguets (cleanup)

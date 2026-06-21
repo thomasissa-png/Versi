@@ -60,6 +60,8 @@ const EXPECTED_IMPORTS = [
     exports: [
       { name: 'upsertProjectPhotosDb', type: 'function' },
       { name: 'ensurePhotoSchema', type: 'function' },
+      { name: 'upsertPropertyPhotosDb', type: 'function' },
+      { name: 'ensurePropertyPhotoSchema', type: 'function' },
     ],
   },
 ];
