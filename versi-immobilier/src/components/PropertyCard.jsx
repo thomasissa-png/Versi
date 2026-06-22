@@ -10,6 +10,9 @@ const STATUS_CONFIG = {
 export default function PropertyCard({ property }) {
   const statusInfo = STATUS_CONFIG[property.status] || { label: property.status, className: '' };
   const hasPhoto = property.mainPhoto || property.photo;
+  // La couverture est une vue d'architecte (rendu du projet), pas une photo
+  // réelle : on le signale discrètement pour rester honnête vis-à-vis du visiteur.
+  const coverIsRender = /\/properties\/[^/]+\/photo-/.test(property.mainPhoto || '');
 
   return (
     <article className="property-card">
@@ -35,6 +38,10 @@ export default function PropertyCard({ property }) {
             </div>
           )}
         </Link>
+        {/* Mention vue d'architecte (rendu projet) — honnêteté visiteur */}
+        {hasPhoto && coverIsRender && (
+          <span className="property-card__render-badge">Vue d’architecte</span>
+        )}
         {/* Badge positionné sur le conteneur wrap, pas dans le lien */}
         <span
           className={`property-card__badge ${statusInfo.className}`}

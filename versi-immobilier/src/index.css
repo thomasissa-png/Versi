@@ -434,6 +434,47 @@ ul, ol {
   display: block;
 }
 
+/* Mention « vue d'architecte » sur les rendus (pas sur les photos « avant »). */
+.property-detail__gallery-main-wrap {
+  position: relative;
+}
+.property-detail__render-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(17, 17, 17, 0.72);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backdrop-filter: blur(2px);
+}
+.property-detail__render-note {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6b6b6b);
+  font-style: italic;
+}
+
+/* Badge carte (couverture = rendu) — version compacte. */
+.property-card__render-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  background: rgba(17, 17, 17, 0.68);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 /* Vignettes cliquables — strip horizontal sous l'image principale.
    Mobile : scroll horizontal naturel (overflow-x: auto) plutôt que wrap. */
 .property-detail__gallery-thumbs {

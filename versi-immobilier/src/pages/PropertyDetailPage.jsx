@@ -272,13 +272,24 @@ export default function PropertyDetailPage() {
                 const safeIdx = Math.min(activeIdx, photos.length - 1);
                 const main = photos[safeIdx];
                 const thumbs = photos.slice(0, 5);
+                // Les rendus (photo-NN) sont des vues d'architecte du projet ;
+                // les clichés « avant » (avant-NN) sont des photos réelles.
+                const isRender = (ph) => (ph?.filename || '').startsWith('photo-');
+                const hasRender = photos.some(isRender);
                 return (
                   <>
-                    <img
-                      src={main.url}
-                      alt={main.alt || property.title}
-                      className="property-detail__gallery-main"
-                    />
+                    <div className="property-detail__gallery-main-wrap">
+                      <img
+                        src={main.url}
+                        alt={main.alt || property.title}
+                        className="property-detail__gallery-main"
+                      />
+                      {isRender(main) && (
+                        <span className="property-detail__render-badge">
+                          Vue d’architecte
+                        </span>
+                      )}
+                    </div>
                     {photos.length > 1 && (
                       <div
                         className="property-detail__gallery-thumbs"
@@ -308,6 +319,11 @@ export default function PropertyDetailPage() {
                           );
                         })}
                       </div>
+                    )}
+                    {hasRender && (
+                      <p className="property-detail__render-note">
+                        Perspectives d’architecte du projet réhabilité - images non contractuelles.
+                      </p>
                     )}
                   </>
                 );

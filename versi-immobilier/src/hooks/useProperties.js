@@ -17,6 +17,7 @@ export function useProperties(status = 'disponible') {
       .then((data) => {
         const mapped = (data.properties || []).map((p) => ({
           ...p,
+          mainPhoto: p.cover_url || null,
           priceNum: p.price_num,
           priceNote: p.price_note,
           nearbyTransport: p.nearby_transport,

@@ -477,11 +477,11 @@ app.get('/api/public/properties', async (req, res) => {
     let result;
     if (status === 'all') {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties ORDER BY sort_order ASC, created_at DESC'
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at, (SELECT url FROM property_photos pp WHERE pp.property_id = properties.id ORDER BY sort_order ASC LIMIT 1) AS cover_url FROM properties ORDER BY sort_order ASC, created_at DESC'
       );
     } else {
       result = await pool.query(
-        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
+        'SELECT id, title, city, location, neighborhood, address, nearby_transport, nearby_amenities, type, surface, rooms, price, price_num, price_note, status, dpe, dpe_note, floor, tenancy, renovation_year, charges, description, works, features, sort_order, created_at, updated_at, (SELECT url FROM property_photos pp WHERE pp.property_id = properties.id ORDER BY sort_order ASC LIMIT 1) AS cover_url FROM properties WHERE status = $1 ORDER BY sort_order ASC, created_at DESC',
         [status]
       );
     }
