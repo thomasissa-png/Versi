@@ -636,9 +636,10 @@ export default function PropertyDetailPage() {
                 )}
 
                 {/* ── CTA dossier de pré-commercialisation ──
-                    Conservé tel quel : renvoie vers /dossier/:id (page
-                    autonome HTML + lien PDF). Affiché uniquement si le
-                    bien dispose d'un dossier riche. */}
+                    Seul le PDF (document de référence À JOUR) est proposé, plus
+                    le contact. L'ancienne page HTML /dossier/:id n'est PLUS
+                    référencée (contenu non à jour) — la route redirige vers
+                    l'annonce côté serveur. Affiché si le bien a un dossier. */}
                 {property.dossier && (
                   <div className="property-detail__dossier-cta">
                     <span className="text-label property-detail__dossier-kicker">
@@ -650,28 +651,23 @@ export default function PropertyDetailPage() {
                     <p className="text-body-md property-detail__dossier-text">
                       Plans d’architecte haute résolution, formules d’achat,
                       calendrier des travaux, repères marché, performances
-                      énergétiques - la version imprimable du dossier.
+                      énergétiques - le dossier complet en PDF.
                     </p>
-                    {/* Liens natifs (pas <Link> React) : /dossier/:id et
-                        /dossier/:id/pdf sont servis par le serveur Express,
-                        pas par le routeur SPA. Nouvel onglet pour garder
-                        l'annonce ouverte. */}
-                    <a
-                      href={`/dossier/${encodeURIComponent(property.id)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="property-detail__dossier-link"
-                    >
-                      Consulter le dossier complet →
-                    </a>
+                    {/* Lien natif : /dossier/:id/pdf servi par Express. */}
                     <a
                       href={`/dossier/${encodeURIComponent(property.id)}/pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="property-detail__dossier-link"
+                    >
+                      ↓ Télécharger le dossier (PDF)
+                    </a>
+                    <Link
+                      to={`/contact?bien=${encodeURIComponent(property.title)}&bienId=${encodeURIComponent(property.id)}`}
                       className="property-detail__dossier-link property-detail__dossier-link--secondary"
                     >
-                      Télécharger en PDF
-                    </a>
+                      Nous contacter →
+                    </Link>
                   </div>
                 )}
               </div>
@@ -738,6 +734,19 @@ export default function PropertyDetailPage() {
                   >
                     Poser vos questions
                   </Link>
+
+                  {/* Téléchargement du dossier PDF (document de référence à jour).
+                      Lien natif : /dossier/:id/pdf est servi par Express. */}
+                  {property.dossier && (
+                    <a
+                      href={`/dossier/${encodeURIComponent(property.id)}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="property-price-card__cta-download"
+                    >
+                      ↓ Télécharger le dossier (PDF)
+                    </a>
+                  )}
                 </div>
               </aside>
             </div>

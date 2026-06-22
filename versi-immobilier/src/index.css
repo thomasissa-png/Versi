@@ -672,14 +672,16 @@ ul, ol {
 
 /* Section headings */
 .property-detail__section-title {
+  margin-top: 80px;
   margin-bottom: var(--spacing-md);
 }
 
-/* Respiration au-dessus de chaque titre de section sur mobile.
-   Sur desktop le gap du layout colonne gauche gère déjà le rythme.
-   On cible aussi les sections dossier qui utilisent la même classe.
-   margin-bottom augmenté à 20px (vs 16px desktop) pour respiration
-   titre→contenu sur mobile. */
+/* Respiration au-dessus de chaque titre de section.
+   Desktop ET mobile : la colonne gauche est un simple <div> SANS gap, donc
+   le rythme entre sections vient ENTIÈREMENT du margin-top du titre suivant
+   (titres autonomes ET titres internes des sections dossier, qui partagent
+   cette classe — sur une section flex, le margin-top du 1er enfant crée bien
+   la séparation inter-sections). */
 @media (max-width: 767px) {
   .property-detail__section-title {
     margin-top: 64px;
@@ -1002,6 +1004,26 @@ ul, ol {
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin: var(--spacing-md) 0;
+}
+
+/* Téléchargement dossier PDF dans la price card — bouton contour discret. */
+.property-price-card__cta-download {
+  display: block;
+  text-align: center;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 44px;
+  line-height: 2.2;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: var(--font-size-body-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+.property-price-card__cta-download:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* === Properties page — states === */

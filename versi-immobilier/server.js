@@ -515,9 +515,21 @@ app.get('/api/public/properties/:id', async (req, res) => {
 // fichier source et on injecte uniquement un bouton « Télécharger en PDF » (masqué
 // à l'impression). Lecture fs directe = fiable, indépendant du static serving.
 const DOSSIERS_DIR = join(__dirname, 'docs', 'dossiers-sources');
+// L'ancienne page HTML « consulter en ligne » n'est plus à jour (seuls le PDF
+// et l'annonce le sont). Pour ne JAMAIS exposer un document périmé, /dossier/:id
+// redirige désormais vers l'annonce (le PDF reste accessible via /dossier/:id/pdf).
 app.get('/dossier/:id', (req, res) => {
   const id = String(req.params.id || '');
-  // Anti path-traversal : on n'autorise que [a-z0-9-]
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    return res.status(404).send('Dossier introuvable.');
+  }
+  return res.redirect(301, `/nos-biens/${id}`);
+});
+
+// Ancien rendu HTML du dossier — conservé hors-ligne (non routé) au cas où,
+// mais plus servi : la fonction n'est volontairement plus appelée.
+function _legacyRenderDossierHtml(req, res) {
+  const id = String(req.params.id || '');
   if (!/^[a-z0-9-]+$/.test(id)) {
     return res.status(404).send('Dossier introuvable.');
   }
@@ -546,7 +558,8 @@ app.get('/dossier/:id', (req, res) => {
     "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; script-src 'self' 'unsafe-inline'; frame-src https:; connect-src 'self' https:;"
   );
   return res.send(html);
-});
+}
+void _legacyRenderDossierHtml;
 
 // GET /dossier/:id/pdf — télécharge le PDF pré-généré (propre, sans en-tête
 // navigateur). Le fichier est généré par scripts/generate-dossier-pdf.mjs.
