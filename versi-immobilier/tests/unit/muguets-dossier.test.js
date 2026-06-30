@@ -53,9 +53,11 @@ describe('Muguets — Lot1 dossier riche', () => {
   test('Lot1 a un dossier JSON parsable avec toutes les clés attendues', () => {
     const d = parseDossier(lot1);
     // Clés racine attendues par PropertyDossier.jsx et docs/dossiers-sources.
+    // NB: reperesMarche est ABSENT pour Lot1 depuis le PDF juin 2026
+    // (décision fondateur). architecte est PRÉSENT (bloc Holleman).
     const expectedKeys = [
       'formules', 'surfaces', 'travaux', 'dpeProjete',
-      'reperesMarche', 'calendrier',
+      'architecte', 'calendrier',
     ];
     for (const key of expectedKeys) {
       assert.ok(
@@ -70,8 +72,10 @@ describe('Muguets — Lot1 dossier riche', () => {
     assert.ok(d.surfaces.length > 0, 'Lot1.dossier.surfaces non vide');
     assert.ok(d.travaux && typeof d.travaux === 'object', 'Lot1.dossier.travaux objet');
     assert.ok(d.dpeProjete && d.dpeProjete.classe, 'Lot1.dossier.dpeProjete.classe requis');
-    assert.ok(d.reperesMarche && Array.isArray(d.reperesMarche.rows), 'Lot1.dossier.reperesMarche.rows array');
+    assert.ok(d.architecte && d.architecte.texte, 'Lot1.dossier.architecte.texte requis');
     assert.ok(Array.isArray(d.calendrier), 'Lot1.dossier.calendrier array');
+    // Lot 1 : reperesMarche supprimé du PDF juin 2026
+    assert.ok(!('reperesMarche' in d), 'Lot1.dossier.reperesMarche doit être absent (PDF juin 2026)');
   });
 });
 

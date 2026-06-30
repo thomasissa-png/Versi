@@ -500,7 +500,7 @@ app.get('/api/public/properties/:id', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Bien non trouvé' });
     }
     const photosResult = await pool.query(
-      'SELECT id, url, alt, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
+      'SELECT id, url, alt, render, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
       [req.params.id]
     );
     return res.json({ property: propResult.rows[0], photos: photosResult.rows });
@@ -899,7 +899,7 @@ app.delete('/api/admin/properties/:id', checkAdminAuth, async (req, res) => {
 app.get('/api/admin/properties/:id/photos', checkAdminAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, url, alt, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
+      'SELECT id, url, alt, render, data, filename, mime_type, size_bytes, sort_order, created_at FROM property_photos WHERE property_id = $1 ORDER BY sort_order ASC',
       [req.params.id]
     );
     return res.json({ photos: result.rows });

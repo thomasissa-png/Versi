@@ -239,6 +239,18 @@ export function FormulesSection({ formules }) {
   );
 }
 
+// 5bis. Architecte ------------------------------------------------------------
+// Bloc sobre rendu après Formules, fidèle au PDF "Une architecte sur tout
+// le projet" (Louise Holleman, HOLLEMAN INTERIORS).
+export function ArchitecteSection({ architecte }) {
+  if (!architecte || !architecte.texte) return null;
+  return (
+    <Section title={architecte.titre || 'Une architecte sur tout le projet.'}>
+      <p className="text-body-md property-dossier__intro">{architecte.texte}</p>
+    </Section>
+  );
+}
+
 // 6. Repères marché -----------------------------------------------------------
 export function ReperesMarcheSection({ reperesMarche }) {
   if (!reperesMarche || !reperesMarche.rows || reperesMarche.rows.length === 0) return null;
@@ -335,6 +347,7 @@ export default function PropertyDossier({ dossier }) {
     planCaption,
     surfaces,
     formules,
+    architecte,
     travaux,
     etatActuel,
     dpeProjete,
@@ -348,6 +361,7 @@ export default function PropertyDossier({ dossier }) {
     <div className="property-dossier">
       <PlanSection planImage={planImage} planCaption={planCaption} surfaces={surfaces} />
       <FormulesSection formules={formules} />
+      <ArchitecteSection architecte={architecte} />
       <TravauxSection travaux={travaux} />
       <EtatActuelSection etatActuel={etatActuel} />
       <DpeSection dpeProjete={dpeProjete} />

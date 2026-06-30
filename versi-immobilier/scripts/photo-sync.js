@@ -79,8 +79,8 @@ export async function upsertPropertyPhotosDb(client, propertyId, photos) {
   for (const photo of photos) {
     await client.query(
       `INSERT INTO property_photos
-         (property_id, url, alt, filename, mime_type, size_bytes, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         (property_id, url, alt, filename, mime_type, size_bytes, sort_order, render)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         safeId,
         photo.url,
@@ -89,6 +89,7 @@ export async function upsertPropertyPhotosDb(client, propertyId, photos) {
         photo.mime_type,
         photo.size_bytes,
         photo.sort_order,
+        photo.render !== false,
       ],
     );
   }
@@ -102,6 +103,8 @@ export async function upsertPropertyPhotosDb(client, propertyId, photos) {
 export async function ensurePropertyPhotoSchema(client) {
   await client.query(`ALTER TABLE property_photos ADD COLUMN IF NOT EXISTS url TEXT`);
   await client.query(`ALTER TABLE property_photos ADD COLUMN IF NOT EXISTS alt TEXT`);
+  // render = true → vue d'architecte (rendu 3D, badge) ; false → photo réelle.
+  await client.query(`ALTER TABLE property_photos ADD COLUMN IF NOT EXISTS render BOOLEAN DEFAULT true`);
   await client.query(`
     DO $$ BEGIN
       ALTER TABLE property_photos ALTER COLUMN data DROP NOT NULL;

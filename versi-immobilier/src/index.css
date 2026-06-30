@@ -793,6 +793,60 @@ ul, ol {
   border-top: 1px solid var(--color-border);
 }
 
+/* Grille des POI - calque du PDF (juin 2026) : 7 points numérotés. */
+.property-detail__pois {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-lg) 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md) var(--spacing-xl);
+}
+
+@media (max-width: 767px) {
+  .property-detail__pois {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+}
+
+.property-detail__poi {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+}
+
+.property-detail__poi-num {
+  flex: 0 0 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.property-detail__poi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.property-detail__poi-nom {
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+}
+
+.property-detail__poi-detail {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
 @media (max-width: 767px) {
   .property-detail__location-grid {
     grid-template-columns: 1fr;

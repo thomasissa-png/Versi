@@ -21,6 +21,7 @@ import {
   EtatActuelSection,
   DpeSection,
   FormulesSection,
+  ArchitecteSection,
   ReperesMarcheSection,
   APrevoirSection,
   CalendrierSection,
@@ -271,10 +272,13 @@ export default function PropertyDetailPage() {
               {photos.length > 0 ? (() => {
                 const safeIdx = Math.min(activeIdx, photos.length - 1);
                 const main = photos[safeIdx];
-                const thumbs = photos.slice(0, 5);
-                // Les rendus (photo-NN) sont des vues d'architecte du projet ;
-                // les clichés « avant » (avant-NN) sont des photos réelles.
-                const isRender = (ph) => (ph?.filename || '').startsWith('photo-');
+                const thumbs = photos.slice(0, 6);
+                // Le badge « Vue d'architecte » suit le flag `render` de la BDD :
+                // true = rendu 3D (badge), false = photo réelle (façade, avant).
+                // Fallback filename si le flag n'est pas remonté (anciennes lignes).
+                const isRender = (ph) =>
+                  ph?.render === true || ph?.render === 'true' ||
+                  (ph?.render == null && (ph?.filename || '').startsWith('photo-'));
                 const hasRender = photos.some(isRender);
                 return (
                   <>
@@ -450,6 +454,23 @@ export default function PropertyDetailPage() {
                           {p}
                         </p>
                       ))}
+                      {/* Grille des 7 POI fidèle au PDF (juin 2026) : on
+                          n'affiche le bloc que si pois[] est présent. */}
+                      {Array.isArray(dossier.emplacement.pois) && dossier.emplacement.pois.length > 0 && (
+                        <ul className="property-detail__pois">
+                          {dossier.emplacement.pois.map((poi) => (
+                            <li key={poi.n} className="property-detail__poi">
+                              <span className="property-detail__poi-num" aria-hidden="true">{poi.n}</span>
+                              <span className="property-detail__poi-body">
+                                <span className="property-detail__poi-nom">{poi.nom}</span>
+                                {poi.detail && (
+                                  <span className="property-detail__poi-detail">{poi.detail}</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <div className="property-detail__location-grid">
                         {['adresse', 'transports', 'proximite'].map((slot) => {
                           const item = dossier.emplacement[slot];
@@ -569,6 +590,13 @@ export default function PropertyDetailPage() {
                 {/* ── 8. Les deux formules (dossier uniquement) ──
                     Intro + brut + prêt-à-habiter + garanties */}
                 {dossier && <FormulesSection formules={dossier.formules} />}
+
+                {/* ── 8bis. Architecte (dossier uniquement) ──
+                    Bloc "Une architecte sur tout le projet" (Louise Holleman,
+                    HOLLEMAN INTERIORS). Rendu après Formules, avant Repères. */}
+                {dossier?.architecte && (
+                  <ArchitecteSection architecte={dossier.architecte} />
+                )}
 
                 {/* ── 9. Repères marché (dossier uniquement) ──
                     Intro + tableau de comparables + conclusion */}
