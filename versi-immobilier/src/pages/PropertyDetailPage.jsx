@@ -454,35 +454,32 @@ export default function PropertyDetailPage() {
                           {p}
                         </p>
                       ))}
-                      {/* Carte avec pins numérotés (alignée avec la grille des 7 POI ci-dessous).
-                          Remplace l'ancienne iframe OpenStreetMap qui n'avait aucun pin
-                          et créait un mismatch total avec la légende numérotée. */}
-                      {dossier.emplacement.carte && (
-                        <figure className="property-detail__map-figure">
-                          <img
-                            src={dossier.emplacement.carte}
-                            alt="Plan du quartier avec emplacements numérotés 1 à 7"
-                            className="property-detail__map-image"
+                      {/* Carte OpenStreetMap interactive (sobre, taille maîtrisée),
+                          marqueur sur le bien. Les points de proximité sont listés
+                          en dessous, en texte (sans numérotation). */}
+                      {(() => {
+                        const lat = 50.6150;
+                        const lng = 3.0580;
+                        const bbox = `${lng - 0.006},${lat - 0.0035},${lng + 0.006},${lat + 0.0035}`;
+                        return (
+                          <iframe
+                            title="Carte de l'emplacement - 10 rue des Muguets, Lille"
+                            className="property-detail__map"
                             loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`}
                           />
-                          <figcaption className="text-body-sm property-detail__map-caption">
-                            Plan du quartier - emplacements numérotés
-                          </figcaption>
-                        </figure>
-                      )}
-                      {/* Grille des 7 POI fidèle au PDF (juin 2026) : on
-                          n'affiche le bloc que si pois[] est présent. */}
+                        );
+                      })()}
+                      {/* À proximité : points d'intérêt en texte, SANS numéros. */}
                       {Array.isArray(dossier.emplacement.pois) && dossier.emplacement.pois.length > 0 && (
-                        <ul className="property-detail__pois">
+                        <ul className="property-detail__proximite">
                           {dossier.emplacement.pois.map((poi) => (
-                            <li key={poi.n} className="property-detail__poi">
-                              <span className="property-detail__poi-num" aria-hidden="true">{poi.n}</span>
-                              <span className="property-detail__poi-body">
-                                <span className="property-detail__poi-nom">{poi.nom}</span>
-                                {poi.detail && (
-                                  <span className="property-detail__poi-detail">{poi.detail}</span>
-                                )}
-                              </span>
+                            <li key={poi.nom} className="property-detail__proximite-item">
+                              <span className="property-detail__proximite-nom">{poi.nom}</span>
+                              {poi.detail && (
+                                <span className="property-detail__proximite-detail">{poi.detail}</span>
+                              )}
                             </li>
                           ))}
                         </ul>
