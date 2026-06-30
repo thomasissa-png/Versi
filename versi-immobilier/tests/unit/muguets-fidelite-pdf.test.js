@@ -300,18 +300,19 @@ function assertLot1SansRepereMarche(d) {
 }
 
 // -----------------------------------------------------------------------------
-// Garde-fou conflit Lot 1 : extérieur 15 m² hors plan, 10 m² dans plan
+// Garde-fou Lot 1 : extérieur 15 m² PARTOUT (décision fondateur — le « 10 m² »
+// du plan PDF était une coquille, corrigé en 15 sur tous les champs).
 // -----------------------------------------------------------------------------
-function assertLot1ConflitExterieur(d) {
+function assertLot1Exterieur15(d) {
   const ficheExt = d.ficheTechnique.find((f) => f.label === 'Extérieur');
   assert.ok(
     ficheExt && ficheExt.value.includes('15'),
-    `Lot 1 : ficheTechnique.Extérieur doit valoir "15 m² privatif" (décision fondateur).`
+    `Lot 1 : ficheTechnique.Extérieur doit valoir "15 m² privatif".`
   );
   const surfaceExt = d.surfaces.find((s) => /extérieur/i.test(s.piece));
   assert.ok(
-    surfaceExt && surfaceExt.aire.includes('10'),
-    `Lot 1 : surfaces[Extérieur privatif].aire doit valoir "10 m²" (fidélité au plan PDF).`
+    surfaceExt && surfaceExt.aire.includes('15') && !surfaceExt.aire.includes('10'),
+    `Lot 1 : surfaces[Extérieur privatif].aire doit valoir "15 m²" (15 partout).`
   );
 }
 
@@ -327,8 +328,8 @@ describe('Muguets - fidélité PDF <-> JSON (Lot 1 RDC)', () => {
     assertLot1SansRepereMarche(dossier1);
   });
 
-  test('Lot 1 : conflit extérieur tranché (15 m² fiche / 10 m² plan)', () => {
-    assertLot1ConflitExterieur(dossier1);
+  test('Lot 1 : extérieur 15 m² partout (décision fondateur)', () => {
+    assertLot1Exterieur15(dossier1);
   });
 });
 

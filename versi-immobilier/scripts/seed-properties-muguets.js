@@ -35,7 +35,7 @@ const PROPERTIES = [
     tenancy: 'Libre',
     renovation_year: null,
     charges: '~ 60 €/mois (estimation indicative)',
-    description: `C'est le seul appartement de l'immeuble avec un espace extérieur privatif : 10 m² de plain-pied avec le séjour, sans vis-à-vis. Rez-de-chaussée, accès direct.
+    description: `C'est le seul appartement de l'immeuble avec un espace extérieur privatif : 15 m² de plain-pied avec le séjour, sans vis-à-vis. Rez-de-chaussée, accès direct.
 
 Le séjour-cuisine de 26 m² est lumineux et ouvre sur l'extérieur sans marche, sans seuil. L'été, on pose la table dehors et on mange à l'air libre. L'hiver, la lumière traverse le séjour toute la journée. La chambre de 10,2 m² donne côté cour, au calme. Chauffage individuel, pas de charge d'ascenseur. Place de parking extérieur sécurisé (accès par double porte) comprise dans le prix.
 
@@ -44,7 +44,7 @@ L'immeuble est un ancien bâtiment de bureaux que Versi transforme en 3 logement
 Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
     works: JSON.stringify([]),
     features: JSON.stringify([
-      'Espace extérieur privatif 10 m², de plain-pied',
+      'Espace extérieur privatif 15 m², de plain-pied',
       'Séjour-cuisine 26 m² lumineux, ouvert sur l\'extérieur',
       'Chambre 10,2 m² côté cour',
       'Parquet chêne, menuiseries double vitrage',
@@ -55,7 +55,6 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
       tagline: 'Lille · Lille-Sud (quartier des fleurs)',
       hook: "Un séjour traversant qui s'ouvre de plain-pied sur 15 m² d'extérieur privatif. Une chambre au calme, en cœur de plan. Une place de parking sécurisée. Au rez-de-chaussée d'un ancien immeuble de bureaux que Versi réhabilite entièrement.",
       intro: "Au rez-de-chaussée du 10 rue des Muguets - un ancien immeuble de bureaux que Versi réhabilite entièrement. Livraison octobre 2026.",
-      // [CONFLIT PDF s35 : extérieur 15 m² (titre) vs 10 m² (plan) - fondateur a confirmé 15 hors plan]
       ficheTechnique: [
         { label: 'Type', value: 'T2' },
         { label: 'Surface', value: '47 m²' },
@@ -108,7 +107,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         { piece: 'Salle d’eau', aire: '5,9 m²' },
         { piece: 'Chambre', aire: '10,2 m²' },
         { piece: 'Séjour-cuisine', aire: '26 m²' },
-        { piece: 'Extérieur privatif', aire: '10 m²' },
+        { piece: 'Extérieur privatif', aire: '15 m²' },
       ],
       caracteristiques: [
         'Parquet',
