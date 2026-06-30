@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-21",
+  "generated_at": "2026-06-22",
   "properties": {
     "muguets-lot-1-rdc": {
       "photos": [
@@ -7,55 +7,71 @@
           "url": "/properties/muguets-lot-1-rdc/photo-01.jpeg",
           "filename": "photo-01.jpeg",
           "alt": "Séjour-cuisine ouvert sur l’extérieur",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
-          "size_bytes": 201200
+          "size_bytes": 314122
         },
         {
           "url": "/properties/muguets-lot-1-rdc/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "alt": "Extérieur privatif de plain-pied",
+          "alt": "Extérieur privatif",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 293583
+          "size_bytes": 387926
         },
         {
           "url": "/properties/muguets-lot-1-rdc/photo-03.jpeg",
           "filename": "photo-03.jpeg",
-          "alt": "Coin repas du séjour-cuisine",
+          "alt": "Chambre",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 2,
-          "size_bytes": 201200
+          "size_bytes": 117826
         },
         {
           "url": "/properties/muguets-lot-1-rdc/photo-04.jpeg",
           "filename": "photo-04.jpeg",
-          "alt": "Chambre côté cour",
+          "alt": "Salle d’eau",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 3,
-          "size_bytes": 141200
+          "size_bytes": 124045
         },
         {
           "url": "/properties/muguets-lot-1-rdc/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Salle d’eau carrelée",
+          "alt": "Façade - 10 rue des Muguets",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 4,
-          "size_bytes": 147810
+          "size_bytes": 190613
+        },
+        {
+          "url": "/properties/muguets-lot-1-rdc/photo-06.jpeg",
+          "filename": "photo-06.jpeg",
+          "alt": "Place de parking privative",
+          "render": true,
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 5,
+          "size_bytes": 314302
         },
         {
           "url": "/properties/muguets-lot-1-rdc/avant-01.jpeg",
           "filename": "avant-01.jpeg",
-          "alt": "Avant — bureaux d’origine",
+          "alt": "Avant - bureaux d’origine",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "avant",
-          "sort_order": 5,
-          "size_bytes": 10909
+          "sort_order": 6,
+          "size_bytes": 12616
         }
       ]
     },
@@ -64,56 +80,72 @@
         {
           "url": "/properties/muguets-lot-2-t3/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "alt": "Séjour-cuisine traversant 40,5 m²",
+          "alt": "Séjour-cuisine traversant",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
-          "size_bytes": 213429
+          "size_bytes": 307522
         },
         {
           "url": "/properties/muguets-lot-2-t3/photo-02.jpeg",
           "filename": "photo-02.jpeg",
-          "alt": "Coin repas et cuisine",
+          "alt": "Salle à manger",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 213429
+          "size_bytes": 140631
         },
         {
           "url": "/properties/muguets-lot-2-t3/photo-03.jpeg",
           "filename": "photo-03.jpeg",
           "alt": "Chambre principale",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 2,
-          "size_bytes": 140631
+          "size_bytes": 141839
         },
         {
           "url": "/properties/muguets-lot-2-t3/photo-04.jpeg",
           "filename": "photo-04.jpeg",
-          "alt": "Seconde chambre",
+          "alt": "Entrée & salle d’eau",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 3,
-          "size_bytes": 84676
+          "size_bytes": 93701
         },
         {
           "url": "/properties/muguets-lot-2-t3/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Salle de bains",
+          "alt": "Façade - 10 rue des Muguets",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 4,
-          "size_bytes": 88839
+          "size_bytes": 190613
+        },
+        {
+          "url": "/properties/muguets-lot-2-t3/photo-06.jpeg",
+          "filename": "photo-06.jpeg",
+          "alt": "Place de parking privative",
+          "render": true,
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 5,
+          "size_bytes": 314302
         },
         {
           "url": "/properties/muguets-lot-2-t3/avant-01.jpeg",
           "filename": "avant-01.jpeg",
-          "alt": "Avant — plateau de bureaux",
+          "alt": "Avant - plateau de bureaux",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "avant",
-          "sort_order": 5,
-          "size_bytes": 25289
+          "sort_order": 6,
+          "size_bytes": 29865
         }
       ]
     },
@@ -122,56 +154,72 @@
         {
           "url": "/properties/muguets-lot-3-duplex/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "alt": "Séjour sous plafond cathédrale",
+          "alt": "Séjour sous plafond cathédrale et escalier",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 0,
-          "size_bytes": 232324
+          "size_bytes": 208528
         },
         {
           "url": "/properties/muguets-lot-3-duplex/photo-02.jpeg",
           "filename": "photo-02.jpeg",
           "alt": "Terrasse privative plein ciel",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 1,
-          "size_bytes": 314251
+          "size_bytes": 189774
         },
         {
           "url": "/properties/muguets-lot-3-duplex/photo-03.jpeg",
           "filename": "photo-03.jpeg",
-          "alt": "Chambre avec vue",
+          "alt": "Chambre ouverte sur la terrasse",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 2,
-          "size_bytes": 75321
+          "size_bytes": 252029
         },
         {
           "url": "/properties/muguets-lot-3-duplex/photo-04.jpeg",
           "filename": "photo-04.jpeg",
-          "alt": "Cuisine et coin repas",
+          "alt": "Salle d’eau",
+          "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 3,
-          "size_bytes": 232324
+          "size_bytes": 132641
         },
         {
           "url": "/properties/muguets-lot-3-duplex/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Salle de bains",
+          "alt": "Façade - 10 rue des Muguets",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "apres",
           "sort_order": 4,
-          "size_bytes": 165762
+          "size_bytes": 190613
+        },
+        {
+          "url": "/properties/muguets-lot-3-duplex/photo-06.jpeg",
+          "filename": "photo-06.jpeg",
+          "alt": "Place de parking privative",
+          "render": true,
+          "mime_type": "image/jpeg",
+          "category": "apres",
+          "sort_order": 5,
+          "size_bytes": 314302
         },
         {
           "url": "/properties/muguets-lot-3-duplex/avant-01.jpeg",
           "filename": "avant-01.jpeg",
-          "alt": "Avant — plateau brut",
+          "alt": "Avant - plateau brut",
+          "render": false,
           "mime_type": "image/jpeg",
           "category": "avant",
-          "sort_order": 5,
-          "size_bytes": 383940
+          "sort_order": 6,
+          "size_bytes": 124503
         }
       ]
     }
