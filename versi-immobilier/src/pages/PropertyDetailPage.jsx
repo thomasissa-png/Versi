@@ -454,6 +454,22 @@ export default function PropertyDetailPage() {
                           {p}
                         </p>
                       ))}
+                      {/* Carte avec pins numérotés (alignée avec la grille des 7 POI ci-dessous).
+                          Remplace l'ancienne iframe OpenStreetMap qui n'avait aucun pin
+                          et créait un mismatch total avec la légende numérotée. */}
+                      {dossier.emplacement.carte && (
+                        <figure className="property-detail__map-figure">
+                          <img
+                            src={dossier.emplacement.carte}
+                            alt="Plan du quartier avec emplacements numérotés 1 à 7"
+                            className="property-detail__map-image"
+                            loading="lazy"
+                          />
+                          <figcaption className="text-body-sm property-detail__map-caption">
+                            Plan du quartier - emplacements numérotés
+                          </figcaption>
+                        </figure>
+                      )}
                       {/* Grille des 7 POI fidèle au PDF (juin 2026) : on
                           n'affiche le bloc que si pois[] est présent. */}
                       {Array.isArray(dossier.emplacement.pois) && dossier.emplacement.pois.length > 0 && (
@@ -471,27 +487,6 @@ export default function PropertyDetailPage() {
                           ))}
                         </ul>
                       )}
-                      <div className="property-detail__location-grid">
-                        {['adresse', 'transports', 'proximite'].map((slot) => {
-                          const item = dossier.emplacement[slot];
-                          if (!item || !item.value) return null;
-                          return (
-                            <div key={slot} className="property-detail__location-item">
-                              <span className="text-label property-detail__location-item-label">
-                                {item.label}
-                              </span>
-                              <span className="property-detail__location-item-value">
-                                {item.value}
-                              </span>
-                              {item.note && (
-                                <span className="property-detail__location-item-note">
-                                  {item.note}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
                     </>
                   ) : (
                     <>
@@ -513,21 +508,6 @@ export default function PropertyDetailPage() {
                       )}
                     </>
                   )}
-                  {/* Carte OpenStreetMap - coordonnées 10 rue des Muguets */}
-                  {property.address && /muguets/i.test(property.address) && (() => {
-                    const lat = 50.6150;
-                    const lng = 3.0580;
-                    const bbox = `${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}`;
-                    return (
-                      <iframe
-                        title="Carte de l'emplacement"
-                        className="property-detail__map"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`}
-                      />
-                    );
-                  })()}
                 </div>
 
                 {/* ── 2. Le bien ── */}

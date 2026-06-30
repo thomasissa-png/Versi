@@ -83,7 +83,69 @@ export function TravauxSection({ travaux }) {
 
 // 3. État actuel et projet ----------------------------------------------------
 export function EtatActuelSection({ etatActuel }) {
-  if (!etatActuel || (!etatActuel.avantImage && !etatActuel.intro)) return null;
+  if (
+    !etatActuel ||
+    (!etatActuel.avantImage && !etatActuel.intro && !Array.isArray(etatActuel.paires))
+  )
+    return null;
+
+  // Nouveau format : grille de paires avant/après alignées par pièce.
+  // Une ligne = label (à gauche) + image AVANT (État actuel) + image APRÈS (Projet livré).
+  if (Array.isArray(etatActuel.paires) && etatActuel.paires.length > 0) {
+    return (
+      <Section title="État actuel et projet livré.">
+        {etatActuel.intro && (
+          <p className="text-body-md property-dossier__intro">{etatActuel.intro}</p>
+        )}
+        <div
+          className="property-dossier__paires"
+          role="list"
+          aria-label="Comparaison avant / après par pièce"
+        >
+          <div className="property-dossier__paires-head" aria-hidden="true">
+            <span className="text-label property-dossier__paires-head-label">Pièce</span>
+            <span className="text-label property-dossier__paires-head-label">État actuel</span>
+            <span className="text-label property-dossier__paires-head-label">Projet livré</span>
+          </div>
+          {etatActuel.paires.map((paire, i) => (
+            <div
+              key={`${paire.label}-${i}`}
+              className="property-dossier__paire"
+              role="listitem"
+            >
+              <h3 className="text-body-md property-dossier__paire-label">
+                {paire.label}
+              </h3>
+              <figure className="property-dossier__paire-avant">
+                <img
+                  src={paire.avant}
+                  alt={`${paire.label} - état actuel avant travaux`}
+                  className="property-dossier__paire-image"
+                  loading="lazy"
+                />
+                <figcaption className="text-body-sm property-dossier__paire-caption">
+                  État actuel
+                </figcaption>
+              </figure>
+              <figure className="property-dossier__paire-apres">
+                <img
+                  src={paire.apres}
+                  alt={`${paire.label} - projet livré`}
+                  className="property-dossier__paire-image"
+                  loading="lazy"
+                />
+                <figcaption className="text-body-sm property-dossier__paire-caption">
+                  Projet livré
+                </figcaption>
+              </figure>
+            </div>
+          ))}
+        </div>
+      </Section>
+    );
+  }
+
+  // Fallback ancien format (avantImage / projetImage).
   return (
     <Section title="État actuel et projet.">
       {etatActuel.intro && (

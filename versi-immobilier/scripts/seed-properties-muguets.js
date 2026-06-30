@@ -3,11 +3,8 @@
 import pg from 'pg';
 import {
   LOT1_PLAN,
-  LOT1_AVANT,
   LOT2_PLAN,
-  LOT2_AVANT,
   LOT3_PLAN,
-  LOT3_AVANT,
 } from './dossier-images.js';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -64,6 +61,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         { label: 'Disponibilité', value: 'Oct. 2026' },
       ],
       emplacement: {
+        carte: '/properties/muguets-lot-1-rdc/emplacement-carte.jpeg',
         prose: [
           "Le 10 rue des Muguets se situe entre le quartier des fleurs - résidentiel et paisible - et le CHU de Lille, dans un secteur en mutation depuis l'ouverture de Lillenium en 2020.",
           "Zone résidentielle calme, en pleine mutation depuis l'ouverture de Lillenium en 2020. Le centre commercial est à 7 minutes à pied ; le métro Porte des Postes - lignes 1 et 2, direct vers Lille-Flandres et le centre - à 12 minutes.",
@@ -139,10 +137,23 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         ],
       },
       etatActuel: {
-        avantImage: LOT1_AVANT,
-        avantCaption: 'Séjour-cuisine',
-        projetImage: '/properties/muguets-lot-1-rdc/photo-01.jpeg',
-        projetCaption: "Projet livré - séjour-cuisine ouvert sur l'extérieur privatif.",
+        paires: [
+          {
+            label: 'Séjour-cuisine',
+            avant: '/properties/muguets-lot-1-rdc/etat-1-avant.jpeg',
+            apres: '/properties/muguets-lot-1-rdc/etat-1-apres.jpeg',
+          },
+          {
+            label: 'Extérieur privatif',
+            avant: '/properties/muguets-lot-1-rdc/etat-2-avant.jpeg',
+            apres: '/properties/muguets-lot-1-rdc/etat-2-apres.jpeg',
+          },
+          {
+            label: "Salle d'eau",
+            avant: '/properties/muguets-lot-1-rdc/etat-3-avant.jpeg',
+            apres: '/properties/muguets-lot-1-rdc/etat-3-apres.jpeg',
+          },
+        ],
       },
       dpeProjete: {
         classe: 'B',
@@ -250,6 +261,7 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         { label: 'Disponibilité', value: 'Oct. 2026' },
       ],
       emplacement: {
+        carte: '/properties/muguets-lot-2-t3/emplacement-carte.jpeg',
         prose: [
           "Le 10 rue des Muguets se situe entre le quartier des fleurs - résidentiel et paisible - et le CHU de Lille, dans un secteur en mutation depuis l'ouverture de Lillenium en 2020.",
           "Zone résidentielle calme, en pleine mutation depuis l'ouverture de Lillenium en 2020. Le centre commercial est à 7 minutes à pied ; le métro Porte des Postes - lignes 1 et 2, direct vers Lille-Flandres et le centre - à 12 minutes.",
@@ -326,10 +338,23 @@ Pour visiter ou recevoir le dossier complet du bien, contactez-nous.`,
         ],
       },
       etatActuel: {
-        avantImage: LOT2_AVANT,
-        avantCaption: 'Séjour-cuisine',
-        projetImage: '/properties/muguets-lot-2-t3/photo-01.jpeg',
-        projetCaption: 'Projet livré - séjour-cuisine traversant 40,5 m².',
+        paires: [
+          {
+            label: 'Séjour-cuisine',
+            avant: '/properties/muguets-lot-2-t3/etat-1-avant.jpeg',
+            apres: '/properties/muguets-lot-2-t3/etat-1-apres.jpeg',
+          },
+          {
+            label: 'Chambre principale',
+            avant: '/properties/muguets-lot-2-t3/etat-2-avant.jpeg',
+            apres: '/properties/muguets-lot-2-t3/etat-2-apres.jpeg',
+          },
+          {
+            label: 'Seconde chambre',
+            avant: '/properties/muguets-lot-2-t3/etat-3-avant.jpeg',
+            apres: '/properties/muguets-lot-2-t3/etat-3-apres.jpeg',
+          },
+        ],
       },
       dpeProjete: {
         classe: 'B',
@@ -446,6 +471,7 @@ Pour visiter le duplex ou recevoir le dossier complet, contactez-nous.`,
         { label: 'Disponibilité', value: 'Oct. 2026' },
       ],
       emplacement: {
+        carte: '/properties/muguets-lot-3-duplex/emplacement-carte.jpeg',
         prose: [
           "Le 10 rue des Muguets se situe entre le quartier des fleurs - résidentiel et paisible - et le CHU de Lille, dans un secteur en mutation depuis l'ouverture de Lillenium en 2020.",
           "Zone résidentielle calme, en pleine mutation depuis l'ouverture de Lillenium en 2020. Le centre commercial est à 7 minutes à pied ; le métro Porte des Postes - lignes 1 et 2, direct vers Lille-Flandres et le centre - à 12 minutes.",
@@ -525,10 +551,23 @@ Pour visiter le duplex ou recevoir le dossier complet, contactez-nous.`,
         ],
       },
       etatActuel: {
-        avantImage: LOT3_AVANT,
-        avantCaption: 'Séjour-cuisine',
-        projetImage: '/properties/muguets-lot-3-duplex/photo-01.jpeg',
-        projetCaption: 'Projet livré - séjour sous plafond cathédrale.',
+        paires: [
+          {
+            label: 'Séjour double hauteur',
+            avant: '/properties/muguets-lot-3-duplex/etat-1-avant.jpeg',
+            apres: '/properties/muguets-lot-3-duplex/etat-1-apres.jpeg',
+          },
+          {
+            label: 'Mezzanine',
+            avant: '/properties/muguets-lot-3-duplex/etat-2-avant.jpeg',
+            apres: '/properties/muguets-lot-3-duplex/etat-2-apres.jpeg',
+          },
+          {
+            label: 'Terrasse privative',
+            avant: '/properties/muguets-lot-3-duplex/etat-3-avant.jpeg',
+            apres: '/properties/muguets-lot-3-duplex/etat-3-apres.jpeg',
+          },
+        ],
       },
       dpeProjete: {
         classe: 'B',
