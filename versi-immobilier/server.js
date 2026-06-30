@@ -2119,6 +2119,12 @@ async function upsertLilleProjects(client) {
     await upsertProjectPhotosDb(client, p.id, photos);
     console.log(`[lille-projects] "${p.id}" : ${photos.length} photos URL-only (manifest).`);
   }
+  // Cleanup : « Friedland 2ème droite » retiré du catalogue (décision fondateur).
+  // Supprime la ligne héritée en base ; project_photos suit en ON DELETE CASCADE.
+  const delDroite = await client.query("DELETE FROM projects WHERE id = 'friedland-2eme-droite' RETURNING id");
+  if (delDroite.rowCount > 0) {
+    console.log('[lille-projects] friedland-2eme-droite retiré (1 projet supprimé).');
+  }
   console.log(`[lille-projects] ${LILLE_PROJECTS.length} projets Lille upsertés (Friedland + Prieuré).`);
 }
 

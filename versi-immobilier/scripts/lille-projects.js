@@ -32,39 +32,7 @@ function readManifest() {
 // ────────────────────────────────────────────────────────────────────────────
 
 export const LILLE_PROJECTS = [
-  // ─── FRIEDLAND (2 apparts 2ème étage rénovés, photos dispo) ────────────
-  {
-    id: 'friedland-2eme-droite',
-    title: 'Friedland — 2ème droite, T2 45 m²',
-    city: 'Lille',
-    type: 'Rénovation complète T2 45 m² dans immeuble de rapport 6 lots',
-    surface: '45 m²',
-    units: 1,
-    status: 'completed',
-    buy_price: null,
-    works_amount: null,
-    sell_price: '135 000 €',
-    offer_delay: null,
-    signature_delay: null,
-    duration: null,
-    description: `T2 de 45 m² au deuxième étage du 2 rue de Friedland à Lille. Rénovation complète : chambre, séjour, cuisine, salle de bain, couloir. Immeuble de 280 m² acquis en septembre 2016 par la SCI MMM (IS), six lots au total — kinésithérapeute et restaurant au rez-de-chaussée, quatre appartements aux étages. Trois appartements sur quatre rénovés et loués à ce jour.
-
-Prix de revente estimé à la découpe : 135 000 €. Loyer mensuel charges comprises : 720 €. Rentabilité brute de l’immeuble : 14,4 % (prix d’acquisition 336 000 € + frais de notaire 24 443 €).`,
-    featured: false,
-    sort_order: 10,
-    photos: {
-      scanDir: 'rue-de-friedland/2ème Droite',
-      apresFiles: [
-        { file: 'Cuisine après rénovation - louée.jpeg', sort: 0 },
-        { file: 'Chambre après rénovation.JPG', sort: 1 },
-      ],
-      avantFiles: [
-        { file: 'Séjour avant rénovation.JPG', sort: 0 },
-        { file: 'Cuisine avant rénovation.JPG', sort: 1 },
-        { file: 'Chambre avant rénovation.JPG', sort: 2 },
-      ],
-    },
-  },
+  // ─── FRIEDLAND (2ème gauche rénové, photos dispo) ────────────
   {
     id: 'friedland-2eme-gauche',
     title: 'Friedland — 2ème gauche, T2 35 m²',

@@ -60,56 +60,6 @@
         }
       ]
     },
-    "friedland-2eme-droite": {
-      "hero": "/projects/friedland-2eme-droite/photo-01.jpeg",
-      "photos": [
-        {
-          "url": "/projects/friedland-2eme-droite/photo-01.jpeg",
-          "filename": "photo-01.jpeg",
-          "original_filename": "Cuisine après rénovation - louée.jpeg",
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 0,
-          "size_bytes": 329131
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/photo-02.jpeg",
-          "filename": "photo-02.jpeg",
-          "original_filename": "Chambre après rénovation.JPG",
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 1,
-          "size_bytes": 361948
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/avant-01.jpeg",
-          "filename": "avant-01.jpeg",
-          "original_filename": "Séjour avant rénovation.JPG",
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 0,
-          "size_bytes": 158934
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/avant-02.jpeg",
-          "filename": "avant-02.jpeg",
-          "original_filename": "Cuisine avant rénovation.JPG",
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 1,
-          "size_bytes": 210250
-        },
-        {
-          "url": "/projects/friedland-2eme-droite/avant-03.jpeg",
-          "filename": "avant-03.jpeg",
-          "original_filename": "Chambre avant rénovation.JPG",
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 2,
-          "size_bytes": 145826
-        }
-      ]
-    },
     "friedland-2eme-gauche": {
       "hero": "/projects/friedland-2eme-gauche/photo-01.jpeg",
       "photos": [
