@@ -427,11 +427,12 @@ ul, ol {
 
 /* Gallery */
 .property-detail__gallery-main {
-  height: 420px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   border-radius: var(--card-radius);
   object-fit: cover;
-  width: 100%;
   display: block;
+  background: var(--color-surface, #f1ede7);
 }
 
 /* Mention « vue d'architecte » sur les rendus (pas sur les photos « avant »). */
@@ -1289,10 +1290,6 @@ ul, ol {
 
   .property-detail__diagnostics {
     grid-template-columns: 1fr;
-  }
-
-  .property-detail__gallery-main {
-    height: 260px;
   }
 
   .property-price-card__price {

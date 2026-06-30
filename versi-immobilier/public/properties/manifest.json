@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-22",
+  "generated_at": "2026-06-23",
   "properties": {
     "muguets-lot-1-rdc": {
       "photos": [
@@ -46,32 +46,12 @@
         {
           "url": "/properties/muguets-lot-1-rdc/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Façade - 10 rue des Muguets",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 4,
-          "size_bytes": 190613
-        },
-        {
-          "url": "/properties/muguets-lot-1-rdc/photo-06.jpeg",
-          "filename": "photo-06.jpeg",
           "alt": "Place de parking privative",
           "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
-          "sort_order": 5,
+          "sort_order": 4,
           "size_bytes": 314302
-        },
-        {
-          "url": "/properties/muguets-lot-1-rdc/avant-01.jpeg",
-          "filename": "avant-01.jpeg",
-          "alt": "Avant - bureaux d’origine",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 6,
-          "size_bytes": 12616
         }
       ]
     },
@@ -120,32 +100,12 @@
         {
           "url": "/properties/muguets-lot-2-t3/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Façade - 10 rue des Muguets",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 4,
-          "size_bytes": 190613
-        },
-        {
-          "url": "/properties/muguets-lot-2-t3/photo-06.jpeg",
-          "filename": "photo-06.jpeg",
           "alt": "Place de parking privative",
           "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
-          "sort_order": 5,
+          "sort_order": 4,
           "size_bytes": 314302
-        },
-        {
-          "url": "/properties/muguets-lot-2-t3/avant-01.jpeg",
-          "filename": "avant-01.jpeg",
-          "alt": "Avant - plateau de bureaux",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 6,
-          "size_bytes": 29865
         }
       ]
     },
@@ -154,7 +114,7 @@
         {
           "url": "/properties/muguets-lot-3-duplex/photo-01.jpeg",
           "filename": "photo-01.jpeg",
-          "alt": "Séjour sous plafond cathédrale et escalier",
+          "alt": "Séjour sous plafond cathédrale",
           "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
@@ -194,32 +154,12 @@
         {
           "url": "/properties/muguets-lot-3-duplex/photo-05.jpeg",
           "filename": "photo-05.jpeg",
-          "alt": "Façade - 10 rue des Muguets",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "apres",
-          "sort_order": 4,
-          "size_bytes": 190613
-        },
-        {
-          "url": "/properties/muguets-lot-3-duplex/photo-06.jpeg",
-          "filename": "photo-06.jpeg",
           "alt": "Place de parking privative",
           "render": true,
           "mime_type": "image/jpeg",
           "category": "apres",
-          "sort_order": 5,
+          "sort_order": 4,
           "size_bytes": 314302
-        },
-        {
-          "url": "/properties/muguets-lot-3-duplex/avant-01.jpeg",
-          "filename": "avant-01.jpeg",
-          "alt": "Avant - plateau brut",
-          "render": false,
-          "mime_type": "image/jpeg",
-          "category": "avant",
-          "sort_order": 6,
-          "size_bytes": 124503
         }
       ]
     }
